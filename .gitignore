@@ -1,0 +1,7 @@
+.cache
+debian-tools
+os-image*
+
+mkosi.crt
+mkosi.der
+mkosi.key
