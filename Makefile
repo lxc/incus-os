@@ -3,7 +3,7 @@ default: build
 
 .PHONE: clean
 clean:
-	rm -Rf .cache/
+	sudo -E rm -Rf .cache/
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: build
