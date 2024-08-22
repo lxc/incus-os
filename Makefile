@@ -9,6 +9,7 @@ clean:
 .PHONY: build
 build:
 	rm -f os-image*
+	-mkosi genkey
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 
 .PHONY: test
