@@ -1,6 +1,10 @@
 .PHONY: default
 default: build
 
+ifeq (, $(shell which mkosi))
+$(error "mkosi couldn't be found, please install it and try again")
+endif
+
 .PHONE: clean
 clean:
 	sudo -E rm -Rf .cache/
