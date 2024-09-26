@@ -1,6 +1,6 @@
 .cache
 debian-tools
-os-image*
+mkosi.output
 
 mkosi.crt
 mkosi.der
