@@ -7,13 +7,13 @@ endif
 
 .PHONE: clean
 clean:
-	sudo -E rm -Rf .cache/
+	sudo -E rm -Rf .cache/ mkosi.output/
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: build
 build:
 	-mkosi genkey
-	sudo rm -Rf mkosi.output
+	sudo rm -Rf mkosi.output/base* mkosi.output/incus* mkosi.output/image*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 
 .PHONY: test
@@ -21,7 +21,7 @@ test:
 	incus delete -f test-incus-os || true
 	incus image delete incus-os || true
 
-	qemu-img convert -f raw -O qcow2 os-image.raw os-image.qcow2
+	qemu-img convert -f raw -O qcow2 mkosi.output/image.raw os-image.qcow2
 	incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 	rm os-image.qcow2
 
