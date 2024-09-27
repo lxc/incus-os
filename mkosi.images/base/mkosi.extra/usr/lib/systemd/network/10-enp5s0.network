@@ -1,0 +1,11 @@
+[Match]
+Name=enp5s0
+
+[Network]
+DHCP=ipv4
+LinkLocalAddressing=ipv6
+
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
