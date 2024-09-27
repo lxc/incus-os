@@ -12,7 +12,7 @@ cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-daily.sources
 Enabled: yes
 Types: deb
 URIs: https://pkgs.zabbly.com/incus/daily
-Suites: bookworm
+Suites: noble
 Components: main
 Architectures: amd64
 Signed-By: /etc/apt/keyrings/zabbly.asc
