@@ -5,7 +5,7 @@ ifeq (, $(shell which mkosi))
 $(error "mkosi couldn't be found, please install it and try again")
 endif
 
-.PHONE: clean
+.PHONY: clean
 clean:
 	sudo -E rm -Rf .cache/ mkosi.output/
 	sudo -E $(shell command -v mkosi) clean
