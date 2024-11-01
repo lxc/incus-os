@@ -15,6 +15,7 @@ build:
 	-mkosi genkey
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus* mkosi.output/image*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
+	sudo chown $(shell id -u):$(shell id -g) mkosi.output
 
 .PHONY: test
 test:
@@ -31,3 +32,19 @@ test:
 		-c limits.memory=8GiB
 	incus config device add test-incus-os vtpm tpm
 	incus start test-incus-os --console
+
+.PHONY: test-extensions
+test-extensions:
+	cp mkosi.output/debug.raw mkosi.output/debug.raw.unsigned
+	cp mkosi.output/incus.raw mkosi.output/incus.raw.unsigned
+	/usr/sbin/sgdisk -d=3 mkosi.output/debug.raw.unsigned
+	/usr/sbin/sgdisk -d=3 mkosi.output/incus.raw.unsigned
+	incus exec test-incus-os -- mkdir -p /var/lib/extensions
+	incus exec test-incus-os -- systemd-sysext list
+	incus file push mkosi.output/debug.raw.unsigned test-incus-os/var/lib/extensions/debug.raw
+	incus file push mkosi.output/incus.raw.unsigned test-incus-os/var/lib/extensions/incus.raw
+	incus exec test-incus-os -- systemd-sysext list
+	incus exec test-incus-os -- systemd-sysext merge
+	incus exec test-incus-os -- systemd-sysusers
+	incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus-user incus-user.socket incus incus.socket
+	incus exec test-incus-os -- incus admin init --auto
