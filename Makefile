@@ -13,7 +13,7 @@ clean:
 .PHONY: build
 build:
 	-mkosi genkey
-	sudo rm -Rf mkosi.output/base* mkosi.output/incus* mkosi.output/image*
+	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus* mkosi.output/image*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 
 .PHONY: test
