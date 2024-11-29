@@ -13,7 +13,7 @@ clean:
 .PHONY: build
 build:
 	-mkosi genkey
-	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus* mkosi.output/image*
+	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
 
@@ -22,14 +22,15 @@ test:
 	incus delete -f test-incus-os || true
 	incus image delete incus-os || true
 
-	qemu-img convert -f raw -O qcow2 mkosi.output/image.raw os-image.qcow2
+	qemu-img convert -f raw -O qcow2 $(shell ls mkosi.output/IncusOS_*.raw | sort | tail -1) os-image.qcow2
 	incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 	rm os-image.qcow2
 
 	incus init --vm incus-os test-incus-os \
 		-c security.secureboot=false \
 		-c limits.cpu=4 \
-		-c limits.memory=8GiB
+		-c limits.memory=8GiB \
+		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
 	incus start test-incus-os --console
 
