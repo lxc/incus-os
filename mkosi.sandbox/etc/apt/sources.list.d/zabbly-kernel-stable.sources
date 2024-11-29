@@ -1,0 +1,7 @@
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/kernel/stable
+Suites: bookworm
+Components: main zfs
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/zabbly.asc
