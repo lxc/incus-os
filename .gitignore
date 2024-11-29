@@ -1,6 +1,7 @@
 .cache
 debian-tools
 mkosi.output
+.mkosi-private
 
 mkosi.crt
 mkosi.der
