@@ -1,0 +1,19 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/updates/
+MatchPattern=%M_@v.efi
+
+[Target]
+Type=regular-file
+Path=/EFI/Linux
+PathRelativeTo=boot
+MatchPattern=%M_@v+@l-@d.efi \
+             %M_@v+@l.efi \
+             %M_@v.efi
+Mode=0444
+TriesLeft=3
+TriesDone=0
+InstancesMax=2

@@ -1,0 +1,15 @@
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=regular-file
+Path=/var/lib/updates/
+MatchPattern=%M_@v.usr-%a-verity-sig.@u.raw
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=%M_@v_verity_sig
+MatchPartitionType=usr-verity-sig
+PartitionFlags=0
+ReadOnly=1
