@@ -24,7 +24,7 @@ test:
 	incus delete -f test-incus-os || true
 	incus image delete incus-os || true
 
-	qemu-img convert -f raw -O qcow2 $(shell ls mkosi.output/IncusOS_*.raw | sort | tail -1) os-image.qcow2
+	qemu-img convert -f raw -O qcow2 $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
 	incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 	rm os-image.qcow2
 
@@ -40,16 +40,24 @@ test:
 
 .PHONY: test-extensions
 test-extensions:
-	cp mkosi.output/debug.raw mkosi.output/debug.raw.unsigned
-	cp mkosi.output/incus.raw mkosi.output/incus.raw.unsigned
-	/usr/sbin/sgdisk -d=3 mkosi.output/debug.raw.unsigned
-	/usr/sbin/sgdisk -d=3 mkosi.output/incus.raw.unsigned
 	incus exec test-incus-os -- mkdir -p /var/lib/extensions
 	incus exec test-incus-os -- systemd-sysext list
-	incus file push mkosi.output/debug.raw.unsigned test-incus-os/var/lib/extensions/debug.raw
-	incus file push mkosi.output/incus.raw.unsigned test-incus-os/var/lib/extensions/incus.raw
+	incus file push mkosi.output/debug.raw test-incus-os/var/lib/extensions/
+	incus file push mkosi.output/incus.raw test-incus-os/var/lib/extensions/
 	incus exec test-incus-os -- systemd-sysext list
 	incus exec test-incus-os -- systemd-sysext merge
 	incus exec test-incus-os -- systemd-sysusers
 	incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus-user incus-user.socket incus incus.socket
 	incus exec test-incus-os -- incus admin init --auto
+
+.PHONY: test-update
+test-update:
+	incus file create test-incus-os/var/lib/updates/ --type=directory
+	incus file push $(shell ls mkosi.output/IncusOS_*.efi | sort | tail -1) test-incus-os/var/lib/updates/
+	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) test-incus-os/var/lib/updates/
+	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) test-incus-os/var/lib/updates/
+	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) test-incus-os/var/lib/updates/
+	incus file push mkosi.sysupdate/* test-incus-os/var/lib/updates/
+	incus exec test-incus-os -- /usr/lib/systemd/systemd-sysupdate --definitions=/var/lib/updates/
+	incus exec test-incus-os -- /usr/lib/systemd/systemd-sysupdate --definitions=/var/lib/updates/ update
+	incus exec test-incus-os -- systemctl reboot
