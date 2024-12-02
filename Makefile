@@ -35,6 +35,8 @@ test:
 		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
 	incus start test-incus-os --console
+	sleep 3
+	incus console test-incus-os
 
 .PHONY: test-extensions
 test-extensions:
