@@ -13,7 +13,8 @@ clean:
 .PHONY: build
 build:
 	-mkosi genkey
-	openssl x509 -in mkosi.crt -out mkosi.der -outform DER
+	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
+	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output

@@ -4,5 +4,6 @@ mkosi.output
 .mkosi-private
 
 mkosi.crt
-mkosi.der
 mkosi.key
+
+mkosi.images/base/mkosi.extra/boot/EFI/
