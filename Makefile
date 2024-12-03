@@ -47,7 +47,7 @@ test-extensions:
 	incus exec test-incus-os -- systemd-sysext list
 	incus exec test-incus-os -- systemd-sysext merge
 	incus exec test-incus-os -- systemd-sysusers
-	incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus-user incus-user.socket incus incus.socket
+	incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus incus.socket
 	incus exec test-incus-os -- incus admin init --auto
 
 .PHONY: test-update
