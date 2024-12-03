@@ -57,6 +57,4 @@ test-update:
 	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) test-incus-os/var/lib/updates/
 	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) test-incus-os/var/lib/updates/
 	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) test-incus-os/var/lib/updates/
-	incus exec test-incus-os -- /usr/lib/systemd/systemd-sysupdate
-	incus exec test-incus-os -- /usr/lib/systemd/systemd-sysupdate update
-	incus exec test-incus-os -- systemctl reboot
+	incus exec test-incus-os -- unshare -m -- sh -c "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate update && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate reboot"
