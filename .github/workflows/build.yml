@@ -76,6 +76,11 @@ jobs:
             gzip -9 "${i}"
           done
 
+          rename \
+            -E "s/usr-x86-64-verity-sig\..*/usr-x86-64-verity-sig.raw.gz/g" \
+            -E "s/usr-x86-64-verity\..*/usr-x86-64-verity.raw.gz/g" \
+            -E "s/usr-x86-64\..*/usr-x86-64.raw.gz/g" -- *
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
