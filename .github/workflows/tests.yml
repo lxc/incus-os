@@ -15,47 +15,20 @@ jobs:
       - self-hosted
       - cpu-4
       - mem-4G
-      - disk-50G
+      - disk-100G
       - arch-amd64
       - image-debian-12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          detached: true
-
-      - name: Performance tuning
+      - name: Install dependencies
         run: |
-          set -eux
-          # optimize ext4 FSes for performance, not reliability
-          for fs in $(findmnt --noheading --type ext4 --list --uniq | awk '{print $1}'); do
-            # nombcache and data=writeback cannot be changed on remount
-            sudo mount -o remount,noatime,barrier=0,commit=6000 "${fs}" || true
-          done
-
-          # disable dpkg from calling sync()
-          echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
-
-      - name: Reclaim some space
-        run: |
-          set -eux
-
-          sudo apt-get autopurge --yes snapd moby-containerd docker
-          sudo ip link delete docker0
-          sudo nft flush ruleset
-
-          # This was inspired from https://github.com/easimon/maximize-build-space
-          df -h /
-          # dotnet
-          sudo rm -rf /usr/share/dotnet
-          # android
-          sudo rm -rf /usr/local/lib/android
-          # haskell
-          sudo rm -rf /opt/ghc
-          df -h /
+          sudo apt-get install --yes \
+            debian-archive-keyring \
+            make \
+            pipx \
+            qemu-utils
 
       - name: Setup Incus
         run: |
@@ -67,14 +40,9 @@ jobs:
         run: |
           pipx install git+https://github.com/systemd/mkosi.git
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get install --yes \
-            debian-archive-keyring \
-            qemu-utils
-
       - name: Build initial image
         run: |
+          export PATH=${PATH}:/root/.local/bin
           make
 
       - name: Start Incus OS
@@ -92,7 +60,7 @@ jobs:
 
           while :; do
             sleep 3
-            incus exec test-incus-os -- /usr/bin/true && break
+            incus exec test-incus-os -- /usr/bin/true >/dev/null 2>&1 && break
           done
 
           incus list
