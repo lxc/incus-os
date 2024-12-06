@@ -53,7 +53,9 @@ jobs:
           ) > mkosi.version
 
           echo "${{ secrets.SB_CERT }}" > mkosi.crt
+          chmod 644 mkosi.crt
           echo "${{ secrets.SB_KEY }}" > mkosi.key
+          chmod 600 mkosi.key
 
           make
 
