@@ -82,3 +82,4 @@ jobs:
           file: upload/*
           overwrite: true
           file_glob: true
+          release_name: ${{ github.ref_name }}
