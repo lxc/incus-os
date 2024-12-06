@@ -1,3 +1,3 @@
 #!/bin/sh
 set -e
-date +%Y%m%d%H%M
+date -u +%Y%m%d%H%M
