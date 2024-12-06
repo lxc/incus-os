@@ -1,0 +1,92 @@
+name: Tests
+on:
+  - push
+  - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  end-to-end:
+    name: End to end testing
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+
+      - name: Performance tuning
+        run: |
+          set -eux
+          # optimize ext4 FSes for performance, not reliability
+          for fs in $(findmnt --noheading --type ext4 --list --uniq | awk '{print $1}'); do
+            # nombcache and data=writeback cannot be changed on remount
+            sudo mount -o remount,noatime,barrier=0,commit=6000 "${fs}" || true
+          done
+
+          # disable dpkg from calling sync()
+          echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
+
+      - name: Reclaim some space
+        run: |
+          set -eux
+
+          sudo apt-get autopurge --yes snapd moby-containerd docker
+          sudo ip link delete docker0
+          sudo nft flush ruleset
+
+          # This was inspired from https://github.com/easimon/maximize-build-space
+          df -h /
+          # dotnet
+          sudo rm -rf /usr/share/dotnet
+          # android
+          sudo rm -rf /usr/local/lib/android
+          # haskell
+          sudo rm -rf /opt/ghc
+          df -h /
+
+      - name: Setup Incus
+        run: |
+          curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
+          sudo chmod 666 /var/lib/incus/unix.socket
+          incus admin init --auto
+
+      - name: Setup mkosi
+        run: |
+          pipx install git+https://github.com/systemd/mkosi.git
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install --yes \
+            debian-archive-keyring \
+            qemu-utils
+
+      - name: Build initial image
+        run: |
+          make
+
+      - name: Start Incus OS
+        run: |
+          qemu-img convert -f raw -O qcow2 $(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
+          incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
+
+          incus init --vm incus-os test-incus-os \
+            -c security.secureboot=false \
+            -c limits.cpu=4 \
+            -c limits.memory=8GiB \
+            -d root,size=50GiB
+          incus config device add test-incus-os vtpm tpm
+          incus start test-incus-os
+
+          while :; do
+            sleep 3
+            incus exec test-incus-os -- /usr/bin/true && break
+          done
+
+          incus list
