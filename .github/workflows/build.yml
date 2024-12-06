@@ -42,17 +42,18 @@ jobs:
           pipx install git+https://github.com/systemd/mkosi.git
 
       - name: Build the image
-        env:
-          GITHUB_TAG: ${{ github.ref_name }}
         run: |
           export PATH="${PATH}:/root/.local/bin"
 
           (
             cat << EOF
           #!/bin/sh
-          echo ${GITHUB_TAG}
+          echo ${{ github.ref_name }}
           EOF
           ) > mkosi.version
+
+          echo "${{ secrets.SB_CERT }}" > mkosi.crt
+          echo "${{ secrets.SB_KEY }}" > mkosi.key
 
           make
 
