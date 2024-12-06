@@ -43,7 +43,7 @@ jobs:
 
       - name: Build initial image
         run: |
-          export PATH=${PATH}:/root/.local/bin
+          export PATH="${PATH}:/root/.local/bin"
           make
 
       - name: Prepare the files
@@ -53,11 +53,15 @@ jobs:
           mv mkosi.output/debug.raw upload/
           mv mkosi.output/incus.raw upload/
 
-          mv $(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) upload/
-          mv $(ls mkosi.output/IncusOS_*.efi | sort | tail -1) upload/
-          mv $(ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) upload/
-          mv $(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) upload/
-          mv $(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) upload/
+          mv "$(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1)" upload/
+          mv "$(ls mkosi.output/IncusOS_*.efi | sort | tail -1)" upload/
+          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1)" upload/
+          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1)" upload/
+          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1)" upload/
+
+          for i in upload/*; do
+            gzip -9 "${i}"
+          done
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
