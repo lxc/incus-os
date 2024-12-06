@@ -50,7 +50,7 @@ jobs:
           qemu-img convert -f raw -O qcow2 $(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
           incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 
-          incus init --vm incus-os test-incus-os \
+          incus create --quiet --vm incus-os test-incus-os \
             -c security.secureboot=false \
             -c limits.cpu=2 \
             -c limits.memory=2GiB \
@@ -64,3 +64,49 @@ jobs:
           done
 
           incus list
+
+      - name: Load the extensions
+        run: |
+          incus exec test-incus-os -- mkdir -p /var/lib/extensions
+          incus file push --quiet mkosi.output/debug.raw test-incus-os/var/lib/extensions/
+          incus file push --quiet mkosi.output/incus.raw test-incus-os/var/lib/extensions/
+          incus exec test-incus-os -- systemd-sysext list
+          incus exec test-incus-os -- systemd-sysext merge
+
+      - name: Initialize Incus
+        run: |
+          incus exec test-incus-os -- systemd-sysusers
+          incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus incus.socket
+          incus exec test-incus-os -- incus admin init --auto
+
+      - name: Test Incus
+        run: |
+          incus exec test-incus-os -- incus launch --quiet images:debian/12 c1
+          incus exec test-incus-os -- incus launch --quiet images:debian/12 v1 --vm
+
+          incus exec test-incus-os -- sleep 30s
+          incus exec test-incus-os -- incus list
+
+      - name: Build a newer version of the image
+        run: |
+          export PATH=${PATH}:/root/.local/bin
+          make
+
+      - name: Apply the update
+        run: |
+          incus file pull --quiet test-incus-os/usr/lib/os-release -
+
+          incus file create test-incus-os/var/lib/updates/ --type=directory
+          incus file push --quiet $(ls mkosi.output/IncusOS_*.efi | sort | tail -1) test-incus-os/var/lib/updates/
+          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) test-incus-os/var/lib/updates/
+          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) test-incus-os/var/lib/updates/
+          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) test-incus-os/var/lib/updates/
+          incus exec test-incus-os -- systemctl start boot.mount
+          incus exec test-incus-os -- unshare -m -- sh -c "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate update && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate reboot"
+
+          while :; do
+            sleep 3
+            incus exec test-incus-os -- /usr/bin/true >/dev/null 2>&1 && break
+          done
+
+          incus file pull --quiet test-incus-os/usr/lib/os-release -
