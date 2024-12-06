@@ -41,9 +41,19 @@ jobs:
         run: |
           pipx install git+https://github.com/systemd/mkosi.git
 
-      - name: Build initial image
+      - name: Build the image
+        env:
+          GITHUB_TAG: ${{ github.ref_name }}
         run: |
           export PATH="${PATH}:/root/.local/bin"
+
+          (
+            cat << EOF
+          #!/bin/sh
+          echo ${GITHUB_TAG}
+          EOF
+          ) > mkosi.version
+
           make
 
       - name: Prepare the files
