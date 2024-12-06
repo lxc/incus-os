@@ -11,7 +11,13 @@ jobs:
     name: End to end testing
     strategy:
       fail-fast: false
-    runs-on: ubuntu-24.04
+    runs-on:
+      - self-hosted
+      - cpu-4
+      - mem-4G
+      - disk-50G
+      - arch-amd64
+      - image-debian-12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,8 +84,8 @@ jobs:
 
           incus init --vm incus-os test-incus-os \
             -c security.secureboot=false \
-            -c limits.cpu=4 \
-            -c limits.memory=8GiB \
+            -c limits.cpu=2 \
+            -c limits.memory=2GiB \
             -d root,size=50GiB
           incus config device add test-incus-os vtpm tpm
           incus start test-incus-os
