@@ -1,0 +1,54 @@
+name: Build
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  image-build:
+    name: Image build
+    strategy:
+      fail-fast: false
+    runs-on:
+      - self-hosted
+      - cpu-4
+      - mem-4G
+      - disk-100G
+      - arch-amd64
+      - image-debian-12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install --yes \
+            debian-archive-keyring \
+            make \
+            pipx \
+            qemu-utils
+
+      - name: Setup Incus
+        run: |
+          curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
+          sudo chmod 666 /var/lib/incus/unix.socket
+          incus admin init --auto
+
+      - name: Setup mkosi
+        run: |
+          pipx install git+https://github.com/systemd/mkosi.git
+
+      - name: Build initial image
+        run: |
+          export PATH=${PATH}:/root/.local/bin
+          make
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: mkosi.output/incus.raw mkosi.output/debug.raw mkosi.output/IncusOS_*.efi mkosi.output/IncusOS_usr-*
+          overwrite: true
+          file_glob: true
