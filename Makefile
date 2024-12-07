@@ -18,6 +18,7 @@ build:
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
+	rename -E "s/usr-x86-64-verity-sig\..*/usr-x86-64-verity-sig.raw.gz/g" -E "s/usr-x86-64-verity\..*/usr-x86-64-verity.raw.gz/g" -E "s/usr-x86-64\..*/usr-x86-64.raw.gz/g" -- mkosi.output/*
 
 .PHONY: test
 test:
