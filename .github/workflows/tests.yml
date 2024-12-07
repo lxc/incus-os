@@ -31,8 +31,7 @@ jobs:
             debian-archive-keyring \
             make \
             pipx \
-            qemu-utils \
-            rename
+            qemu-utils
 
       - name: Setup Incus
         run: |
