@@ -73,7 +73,8 @@ jobs:
           mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1)" upload/
           mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1)" upload/
 
-          for i in upload/*; do
+          cd upload
+          for i in *; do
             gzip -9 "${i}"
           done
 
