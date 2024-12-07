@@ -4,7 +4,7 @@ ProtectVersion=%A
 [Source]
 Type=regular-file
 Path=/var/lib/updates/
-MatchPattern=%M_@v.usr-%a.@u.raw
+MatchPattern=%M_@v.usr-%a.raw
 
 [Target]
 Type=partition
