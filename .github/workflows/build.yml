@@ -12,6 +12,7 @@ jobs:
     name: Image build
     strategy:
       fail-fast: false
+    timeout-minutes: 15
     runs-on:
       - self-hosted
       - cpu-4
