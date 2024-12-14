@@ -19,26 +19,27 @@ trap cleanup EXIT HUP INT TERM
 
 # Grab the image
 echo "=> Downloading the image"
-echo "==> Downloading Incus OS ${1}"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.efi.gz" | gzip -d > "${TEMPDIR}/efi"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.usr-x86-64.raw.gz" | gzip -d > "${TEMPDIR}/usr-x86-64.raw"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.usr-x86-64-verity.raw.gz" | gzip -d > "${TEMPDIR}/usr-x86-64-verity.raw"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.usr-x86-64-verity-sig.raw.gz" | gzip -d > "${TEMPDIR}/usr-x86-64-verity-sig.raw"
-echo "==> Downloading debug package"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/debug.raw.gz" | gzip -d > "${TEMPDIR}/debug.raw"
-echo "==> Downloading incus package"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/incus.raw.gz" | gzip -d > "${TEMPDIR}/incus.raw"
+echo "==> Getting image metadata"
+JSON_RELEASE="$(curl -sL "https://api.github.com/repos/lxc/incus-os/releases/tags/${1}")"
+ARTIFACTS="$(echo "${JSON_RELEASE}" | jq -r ".assets | .[].browser_download_url")"
+
+for URL in ${ARTIFACTS}; do
+    FILENAME="$(echo "${URL}" | sed "s#.*/##g")"
+
+    [ "${FILENAME}" = "IncusOS_${1}.raw.gz" ] && continue
+
+    echo "==> Downloading ${FILENAME}"
+    curl -sL "${URL}" | gzip -d > "${TEMPDIR}/$(echo "${FILENAME}" | sed "s/.gz$//g")"
+done
 
 # Uploading the update
 echo "=> Uploading the update"
 
 incus file create "${2}/var/lib/updates/" --type=directory
-incus file push --quiet "${TEMPDIR}/efi" "${2}/var/lib/updates/IncusOS_${1}.efi"
-incus file push --quiet "${TEMPDIR}/usr-x86-64.raw" "${2}/var/lib/updates/IncusOS_${1}.usr-x86-64.raw"
-incus file push --quiet "${TEMPDIR}/usr-x86-64-verity.raw" "${2}/var/lib/updates/IncusOS_${1}.usr-x86-64-verity.raw"
-incus file push --quiet "${TEMPDIR}/usr-x86-64-verity-sig.raw" "${2}/var/lib/updates/IncusOS_${1}.usr-x86-64-verity-sig.raw"
-incus file push --quiet "${TEMPDIR}/debug.raw" "${2}/var/lib/extensions/debug.raw"
-incus file push --quiet "${TEMPDIR}/incus.raw" "${2}/var/lib/extensions/incus.raw"
+incus file push --quiet "${TEMPDIR}/"* "${2}/var/lib/updates/"
+incus exec "${2}" -- mv /var/lib/updates/debug.raw /var/lib/extensions/
+incus exec "${2}" -- mv /var/lib/updates/incus.raw /var/lib/extensions/
+
 incus exec "${2}" -- systemctl start boot.mount
 incus exec "${2}" -- unshare -m -- sh -c "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate update && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate reboot"
 
