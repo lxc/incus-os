@@ -7,3 +7,5 @@ mkosi.crt
 mkosi.key
 
 mkosi.images/base/mkosi.extra/boot/EFI/
+
+incus-osd/incus-osd
