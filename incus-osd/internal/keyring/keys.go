@@ -18,7 +18,7 @@ type Key struct {
 }
 
 // GetKeys returns a list of keys in the requested keyring.
-func GetKeys(ctx context.Context, keyring string) ([]Key, error) {
+func GetKeys(_ context.Context, keyring string) ([]Key, error) {
 	keys := []Key{}
 
 	// Read the key list.

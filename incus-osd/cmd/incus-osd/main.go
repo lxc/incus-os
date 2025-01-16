@@ -19,16 +19,16 @@ import (
 )
 
 var (
-	ghOrganization   = "lxc"
-	ghRepository     = "incus-os"
-	osExtensions     = []string{"debug.raw.gz", "incus.raw.gz"}
-	osExtensionsPath = "/var/lib/extensions"
+	ghOrganization = "lxc"
+	ghRepository   = "incus-os"
+
+	incusExtensions = []string{"debug.raw.gz", "incus.raw.gz"}
 )
 
 func main() {
 	err := run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 	}
 }
 
@@ -38,6 +38,12 @@ func run() error {
 	// Prepare a logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
+	// Get current release.
+	release, err := systemd.GetCurrentRelease(ctx)
+	if err != nil {
+		return err
+	}
 
 	// Check kernel keyring.
 	slog.Info("Getting trusted system keys")
@@ -61,34 +67,95 @@ func run() error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	slog.Info("Starting up", "mode", mode, "app", "incus")
+	slog.Info("Starting up", "mode", mode, "app", "incus", "release", release)
 
-	// Fetch the system extensions.
+	// Fetch the Github release.
 	gh := github.NewClient(nil)
 
-	release, _, err := gh.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
+	ghRelease, _, err := gh.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(fmt.Sprintf("Found latest %s/%s release", ghOrganization, ghRepository), "tag", release.GetTagName())
+	slog.Info(fmt.Sprintf("Found latest %s/%s release", ghOrganization, ghRepository), "tag", ghRelease.GetTagName())
 
-	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, release.GetID(), nil)
+	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, ghRelease.GetID(), nil)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(osExtensionsPath, 0700)
+	// Download OS updates.
+	err = os.MkdirAll(systemd.SystemUpdatesPath, 0o700)
+	if err != nil {
+		return err
+	}
+
+	if release != ghRelease.GetName() {
+		for _, asset := range assets {
+			// Skip system extensions.
+			if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
+				continue
+			}
+
+			fields := strings.SplitN(asset.GetName(), ".", 2)
+			if len(fields) != 2 {
+				continue
+			}
+
+			// Skip the full image.
+			if fields[1] == "raw.gz" {
+				continue
+			}
+
+			slog.Info("Downloading OS update", "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
+
+			rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, ghOrganization, ghRepository, asset.GetID(), http.DefaultClient)
+			if err != nil {
+				return err
+			}
+
+			defer rc.Close()
+
+			body, err := gzip.NewReader(rc)
+			if err != nil {
+				return err
+			}
+
+			defer body.Close()
+
+			fd, err := os.Create(filepath.Join(systemd.SystemUpdatesPath, strings.TrimSuffix(asset.GetName(), ".gz")))
+			if err != nil {
+				return err
+			}
+
+			defer fd.Close()
+
+			_, err = io.Copy(fd, body)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = systemd.ApplySystemUpdate(ctx, ghRelease.GetName(), true)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Download system extensions.
+	err = os.MkdirAll(systemd.SystemExtensionsPath, 0o700)
 	if err != nil {
 		return err
 	}
 
 	for _, asset := range assets {
-		if !slices.Contains(osExtensions, asset.GetName()) {
+		if !slices.Contains(incusExtensions, asset.GetName()) {
 			continue
 		}
 
-		slog.Info("Downloading OS extension", "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
+		slog.Info("Downloading system extension", "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
 
 		rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, ghOrganization, ghRepository, asset.GetID(), http.DefaultClient)
 		if err != nil {
@@ -104,7 +171,7 @@ func run() error {
 
 		defer body.Close()
 
-		fd, err := os.Create(filepath.Join(osExtensionsPath, strings.TrimSuffix(asset.GetName(), ".gz")))
+		fd, err := os.Create(filepath.Join(systemd.SystemExtensionsPath, strings.TrimSuffix(asset.GetName(), ".gz")))
 		if err != nil {
 			return err
 		}
