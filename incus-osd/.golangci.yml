@@ -1,0 +1,40 @@
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - linters:
+        - errcheck
+      source: "^\\s*defer\\s+"
+
+linters:
+  enable-all: true
+  disable:
+    - depguard
+    - exportloopref
+    - gochecknoglobals
+    - lll
+    - mnd
+    - varnamelen
+    - wrapcheck
+    - wsl
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/lxc/incus-os/incus-osd)
+
+  goimports:
+    local-prefixes: github.com/lxc/incus-os/incus-osd
+
+  revive:
+    enable-all-rules: true
+    rules:
+     - name: add-constant
+       disabled: true
+     - name: flag-parameter
+       disabled: true
+     - name: line-length-limit
+       disabled: true
+     - name: max-public-structs
+       disabled: true
