@@ -41,7 +41,7 @@ jobs:
 
       - name: Setup mkosi
         run: |
-          pipx install git+https://github.com/systemd/mkosi.git
+          pipx install git+https://github.com/DaanDeMeyer/mkosi.git@overlay
 
       - name: Build initial image
         run: |
