@@ -40,8 +40,7 @@ jobs:
 
       - name: Setup mkosi
         run: |
-          # Pin a working mkosi
-          pipx install git+https://github.com/systemd/mkosi.git@d18157cce8c97508ab0781bdefd313f69eabcbfb
+          pipx install git+https://github.com/systemd/mkosi.git@v25.3
 
       - name: Build the image
         run: |
