@@ -1,3 +1,4 @@
+// Package main is used for the incus-osd daemon.
 package main
 
 import (
