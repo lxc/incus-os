@@ -6,6 +6,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
 
+// StartUnit instructs systemd to start the provided unit(s).
 func StartUnit(ctx context.Context, units ...string) error {
 	args := []string{"start"}
 	args = append(args, units...)
@@ -18,6 +19,7 @@ func StartUnit(ctx context.Context, units ...string) error {
 	return nil
 }
 
+// EnableUnit instructs systemd to enable (and optionally start) the provided unit(s).
 func EnableUnit(ctx context.Context, now bool, units ...string) error {
 	args := []string{"enable"}
 
