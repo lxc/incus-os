@@ -4,6 +4,7 @@ package main
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -149,9 +150,15 @@ func run() error {
 
 			defer fd.Close()
 
-			_, err = io.Copy(fd, body)
-			if err != nil {
-				return err
+			for {
+				_, err = io.CopyN(fd, body, 4*1024*1024)
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+
+					return err
+				}
 			}
 		}
 
@@ -204,9 +211,15 @@ func run() error {
 
 		defer fd.Close()
 
-		_, err = io.Copy(fd, body)
-		if err != nil {
-			return err
+		for {
+			_, err = io.CopyN(fd, body, 4*1024*1024)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return err
+			}
 		}
 
 		// Record newly installed application.
