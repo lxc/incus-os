@@ -10,6 +10,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
 
+// ErrReleaseNotFound is returned when the os-release file can't be located.
 var ErrReleaseNotFound = errors.New("couldn't determine current OS release")
 
 // GetCurrentRelease returns the current IMAGE_VERSION from the os-release file.
@@ -40,6 +41,7 @@ func GetCurrentRelease(_ context.Context) (string, error) {
 	return "", ErrReleaseNotFound
 }
 
+// ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
 func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
 	// WORKAROUND: Start the boot.mount unit so /boot autofs is active before we create a new mount namespace.
 	err := StartUnit(ctx, "boot.mount")
