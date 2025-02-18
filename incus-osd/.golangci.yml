@@ -10,11 +10,15 @@ linters:
   disable:
     - cyclop # handled by revive
     - depguard
+    - err113
+    - exhaustruct
     - funlen # handled by revive
     - gochecknoglobals
+    - ireturn
     - lll
     - mnd
     - tenv
+    - unparam
     - varnamelen
     - wrapcheck
     - wsl
