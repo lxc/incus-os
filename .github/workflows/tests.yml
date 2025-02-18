@@ -9,6 +9,57 @@ permissions:
   contents: read
 
 jobs:
+  code-tests:
+    name: Code
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Differential ShellCheck requires full git history
+          fetch-depth: 0
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+
+      - id: ShellCheck
+        name: Differential ShellCheck
+        uses: redhat-plumbers-in-action/differential-shellcheck@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event_name == 'pull_request'
+
+      - name: Upload artifact with ShellCheck defects in SARIF format
+        uses: actions/upload-artifact@v4
+        with:
+          name: Differential ShellCheck SARIF
+          path: ${{ steps.ShellCheck.outputs.sarif }}
+        if: github.event_name == 'pull_request'
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+
+      - name: Check compatible min Go version
+        run: |
+          cd incus-osd
+          go mod tidy
+
+      - name: Download go dependencies
+        run: |
+          cd incus-osd
+          go mod download
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: incus-osd
+
+      - name: Run test build
+        run: |
+          cd incus-osd
+          go build -v -x ./cmd/incus-osd
+
   end-to-end:
     name: End to end testing
     strategy:

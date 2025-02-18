@@ -8,8 +8,10 @@ issues:
 linters:
   enable-all: true
   disable:
+    - cyclop # handled by revive
     - depguard
     - exportloopref
+    - funlen # handled by revive
     - gochecknoglobals
     - lll
     - mnd
@@ -32,8 +34,14 @@ linters-settings:
     rules:
      - name: add-constant
        disabled: true
+     - name: cognitive-complexity
+       arguments: [ 20 ]
+     - name: cyclomatic
+       arguments: [ 20 ]
      - name: flag-parameter
        disabled: true
+     - name: function-length
+       arguments: [ 75, 100 ]
      - name: line-length-limit
        disabled: true
      - name: max-public-structs
