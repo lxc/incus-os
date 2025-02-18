@@ -30,6 +30,168 @@ var (
 	incusExtensions = []string{"debug.raw.gz", "incus.raw.gz"}
 )
 
+func githubDownloadAsset(ctx context.Context, ghOrganization string, ghRepository string, assetID int64, target string) error {
+	// Get a new Github client.
+	gh := github.NewClient(nil)
+
+	// Get a reader for the release asset.
+	rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, ghOrganization, ghRepository, assetID, http.DefaultClient)
+	if err != nil {
+		return err
+	}
+
+	defer rc.Close()
+
+	// Setup a gzip reader to decompress during streaming.
+	body, err := gzip.NewReader(rc)
+	if err != nil {
+		return err
+	}
+
+	defer body.Close()
+
+	// Create the target path.
+	// #nosec G304
+	fd, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+
+	defer fd.Close()
+
+	// Read from the decompressor in chunks to avoid excessive memory consumption.
+	for {
+		_, err = io.CopyN(fd, body, 4*1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func updateOS(ctx context.Context, runningRelease string) error {
+	// Get a new Github client.
+	gh := github.NewClient(nil)
+
+	// Get the latest release.
+	ghRelease, _, err := gh.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
+	if err != nil {
+		return err
+	}
+
+	slog.Info(fmt.Sprintf("Found latest %s/%s release", ghOrganization, ghRepository), "tag", ghRelease.GetTagName())
+
+	// Get the list of files for the release.
+	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, ghRelease.GetID(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Create the target path.
+	err = os.MkdirAll(systemd.SystemUpdatesPath, 0o700)
+	if err != nil {
+		return err
+	}
+
+	// Check if already up to date.
+	if runningRelease == ghRelease.GetName() {
+		slog.Info("System is already running latest OS release", "release", runningRelease)
+
+		return nil
+	}
+
+	for _, asset := range assets {
+		// Only select OS files.
+		if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
+			continue
+		}
+
+		// Parse the file names.
+		fields := strings.SplitN(asset.GetName(), ".", 2)
+		if len(fields) != 2 {
+			continue
+		}
+
+		// Skip the full image.
+		if fields[1] == "raw.gz" {
+			continue
+		}
+
+		// Download the actual update.
+		slog.Info("Downloading OS update", "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
+		err = githubDownloadAsset(ctx, ghOrganization, ghRepository, asset.GetID(), filepath.Join(systemd.SystemUpdatesPath, strings.TrimSuffix(asset.GetName(), ".gz")))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the update and reboot.
+	err = systemd.ApplySystemUpdate(ctx, ghRelease.GetName(), true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateApplications(ctx context.Context, s *state.State) error {
+	// Get a new Github client.
+	gh := github.NewClient(nil)
+
+	// Get the latest release.
+	ghRelease, _, err := gh.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
+	if err != nil {
+		return err
+	}
+
+	slog.Info(fmt.Sprintf("Found latest %s/%s release", ghOrganization, ghRepository), "tag", ghRelease.GetTagName())
+
+	// Get the list of files for the release.
+	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, ghRelease.GetID(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Create the target path.
+	err = os.MkdirAll(systemd.SystemExtensionsPath, 0o700)
+	if err != nil {
+		return err
+	}
+
+	for _, asset := range assets {
+		// Only select the desired applications.
+		if !slices.Contains(incusExtensions, asset.GetName()) {
+			continue
+		}
+
+		appName := strings.TrimSuffix(asset.GetName(), ".raw.gz")
+
+		// Check if already up to date.
+		if s.Applications[appName].Version == ghRelease.GetName() {
+			slog.Info("System is already running latest application release", "application", appName, "release", ghRelease.GetName())
+
+			continue
+		}
+
+		// Download the application.
+		slog.Info("Downloading system extension", "application", appName, "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
+		err = githubDownloadAsset(ctx, ghOrganization, ghRepository, asset.GetID(), filepath.Join(systemd.SystemExtensionsPath, strings.TrimSuffix(asset.GetName(), ".gz")))
+		if err != nil {
+			return err
+		}
+
+		// Record newly installed application.
+		s.Applications[appName] = state.Application{Version: ghRelease.GetName()}
+	}
+
+	return nil
+}
+
 func main() {
 	err := run()
 	if err != nil {
@@ -58,9 +220,9 @@ func run() error {
 
 	defer func() { _ = s.Save(context.Background()) }()
 
-	// Get current release.
+	// Get running release.
 	slog.Info("Getting local OS information")
-	release, err := systemd.GetCurrentRelease(ctx)
+	runningRelease, err := systemd.GetCurrentRelease(ctx)
 	if err != nil {
 		return err
 	}
@@ -87,143 +249,18 @@ func run() error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	slog.Info("Starting up", "mode", mode, "app", "incus", "release", release)
+	slog.Info("Starting up", "mode", mode, "app", "incus", "release", runningRelease)
 
-	// Fetch the Github release.
-	gh := github.NewClient(nil)
-
-	ghRelease, _, err := gh.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
+	// Check for OS updates.
+	err = updateOS(ctx, runningRelease)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(fmt.Sprintf("Found latest %s/%s release", ghOrganization, ghRepository), "tag", ghRelease.GetTagName())
-
-	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, ghRelease.GetID(), nil)
+	// Check for application updates.
+	err = updateApplications(ctx, s)
 	if err != nil {
 		return err
-	}
-
-	// Download OS updates.
-	err = os.MkdirAll(systemd.SystemUpdatesPath, 0o700)
-	if err != nil {
-		return err
-	}
-
-	if release != ghRelease.GetName() {
-		for _, asset := range assets {
-			// Skip system extensions.
-			if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
-				continue
-			}
-
-			fields := strings.SplitN(asset.GetName(), ".", 2)
-			if len(fields) != 2 {
-				continue
-			}
-
-			// Skip the full image.
-			if fields[1] == "raw.gz" {
-				continue
-			}
-
-			slog.Info("Downloading OS update", "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
-
-			rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, ghOrganization, ghRepository, asset.GetID(), http.DefaultClient)
-			if err != nil {
-				return err
-			}
-
-			defer rc.Close()
-
-			body, err := gzip.NewReader(rc)
-			if err != nil {
-				return err
-			}
-
-			defer body.Close()
-
-			fd, err := os.Create(filepath.Join(systemd.SystemUpdatesPath, strings.TrimSuffix(asset.GetName(), ".gz")))
-			if err != nil {
-				return err
-			}
-
-			defer fd.Close()
-
-			for {
-				_, err = io.CopyN(fd, body, 4*1024*1024)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-
-					return err
-				}
-			}
-		}
-
-		err = systemd.ApplySystemUpdate(ctx, ghRelease.GetName(), true)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// Download system extensions.
-	err = os.MkdirAll(systemd.SystemExtensionsPath, 0o700)
-	if err != nil {
-		return err
-	}
-
-	for _, asset := range assets {
-		if !slices.Contains(incusExtensions, asset.GetName()) {
-			continue
-		}
-
-		appName := strings.TrimSuffix(asset.GetName(), ".raw.gz")
-
-		// Check if already up to date.
-		if s.Applications[appName].Version == ghRelease.GetName() {
-			continue
-		}
-
-		slog.Info("Downloading system extension", "application", appName, "file", asset.GetName(), "url", asset.GetBrowserDownloadURL())
-
-		rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, ghOrganization, ghRepository, asset.GetID(), http.DefaultClient)
-		if err != nil {
-			return err
-		}
-
-		defer rc.Close()
-
-		body, err := gzip.NewReader(rc)
-		if err != nil {
-			return err
-		}
-
-		defer body.Close()
-
-		fd, err := os.Create(filepath.Join(systemd.SystemExtensionsPath, strings.TrimSuffix(asset.GetName(), ".gz")))
-		if err != nil {
-			return err
-		}
-
-		defer fd.Close()
-
-		for {
-			_, err = io.CopyN(fd, body, 4*1024*1024)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return err
-			}
-		}
-
-		// Record newly installed application.
-		s.Applications[appName] = state.Application{Version: ghRelease.GetName()}
 	}
 
 	// Apply the system extensions.
