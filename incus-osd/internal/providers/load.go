@@ -3,23 +3,33 @@ package providers
 import (
 	"context"
 	"fmt"
+	"slices"
 )
 
 // Load gets a specific provider and initializes it with the provider configuration.
 func Load(ctx context.Context, name string, config map[string]string) (Provider, error) {
-	if name != "github" {
+	if !slices.Contains([]string{"github", "local"}, name) {
 		return nil, fmt.Errorf("unknown provider %q", name)
 	}
 
-	// Setup the Github provider.
-	provider := github{
-		config: config,
+	var p Provider
+
+	if name == "github" {
+		// Setup the Github provider.
+		p = &github{
+			config: config,
+		}
+	} else if name == "local" {
+		// Setup the Github provider.
+		p = &local{
+			config: config,
+		}
 	}
 
-	err := provider.load(ctx)
+	err := p.load(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &provider, nil
+	return p, nil
 }
