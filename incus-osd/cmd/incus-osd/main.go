@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -26,6 +27,11 @@ func main() {
 
 func run() error {
 	ctx := context.TODO()
+
+	// Check privileges.
+	if os.Getuid() != 0 {
+		return errors.New("incus-osd must be run as root")
+	}
 
 	// Prepare a logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
