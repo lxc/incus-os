@@ -1,13 +1,19 @@
 package providers
 
 import (
+	"compress/gzip"
 	"context"
 	"errors"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
 
 	ghapi "github.com/google/go-github/v68/github"
 )
-
-var errNotImplemented = errors.New("not implemented")
 
 // The Github provider.
 type github struct {
@@ -16,9 +22,14 @@ type github struct {
 	repository   string
 
 	config map[string]string
+
+	releaseLastCheck time.Time
+	releaseVersion   string
+	releaseAssets    []*ghapi.ReleaseAsset
+	releaseMu        sync.Mutex
 }
 
-func (p *github) load(_ context.Context) error {
+func (p *github) load(ctx context.Context) error {
 	// Setup the Github client.
 	p.gh = ghapi.NewClient(nil)
 
@@ -26,23 +37,116 @@ func (p *github) load(_ context.Context) error {
 	p.organization = "lxc"
 	p.repository = "incus-os"
 
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (p *github) GetOSUpdate(_ context.Context) (OSUpdate, error) {
+func (p *github) checkRelease(ctx context.Context) error {
+	// Acquire lock.
+	p.releaseMu.Lock()
+	defer p.releaseMu.Unlock()
+
+	// Only talk to Github once an hour.
+	if !p.releaseLastCheck.IsZero() && p.releaseLastCheck.Add(time.Hour).After(time.Now()) {
+		return nil
+	}
+
+	// Get the latest release.
+	release, _, err := p.gh.Repositories.GetLatestRelease(ctx, p.organization, p.repository)
+	if err != nil {
+		return err
+	}
+
+	// Get the list of files for the release.
+	assets, _, err := p.gh.Repositories.ListReleaseAssets(ctx, p.organization, p.repository, release.GetID(), nil)
+	if err != nil {
+		return err
+	}
+
+	// Record the release.
+	p.releaseLastCheck = time.Now()
+	p.releaseVersion = release.GetName()
+	p.releaseAssets = assets
+
+	return nil
+}
+
+func (p *github) downloadAsset(ctx context.Context, assetID int64, target string) error {
+	// Get a reader for the release asset.
+	rc, _, err := p.gh.Repositories.DownloadReleaseAsset(ctx, p.organization, p.repository, assetID, http.DefaultClient)
+	if err != nil {
+		return err
+	}
+
+	defer rc.Close()
+
+	// Setup a gzip reader to decompress during streaming.
+	body, err := gzip.NewReader(rc)
+	if err != nil {
+		return err
+	}
+
+	defer body.Close()
+
+	// Create the target path.
+	// #nosec G304
+	fd, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+
+	defer fd.Close()
+
+	// Read from the decompressor in chunks to avoid excessive memory consumption.
+	for {
+		_, err = io.CopyN(fd, body, 4*1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the OS update struct.
 	update := githubOSUpdate{
-		gh:      p.gh,
-		version: "unknown",
+		provider: p,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
 	}
 
 	return &update, nil
 }
 
-func (p *github) GetApplication(_ context.Context, name string) (Application, error) {
+func (p *github) GetApplication(ctx context.Context, name string) (Application, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the application struct.
 	app := githubApplication{
-		gh:      p.gh,
-		name:    name,
-		version: "unknown",
+		provider: p,
+		name:     name,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
 	}
 
 	return &app, nil
@@ -50,8 +154,9 @@ func (p *github) GetApplication(_ context.Context, name string) (Application, er
 
 // An application from the Github provider.
 type githubApplication struct {
-	gh *ghapi.Client
+	provider *github
 
+	assets  []*ghapi.ReleaseAsset
 	name    string
 	version string
 }
@@ -64,14 +169,36 @@ func (a *githubApplication) Version() string {
 	return a.version
 }
 
-func (*githubApplication) Download(_ context.Context, _ string) error {
-	return errNotImplemented
+func (a *githubApplication) Download(ctx context.Context, target string) error {
+	// Create the target path.
+	err := os.MkdirAll(target, 0o700)
+	if err != nil {
+		return err
+	}
+
+	for _, asset := range a.assets {
+		appName := strings.TrimSuffix(asset.GetName(), ".raw.gz")
+
+		// Only select the desired applications.
+		if appName != a.name {
+			continue
+		}
+
+		// Download the application.
+		err = a.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // An update from the Github provider.
 type githubOSUpdate struct {
-	gh *ghapi.Client
+	provider *github
 
+	assets  []*ghapi.ReleaseAsset
 	version string
 }
 
@@ -79,6 +206,36 @@ func (o *githubOSUpdate) Version() string {
 	return o.version
 }
 
-func (*githubOSUpdate) Download(_ context.Context, _ string) error {
-	return errNotImplemented
+func (o *githubOSUpdate) Download(ctx context.Context, target string) error {
+	// Create the target path.
+	err := os.MkdirAll(target, 0o700)
+	if err != nil {
+		return err
+	}
+
+	for _, asset := range o.assets {
+		// Only select OS files.
+		if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
+			continue
+		}
+
+		// Parse the file names.
+		fields := strings.SplitN(asset.GetName(), ".", 2)
+		if len(fields) != 2 {
+			continue
+		}
+
+		// Skip the full image.
+		if fields[1] == "raw.gz" {
+			continue
+		}
+
+		// Download the actual update.
+		err = o.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
