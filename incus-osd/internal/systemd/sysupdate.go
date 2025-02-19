@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
@@ -59,6 +60,9 @@ func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Wait 10s to allow time for the system to reboot.
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
