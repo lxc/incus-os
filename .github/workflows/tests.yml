@@ -40,6 +40,10 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
 
+      - name: Fix repository permissions
+        run: |
+          sudo chown -R runner:docker .
+
       - name: Check compatible min Go version
         run: |
           cd incus-osd
