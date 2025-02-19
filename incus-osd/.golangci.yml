@@ -14,6 +14,7 @@ linters:
     - exhaustruct
     - funlen # handled by revive
     - gochecknoglobals
+    - gocognit
     - ireturn
     - lll
     - mnd
