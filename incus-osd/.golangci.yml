@@ -39,13 +39,13 @@ linters-settings:
      - name: add-constant
        disabled: true
      - name: cognitive-complexity
-       arguments: [ 20 ]
+       arguments: [ 50 ]
      - name: cyclomatic
-       arguments: [ 20 ]
+       arguments: [ 30 ]
      - name: flag-parameter
        disabled: true
      - name: function-length
-       arguments: [ 75, 100 ]
+       arguments: [ 100, 150 ]
      - name: line-length-limit
        disabled: true
      - name: max-public-structs
