@@ -83,9 +83,21 @@ func run() error {
 	slog.Info("Starting up", "mode", mode, "app", "incus", "release", runningRelease)
 
 	// Get the provider.
-	p, err := providers.Load(ctx, "github", nil)
-	if err != nil {
-		return err
+	var p providers.Provider
+
+	switch mode {
+	case "release":
+		p, err = providers.Load(ctx, "github", nil)
+		if err != nil {
+			return err
+		}
+	case "dev":
+		p, err = providers.Load(ctx, "local", nil)
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("currently unsupported operating mode")
 	}
 
 	// Check for the latest OS update.

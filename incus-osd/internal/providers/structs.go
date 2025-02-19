@@ -23,4 +23,6 @@ type OSUpdate interface {
 type Provider interface {
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
 	GetApplication(ctx context.Context, name string) (Application, error)
+
+	load(ctx context.Context) error
 }
