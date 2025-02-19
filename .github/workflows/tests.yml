@@ -39,6 +39,8 @@ jobs:
 
       - name: Install Go
         uses: actions/setup-go@v5
+        with:
+          go-version: stable
 
       - name: Fix repository permissions
         run: |
@@ -79,6 +81,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
 
       - name: Install dependencies
         run: |
@@ -123,22 +130,29 @@ jobs:
 
           incus list
 
+      - name: Build incus-osd
+        run: |
+          cd incus-osd
+          go build -v -x ./cmd/incus-osd
+
+      - name: Prepare incus-osd environment
+        run: |
+          RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
+
+          incus exec test-incus-os -- mkdir -p /root/updates
+          echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+          incus file push incus-osd/incus-osd test-incus-os/root/
+
       - name: Load the extensions
         run: |
-          incus exec test-incus-os -- mkdir -p /var/lib/extensions
-          incus file push --quiet mkosi.output/debug.raw test-incus-os/var/lib/extensions/
-          incus file push --quiet mkosi.output/incus.raw test-incus-os/var/lib/extensions/
-          incus exec test-incus-os -- systemd-sysext list
-          incus exec test-incus-os -- systemd-sysext merge
+          incus file push mkosi.output/debug.raw test-incus-os/root/updates/
+          incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-      - name: Initialize Incus
-        run: |
-          incus exec test-incus-os -- systemd-sysusers
-          incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus incus.socket
-          incus exec test-incus-os -- incus admin init --auto
+          incus exec test-incus-os -- /root/incus-osd
 
       - name: Test Incus
         run: |
+          incus exec test-incus-os -- incus admin init --auto
           incus exec test-incus-os -- incus launch --quiet images:debian/12 c1
           incus exec test-incus-os -- incus launch --quiet images:debian/12 v1 --vm
 
@@ -152,19 +166,9 @@ jobs:
 
       - name: Apply the update
         run: |
-          incus file pull --quiet test-incus-os/usr/lib/os-release -
+          RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
-          incus file create test-incus-os/var/lib/updates/ --type=directory
-          incus file push --quiet $(ls mkosi.output/IncusOS_*.efi | sort | tail -1) test-incus-os/var/lib/updates/
-          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) test-incus-os/var/lib/updates/
-          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) test-incus-os/var/lib/updates/
-          incus file push --quiet $(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) test-incus-os/var/lib/updates/
-          incus exec test-incus-os -- systemctl start boot.mount
-          incus exec test-incus-os -- unshare -m -- sh -c "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate update && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate reboot"
+          incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
+          incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 
-          while :; do
-            sleep 3
-            incus exec test-incus-os -- /usr/bin/true >/dev/null 2>&1 && break
-          done
-
-          incus file pull --quiet test-incus-os/usr/lib/os-release -
+          incus exec test-incus-os -- /root/incus-osd
