@@ -39,8 +39,8 @@ test:
 	sleep 3
 	incus console test-incus-os
 
-.PHONY: test-extensions
-test-extensions:
+.PHONY: test-applications
+test-applications:
 	incus file push incus-osd/incus-osd test-incus-os/root/
 
 	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
