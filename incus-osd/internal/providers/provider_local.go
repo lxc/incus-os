@@ -78,7 +78,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string) error {
 
 	// Copy the content.
 	for {
-		_, err := io.CopyN(dst, src, 1024*1024)
+		_, err := io.CopyN(dst, src, 4*1024*1024)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
