@@ -64,7 +64,7 @@ jobs:
       - name: Run test build
         run: |
           cd incus-osd
-          go build -v -x ./cmd/incus-osd
+          go build ./cmd/incus-osd
 
   end-to-end:
     name: End to end testing
