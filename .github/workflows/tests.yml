@@ -130,11 +130,6 @@ jobs:
 
           incus list
 
-      - name: Build incus-osd
-        run: |
-          cd incus-osd
-          go build -v -x ./cmd/incus-osd
-
       - name: Prepare incus-osd environment
         run: |
           RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)

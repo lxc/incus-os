@@ -12,6 +12,7 @@ clean:
 
 .PHONY: build
 build:
+	(cd incus-osd ; go build -v -x ./cmd/incus-osd)
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
@@ -40,22 +41,28 @@ test:
 
 .PHONY: test-extensions
 test-extensions:
-	incus exec test-incus-os -- mkdir -p /var/lib/extensions
-	incus exec test-incus-os -- systemd-sysext list
-	incus file push mkosi.output/debug.raw test-incus-os/var/lib/extensions/
-	incus file push mkosi.output/incus.raw test-incus-os/var/lib/extensions/
-	incus exec test-incus-os -- systemd-sysext list
-	incus exec test-incus-os -- systemd-sysext merge
-	incus exec test-incus-os -- systemd-sysusers
-	incus exec test-incus-os -- systemctl enable --now incus-lxcfs incus-startup incus incus.socket
-	incus exec test-incus-os -- incus admin init --auto
+	incus file push incus-osd/incus-osd test-incus-os/root/
+
+	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
+	incus exec test-incus-os -- mkdir -p /root/updates
+	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+
+	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
+	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+
+	incus exec test-incus-os -- /root/incus-osd
 
 .PHONY: test-update
 test-update:
-	incus file create test-incus-os/var/lib/updates/ --type=directory
-	incus file push $(shell ls mkosi.output/IncusOS_*.efi | sort | tail -1) test-incus-os/var/lib/updates/
-	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1) test-incus-os/var/lib/updates/
-	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1) test-incus-os/var/lib/updates/
-	incus file push $(shell ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1) test-incus-os/var/lib/updates/
-	incus exec test-incus-os -- systemctl start boot.mount
-	incus exec test-incus-os -- unshare -m -- sh -c "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate update && /usr/lib/systemd/systemd-sysupdate && /usr/lib/systemd/systemd-sysupdate reboot"
+	incus file push incus-osd/incus-osd test-incus-os/root/
+
+	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
+	incus exec test-incus-os -- mkdir -p /root/updates
+	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+
+	incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
+	incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
+	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
+	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+
+	incus exec test-incus-os -- /root/incus-osd

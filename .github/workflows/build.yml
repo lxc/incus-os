@@ -24,6 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Fix repository permissions
+        run: |
+          sudo chown -R runner:docker .
+
       - name: Install dependencies
         run: |
           sudo apt-get install --yes \
