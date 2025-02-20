@@ -12,7 +12,7 @@ clean:
 
 .PHONY: build
 build:
-	(cd incus-osd ; go build -v -x ./cmd/incus-osd)
+	(cd incus-osd ; go build ./cmd/incus-osd)
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
