@@ -12,6 +12,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -37,8 +38,25 @@ func run() error {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	// Determine what to install.
+	toInstall := []string{"incus"}
+
+	apps, err := seed.GetApplications(ctx)
+	if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+		return err
+	}
+
+	if apps != nil {
+		// We have valid seed data.
+		toInstall = []string{}
+
+		for _, app := range apps.Applications {
+			toInstall = append(toInstall, app.Name)
+		}
+	}
+
 	// Create storage path if missing.
-	err := os.Mkdir(varPath, 0o700)
+	err = os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -125,7 +143,7 @@ func run() error {
 	}
 
 	// Check for application updates.
-	for _, appName := range []string{"debug", "incus"} {
+	for _, appName := range toInstall {
 		// Get the application.
 		app, err := p.GetApplication(ctx, appName)
 		if err != nil {
