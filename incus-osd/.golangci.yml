@@ -42,11 +42,11 @@ linters-settings:
      - name: cognitive-complexity
        arguments: [ 50 ]
      - name: cyclomatic
-       arguments: [ 30 ]
+       arguments: [ 40 ]
      - name: flag-parameter
        disabled: true
      - name: function-length
-       arguments: [ 100, 150 ]
+       arguments: [ 150, 200 ]
      - name: line-length-limit
        disabled: true
      - name: max-public-structs
