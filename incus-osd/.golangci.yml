@@ -15,6 +15,7 @@ linters:
     - funlen # handled by revive
     - gochecknoglobals
     - gocognit
+    - gocyclo
     - ireturn
     - lll
     - mnd
