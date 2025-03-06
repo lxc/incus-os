@@ -1,6 +1,6 @@
 Enabled: yes
 Types: deb
-URIs: https://pkgs.zabbly.com/incus/daily
+URIs: https://pkgs.zabbly.com/incus/stable
 Suites: noble
 Components: main
 Architectures: amd64
