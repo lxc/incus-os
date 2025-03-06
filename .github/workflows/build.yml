@@ -31,7 +31,7 @@ jobs:
 
       - name: Fix repository permissions
         run: |
-          sudo chown -R runner:docker .
+          sudo chown -R $(id -u):$(id -g) .
 
       - name: Install dependencies
         run: |

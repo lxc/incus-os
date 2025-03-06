@@ -44,7 +44,7 @@ jobs:
 
       - name: Fix repository permissions
         run: |
-          sudo chown -R runner:docker .
+          sudo chown -R $(id -u):$(id -g) .
 
       - name: Check compatible min Go version
         run: |
