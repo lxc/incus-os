@@ -134,6 +134,7 @@ func run() error {
 		}
 
 		// Apply the update and reboot.
+		slog.Info("Applying OS update", "release", update.Version())
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), true)
 		if err != nil {
 			return err
