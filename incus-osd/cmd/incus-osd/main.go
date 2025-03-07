@@ -138,9 +138,11 @@ func run() error {
 		if err != nil {
 			return err
 		}
-	} else {
-		slog.Info("System is already running latest OS release", "release", runningRelease)
+
+		return nil
 	}
+
+	slog.Info("System is already running latest OS release", "release", runningRelease)
 
 	// Check for application updates.
 	for _, appName := range toInstall {
