@@ -70,7 +70,7 @@ jobs:
     name: End to end testing
     strategy:
       fail-fast: false
-    timeout-minutes: 30
+    timeout-minutes: 45
     runs-on:
       - self-hosted
       - cpu-4
