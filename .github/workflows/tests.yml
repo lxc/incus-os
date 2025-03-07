@@ -163,6 +163,7 @@ jobs:
         run: |
           RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
+          echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
           incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
           incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 
