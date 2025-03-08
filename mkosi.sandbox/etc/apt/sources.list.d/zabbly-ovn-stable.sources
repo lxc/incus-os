@@ -1,0 +1,7 @@
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/ovn/stable
+Suites: trixie
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/zabbly.asc
