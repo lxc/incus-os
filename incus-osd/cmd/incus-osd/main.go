@@ -92,34 +92,6 @@ func startup(ctx context.Context) error {
 
 	defer func() { _ = s.Save(ctx) }()
 
-	// Determine what to install.
-	toInstall := []string{"incus"}
-
-	if len(s.Applications) == 0 {
-		// Assume first start.
-
-		apps, err := seed.GetApplications(ctx)
-		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
-			return err
-		}
-
-		if apps != nil {
-			// We have valid seed data.
-			toInstall = []string{}
-
-			for _, app := range apps.Applications {
-				toInstall = append(toInstall, app.Name)
-			}
-		}
-	} else {
-		// We have an existing application list.
-		toInstall = []string{}
-
-		for name := range s.Applications {
-			toInstall = append(toInstall, name)
-		}
-	}
-
 	// Get running release.
 	slog.Info("Getting local OS information")
 	runningRelease, err := systemd.GetCurrentRelease(ctx)
@@ -167,14 +139,69 @@ func startup(ctx context.Context) error {
 
 	p, err := providers.Load(ctx, provider, nil)
 	if err != nil {
-		if errors.Is(err, providers.ErrProviderUnavailable) {
-			// If provider is unavailable, we're done with startup tasks.
-			slog.Warn("Update provider is currently unavailable", "provider", provider)
-
-			return nil
+		if !errors.Is(err, providers.ErrProviderUnavailable) {
+			return err
 		}
 
+		// Provider is currently unavailable.
+		slog.Warn("Update provider is currently unavailable", "provider", provider)
+	}
+
+	if p != nil {
+		// Run update function if we have a working provider.
+		err = update(ctx, s, p)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the system users.
+	slog.Info("Refreshing users")
+	err = systemd.RefreshUsers(ctx)
+	if err != nil {
 		return err
+	}
+
+	// Enable and start Incus.
+	_, ok := s.Applications["incus"]
+	if ok {
+		slog.Info("Starting Incus")
+		err = systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func update(ctx context.Context, s *state.State, p providers.Provider) error {
+	// Determine what to install.
+	toInstall := []string{"incus"}
+
+	if len(s.Applications) == 0 {
+		// Assume first start.
+
+		apps, err := seed.GetApplications(ctx)
+		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+			return err
+		}
+
+		if apps != nil {
+			// We have valid seed data.
+			toInstall = []string{}
+
+			for _, app := range apps.Applications {
+				toInstall = append(toInstall, app.Name)
+			}
+		}
+	} else {
+		// We have an existing application list.
+		toInstall = []string{}
+
+		for name := range s.Applications {
+			toInstall = append(toInstall, name)
+		}
 	}
 
 	// Check for the latest OS update.
@@ -233,20 +260,6 @@ func startup(ctx context.Context) error {
 	// Apply the system extensions.
 	slog.Info("Refreshing system extensions")
 	err = systemd.RefreshExtensions(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Apply the system users.
-	slog.Info("Refreshing users")
-	err = systemd.RefreshUsers(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Enable and start Incus.
-	slog.Info("Starting Incus")
-	err = systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 	if err != nil {
 		return err
 	}
