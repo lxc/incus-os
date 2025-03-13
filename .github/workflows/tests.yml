@@ -90,6 +90,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install --yes \
+            binutils \
             debian-archive-keyring \
             make \
             pipx \
@@ -136,14 +137,15 @@ jobs:
 
           incus exec test-incus-os -- mkdir -p /root/updates
           echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
-          incus file push incus-osd/incus-osd test-incus-os/root/
 
       - name: Load the extensions
         run: |
           incus file push mkosi.output/debug.raw test-incus-os/root/updates/
           incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-          incus exec test-incus-os -- /root/incus-osd
+          incus exec test-incus-os -- systemctl restart incus-osd
+          sleep 30s
+          incus exec test-incus-os -- journalctl -u incus-osd -b0
 
       - name: Test Incus
         run: |
@@ -167,4 +169,9 @@ jobs:
           incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
           incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 
-          incus exec test-incus-os -- /root/incus-osd
+          incus exec test-incus-os -- systemctl restart incus-osd
+
+          sleep 1m
+
+          incus exec test-incus-os -- journalctl -u incus-osd -b0
+          incus exec test-incus-os -- grep IMAGE_VERSION /usr/lib/os-release

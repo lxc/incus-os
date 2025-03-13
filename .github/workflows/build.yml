@@ -36,6 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install --yes \
+            binutils \
             debian-archive-keyring \
             make \
             pipx \
