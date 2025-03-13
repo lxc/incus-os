@@ -152,31 +152,27 @@ func startup(ctx context.Context) error {
 	slog.Info("Starting up", "mode", mode, "app", "incus", "release", runningRelease)
 
 	// Get the provider.
-	var p providers.Provider
+	var provider string
 
 	switch mode {
 	case "release":
-		p, err = providers.Load(ctx, "github", nil)
-		if err != nil {
-			if errors.Is(err, providers.ErrProviderUnavailable) {
-				// If provider is unavailable, we're done with startup tasks.
-				return nil
-			}
-
-			return err
-		}
+		provider = "github"
 	case "dev":
-		p, err = providers.Load(ctx, "local", nil)
-		if err != nil {
-			if errors.Is(err, providers.ErrProviderUnavailable) {
-				// If provider is unavailable, we're done with startup tasks.
-				return nil
-			}
-
-			return err
-		}
+		provider = "local"
 	default:
 		return errors.New("currently unsupported operating mode")
+	}
+
+	p, err := providers.Load(ctx, provider, nil)
+	if err != nil {
+		if errors.Is(err, providers.ErrProviderUnavailable) {
+			// If provider is unavailable, we're done with startup tasks.
+			slog.Warn("Update provider is currently unavailable", "provider", provider)
+
+			return nil
+		}
+
+		return err
 	}
 
 	// Check for the latest OS update.
