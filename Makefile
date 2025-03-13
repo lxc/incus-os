@@ -51,8 +51,6 @@ test:
 
 .PHONY: test-applications
 test-applications:
-	incus file push incus-osd/incus-osd test-incus-os/root/
-
 	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
@@ -60,12 +58,10 @@ test-applications:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- /root/incus-osd
+	incus exec test-incus-os -- systemctl restart incus-osd
 
 .PHONY: test-update
 test-update:
-	incus file push incus-osd/incus-osd test-incus-os/root/
-
 	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
@@ -75,4 +71,4 @@ test-update:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- /root/incus-osd
+	incus exec test-incus-os -- systemctl restart incus-osd
