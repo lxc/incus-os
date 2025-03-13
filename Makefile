@@ -15,6 +15,10 @@ incus-osd:
 	(cd incus-osd && go build ./cmd/incus-osd)
 	strip incus-osd/incus-osd
 
+.PHONY: static-analysis
+static-analysis:
+	(cd incus-osd && golangci-lint run)
+
 .PHONY: build
 build: incus-osd
 	-mkosi genkey
