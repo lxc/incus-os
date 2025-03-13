@@ -158,11 +158,21 @@ func startup(ctx context.Context) error {
 	case "release":
 		p, err = providers.Load(ctx, "github", nil)
 		if err != nil {
+			if errors.Is(err, providers.ErrProviderUnavailable) {
+				// If provider is unavailable, we're done with startup tasks.
+				return nil
+			}
+
 			return err
 		}
 	case "dev":
 		p, err = providers.Load(ctx, "local", nil)
 		if err != nil {
+			if errors.Is(err, providers.ErrProviderUnavailable) {
+				// If provider is unavailable, we're done with startup tasks.
+				return nil
+			}
+
 			return err
 		}
 	default:

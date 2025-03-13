@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,8 +23,18 @@ func (p *local) load(ctx context.Context) error {
 	// Use a hardcoded path for now.
 	p.path = "/root/updates/"
 
+	// Deal with missing path.
+	_, err := os.Lstat(p.path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return ErrProviderUnavailable
+		}
+
+		return err
+	}
+
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	err = p.checkRelease(ctx)
 	if err != nil {
 		return err
 	}
