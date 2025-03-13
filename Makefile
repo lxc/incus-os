@@ -10,9 +10,13 @@ clean:
 	sudo -E rm -Rf .cache/ mkosi.output/
 	sudo -E $(shell command -v mkosi) clean
 
+.PHONY: incus-osd
+incus-osd:
+	(cd incus-osd && go build ./cmd/incus-osd)
+	strip incus-osd/incus-osd
+
 .PHONY: build
-build:
-	(cd incus-osd ; go build ./cmd/incus-osd)
+build: incus-osd
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
