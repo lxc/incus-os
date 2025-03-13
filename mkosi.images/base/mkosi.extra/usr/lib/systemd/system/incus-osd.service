@@ -1,0 +1,15 @@
+[Unit]
+Description=Incus OS - management daemon
+Documentation=https://github.com/lxc/incus-os/
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/incus-osd
+KillMode=process
+TimeoutStartSec=30s
+TimeoutStopSec=30s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
