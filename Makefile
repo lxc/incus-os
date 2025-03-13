@@ -10,9 +10,17 @@ clean:
 	sudo -E rm -Rf .cache/ mkosi.output/
 	sudo -E $(shell command -v mkosi) clean
 
+.PHONY: incus-osd
+incus-osd:
+	(cd incus-osd && go build ./cmd/incus-osd)
+	strip incus-osd/incus-osd
+
+.PHONY: static-analysis
+static-analysis:
+	(cd incus-osd && golangci-lint run)
+
 .PHONY: build
-build:
-	(cd incus-osd ; go build ./cmd/incus-osd)
+build: incus-osd
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
@@ -43,8 +51,6 @@ test:
 
 .PHONY: test-applications
 test-applications:
-	incus file push incus-osd/incus-osd test-incus-os/root/
-
 	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
@@ -52,12 +58,10 @@ test-applications:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- /root/incus-osd
+	incus exec test-incus-os -- systemctl restart incus-osd
 
 .PHONY: test-update
 test-update:
-	incus file push incus-osd/incus-osd test-incus-os/root/
-
 	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
@@ -67,4 +71,4 @@ test-update:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- /root/incus-osd
+	incus exec test-incus-os -- systemctl restart incus-osd

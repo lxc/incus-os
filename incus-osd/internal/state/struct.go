@@ -9,5 +9,6 @@ type Application struct {
 type State struct {
 	path string
 
-	Applications map[string]Application `json:"applications"`
+	Applications   map[string]Application `json:"applications"`
+	RunningRelease string                 `json:"running_release"`
 }

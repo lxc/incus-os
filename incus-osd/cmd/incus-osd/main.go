@@ -6,9 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
@@ -17,12 +20,16 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-var varPath = "/var/lib/incus-os/"
+var (
+	varPath = "/var/lib/incus-os/"
+	runPath = "/run/incus-os/"
+)
 
 func main() {
 	err := run()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -38,25 +45,41 @@ func run() error {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// Determine what to install.
-	toInstall := []string{"incus"}
-
-	apps, err := seed.GetApplications(ctx)
-	if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+	// Create runtime path if missing.
+	err := os.Mkdir(runPath, 0o700)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	if apps != nil {
-		// We have valid seed data.
-		toInstall = []string{}
+	// Setup listener.
+	listenerPath := filepath.Join(runPath, "unix.socket")
+	_ = os.Remove(listenerPath)
 
-		for _, app := range apps.Applications {
-			toInstall = append(toInstall, app.Name)
-		}
+	listener, err := net.Listen("unix", listenerPath)
+	if err != nil {
+		return err
 	}
 
+	// Run startup tasks.
+	err = startup(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Setup server.
+	server := &http.Server{
+		Handler: http.NotFoundHandler(),
+
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	return server.Serve(listener)
+}
+
+func startup(ctx context.Context) error {
 	// Create storage path if missing.
-	err = os.Mkdir(varPath, 0o700)
+	err := os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -67,7 +90,7 @@ func run() error {
 		return err
 	}
 
-	defer func() { _ = s.Save(context.Background()) }()
+	defer func() { _ = s.Save(ctx) }()
 
 	// Get running release.
 	slog.Info("Getting local OS information")
@@ -75,6 +98,8 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	s.RunningRelease = runningRelease
 
 	// Check kernel keyring.
 	slog.Info("Getting trusted system keys")
@@ -98,24 +123,85 @@ func run() error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	slog.Info("Starting up", "mode", mode, "app", "incus", "release", runningRelease)
+	slog.Info("Starting up", "mode", mode, "app", "incus", "release", s.RunningRelease)
 
 	// Get the provider.
-	var p providers.Provider
+	var provider string
 
 	switch mode {
 	case "release":
-		p, err = providers.Load(ctx, "github", nil)
-		if err != nil {
-			return err
-		}
+		provider = "github"
 	case "dev":
-		p, err = providers.Load(ctx, "local", nil)
-		if err != nil {
-			return err
-		}
+		provider = "local"
 	default:
 		return errors.New("currently unsupported operating mode")
+	}
+
+	p, err := providers.Load(ctx, provider, nil)
+	if err != nil {
+		if !errors.Is(err, providers.ErrProviderUnavailable) {
+			return err
+		}
+
+		// Provider is currently unavailable.
+		slog.Warn("Update provider is currently unavailable", "provider", provider)
+	}
+
+	if p != nil {
+		// Run update function if we have a working provider.
+		err = update(ctx, s, p)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the system users.
+	slog.Info("Refreshing users")
+	err = systemd.RefreshUsers(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Enable and start Incus.
+	_, ok := s.Applications["incus"]
+	if ok {
+		slog.Info("Starting Incus")
+		err = systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func update(ctx context.Context, s *state.State, p providers.Provider) error {
+	// Determine what to install.
+	toInstall := []string{"incus"}
+
+	if len(s.Applications) == 0 {
+		// Assume first start.
+
+		apps, err := seed.GetApplications(ctx)
+		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+			return err
+		}
+
+		if apps != nil {
+			// We have valid seed data.
+			toInstall = []string{}
+
+			for _, app := range apps.Applications {
+				toInstall = append(toInstall, app.Name)
+			}
+		}
+	} else {
+		// We have an existing application list.
+		toInstall = []string{}
+
+		for name := range s.Applications {
+			toInstall = append(toInstall, name)
+		}
 	}
 
 	// Check for the latest OS update.
@@ -125,7 +211,7 @@ func run() error {
 	}
 
 	// Apply the update.
-	if update.Version() != runningRelease {
+	if update.Version() != s.RunningRelease {
 		// Download the update into place.
 		slog.Info("Downloading OS update", "release", update.Version())
 		err := update.Download(ctx, systemd.SystemUpdatesPath)
@@ -143,7 +229,7 @@ func run() error {
 		return nil
 	}
 
-	slog.Info("System is already running latest OS release", "release", runningRelease)
+	slog.Info("System is already running latest OS release", "release", s.RunningRelease)
 
 	// Check for application updates.
 	for _, appName := range toInstall {
@@ -174,20 +260,6 @@ func run() error {
 	// Apply the system extensions.
 	slog.Info("Refreshing system extensions")
 	err = systemd.RefreshExtensions(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Apply the system users.
-	slog.Info("Refreshing users")
-	err = systemd.RefreshUsers(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Enable and start Incus.
-	slog.Info("Starting Incus")
-	err = systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 	if err != nil {
 		return err
 	}
