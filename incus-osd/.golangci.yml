@@ -52,3 +52,8 @@ linters-settings:
        disabled: true
      - name: max-public-structs
        disabled: true
+
+  tagliatelle:
+    case:
+      rules:
+        json: snake
