@@ -78,25 +78,8 @@ func run() error {
 }
 
 func startup(ctx context.Context) error {
-	// Determine what to install.
-	toInstall := []string{"incus"}
-
-	apps, err := seed.GetApplications(ctx)
-	if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
-		return err
-	}
-
-	if apps != nil {
-		// We have valid seed data.
-		toInstall = []string{}
-
-		for _, app := range apps.Applications {
-			toInstall = append(toInstall, app.Name)
-		}
-	}
-
 	// Create storage path if missing.
-	err = os.Mkdir(varPath, 0o700)
+	err := os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -108,6 +91,34 @@ func startup(ctx context.Context) error {
 	}
 
 	defer func() { _ = s.Save(ctx) }()
+
+	// Determine what to install.
+	toInstall := []string{"incus"}
+
+	if len(s.Applications) == 0 {
+		// Assume first start.
+
+		apps, err := seed.GetApplications(ctx)
+		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+			return err
+		}
+
+		if apps != nil {
+			// We have valid seed data.
+			toInstall = []string{}
+
+			for _, app := range apps.Applications {
+				toInstall = append(toInstall, app.Name)
+			}
+		}
+	} else {
+		// We have an existing application list.
+		toInstall = []string{}
+
+		for name := range s.Applications {
+			toInstall = append(toInstall, name)
+		}
+	}
 
 	// Get running release.
 	slog.Info("Getting local OS information")
