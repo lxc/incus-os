@@ -21,10 +21,6 @@ trap cleanup EXIT HUP INT TERM
 echo "=> Downloading the image"
 echo "==> Downloading Incus OS ${1}"
 curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.raw.gz" | gzip -d > "${TEMPDIR}/root.raw"
-echo "==> Downloading debug package"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/debug.raw.gz" | gzip -d > "${TEMPDIR}/debug.raw"
-echo "==> Downloading incus package"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/incus.raw.gz" | gzip -d > "${TEMPDIR}/incus.raw"
 
 # Prepare the Incus image
 echo "=> Importing into Incus"
@@ -48,16 +44,6 @@ while :; do
     sleep 3
     incus exec "${2}" -- /usr/bin/true >/dev/null 2>&1 && break
 done
-
-# Load the extensions
-echo "=> Loading the packages"
-incus exec "${2}" -- mkdir -p /var/lib/extensions
-incus file push --quiet "${TEMPDIR}/debug.raw" "${2}/var/lib/extensions/debug.raw"
-incus file push --quiet "${TEMPDIR}/incus.raw" "${2}/var/lib/extensions/incus.raw"
-incus exec "${2}" -- systemd-sysext list
-incus exec "${2}" -- systemd-sysext merge
-incus exec "${2}" -- systemd-sysusers
-incus exec "${2}" -- systemctl enable --now incus-lxcfs incus-startup incus incus.socket
 
 # Done
 echo ""
