@@ -6,9 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
@@ -17,7 +20,10 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-var varPath = "/var/lib/incus-os/"
+var (
+	varPath = "/var/lib/incus-os/"
+	runPath = "/run/incus-os/"
+)
 
 func main() {
 	err := run()
@@ -39,6 +45,39 @@ func run() error {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	// Create runtime path if missing.
+	err := os.Mkdir(runPath, 0o700)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	// Setup listener.
+	listenerPath := filepath.Join(runPath, "unix.socket")
+	_ = os.Remove(listenerPath)
+
+	listener, err := net.Listen("unix", listenerPath)
+	if err != nil {
+		return err
+	}
+
+	// Run startup tasks.
+	err = startup(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Setup server.
+	server := &http.Server{
+		Handler: http.NotFoundHandler(),
+
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	return server.Serve(listener)
+}
+
+func startup(ctx context.Context) error {
 	// Determine what to install.
 	toInstall := []string{"incus"}
 
@@ -68,7 +107,7 @@ func run() error {
 		return err
 	}
 
-	defer func() { _ = s.Save(context.Background()) }()
+	defer func() { _ = s.Save(ctx) }()
 
 	// Get running release.
 	slog.Info("Getting local OS information")
