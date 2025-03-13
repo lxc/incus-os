@@ -127,6 +127,8 @@ func startup(ctx context.Context) error {
 		return err
 	}
 
+	s.RunningRelease = runningRelease
+
 	// Check kernel keyring.
 	slog.Info("Getting trusted system keys")
 	keys, err := keyring.GetKeys(ctx, keyring.PlatformKeyring)
@@ -149,7 +151,7 @@ func startup(ctx context.Context) error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	slog.Info("Starting up", "mode", mode, "app", "incus", "release", runningRelease)
+	slog.Info("Starting up", "mode", mode, "app", "incus", "release", s.RunningRelease)
 
 	// Get the provider.
 	var provider string
@@ -182,7 +184,7 @@ func startup(ctx context.Context) error {
 	}
 
 	// Apply the update.
-	if update.Version() != runningRelease {
+	if update.Version() != s.RunningRelease {
 		// Download the update into place.
 		slog.Info("Downloading OS update", "release", update.Version())
 		err := update.Download(ctx, systemd.SystemUpdatesPath)
@@ -200,7 +202,7 @@ func startup(ctx context.Context) error {
 		return nil
 	}
 
-	slog.Info("System is already running latest OS release", "release", runningRelease)
+	slog.Info("System is already running latest OS release", "release", s.RunningRelease)
 
 	// Check for application updates.
 	for _, appName := range toInstall {
