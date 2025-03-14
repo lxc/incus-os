@@ -144,7 +144,9 @@ jobs:
           incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
           incus exec test-incus-os -- systemctl restart incus-osd
-          sleep 30s
+
+          sleep 1m
+
           incus exec test-incus-os -- journalctl -u incus-osd -b0
 
       - name: Test Incus
@@ -171,7 +173,7 @@ jobs:
 
           incus exec test-incus-os -- systemctl restart incus-osd
 
-          sleep 1m
+          sleep 2m
 
           incus exec test-incus-os -- journalctl -u incus-osd -b0
           incus exec test-incus-os -- grep IMAGE_VERSION /usr/lib/os-release
