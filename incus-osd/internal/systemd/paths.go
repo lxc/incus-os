@@ -6,4 +6,7 @@ var (
 
 	// SystemUpdatesPath is the systemd location for system updates.
 	SystemUpdatesPath = "/var/lib/updates"
+
+	// SystemdNetworkConfigPath is the location for systemd network config files.
+	SystemdNetworkConfigPath = "/run/systemd/network/"
 )
