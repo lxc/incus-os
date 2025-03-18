@@ -129,6 +129,17 @@ func startup(ctx context.Context) error {
 
 	slog.Info("Starting up", "mode", mode, "app", "incus", "release", s.RunningRelease)
 
+	// Perform network configuration.
+	network, err := seed.GetNetwork(ctx, seed.SeedPartitionPath)
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
+	err = systemd.ApplyNetworkConfiguration(ctx, network)
+	if err != nil {
+		return err
+	}
+
 	// Get the provider.
 	var provider string
 
