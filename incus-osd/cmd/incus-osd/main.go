@@ -186,7 +186,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 	if len(s.Applications) == 0 {
 		// Assume first start.
 
-		apps, err := seed.GetApplications(ctx)
+		apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}

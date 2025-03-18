@@ -13,4 +13,5 @@ var ErrNoSeedData = errors.New("no seed data present in the partition")
 // ErrNoSeedSection is returned when the seed data is available but the requested section/file couldn't be found.
 var ErrNoSeedSection = errors.New("requested seed section couldn't be found")
 
-const seedPartitionPath = "/dev/disk/by-partlabel/seed-data"
+// SeedPartitionPath defines the path to the expected seed partition.
+const SeedPartitionPath = "/dev/disk/by-partlabel/seed-data"
