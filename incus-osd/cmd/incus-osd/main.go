@@ -108,6 +108,10 @@ func startup(ctx context.Context) error {
 		return err
 	}
 
+	if len(keys) == 0 {
+		return errors.New("invalid Secure Boot environment detected, no platform keys loaded")
+	}
+
 	// Determine runtime mode.
 	mode := "unsafe"
 
