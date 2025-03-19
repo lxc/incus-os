@@ -183,7 +183,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 		// Assume first start.
 
 		apps, err := seed.GetApplications(ctx)
-		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
 
