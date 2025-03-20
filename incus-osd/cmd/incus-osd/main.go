@@ -108,6 +108,10 @@ func startup(ctx context.Context) error {
 		return err
 	}
 
+	if len(keys) == 0 {
+		return errors.New("invalid Secure Boot environment detected, no platform keys loaded")
+	}
+
 	// Determine runtime mode.
 	mode := "unsafe"
 
@@ -124,6 +128,17 @@ func startup(ctx context.Context) error {
 	}
 
 	slog.Info("Starting up", "mode", mode, "app", "incus", "release", s.RunningRelease)
+
+	// Perform network configuration.
+	network, err := seed.GetNetwork(ctx, seed.SeedPartitionPath)
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
+	err = systemd.ApplyNetworkConfiguration(ctx, network)
+	if err != nil {
+		return err
+	}
 
 	// Get the provider.
 	var provider string
@@ -182,8 +197,8 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 	if len(s.Applications) == 0 {
 		// Assume first start.
 
-		apps, err := seed.GetApplications(ctx)
-		if err != nil && !errors.Is(err, seed.ErrNoSeedPartition) && !errors.Is(err, seed.ErrNoSeedData) && !errors.Is(err, seed.ErrNoSeedSection) {
+		apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
+		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
 

@@ -20,6 +20,7 @@ linters:
     - lll
     - mnd
     - tenv
+    - testpackage
     - unparam
     - varnamelen
     - wrapcheck
