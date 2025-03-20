@@ -66,6 +66,11 @@ jobs:
           cd incus-osd
           go build ./cmd/incus-osd
 
+      - name: Run unit tests
+        run: |
+          cd incus-osd
+          go test -v ./...
+
   end-to-end:
     name: End to end testing
     strategy:
