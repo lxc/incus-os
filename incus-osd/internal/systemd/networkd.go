@@ -25,14 +25,14 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 		return err
 	}
 
-	err = os.Mkdir(SystemdNetworkConfigPath, 0o755) //nolint:gosec
+	err = os.Mkdir(SystemdNetworkConfigPath, 0o755)
 	if err != nil {
 		return err
 	}
 
 	// When no configuration is provided, just DHCP on everything..
 	if networkCfg == nil {
-		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte( //nolint:gosec
+		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte(
 			`[Match]
 Name=en*
 
@@ -48,7 +48,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .link files.
 	for _, cfg := range generateLinkFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .netdev files.
 	for _, cfg := range generateNetdevFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .network files.
 	for _, cfg := range generateNetworkFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func generateLinkFileContents(networkCfg seed.NetworkConfig) []networkdConfigFil
 	ret := []networkdConfigFile{}
 
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ReplaceAll(i.Hwaddr.String(), ":", "")
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("00-en%s.link", strippedHwaddr),
 			Contents: fmt.Sprintf(`[Match]
@@ -105,7 +105,7 @@ MACAddress=%s
 [Link]
 NamePolicy=
 Name=en%s
-`, i.Hwaddr.String(), strippedHwaddr),
+`, i.Hwaddr, strippedHwaddr),
 		})
 	}
 
@@ -171,7 +171,7 @@ func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfig
 
 	// Create networks for each interface.
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ReplaceAll(i.Hwaddr.String(), ":", "")
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
@@ -237,7 +237,7 @@ MACAddress=%s
 
 [Network]
 Bond=bn%s
-`, member.String(), b.Name),
+`, member, b.Name),
 			})
 		}
 	}
@@ -245,22 +245,22 @@ Bond=bn%s
 	return ret
 }
 
-func processAddresses(addresses []seed.CustomAddress) string {
+func processAddresses(addresses []string) string {
 	ret := ""
 
 	hasDHCP4 := false
 	hasDHCP6 := false
 	for _, addr := range addresses {
-		switch addr.Type { //nolint:exhaustive
-		case seed.AddressTypeDHCP4:
+		switch addr {
+		case "dhcp4":
 			hasDHCP4 = true
-		case seed.AddressTypeDHCP6:
+		case "dhcp6":
 			hasDHCP6 = true
 			ret += "IPv6AcceptRA=false\n"
-		case seed.AddressTypeSLAAC:
+		case "slaac":
 			ret += "IPv6AcceptRA=true\n"
 		default:
-			ret += fmt.Sprintf("Address=%s\n", addr.String())
+			ret += fmt.Sprintf("Address=%s\n", addr)
 		}
 	}
 
@@ -279,16 +279,16 @@ func processRoutes(routes []seed.Route) string {
 	ret := ""
 
 	for _, route := range routes {
-		switch route.Via.Type { //nolint:exhaustive
-		case seed.AddressTypeDHCP4:
+		switch route.Via {
+		case "dhcp4":
 			ret += "Gateway=_dhcp4\n"
-		case seed.AddressTypeSLAAC:
+		case "slaac":
 			ret += "Gateway=_ipv6ra\n"
 		default:
-			ret += fmt.Sprintf("Gateway=%s\n", route.Via.String())
+			ret += fmt.Sprintf("Gateway=%s\n", route.Via)
 		}
 
-		ret += fmt.Sprintf("Destination=%s\n", route.To.String())
+		ret += fmt.Sprintf("Destination=%s\n", route.To)
 	}
 
 	return ret

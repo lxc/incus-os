@@ -6,13 +6,13 @@ import (
 
 // Application represents an application.
 type Application struct {
-	Name string `json:"name"`
+	Name string `json:"name" yaml:"name"`
 }
 
 // Applications represents a list of application.
 type Applications struct {
-	Applications []Application `json:"applications"`
-	Version      string        `json:"version"`
+	Applications []Application `json:"applications" name:"applications"`
+	Version      string        `json:"version"      name:"version"`
 }
 
 // GetApplications extracts the list of applications from the seed data.
