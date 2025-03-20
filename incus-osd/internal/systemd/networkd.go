@@ -25,14 +25,14 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 		return err
 	}
 
-	err = os.Mkdir(SystemdNetworkConfigPath, 0o755) //nolint:gosec
+	err = os.Mkdir(SystemdNetworkConfigPath, 0o755)
 	if err != nil {
 		return err
 	}
 
 	// When no configuration is provided, just DHCP on everything..
 	if networkCfg == nil {
-		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte( //nolint:gosec
+		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte(
 			`[Match]
 Name=en*
 
@@ -48,7 +48,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .link files.
 	for _, cfg := range generateLinkFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .netdev files.
 	for _, cfg := range generateNetdevFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ UseMTU=true`), 0o644)
 
 	// Generate .network files.
 	for _, cfg := range generateNetworkFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644) //nolint:gosec
+		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
