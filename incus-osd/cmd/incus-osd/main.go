@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -127,7 +128,7 @@ func startup(ctx context.Context) error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	slog.Info("Starting up", "mode", mode, "app", "incus", "release", s.RunningRelease)
+	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
 
 	// Perform network configuration.
 	network, err := seed.GetNetwork(ctx, seed.SeedPartitionPath)
@@ -177,13 +178,33 @@ func startup(ctx context.Context) error {
 		return err
 	}
 
-	// Enable and start Incus.
-	_, ok := s.Applications["incus"]
-	if ok {
-		slog.Info("Starting Incus")
-		err = systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
+	// Run startup actions.
+	for appName, appInfo := range s.Applications {
+		// Get the application.
+		app, err := applications.Load(ctx, appName)
 		if err != nil {
 			return err
+		}
+
+		// Start the application.
+		slog.Info("Starting application", "name", appName, "version", appInfo.Version)
+
+		err = app.Start(ctx, appInfo.Version)
+		if err != nil {
+			return err
+		}
+
+		// Run initialization if needed.
+		if !appInfo.Initialized {
+			slog.Info("Initializing application", "name", appName, "version", appInfo.Version)
+
+			err = app.Initialize(ctx)
+			if err != nil {
+				return err
+			}
+
+			appInfo.Initialized = true
+			s.Applications[appName] = appInfo
 		}
 	}
 
@@ -196,7 +217,6 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 
 	if len(s.Applications) == 0 {
 		// Assume first start.
-
 		apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
 		if err != nil && !seed.IsMissing(err) {
 			return err
