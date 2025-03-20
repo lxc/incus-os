@@ -134,6 +134,8 @@ jobs:
             incus exec test-incus-os -- /usr/bin/true >/dev/null 2>&1 && break
           done
 
+          sleep 1m
+
           incus list
 
       - name: Prepare incus-osd environment
