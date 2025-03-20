@@ -96,7 +96,7 @@ func generateLinkFileContents(networkCfg seed.NetworkConfig) []networkdConfigFil
 	ret := []networkdConfigFile{}
 
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ReplaceAll(i.Hwaddr.String(), ":", "")
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("00-en%s.link", strippedHwaddr),
 			Contents: fmt.Sprintf(`[Match]
@@ -105,7 +105,7 @@ MACAddress=%s
 [Link]
 NamePolicy=
 Name=en%s
-`, i.Hwaddr.String(), strippedHwaddr),
+`, i.Hwaddr, strippedHwaddr),
 		})
 	}
 
@@ -171,7 +171,7 @@ func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfig
 
 	// Create networks for each interface.
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ReplaceAll(i.Hwaddr.String(), ":", "")
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
@@ -237,7 +237,7 @@ MACAddress=%s
 
 [Network]
 Bond=bn%s
-`, member.String(), b.Name),
+`, member, b.Name),
 			})
 		}
 	}
@@ -245,22 +245,22 @@ Bond=bn%s
 	return ret
 }
 
-func processAddresses(addresses []seed.CustomAddress) string {
+func processAddresses(addresses []string) string {
 	ret := ""
 
 	hasDHCP4 := false
 	hasDHCP6 := false
 	for _, addr := range addresses {
-		switch addr.Type { //nolint:exhaustive
-		case seed.AddressTypeDHCP4:
+		switch addr {
+		case "dhcp4":
 			hasDHCP4 = true
-		case seed.AddressTypeDHCP6:
+		case "dhcp6":
 			hasDHCP6 = true
 			ret += "IPv6AcceptRA=false\n"
-		case seed.AddressTypeSLAAC:
+		case "slaac":
 			ret += "IPv6AcceptRA=true\n"
 		default:
-			ret += fmt.Sprintf("Address=%s\n", addr.String())
+			ret += fmt.Sprintf("Address=%s\n", addr)
 		}
 	}
 
@@ -279,16 +279,16 @@ func processRoutes(routes []seed.Route) string {
 	ret := ""
 
 	for _, route := range routes {
-		switch route.Via.Type { //nolint:exhaustive
-		case seed.AddressTypeDHCP4:
+		switch route.Via {
+		case "dhcp4":
 			ret += "Gateway=_dhcp4\n"
-		case seed.AddressTypeSLAAC:
+		case "slaac":
 			ret += "Gateway=_ipv6ra\n"
 		default:
-			ret += fmt.Sprintf("Gateway=%s\n", route.Via.String())
+			ret += fmt.Sprintf("Gateway=%s\n", route.Via)
 		}
 
-		ret += fmt.Sprintf("Destination=%s\n", route.To.String())
+		ret += fmt.Sprintf("Destination=%s\n", route.To)
 	}
 
 	return ret

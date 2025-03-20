@@ -86,14 +86,10 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	require.Len(t, cfg.Interfaces, 2)
 	require.Equal(t, "san1", cfg.Interfaces[0].Name)
 	require.Len(t, cfg.Interfaces[0].Addresses, 2)
-	require.Equal(t, "fd40:1234:1234:101::10/64", cfg.Interfaces[0].Addresses[1].String())
-	require.Equal(t, "fd40:1234:1234:101::10", cfg.Interfaces[0].Addresses[1].Address.IP.String())
-	require.Equal(t, "ffffffffffffffff0000000000000000", cfg.Interfaces[0].Addresses[1].Address.Mask.String())
+	require.Equal(t, "fd40:1234:1234:101::10/64", cfg.Interfaces[0].Addresses[1])
 	require.Len(t, cfg.Interfaces[1].Addresses, 2)
-	require.Equal(t, "10.0.102.10/24", cfg.Interfaces[1].Addresses[0].String())
-	require.Equal(t, "10.0.102.10", cfg.Interfaces[1].Addresses[0].Address.IP.String())
-	require.Equal(t, "ffffff00", cfg.Interfaces[1].Addresses[0].Address.Mask.String())
-	require.Equal(t, "aa:bb:cc:dd:ee:02", cfg.Interfaces[1].Hwaddr.String())
+	require.Equal(t, "10.0.102.10/24", cfg.Interfaces[1].Addresses[0])
+	require.Equal(t, "AA:BB:CC:DD:EE:02", cfg.Interfaces[1].Hwaddr)
 	require.Len(t, cfg.Interfaces[1].Roles, 1)
 	require.Equal(t, "storage", cfg.Interfaces[1].Roles[0])
 	require.Len(t, cfg.Bonds, 1)
@@ -101,7 +97,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	require.Equal(t, 9000, cfg.Bonds[0].MTU)
 	require.Len(t, cfg.Bonds[0].Routes, 2)
 	require.Len(t, cfg.Bonds[0].Members, 2)
-	require.Equal(t, "aa:bb:cc:dd:ee:03", cfg.Bonds[0].Members[0].String())
+	require.Equal(t, "AA:BB:CC:DD:EE:03", cfg.Bonds[0].Members[0])
 	require.Len(t, cfg.Vlans, 1)
 	require.Equal(t, "uplink", cfg.Vlans[0].Name)
 	require.Equal(t, 1234, cfg.Vlans[0].ID)
@@ -124,11 +120,11 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	require.Len(t, cfg.Interfaces, 1)
 	require.Equal(t, "management", cfg.Interfaces[0].Name)
 	require.Len(t, cfg.Interfaces[0].Addresses, 2)
-	require.Equal(t, "slaac", cfg.Interfaces[0].Addresses[1].String())
-	require.Equal(t, "aa:bb:cc:dd:ee:01", cfg.Interfaces[0].Hwaddr.String())
+	require.Equal(t, "slaac", cfg.Interfaces[0].Addresses[1])
+	require.Equal(t, "AA:BB:CC:DD:EE:01", cfg.Interfaces[0].Hwaddr)
 	require.Len(t, cfg.Interfaces[0].Routes, 2)
-	require.Equal(t, "0.0.0.0/0", cfg.Interfaces[0].Routes[0].To.String())
-	require.Equal(t, "dhcp4", cfg.Interfaces[0].Routes[0].Via.String())
+	require.Equal(t, "0.0.0.0/0", cfg.Interfaces[0].Routes[0].To)
+	require.Equal(t, "dhcp4", cfg.Interfaces[0].Routes[0].Via)
 
 	// Verify we can marshal and unmarshal the test config and don't loose any information.
 	content, err = yaml.Marshal(&cfg)
@@ -150,9 +146,9 @@ func TestLinkFileGeneration(t *testing.T) {
 	cfgs := generateLinkFileContents(networkCfg)
 	require.Len(t, cfgs, 2)
 	require.Equal(t, "00-enaabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nMACAddress=aa:bb:cc:dd:ee:01\n\n[Link]\nNamePolicy=\nName=enaabbccddee01\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nNamePolicy=\nName=enaabbccddee01\n", cfgs[0].Contents)
 	require.Equal(t, "00-enaabbccddee02.link", cfgs[1].Name)
-	require.Equal(t, "[Match]\nMACAddress=aa:bb:cc:dd:ee:02\n\n[Link]\nNamePolicy=\nName=enaabbccddee02\n", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=enaabbccddee02\n", cfgs[1].Contents)
 
 	networkCfg = seed.NetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
@@ -161,7 +157,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	cfgs = generateLinkFileContents(networkCfg)
 	require.Len(t, cfgs, 1)
 	require.Equal(t, "00-enaabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nMACAddress=aa:bb:cc:dd:ee:01\n\n[Link]\nNamePolicy=\nName=enaabbccddee01\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nNamePolicy=\nName=enaabbccddee01\n", cfgs[0].Contents)
 }
 
 func TestNetdevFileGeneration(t *testing.T) {
@@ -212,11 +208,11 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "00-enaabbccddee02.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=enaabbccddee02\n\n[Network]\nBridge=san2\n", cfgs[3].Contents)
 	require.Equal(t, "00-bnmanagement.network", cfgs[4].Name)
-	require.Equal(t, "[Match]\nName=bnmanagement\n\n[Network]\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\n\n[Route]\nGateway=10.0.100.1/32\nDestination=0.0.0.0/0\nGateway=fd40:1234:1234:100::1/128\nDestination=::/0\n\n[BridgeVLAN]\nVLAN=100\n", cfgs[4].Contents)
+	require.Equal(t, "[Match]\nName=bnmanagement\n\n[Network]\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n\n[BridgeVLAN]\nVLAN=100\n", cfgs[4].Contents)
 	require.Equal(t, "00-bnmanagement-dev0.network", cfgs[5].Name)
-	require.Equal(t, "[Match]\nMACAddress=aa:bb:cc:dd:ee:03\n\n[Network]\nBond=bnmanagement\n", cfgs[5].Contents)
+	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:03\n\n[Network]\nBond=bnmanagement\n", cfgs[5].Contents)
 	require.Equal(t, "00-bnmanagement-dev1.network", cfgs[6].Name)
-	require.Equal(t, "[Match]\nMACAddress=aa:bb:cc:dd:ee:04\n\n[Network]\nBond=bnmanagement\n", cfgs[6].Contents)
+	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:04\n\n[Network]\nBond=bnmanagement\n", cfgs[6].Contents)
 
 	networkCfg = seed.NetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
