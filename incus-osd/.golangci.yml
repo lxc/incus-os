@@ -36,6 +36,11 @@ linters-settings:
   goimports:
     local-prefixes: github.com/lxc/incus-os/incus-osd
 
+  gosec:
+    config:
+      G301: "0755"
+      G306: "0644"
+
   revive:
     enable-all-rules: true
     rules:
