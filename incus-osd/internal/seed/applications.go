@@ -11,8 +11,8 @@ type Application struct {
 
 // Applications represents a list of application.
 type Applications struct {
-	Applications []Application `json:"applications" name:"applications"`
-	Version      string        `json:"version"      name:"version"`
+	Applications []Application `json:"applications" yaml:"applications"`
+	Version      string        `json:"version"      yaml:"version"`
 }
 
 // GetApplications extracts the list of applications from the seed data.
