@@ -68,7 +68,8 @@ func parseFileContents(partition string, filename string, target any) error {
 		}
 
 		// Check if expected file.
-		if hdr.Name == filename+".json" {
+		switch hdr.Name {
+		case filename + ".json":
 			decoder := json.NewDecoder(tr)
 			err = decoder.Decode(target)
 			if err != nil {
@@ -76,7 +77,8 @@ func parseFileContents(partition string, filename string, target any) error {
 			}
 
 			return nil
-		} else if hdr.Name == filename+".yaml" {
+
+		case filename + ".yaml":
 			decoder := yaml.NewDecoder(tr)
 			err = decoder.Decode(target)
 			if err != nil {
