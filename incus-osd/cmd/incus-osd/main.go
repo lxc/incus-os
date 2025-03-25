@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -45,6 +46,16 @@ func run() error {
 	// Prepare a logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
+	// Check if we should try to install to a local disk.
+	if install.IsInstallNeeded() {
+		inst, err := install.NewInstall()
+		if err != nil {
+			return err
+		}
+
+		return inst.DoInstall(ctx)
+	}
 
 	// Create runtime path if missing.
 	err := os.Mkdir(runPath, 0o700)
