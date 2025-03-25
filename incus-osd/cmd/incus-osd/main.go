@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -45,6 +46,32 @@ func run() error {
 	// Prepare a logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
+
+	// Check if we should try to install to a local disk.
+	if install.IsInstallNeeded() {
+		slog.Info("Starting install of incus-osd to local disk.")
+
+		sourceDevice, err := install.GetSourceDevice(ctx)
+		if err != nil {
+			return err
+		}
+
+		targetDevice, err := install.GetTargetDevice(ctx, sourceDevice)
+		if err != nil {
+			return err
+		}
+
+		slog.Info(fmt.Sprintf("Installing incus-osd from %s to %s", sourceDevice, targetDevice))
+
+		err = install.DoInstall(ctx, sourceDevice, targetDevice)
+		if err != nil {
+			return err
+		}
+
+		slog.Info("incus-osd was successfully installed. Please reboot the system and remove the external boot media.")
+
+		return install.RebootUponDeviceRemoval(ctx, sourceDevice)
+	}
 
 	// Create runtime path if missing.
 	err := os.Mkdir(runPath, 0o700)
