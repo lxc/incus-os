@@ -1,12 +1,6 @@
-issues:
-  exclude-use-default: false
-  exclude-rules:
-    - linters:
-        - errcheck
-      source: "^\\s*defer\\s+"
-
+version: "2"
 linters:
-  enable-all: true
+  default: all
   disable:
     - cyclop # handled by revive
     - depguard
@@ -19,47 +13,69 @@ linters:
     - ireturn
     - lll
     - mnd
-    - tenv
     - testpackage
     - unparam
     - varnamelen
     - wrapcheck
     - wsl
-
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/lxc/incus-os/incus-osd)
-
-  goimports:
-    local-prefixes: github.com/lxc/incus-os/incus-osd
-
-  gosec:
-    config:
-      G301: "0755"
-      G306: "0644"
-
-  revive:
-    enable-all-rules: true
-    rules:
-     - name: add-constant
-       disabled: true
-     - name: cognitive-complexity
-       arguments: [ 50 ]
-     - name: cyclomatic
-       arguments: [ 40 ]
-     - name: flag-parameter
-       disabled: true
-     - name: function-length
-       arguments: [ 150, 200 ]
-     - name: line-length-limit
-       disabled: true
-     - name: max-public-structs
-       disabled: true
-
-  tagliatelle:
-    case:
+  settings:
+    gosec:
+      config:
+        G301: "0755"
+        G306: "0644"
+    revive:
+      enable-all-rules: true
       rules:
-        json: snake
+        - name: add-constant
+          disabled: true
+        - name: cognitive-complexity
+          arguments:
+            - 50
+        - name: cyclomatic
+          arguments:
+            - 40
+        - name: flag-parameter
+          disabled: true
+        - name: function-length
+          arguments:
+            - 150
+            - 200
+        - name: line-length-limit
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - errcheck
+        source: ^\s*defer\s+
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/lxc/incus-os/incus-osd)
+    goimports:
+      local-prefixes:
+        - github.com/lxc/incus-os/incus-osd
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
