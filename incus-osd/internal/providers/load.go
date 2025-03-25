@@ -14,12 +14,14 @@ func Load(ctx context.Context, name string, config map[string]string) (Provider,
 
 	var p Provider
 
-	if name == "github" {
+	switch name {
+	case "github":
 		// Setup the Github provider.
 		p = &github{
 			config: config,
 		}
-	} else if name == "local" {
+
+	case "local":
 		// Setup the Github provider.
 		p = &local{
 			config: config,
