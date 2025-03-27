@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 var (
@@ -34,12 +35,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Setup and start the console TUI.
+	tuiApp, err := tui.NewTUI()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		err := tuiApp.Run()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+
 	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(tuiApp, nil))
 	slog.SetDefault(logger)
 
 	// Run the daemon.
-	err = run()
+	err = run(tuiApp)
 	if err != nil {
 		slog.Error(err.Error())
 
@@ -50,7 +66,7 @@ func main() {
 	}
 }
 
-func run() error {
+func run(tuiApp *tui.TUI) error {
 	ctx := context.TODO()
 
 	// Check if we should try to install to a local disk.
@@ -83,6 +99,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	// Once setup is complete, update the TUI's footer information to reflect current state.
+	tuiApp.RedrawScreen()
 
 	// Setup server.
 	server := &http.Server{
