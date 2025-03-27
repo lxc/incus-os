@@ -28,24 +28,30 @@ var (
 )
 
 func main() {
-	err := run()
+	// Check privileges.
+	if os.Getuid() != 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "incus-osd must be run as root")
+		os.Exit(1)
+	}
+
+	// Prepare a logger.
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	// Run the daemon.
+	err = run()
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		slog.Error(err.Error())
+
+		// Sleep for a second to allow output buffers to flush.
+		time.Sleep(1 * time.Second)
+
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	ctx := context.TODO()
-
-	// Check privileges.
-	if os.Getuid() != 0 {
-		return errors.New("incus-osd must be run as root")
-	}
-
-	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
 
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
