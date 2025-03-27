@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 var (
@@ -34,8 +35,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get and start the console TUI.
+	tuiApp, err := tui.GetTUI()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		err := tuiApp.Run()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+
 	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(tuiApp, nil))
 	slog.SetDefault(logger)
 
 	// Run the daemon.
