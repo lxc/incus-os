@@ -3,14 +3,17 @@ module github.com/lxc/incus-os/incus-osd
 go 1.23.4
 
 require (
+	github.com/gdamore/tcell/v2 v2.7.1
 	github.com/google/go-github/v68 v68.0.0
 	github.com/lxc/incus/v6 v6.10.1
+	github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -19,9 +22,12 @@ require (
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kr/fs v0.1.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/pkg/sftp v1.13.8 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/zitadel/logging v0.6.1 // indirect
 	github.com/zitadel/oidc/v3 v3.36.1 // indirect

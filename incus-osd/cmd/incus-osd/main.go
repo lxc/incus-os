@@ -19,6 +19,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 var (
@@ -27,24 +28,45 @@ var (
 )
 
 func main() {
-	err := run()
+	// Check privileges.
+	if os.Getuid() != 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "incus-osd must be run as root")
+		os.Exit(1)
+	}
+
+	// Setup and start the console TUI.
+	tuiApp, err := tui.NewTUI()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
-}
 
-func run() error {
-	ctx := context.TODO()
-
-	// Check privileges.
-	if os.Getuid() != 0 {
-		return errors.New("incus-osd must be run as root")
-	}
+	go func() {
+		err := tuiApp.Run()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	}()
 
 	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(tuiApp, nil))
 	slog.SetDefault(logger)
+
+	// Run the daemon.
+	err = run(tuiApp)
+	if err != nil {
+		slog.Error(err.Error())
+
+		// Sleep for a second to allow output buffers to flush.
+		time.Sleep(1 * time.Second)
+
+		os.Exit(1)
+	}
+}
+
+func run(tuiApp *tui.TUI) error {
+	ctx := context.TODO()
 
 	// Create runtime path if missing.
 	err := os.Mkdir(runPath, 0o700)
@@ -66,6 +88,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	// Once setup is complete, update the TUI's footer information to reflect current state.
+	tuiApp.RedrawFrame()
 
 	// Setup server.
 	server := &http.Server{
