@@ -2,6 +2,8 @@ package seed
 
 // NetworkConfig defines a struct to hold the three types of supported network configuration.
 type NetworkConfig struct {
+	Version string `json:"version" yaml:"version"`
+
 	Interfaces []NetworkInterface `json:"interfaces" yaml:"interfaces"`
 	Bonds      []NetworkBond      `json:"bonds"      yaml:"bonds"`
 	Vlans      []NetworkVlan      `json:"vlans"      yaml:"vlans"`
