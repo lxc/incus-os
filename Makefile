@@ -33,21 +33,31 @@ build: incus-osd
 .PHONY: test
 test:
 	incus delete -f test-incus-os || true
-	incus image delete incus-os || true
+	rm -f mkosi.output/IncusOS_boot_media.img
 
-	qemu-img convert -f raw -O qcow2 $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
-	incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
-	rm os-image.qcow2
+	cp $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.img
 
-	incus init --vm incus-os test-incus-os \
+	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.img seek=4196352 bs=512 conv=notrunc
+	truncate --size=50GiB mkosi.output/IncusOS_boot_media.img
+
+	incus init --empty --vm test-incus-os \
 		-c security.secureboot=false \
 		-c limits.cpu=4 \
 		-c limits.memory=8GiB \
 		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
+	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/IncusOS_boot_media.img boot.priority=10
+
 	incus start test-incus-os --console
 	sleep 3
-	incus console test-incus-os
+	incus console test-incus-os || (sleep 3 && incus console test-incus-os)
+	sleep 3
+	incus stop -f test-incus-os
+	incus config device remove test-incus-os boot-media
+
+	incus start test-incus-os
+	sleep 3
+	incus console test-incus-os || (sleep 3 && incus console test-incus-os)
 
 .PHONY: test-applications
 test-applications:
