@@ -48,6 +48,7 @@ linters:
       case:
         rules:
           json: snake
+          yaml: snake
   exclusions:
     generated: lax
     rules:
