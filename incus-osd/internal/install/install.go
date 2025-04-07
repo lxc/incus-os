@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 // Install holds information necessary to perform an installation.
@@ -52,26 +53,40 @@ func NewInstall() (*Install, error) {
 
 // DoInstall performs the necessary steps for installing incus-osd to a local disk.
 func (i *Install) DoInstall(ctx context.Context) error {
+	tuiApp, err := tui.GetTUI()
+	if err != nil {
+		return err
+	}
+
 	slog.Info("Starting install of incus-osd to local disk.")
+	tuiApp.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
 	sourceDevice, err := i.getSourceDevice()
 	if err != nil {
+		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+
 		return err
 	}
 
 	targetDevice, err := i.getTargetDevice(ctx, sourceDevice)
 	if err != nil {
+		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+
 		return err
 	}
 
-	slog.Info("Installing incus-osd", "source", sourceDevice, "target", targetDevice)
+	slog.Info("Installing incus-osd.", "source", sourceDevice, "target", targetDevice)
+	tuiApp.DisplayModal("Incus OS Install", fmt.Sprintf("Installing incus-osd from %s to %s.", sourceDevice, targetDevice), 0, 0)
 
 	err = i.performInstall(ctx, sourceDevice, targetDevice)
 	if err != nil {
+		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+
 		return err
 	}
 
 	slog.Info("incus-osd was successfully installed. Please reboot the system and remove the external boot media.")
+	tuiApp.DisplayModal("Incus OS Install", "incus-osd was successfully installed. Please reboot the system and remove the external boot media.", 0, 0)
 
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }
@@ -202,6 +217,11 @@ func (i *Install) getTargetDevice(ctx context.Context, sourceDevice string) (str
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
 func (i *Install) performInstall(ctx context.Context, sourceDevice string, targetDevice string) error {
+	tuiApp, err := tui.GetTUI()
+	if err != nil {
+		return err
+	}
+
 	// Verify the target device doesn't already have a partition table, or that `ForceInstall` is set to true.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
@@ -248,6 +268,16 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		}
 		defer sourcePartition.Close()
 
+		partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
+		if err != nil {
+			return err
+		}
+
+		_, err = sourcePartition.Seek(0, 0)
+		if err != nil {
+			return err
+		}
+
 		targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, i), os.O_WRONLY, 0o0600)
 		if err != nil {
 			return err
@@ -255,6 +285,7 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		defer targetPartition.Close()
 
 		// Copy data in 1MiB chunks.
+		count := int64(0)
 		for {
 			_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
 			if err != nil {
@@ -264,6 +295,11 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 
 				return err
 			}
+
+			if count%10 == 0 {
+				tuiApp.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of 8.", i), count*1024*1024, partitionSize)
+			}
+			count++
 		}
 
 		return nil
