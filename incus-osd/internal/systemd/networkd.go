@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 )
@@ -81,13 +84,27 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 	}
 
 	// Trigger udev rule update to pickup device names.
-	err = RestartUnit(ctx, "systemd-udev-trigger")
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger")
+	if err != nil {
+		return err
+	}
+
+	// Wait for udev to be done processing the events.
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "settle")
 	if err != nil {
 		return err
 	}
 
 	// Restart networking after new config files have been generated.
-	return RestartUnit(ctx, "systemd-networkd")
+	err = RestartUnit(ctx, "systemd-networkd")
+	if err != nil {
+		return err
+	}
+
+	// Give 10s for the network to apply.
+	time.Sleep(10 * time.Second)
+
+	return nil
 }
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
