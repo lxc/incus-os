@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -193,7 +194,9 @@ func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfig
 Name=%s
 
 [Network]
-`, i.Name)
+LLDP=%s
+EmitLLDP=%s
+`, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -228,7 +231,9 @@ Bridge=%s
 Name=bn%s
 
 [Network]
-`, b.Name)
+LLDP=%s
+EmitLLDP=%s
+`, b.Name, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP))
 
 		cfgString += processAddresses(b.Addresses)
 
