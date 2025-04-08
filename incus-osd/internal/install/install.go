@@ -58,7 +58,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("Starting install of incus-osd to local disk.")
+	slog.Info("Starting install of incus-osd to local disk")
 	tuiApp.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
 	sourceDevice, err := i.getSourceDevice()
@@ -75,7 +75,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("Installing incus-osd.", "source", sourceDevice, "target", targetDevice)
+	slog.Info("Installing incus-osd", "source", sourceDevice, "target", targetDevice)
 	tuiApp.DisplayModal("Incus OS Install", fmt.Sprintf("Installing incus-osd from %s to %s.", sourceDevice, targetDevice), 0, 0)
 
 	err = i.performInstall(ctx, sourceDevice, targetDevice)
@@ -85,8 +85,9 @@ func (i *Install) DoInstall(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("incus-osd was successfully installed. Please reboot the system and remove the external boot media.")
-	tuiApp.DisplayModal("Incus OS Install", "incus-osd was successfully installed. Please reboot the system and remove the external boot media.", 0, 0)
+	slog.Info("Incus OS was successfully installed")
+	slog.Info("Please remove the install media to complete the installation")
+	tuiApp.DisplayModal("Incus OS Install", "Incus OS was successfully installed.\nPlease remoe the install media to complete the installation.", 0, 0)
 
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }

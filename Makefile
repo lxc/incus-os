@@ -32,14 +32,16 @@ build: incus-osd
 
 .PHONY: test
 test:
+	# Cleanup
 	incus delete -f test-incus-os || true
 	rm -f mkosi.output/IncusOS_boot_media.img
 
+	# Prepare the install media
 	cp $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.img
-
 	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.img seek=4196352 bs=512 conv=notrunc
 	truncate --size=50GiB mkosi.output/IncusOS_boot_media.img
 
+	# Create the VM
 	incus init --empty --vm test-incus-os \
 		-c security.secureboot=false \
 		-c limits.cpu=4 \
@@ -48,16 +50,19 @@ test:
 	incus config device add test-incus-os vtpm tpm
 	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/IncusOS_boot_media.img boot.priority=10
 
+	# Wait for installation to complete
 	incus start test-incus-os --console
-	sleep 3
-	incus console test-incus-os || (sleep 3 && incus console test-incus-os)
-	sleep 3
+	@sleep 5 # Wait for VM self-reboot
+	incus console test-incus-os
+	@sleep 5 # Wait for VM self-reboot
+	@clear # Clear the console
+
+	# Remove install media
 	incus stop -f test-incus-os
 	incus config device remove test-incus-os boot-media
 
-	incus start test-incus-os
-	sleep 3
-	incus console test-incus-os || (sleep 3 && incus console test-incus-os)
+	# Start the installed system
+	incus start test-incus-os --console
 
 .PHONY: test-applications
 test-applications:
