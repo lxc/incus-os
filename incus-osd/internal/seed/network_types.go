@@ -17,6 +17,7 @@ type NetworkInterface struct {
 	Routes    []Route  `json:"routes,omitempty" yaml:"routes,omitempty"`
 	Hwaddr    string   `json:"hwaddr"           yaml:"hwaddr"`
 	Roles     []string `json:"roles"            yaml:"roles"`
+	LLDP      bool     `json:"lldp"             yaml:"lldp"`
 }
 
 // NetworkBond contains information about a network bond.
@@ -29,6 +30,7 @@ type NetworkBond struct {
 	Routes    []Route  `json:"routes,omitempty" yaml:"routes,omitempty"`
 	Members   []string `json:"members"          yaml:"members"`
 	Roles     []string `json:"roles"            yaml:"roles"`
+	LLDP      bool     `json:"lldp"             yaml:"lldp"`
 }
 
 // NetworkVlan contains information about a network vlan.
