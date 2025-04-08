@@ -25,6 +25,9 @@ linters:
         G301: "0755"
         G306: "0644"
 
+    nestif:
+      min-complexity: 8
+
     revive:
       enable-all-rules: true
       rules:
