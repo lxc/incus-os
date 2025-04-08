@@ -1,4 +1,3 @@
-disable lldpd.service
 disable lvmlockd.service
 disable openvswitch-switch.service
 disable ovsdb-server.service
