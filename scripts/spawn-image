@@ -22,29 +22,33 @@ echo "=> Downloading the image"
 echo "==> Downloading Incus OS ${1}"
 curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.raw.gz" | gzip -d > "${TEMPDIR}/root.raw"
 
-# Prepare the Incus image
-echo "=> Importing into Incus"
-qemu-img convert -f raw -O qcow2 "${TEMPDIR}/root.raw" "${TEMPDIR}/root.qcow2"
-incus image import --alias "incus-os-${1}" test/metadata.tar.xz "${TEMPDIR}/root.qcow2"
+# Add seed data
+echo "=> Injecting seed data"
+dd status=none if=test/seed.install.tar of="${TEMPDIR}/root.raw" seek=4196352 bs=512 conv=notrunc
+truncate --size=50GiB "${TEMPDIR}/root.raw"
 
 # Create an instance
 echo "=> Creating an Incus OS instance"
-incus create --vm "incus-os-${1}" "${2}" \
+incus create --vm --empty "${2}" \
     -c security.secureboot=false \
-    -c limits.cpu=2 \
-    -c limits.memory=2GiB \
+    -c limits.cpu=4 \
+    -c limits.memory=8GiB \
     -d root,size=50GiB
-incus image delete "incus-os-${1}"
 incus config device add "${2}" vtpm tpm
-incus start "${2}"
+incus config device add "${2}" boot-media disk source="${TEMPDIR}/root.raw" boot.priority=10
+incus config show "${2}"
 
-# Waiting for instance to be ready
-echo "=> Waiting for instance to boot"
-while :; do
-    sleep 3
-    incus exec "${2}" -- /usr/bin/true >/dev/null 2>&1 && break
-done
+echo "=> Starting Incus OS for installation"
+incus start "${2}" --console
+sleep 5
+incus console "${2}"
+sleep 5
+clear
 
-# Done
-echo ""
-echo "Incus OS (${1}) now running in ${2}"
+# Remove install media
+incus stop -f "${2}"
+incus config device remove "${2}" boot-media
+
+# Start the installed system
+echo "=> Starting installed Incus OS"
+incus start "${2}" --console
