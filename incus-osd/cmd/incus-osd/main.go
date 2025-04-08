@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +15,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/rest"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -85,35 +84,8 @@ func run() error {
 		return err
 	}
 
-	// Setup listener.
-	listenerPath := filepath.Join(runPath, "unix.socket")
-	_ = os.Remove(listenerPath)
-
-	listener, err := net.Listen("unix", listenerPath)
-	if err != nil {
-		return err
-	}
-
-	// Run startup tasks.
-	err = startup(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Setup server.
-	server := &http.Server{
-		Handler: http.NotFoundHandler(),
-
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
-
-	return server.Serve(listener)
-}
-
-func startup(ctx context.Context) error {
 	// Create storage path if missing.
-	err := os.Mkdir(varPath, 0o700)
+	err = os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -124,6 +96,23 @@ func startup(ctx context.Context) error {
 		return err
 	}
 
+	// Run startup tasks.
+	err = startup(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Start the API.
+	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
+	if err != nil {
+		return err
+	}
+
+	return server.Serve(ctx)
+}
+
+func startup(ctx context.Context, s *state.State) error {
+	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
 
 	// Get running release.
