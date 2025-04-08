@@ -18,11 +18,16 @@ linters:
     - varnamelen
     - wrapcheck
     - wsl
+
   settings:
     gosec:
       config:
         G301: "0755"
         G306: "0644"
+
+    nestif:
+      min-complexity: 8
+
     revive:
       enable-all-rules: true
       rules:
@@ -44,36 +49,43 @@ linters:
           disabled: true
         - name: max-public-structs
           disabled: true
+
     tagliatelle:
       case:
         rules:
           json: snake
           yaml: snake
+
   exclusions:
     generated: lax
     rules:
       - linters:
           - errcheck
         source: ^\s*defer\s+
+
     paths:
       - third_party$
       - builtin$
       - examples$
+
 formatters:
   enable:
     - gci
     - gofmt
     - gofumpt
     - goimports
+
   settings:
     gci:
       sections:
         - standard
         - default
         - prefix(github.com/lxc/incus-os/incus-osd)
+
     goimports:
       local-prefixes:
         - github.com/lxc/incus-os/incus-osd
+
   exclusions:
     generated: lax
     paths:
