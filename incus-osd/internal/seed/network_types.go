@@ -4,6 +4,9 @@ package seed
 type NetworkConfig struct {
 	Version string `json:"version" yaml:"version"`
 
+	Hostname string `json:"hostname" yaml:"hostname"`
+	Domain   string `json:"domain"   yaml:"domain"`
+
 	Interfaces []NetworkInterface `json:"interfaces" yaml:"interfaces"`
 	Bonds      []NetworkBond      `json:"bonds"      yaml:"bonds"`
 	Vlans      []NetworkVlan      `json:"vlans"      yaml:"vlans"`
