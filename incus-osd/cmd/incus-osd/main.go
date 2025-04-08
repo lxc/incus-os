@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 var (
@@ -28,24 +29,45 @@ var (
 )
 
 func main() {
-	err := run()
+	// Check privileges.
+	if os.Getuid() != 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "incus-osd must be run as root")
+		os.Exit(1)
+	}
+
+	// Get and start the console TUI.
+	tuiApp, err := tui.GetTUI()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	go func() {
+		err := tuiApp.Run()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Prepare a logger.
+	logger := slog.New(slog.NewTextHandler(tuiApp, nil))
+	slog.SetDefault(logger)
+
+	// Run the daemon.
+	err = run()
+	if err != nil {
+		slog.Error(err.Error())
+
+		// Sleep for a second to allow output buffers to flush.
+		time.Sleep(1 * time.Second)
+
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	ctx := context.TODO()
-
-	// Check privileges.
-	if os.Getuid() != 0 {
-		return errors.New("incus-osd must be run as root")
-	}
-
-	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
 
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
@@ -223,6 +245,11 @@ func startup(ctx context.Context) error {
 }
 
 func update(ctx context.Context, s *state.State, p providers.Provider) error {
+	tuiApp, err := tui.GetTUI()
+	if err != nil {
+		return err
+	}
+
 	// Determine what to install.
 	toInstall := []string{"incus"}
 
@@ -260,6 +287,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 	if update.Version() != s.RunningRelease {
 		// Download the update into place.
 		slog.Info("Downloading OS update", "release", update.Version())
+		tuiApp.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
 		err := update.Download(ctx, systemd.SystemUpdatesPath)
 		if err != nil {
 			return err
@@ -267,6 +295,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 
 		// Apply the update and reboot.
 		slog.Info("Applying OS update", "release", update.Version())
+		tuiApp.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), true)
 		if err != nil {
 			return err
@@ -294,10 +323,13 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 
 		// Download the application.
 		slog.Info("Downloading system extension", "application", app.Name(), "release", app.Version())
+		tuiApp.DisplayModal("Incus OS Extension Update", "Downloading system extension "+app.Name()+" update "+update.Version(), 0, 0)
 		err = app.Download(ctx, systemd.SystemExtensionsPath)
 		if err != nil {
 			return err
 		}
+
+		tuiApp.RemoveModal()
 
 		// Record newly installed application.
 		s.Applications[app.Name()] = state.Application{Version: app.Version()}
