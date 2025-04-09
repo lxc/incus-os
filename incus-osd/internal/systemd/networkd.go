@@ -2,6 +2,7 @@ package systemd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,22 +35,6 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 		return err
 	}
 
-	// When no configuration is provided, just DHCP on everything..
-	if networkCfg == nil {
-		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte(
-			`[Match]
-Name=en*
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-
-[DHCP]
-ClientIdentifier=mac
-RouteMetric=100
-UseMTU=true`), 0o644)
-	}
-
 	// Generate .link files.
 	for _, cfg := range generateLinkFileContents(*networkCfg) {
 		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
@@ -79,6 +64,10 @@ UseMTU=true`), 0o644)
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
 func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig) error {
+	if networkCfg == nil {
+		return errors.New("no network configuration provided")
+	}
+
 	err := generateNetworkConfiguration(ctx, networkCfg)
 	if err != nil {
 		return err
@@ -193,9 +182,15 @@ func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfig
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
 LLDP=%s
 EmitLLDP=%s
+LinkLocalAddressing=ipv6
 `, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
 
 		cfgString += processAddresses(i.Addresses)
@@ -230,9 +225,15 @@ Bridge=%s
 		cfgString := fmt.Sprintf(`[Match]
 Name=bn%s
 
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
 LLDP=%s
 EmitLLDP=%s
+LinkLocalAddressing=ipv6
 `, b.Name, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP))
 
 		cfgString += processAddresses(b.Addresses)
