@@ -74,7 +74,7 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 	}
 
 	// Trigger udev rule update to pickup device names.
-	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger")
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
 	if err != nil {
 		return err
 	}
