@@ -73,6 +73,10 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 		return err
 	}
 
+	// At system start there's a small race between udev being fully started and
+	// our reconfiguring of the network. Sleep for a couple seconds before triggering udev.
+	time.Sleep(2 * time.Second)
+
 	// Trigger udev rule update to pickup device names.
 	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
 	if err != nil {
