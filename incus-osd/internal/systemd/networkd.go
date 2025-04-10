@@ -63,7 +63,7 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig) error {
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
 	if networkCfg == nil {
 		return errors.New("no network configuration provided")
 	}
@@ -91,10 +91,52 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 		return err
 	}
 
-	// Give 10s for the network to apply.
-	time.Sleep(10 * time.Second)
+	// Wait for the network to apply.
+	return waitForNetworkRoutable(ctx, networkCfg, timeout)
+}
 
-	return nil
+// waitForNetworkRoutable waits up to a provided timeout for all configured network interfaces,
+// bonds, and vlans to become routable.
+func waitForNetworkRoutable(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
+	isRoutable := func(name string) bool {
+		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
+		if err != nil {
+			return false
+		}
+
+		return strings.Contains(output, "State: routable")
+	}
+
+	endTime := time.Now().Add(timeout)
+
+mainloop:
+	for {
+		if time.Now().After(endTime) {
+			return errors.New("timed out waiting for network to become routable")
+		}
+
+		time.Sleep(500 * time.Millisecond)
+
+		for _, i := range networkCfg.Interfaces {
+			if !isRoutable(i.Name) {
+				continue mainloop
+			}
+		}
+
+		for _, b := range networkCfg.Bonds {
+			if !isRoutable(b.Name) {
+				continue mainloop
+			}
+		}
+
+		for _, v := range networkCfg.Vlans {
+			if !isRoutable(v.Name) {
+				continue mainloop
+			}
+		}
+
+		return nil
+	}
 }
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.

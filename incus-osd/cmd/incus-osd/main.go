@@ -161,7 +161,7 @@ func startup(ctx context.Context, s *state.State) error {
 	}
 
 	// Perform network configuration.
-	err = systemd.ApplyNetworkConfiguration(ctx, s.NetworkConfig)
+	err = systemd.ApplyNetworkConfiguration(ctx, s.NetworkConfig, 10*time.Second)
 	if err != nil {
 		return err
 	}
