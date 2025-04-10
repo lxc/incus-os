@@ -28,7 +28,7 @@ type tui struct {
 var tuiInstance *tui
 
 // GetTUI returns a pointer the initialized TUI application.
-func GetTUI() (*tui, error) { //nolint:revive
+func GetTUI() (*tui, error) { //nolint:revive,nolintlint
 	var err error
 	if tuiInstance == nil {
 		tuiInstance, err = newTUI()
