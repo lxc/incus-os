@@ -9,6 +9,12 @@ import (
 func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
 	if r.URL.Path != "/" {
 		_ = response.NotFound(nil).Render(w)
 
@@ -18,8 +24,14 @@ func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 	_ = response.SyncResponse(true, []string{"/1.0"}).Render(w)
 }
 
-func (s *Server) apiRoot10(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
 
 	resp := map[string]any{
 		"environment": map[string]any{
