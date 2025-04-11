@@ -139,14 +139,14 @@ func (t *tui) RemoveModal() {
 func newTUI() (*tui, error) {
 	ret := &tui{}
 
-	// Attempt to open the system's console.
-	tty, err := tcell.NewDevTtyFromDev("/dev/console")
+	// Attempt to open the system's consoles.
+	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/tty2", "/dev/tty3", "/dev/tty4", "/dev/tty5", "/dev/tty6", "/dev/tty7")
 	if err != nil {
 		return ret, err
 	}
 
 	// Construct a screen that is bound to the system console.
-	ret.screen, err = tcell.NewTerminfoScreenFromTty(tty)
+	ret.screen, err = tcell.NewTerminfoScreenFromTty(ttys)
 	if err != nil {
 		return ret, err
 	}
