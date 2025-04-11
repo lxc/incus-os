@@ -152,13 +152,16 @@ func startup(ctx context.Context, s *state.State) error {
 
 	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
 
-	// Perform network configuration.
-	network, err := seed.GetNetwork(ctx, seed.SeedPartitionPath)
-	if err != nil && !seed.IsMissing(err) {
-		return err
+	// If there's no network configuration in the state, attempt to fetch from the seed info.
+	if s.NetworkConfig == nil {
+		s.NetworkConfig, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
 	}
 
-	err = systemd.ApplyNetworkConfiguration(ctx, network)
+	// Perform network configuration.
+	err = systemd.ApplyNetworkConfiguration(ctx, s.NetworkConfig, 10*time.Second)
 	if err != nil {
 		return err
 	}

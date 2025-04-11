@@ -2,6 +2,7 @@ package systemd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,22 +35,6 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 		return err
 	}
 
-	// When no configuration is provided, just DHCP on everything..
-	if networkCfg == nil {
-		return os.WriteFile(filepath.Join(SystemdNetworkConfigPath, "00-default.network"), []byte(
-			`[Match]
-Name=en*
-
-[Network]
-DHCP=ipv4
-LinkLocalAddressing=ipv6
-
-[DHCP]
-ClientIdentifier=mac
-RouteMetric=100
-UseMTU=true`), 0o644)
-	}
-
 	// Generate .link files.
 	for _, cfg := range generateLinkFileContents(*networkCfg) {
 		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
@@ -78,14 +63,22 @@ UseMTU=true`), 0o644)
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig) error {
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
+	if networkCfg == nil {
+		return errors.New("no network configuration provided")
+	}
+
 	err := generateNetworkConfiguration(ctx, networkCfg)
 	if err != nil {
 		return err
 	}
 
+	// At system start there's a small race between udev being fully started and
+	// our reconfiguring of the network. Sleep for a couple seconds before triggering udev.
+	time.Sleep(2 * time.Second)
+
 	// Trigger udev rule update to pickup device names.
-	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger")
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
 	if err != nil {
 		return err
 	}
@@ -102,10 +95,52 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 		return err
 	}
 
-	// Give 10s for the network to apply.
-	time.Sleep(10 * time.Second)
+	// Wait for the network to apply.
+	return waitForNetworkRoutable(ctx, networkCfg, timeout)
+}
 
-	return nil
+// waitForNetworkRoutable waits up to a provided timeout for all configured network interfaces,
+// bonds, and vlans to become routable.
+func waitForNetworkRoutable(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
+	isRoutable := func(name string) bool {
+		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
+		if err != nil {
+			return false
+		}
+
+		return strings.Contains(output, "State: routable")
+	}
+
+	endTime := time.Now().Add(timeout)
+
+mainloop:
+	for {
+		if time.Now().After(endTime) {
+			return errors.New("timed out waiting for network to become routable")
+		}
+
+		time.Sleep(500 * time.Millisecond)
+
+		for _, i := range networkCfg.Interfaces {
+			if !isRoutable(i.Name) {
+				continue mainloop
+			}
+		}
+
+		for _, b := range networkCfg.Bonds {
+			if !isRoutable(b.Name) {
+				continue mainloop
+			}
+		}
+
+		for _, v := range networkCfg.Vlans {
+			if !isRoutable(v.Name) {
+				continue mainloop
+			}
+		}
+
+		return nil
+	}
 }
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
@@ -193,9 +228,15 @@ func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfig
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
 LLDP=%s
 EmitLLDP=%s
+LinkLocalAddressing=ipv6
 `, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
 
 		cfgString += processAddresses(i.Addresses)
@@ -230,9 +271,15 @@ Bridge=%s
 		cfgString := fmt.Sprintf(`[Match]
 Name=bn%s
 
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
 LLDP=%s
 EmitLLDP=%s
+LinkLocalAddressing=ipv6
 `, b.Name, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP))
 
 		cfgString += processAddresses(b.Addresses)
