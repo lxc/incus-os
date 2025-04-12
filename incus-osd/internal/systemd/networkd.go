@@ -68,6 +68,20 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 		return errors.New("no network configuration provided")
 	}
 
+	// Set hostname from network config, if defined.
+	if networkCfg.Hostname != "" {
+		hostname := networkCfg.Hostname
+		if networkCfg.Domain != "" {
+			hostname += "." + networkCfg.Domain
+		}
+
+		// Apply the configured hostname.
+		err := SetHostname(ctx, hostname)
+		if err != nil {
+			return err
+		}
+	}
+
 	err := generateNetworkConfiguration(ctx, networkCfg)
 	if err != nil {
 		return err
