@@ -11,21 +11,20 @@ if incus info "${2}" >/dev/null 2>&1; then
 fi
 
 # Setup temporary directory
-TEMPDIR=$(mktemp -d)
 cleanup() {
-    rm -Rf "${TEMPDIR}"
+    rm -f .incus-os.img
 }
 trap cleanup EXIT HUP INT TERM
 
 # Grab the image
 echo "=> Downloading the image"
 echo "==> Downloading Incus OS ${1}"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.raw.gz" | gzip -d > "${TEMPDIR}/root.raw"
+curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.raw.gz" | gzip -d > .incus-os.img
 
 # Add seed data
 echo "=> Injecting seed data"
-dd status=none if=test/seed.install.tar of="${TEMPDIR}/root.raw" seek=4196352 bs=512 conv=notrunc
-truncate --size=50GiB "${TEMPDIR}/root.raw"
+dd status=none if=test/seed.install.tar of=.incus-os.img seek=4196352 bs=512 conv=notrunc
+truncate --size=50GiB .incus-os.img
 
 # Create an instance
 echo "=> Creating an Incus OS instance"
@@ -35,7 +34,7 @@ incus create --vm --empty "${2}" \
     -c limits.memory=8GiB \
     -d root,size=50GiB
 incus config device add "${2}" vtpm tpm
-incus config device add "${2}" boot-media disk source="${TEMPDIR}/root.raw" boot.priority=10
+incus config device add "${2}" boot-media disk source="$(pwd)/.incus-os.img" boot.priority=10
 
 echo "=> Starting Incus OS for installation"
 incus start "${2}" --console

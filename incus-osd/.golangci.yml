@@ -49,6 +49,8 @@ linters:
           disabled: true
         - name: max-public-structs
           disabled: true
+        - name: nested-structs
+          disabled: true
 
     tagliatelle:
       case:
