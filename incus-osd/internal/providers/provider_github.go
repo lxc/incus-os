@@ -29,6 +29,41 @@ type github struct {
 	releaseMu        sync.Mutex
 }
 
+func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the OS update struct.
+	update := githubOSUpdate{
+		provider: p,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
+	}
+
+	return &update, nil
+}
+
+func (p *github) GetApplication(ctx context.Context, name string) (Application, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the application struct.
+	app := githubApplication{
+		provider: p,
+		name:     name,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
+	}
+
+	return &app, nil
+}
+
 func (p *github) load(ctx context.Context) error {
 	// Setup the Github client.
 	p.gh = ghapi.NewClient(nil)
@@ -115,41 +150,6 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 	}
 
 	return nil
-}
-
-func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
-	// Get latest release.
-	err := p.checkRelease(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Prepare the OS update struct.
-	update := githubOSUpdate{
-		provider: p,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
-	}
-
-	return &update, nil
-}
-
-func (p *github) GetApplication(ctx context.Context, name string) (Application, error) {
-	// Get latest release.
-	err := p.checkRelease(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Prepare the application struct.
-	app := githubApplication{
-		provider: p,
-		name:     name,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
-	}
-
-	return &app, nil
 }
 
 // An application from the Github provider.

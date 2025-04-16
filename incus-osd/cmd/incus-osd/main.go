@@ -28,14 +28,37 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
+
 	// Check privileges.
 	if os.Getuid() != 0 {
 		_, _ = fmt.Fprintf(os.Stderr, "incus-osd must be run as root")
 		os.Exit(1)
 	}
 
+	// Create runtime path if missing.
+	err := os.Mkdir(runPath, 0o700)
+	if err != nil && !os.IsExist(err) {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create storage path if missing.
+	err = os.Mkdir(varPath, 0o700)
+	if err != nil && !os.IsExist(err) {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Get persistent state.
+	s, err := state.LoadOrCreate(ctx, filepath.Join(varPath, "state.json"))
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Get and start the console TUI.
-	tuiApp, err := tui.GetTUI()
+	tuiApp, err := tui.NewTUI(s)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -54,7 +77,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Run the daemon.
-	err = run()
+	err = run(ctx, s, tuiApp)
 	if err != nil {
 		slog.Error(err.Error())
 
@@ -65,12 +88,10 @@ func main() {
 	}
 }
 
-func run() error {
-	ctx := context.TODO()
-
+func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
-		inst, err := install.NewInstall()
+		inst, err := install.NewInstall(t)
 		if err != nil {
 			return err
 		}
@@ -78,26 +99,8 @@ func run() error {
 		return inst.DoInstall(ctx)
 	}
 
-	// Create runtime path if missing.
-	err := os.Mkdir(runPath, 0o700)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	// Create storage path if missing.
-	err = os.Mkdir(varPath, 0o700)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	// Get persistent state.
-	s, err := state.LoadOrCreate(ctx, filepath.Join(varPath, "state.json"))
-	if err != nil {
-		return err
-	}
-
 	// Run startup tasks.
-	err = startup(ctx, s)
+	err := startup(ctx, s, t)
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ func run() error {
 	return server.Serve(ctx)
 }
 
-func startup(ctx context.Context, s *state.State) error {
+func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
 
@@ -190,7 +193,7 @@ func startup(ctx context.Context, s *state.State) error {
 
 	if p != nil {
 		// Run update function if we have a working provider.
-		err = update(ctx, s, p)
+		err = update(ctx, s, t, p)
 		if err != nil {
 			return err
 		}
@@ -236,12 +239,7 @@ func startup(ctx context.Context, s *state.State) error {
 	return nil
 }
 
-func update(ctx context.Context, s *state.State, p providers.Provider) error {
-	tuiApp, err := tui.GetTUI()
-	if err != nil {
-		return err
-	}
-
+func update(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider) error {
 	// Determine what to install.
 	toInstall := []string{"incus"}
 
@@ -279,7 +277,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 	if update.Version() != s.RunningRelease {
 		// Download the update into place.
 		slog.Info("Downloading OS update", "release", update.Version())
-		tuiApp.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
+		t.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
 		err := update.Download(ctx, systemd.SystemUpdatesPath)
 		if err != nil {
 			return err
@@ -287,7 +285,7 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 
 		// Apply the update and reboot.
 		slog.Info("Applying OS update", "release", update.Version())
-		tuiApp.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
+		t.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), true)
 		if err != nil {
 			return err
@@ -315,13 +313,13 @@ func update(ctx context.Context, s *state.State, p providers.Provider) error {
 
 		// Download the application.
 		slog.Info("Downloading system extension", "application", app.Name(), "release", app.Version())
-		tuiApp.DisplayModal("Incus OS Extension Update", "Downloading system extension "+app.Name()+" update "+update.Version(), 0, 0)
+		t.DisplayModal("Incus OS Extension Update", "Downloading system extension "+app.Name()+" update "+update.Version(), 0, 0)
 		err = app.Download(ctx, systemd.SystemExtensionsPath)
 		if err != nil {
 			return err
 		}
 
-		tuiApp.RemoveModal()
+		t.RemoveModal()
 
 		// Record newly installed application.
 		s.Applications[app.Name()] = state.Application{Version: app.Version()}

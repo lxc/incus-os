@@ -23,6 +23,7 @@ import (
 // Install holds information necessary to perform an installation.
 type Install struct {
 	config *seed.InstallConfig
+	tui    *tui.TUI
 }
 
 // IsInstallNeeded checks for the presence of an install.{json,yaml} file in the
@@ -39,8 +40,10 @@ func IsInstallNeeded() bool {
 }
 
 // NewInstall returns a new Install object with its configuration, if any, populated from the seed partition.
-func NewInstall() (*Install, error) {
-	ret := &Install{}
+func NewInstall(t *tui.TUI) (*Install, error) {
+	ret := &Install{
+		tui: t,
+	}
 
 	var err error
 	ret.config, err = seed.GetInstallConfig(seed.SeedPartitionPath)
@@ -53,41 +56,36 @@ func NewInstall() (*Install, error) {
 
 // DoInstall performs the necessary steps for installing incus-osd to a local disk.
 func (i *Install) DoInstall(ctx context.Context) error {
-	tuiApp, err := tui.GetTUI()
-	if err != nil {
-		return err
-	}
-
 	slog.Info("Starting install of incus-osd to local disk")
-	tuiApp.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
+	i.tui.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
 	sourceDevice, err := i.getSourceDevice()
 	if err != nil {
-		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
 		return err
 	}
 
 	targetDevice, err := i.getTargetDevice(ctx, sourceDevice)
 	if err != nil {
-		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
 		return err
 	}
 
 	slog.Info("Installing incus-osd", "source", sourceDevice, "target", targetDevice)
-	tuiApp.DisplayModal("Incus OS Install", fmt.Sprintf("Installing incus-osd from %s to %s.", sourceDevice, targetDevice), 0, 0)
+	i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Installing incus-osd from %s to %s.", sourceDevice, targetDevice), 0, 0)
 
 	err = i.performInstall(ctx, sourceDevice, targetDevice)
 	if err != nil {
-		tuiApp.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
 		return err
 	}
 
 	slog.Info("Incus OS was successfully installed")
 	slog.Info("Please remove the install media to complete the installation")
-	tuiApp.DisplayModal("Incus OS Install", "Incus OS was successfully installed.\nPlease remoe the install media to complete the installation.", 0, 0)
+	i.tui.DisplayModal("Incus OS Install", "Incus OS was successfully installed.\nPlease remove the install media to complete the installation.", 0, 0)
 
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }
@@ -218,11 +216,6 @@ func (i *Install) getTargetDevice(ctx context.Context, sourceDevice string) (str
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
 func (i *Install) performInstall(ctx context.Context, sourceDevice string, targetDevice string) error {
-	tuiApp, err := tui.GetTUI()
-	if err != nil {
-		return err
-	}
-
 	// Verify the target device doesn't already have a partition table, or that `ForceInstall` is set to true.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
@@ -262,8 +255,8 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
 	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
-	doCopy := func(i int) error {
-		sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, i), os.O_RDONLY, 0o0600)
+	doCopy := func(partitionIndex int) error {
+		sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
 		if err != nil {
 			return err
 		}
@@ -279,7 +272,7 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 			return err
 		}
 
-		targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, i), os.O_WRONLY, 0o0600)
+		targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
 		if err != nil {
 			return err
 		}
@@ -298,7 +291,7 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 			}
 
 			if count%10 == 0 {
-				tuiApp.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of 8.", i), count*1024*1024, partitionSize)
+				i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of 8.", partitionIndex), count*1024*1024, partitionSize)
 			}
 			count++
 		}
