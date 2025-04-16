@@ -8,11 +8,11 @@ if [ ! -e /etc/apt/keyrings/zabbly.asc ]; then
 fi
 
 # Add the repository.
-cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-daily.sources
+cat <<EOF > /etc/apt/sources.list.d/zabbly-incus-stable.sources
 Enabled: yes
 Types: deb
-URIs: https://pkgs.zabbly.com/incus/daily
-Suites: noble
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: trixie
 Components: main
 Architectures: amd64
 Signed-By: /etc/apt/keyrings/zabbly.asc
