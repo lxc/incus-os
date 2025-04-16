@@ -19,6 +19,29 @@ type local struct {
 	releaseVersion string
 }
 
+func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
+	// Prepare the OS update struct.
+	update := localOSUpdate{
+		provider: p,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
+	}
+
+	return &update, nil
+}
+
+func (p *local) GetApplication(_ context.Context, name string) (Application, error) {
+	// Prepare the application struct.
+	app := localApplication{
+		provider: p,
+		name:     name,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
+	}
+
+	return &app, nil
+}
+
 func (p *local) load(ctx context.Context) error {
 	// Use a hardcoded path for now.
 	p.path = "/root/updates/"
@@ -100,29 +123,6 @@ func (p *local) copyAsset(_ context.Context, name string, target string) error {
 	}
 
 	return nil
-}
-
-func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
-	// Prepare the OS update struct.
-	update := localOSUpdate{
-		provider: p,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
-	}
-
-	return &update, nil
-}
-
-func (p *local) GetApplication(_ context.Context, name string) (Application, error) {
-	// Prepare the application struct.
-	app := localApplication{
-		provider: p,
-		name:     name,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
-	}
-
-	return &app, nil
 }
 
 // An application from the Local provider.
