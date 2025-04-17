@@ -3,13 +3,15 @@ package seed
 import (
 	"context"
 	"net"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
-func GetNetwork(_ context.Context, partition string) (*NetworkConfig, error) {
+func GetNetwork(_ context.Context, partition string) (*api.SystemNetwork, error) {
 	// Get the network configuration.
-	var config NetworkConfig
+	var config api.SystemNetwork
 
 	err := parseFileContents(partition, "network", &config)
 	if err != nil {
@@ -35,26 +37,26 @@ func GetNetwork(_ context.Context, partition string) (*NetworkConfig, error) {
 }
 
 // NetworkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
-func NetworkConfigHasEmptyDevices(networkCfg NetworkConfig) bool {
+func NetworkConfigHasEmptyDevices(networkCfg api.SystemNetwork) bool {
 	return len(networkCfg.Interfaces) == 0 && len(networkCfg.Bonds) == 0 && len(networkCfg.Vlans) == 0
 }
 
 // getDefaultNetworkConfig returns a minimal network configuration, with every interface
 // configured to acquire an IP via DHCP and SLAAC.
-func getDefaultNetworkConfig() (*NetworkConfig, error) {
+func getDefaultNetworkConfig() (*api.SystemNetwork, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
 
-	ret := new(NetworkConfig)
+	ret := new(api.SystemNetwork)
 
 	for _, i := range interfaces {
 		if i.Name == "lo" {
 			continue
 		}
 
-		ret.Interfaces = append(ret.Interfaces, NetworkInterface{
+		ret.Interfaces = append(ret.Interfaces, api.SystemNetworkInterface{
 			Name:      i.Name,
 			Hwaddr:    i.HardwareAddr.String(),
 			Addresses: []string{"dhcp4", "slaac"},

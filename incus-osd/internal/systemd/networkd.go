@@ -12,7 +12,7 @@ import (
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // networkdConfigFile represents a given filename and its contents.
@@ -23,7 +23,7 @@ type networkdConfigFile struct {
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
 // new config files from the supplied NetworkConfig struct.
-func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkConfig) error {
+func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwork) error {
 	// Remove any existing configuration.
 	err := os.RemoveAll(SystemdNetworkConfigPath)
 	if err != nil {
@@ -63,7 +63,7 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *seed.NetworkCon
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwork, timeout time.Duration) error {
 	if networkCfg == nil {
 		return errors.New("no network configuration provided")
 	}
@@ -116,7 +116,7 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *seed.NetworkConf
 
 // waitForNetworkRoutable waits up to a provided timeout for all configured network interfaces,
 // bonds, and vlans to become routable.
-func waitForNetworkRoutable(ctx context.Context, networkCfg *seed.NetworkConfig, timeout time.Duration) error {
+func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetwork, timeout time.Duration) error {
 	isRoutable := func(name string) bool {
 		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
 		if err != nil {
@@ -160,7 +160,7 @@ mainloop:
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html
-func generateLinkFileContents(networkCfg seed.NetworkConfig) []networkdConfigFile {
+func generateLinkFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	for _, i := range networkCfg.Interfaces {
@@ -182,7 +182,7 @@ Name=en%s
 
 // generateNetdevFileContents generates the contents of systemd.netdev files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.netdev.html
-func generateNetdevFileContents(networkCfg seed.NetworkConfig) []networkdConfigFile {
+func generateNetdevFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	// Create bridge devices for each interface.
@@ -234,7 +234,7 @@ Id=%d
 
 // generateNetworkFileContents generates the contents of systemd.network files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html
-func generateNetworkFileContents(networkCfg seed.NetworkConfig) []networkdConfigFile {
+func generateNetworkFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	// Create networks for each interface.
@@ -359,7 +359,7 @@ func processAddresses(addresses []string) string {
 	return ret
 }
 
-func processRoutes(routes []seed.Route) string {
+func processRoutes(routes []api.SystemNetworkRoute) string {
 	ret := ""
 
 	for _, route := range routes {

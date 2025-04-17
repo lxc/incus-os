@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // Application represents an installed application (system extension).
@@ -17,5 +17,5 @@ type State struct {
 	Applications   map[string]Application `json:"applications"`
 	RunningRelease string                 `json:"running_release"`
 
-	NetworkConfig *seed.NetworkConfig `json:"network_config"`
+	NetworkConfig *api.SystemNetwork `json:"network_config"`
 }

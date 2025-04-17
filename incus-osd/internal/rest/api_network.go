@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -20,7 +21,7 @@ func (s *Server) apiNetwork10(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.NetworkConfig).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
-		newConfig := new(seed.NetworkConfig)
+		newConfig := new(api.SystemNetwork)
 
 		// If updating, grab the current configuration.
 		if r.Method == http.MethodPatch {
