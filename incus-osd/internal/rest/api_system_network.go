@@ -67,6 +67,8 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
+
+		_ = s.state.Save(r.Context())
 	default:
 		// If none of the supported methods, return NotImplemented.
 		_ = response.NotImplemented(nil).Render(w)
