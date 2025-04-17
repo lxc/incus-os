@@ -23,7 +23,7 @@ func GetNetwork(_ context.Context, partition string) (*NetworkConfig, error) {
 	}
 
 	// If no interfaces, bonds, or vlans are defined, add a minimal default configuration for the interfaces.
-	if networkConfigHasEmptyDevices(config) {
+	if NetworkConfigHasEmptyDevices(config) {
 		defaultNetwork, err := getDefaultNetworkConfig()
 		if err != nil {
 			return nil, err
@@ -34,8 +34,8 @@ func GetNetwork(_ context.Context, partition string) (*NetworkConfig, error) {
 	return &config, nil
 }
 
-// networkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
-func networkConfigHasEmptyDevices(networkCfg NetworkConfig) bool {
+// NetworkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
+func NetworkConfigHasEmptyDevices(networkCfg NetworkConfig) bool {
 	return len(networkCfg.Interfaces) == 0 && len(networkCfg.Bonds) == 0 && len(networkCfg.Vlans) == 0
 }
 
