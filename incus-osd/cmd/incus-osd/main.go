@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 var (
@@ -165,6 +166,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Perform network configuration.
 	err = systemd.ApplyNetworkConfiguration(ctx, s.NetworkConfig, 10*time.Second)
+	if err != nil {
+		return err
+	}
+
+	// Ensure  the "local" ZFS pool is available.
+	err = zfs.ImportOrCreateLocalPool(ctx)
 	if err != nil {
 		return err
 	}
