@@ -17,6 +17,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
@@ -215,7 +216,26 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	// Run startup actions.
+	// Run services startup actions.
+	for _, srvName := range services.ValidNames {
+		srv, err := services.Load(ctx, s, srvName)
+		if err != nil {
+			return err
+		}
+
+		if !srv.ShouldStart() {
+			continue
+		}
+
+		slog.Info("Starting service", "name", srvName)
+
+		err = srv.Start(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Run application startup actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
 		app, err := applications.Load(ctx, appName)
