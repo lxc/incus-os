@@ -165,13 +165,8 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Perform network configuration.
+	slog.Info("Bringing up the network")
 	err = systemd.ApplyNetworkConfiguration(ctx, s.System.Network, 10*time.Second)
-	if err != nil {
-		return err
-	}
-
-	// Ensure  the "local" ZFS pool is available.
-	err = zfs.ImportOrCreateLocalPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -204,6 +199,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Ensure  the "local" ZFS pool is available.
+	slog.Info("Bringing up the local ZFS pool")
+	err = zfs.ImportOrCreateLocalPool(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Apply the system users.
