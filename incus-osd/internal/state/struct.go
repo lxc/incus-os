@@ -27,6 +27,7 @@ type State struct {
 	} `json:"services"`
 
 	System struct {
-		Network *api.SystemNetwork `json:"network"`
+		Encryption *api.SystemEncryption `json:"encryption"`
+		Network    *api.SystemNetwork    `json:"network"`
 	} `json:"system"`
 }
