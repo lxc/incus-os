@@ -239,6 +239,14 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
+	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
+	if len(s.System.Encryption.RecoveryKeys) == 0 {
+		err := systemd.GenerateRecoveryKey(ctx, s)
+		if err != nil {
+			return err
+		}
+	}
+
 	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
