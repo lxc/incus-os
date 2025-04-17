@@ -18,7 +18,7 @@ func (s *Server) apiNetwork10(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// Return the current network configuration.
-		_ = response.SyncResponse(true, s.state.NetworkConfig).Render(w)
+		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
 		newConfig := new(api.SystemNetwork)
@@ -27,7 +27,7 @@ func (s *Server) apiNetwork10(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPatch {
 			// We make a copy of the current network configuration so we don't corrupt
 			// the existing good state with a bad update from the user.
-			cpy, err := json.Marshal(s.state.NetworkConfig)
+			cpy, err := json.Marshal(s.state.System.Network)
 			if err != nil {
 				_ = response.BadRequest(err).Render(w)
 
@@ -58,8 +58,8 @@ func (s *Server) apiNetwork10(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Apply the updated configuration.
-		s.state.NetworkConfig = newConfig
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state.NetworkConfig, 10*time.Second)
+		s.state.System.Network = newConfig
+		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state.System.Network, 10*time.Second)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 

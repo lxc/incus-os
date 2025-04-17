@@ -17,5 +17,7 @@ type State struct {
 	Applications   map[string]Application `json:"applications"`
 	RunningRelease string                 `json:"running_release"`
 
-	NetworkConfig *api.SystemNetwork `json:"network_config"`
+	System struct {
+		Network *api.SystemNetwork `json:"network"`
+	} `json:"system"`
 }
