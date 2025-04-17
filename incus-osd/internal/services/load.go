@@ -8,13 +8,15 @@ import (
 )
 
 // ValidNames contains the list of all valid services.
-var ValidNames = []string{}
+var ValidNames = []string{"nvme"}
 
 // Load returns a handler for the given system service.
 func Load(ctx context.Context, s *state.State, name string) (Service, error) {
 	var srv Service
 
 	switch name {
+	case "nvme":
+		srv = &NVME{state: s}
 	default:
 		return nil, errors.New("unknown service")
 	}

@@ -17,6 +17,10 @@ type State struct {
 	Applications   map[string]Application `json:"applications"`
 	RunningRelease string                 `json:"running_release"`
 
+	Services struct {
+		NVME *api.ServiceNVME `json:"nvme"`
+	} `json:"services"`
+
 	System struct {
 		Network *api.SystemNetwork `json:"network"`
 	} `json:"system"`
