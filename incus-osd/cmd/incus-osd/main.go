@@ -96,6 +96,9 @@ func main() {
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
+		// Don't display warning about recovery key during install.
+		s.System.Encryption.RecoveryKeysRetrieved = true
+
 		inst, err := install.NewInstall(t)
 		if err != nil {
 			return err
