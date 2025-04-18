@@ -1,13 +1,18 @@
 disable lvmlockd.service
+disable sanlock.service
+disable wdmd.service
+
 disable openvswitch-switch.service
 disable ovsdb-server.service
 disable ovs-record-hostname.service
 disable ovs-vswitchd.service
-disable sanlock.service
-disable wdmd.service
 
 disable dpkg-db-backup.timer
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
 
 disable uuidd.socket
+
+disable iscsid.service
+disable iscsid.socket
+disable open-iscsi.service
