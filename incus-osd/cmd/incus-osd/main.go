@@ -96,6 +96,9 @@ func main() {
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
+		// Don't display warning about recovery key during install.
+		s.System.Encryption.RecoveryKeysRetrieved = true
+
 		inst, err := install.NewInstall(t)
 		if err != nil {
 			return err
@@ -158,7 +161,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	slog.Info("Shutting down", "release", s.RunningRelease)
 	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
 
-	// Run application shutdown actions..
+	// Run application shutdown actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
 		app, err := applications.Load(ctx, appName)
@@ -166,7 +169,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 			return err
 		}
 
-		// Start the application.
+		// Stop the application.
 		slog.Info("Stopping application", "name", appName, "version", appInfo.Version)
 
 		err = app.Stop(ctx, appInfo.Version)
@@ -175,7 +178,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Run services startup actions.
+	// Run services shutdown actions.
 	for _, srvName := range services.ValidNames {
 		srv, err := services.Load(ctx, s, srvName)
 		if err != nil {
@@ -234,6 +237,14 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
+	}
+
+	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
+	if len(s.System.Encryption.RecoveryKeys) == 0 {
+		err := systemd.GenerateRecoveryKey(ctx, s)
+		if err != nil {
+			return err
+		}
 	}
 
 	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
