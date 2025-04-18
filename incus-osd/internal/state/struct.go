@@ -22,7 +22,8 @@ type State struct {
 	RunningRelease string                 `json:"running_release"`
 
 	Services struct {
-		NVME *api.ServiceNVME `json:"nvme"`
+		ISCSI *api.ServiceISCSI `json:"iscsi"`
+		NVME  *api.ServiceNVME  `json:"nvme"`
 	} `json:"services"`
 
 	System struct {
