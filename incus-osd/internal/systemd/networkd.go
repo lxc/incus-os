@@ -59,6 +59,24 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 		}
 	}
 
+	// Generate systemd-timesyncd configuration if any timeservers are defined.
+	ntpCfg := ""
+	if networkCfg.NTP != nil {
+		ntpCfg = generateTimesyncContents(*networkCfg.NTP)
+
+		if ntpCfg != "" {
+			err := os.WriteFile(SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// If there's no NTP configuration, remove the old config file that might exist.
+	if networkCfg.NTP == nil || ntpCfg == "" {
+		_ = os.Remove(SystemdTimesyncConfigFile)
+	}
+
 	return nil
 }
 
@@ -79,6 +97,12 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 
 	// Apply the configured hostname, or reset back to default if not set.
 	err := SetHostname(ctx, hostname)
+	if err != nil {
+		return err
+	}
+
+	// Set proxy environment variables, or clear existing ones if none are defined.
+	err = UpdateEnvironment(networkCfg.Proxy)
 	if err != nil {
 		return err
 	}
@@ -106,6 +130,13 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 
 	// Restart networking after new config files have been generated.
 	err = RestartUnit(ctx, "systemd-networkd")
+	if err != nil {
+		return err
+	}
+
+	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+	// the service is disabled by default and only started once we have performed the network (re)configuration.
+	err = RestartUnit(ctx, "systemd-timesyncd")
 	if err != nil {
 		return err
 	}
@@ -249,10 +280,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-LLDP=%s
-EmitLLDP=%s
-LinkLocalAddressing=ipv6
-`, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
+%s`, i.Name, generateNetworkSectionContents(i.LLDP, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -292,10 +320,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-LLDP=%s
-EmitLLDP=%s
-LinkLocalAddressing=ipv6
-`, b.Name, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP))
+%s`, b.Name, generateNetworkSectionContents(b.LLDP, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -376,4 +401,40 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 	}
 
 	return ret
+}
+
+func generateNetworkSectionContents(lldpEnabled bool, dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
+	// Start with generic network config.
+	ret := fmt.Sprintf(`LLDP=%s
+EmitLLDP=%s
+LinkLocalAddressing=ipv6
+`, strconv.FormatBool(lldpEnabled), strconv.FormatBool(lldpEnabled))
+
+	// If there are search domains or name servers, add those to the config.
+	if dns != nil {
+		if len(dns.SearchDomains) > 0 {
+			ret += fmt.Sprintf("Domains=%s\n", strings.Join(dns.SearchDomains, " "))
+		}
+
+		for _, ns := range dns.Nameservers {
+			ret += fmt.Sprintf("DNS=%s\n", ns)
+		}
+	}
+
+	// If there are time servers defined, add them to the config.
+	if ntp != nil {
+		for _, ts := range ntp.Timeservers {
+			ret += fmt.Sprintf("NTP=%s\n", ts)
+		}
+	}
+
+	return ret
+}
+
+func generateTimesyncContents(ntp api.SystemNetworkNTP) string {
+	if len(ntp.Timeservers) == 0 {
+		return ""
+	}
+
+	return "[Time]\nFallbackNTP=" + strings.Join(ntp.Timeservers, " ") + "\n"
 }
