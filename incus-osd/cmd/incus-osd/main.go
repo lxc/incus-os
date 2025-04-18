@@ -161,7 +161,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	slog.Info("Shutting down", "release", s.RunningRelease)
 	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
 
-	// Run application shutdown actions..
+	// Run application shutdown actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
 		app, err := applications.Load(ctx, appName)
@@ -169,7 +169,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 			return err
 		}
 
-		// Start the application.
+		// Stop the application.
 		slog.Info("Stopping application", "name", appName, "version", appInfo.Version)
 
 		err = app.Stop(ctx, appInfo.Version)
@@ -178,7 +178,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Run services startup actions.
+	// Run services shutdown actions.
 	for _, srvName := range services.ValidNames {
 		srv, err := services.Load(ctx, s, srvName)
 		if err != nil {
