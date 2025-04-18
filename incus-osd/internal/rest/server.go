@@ -59,7 +59,7 @@ func (s *Server) Serve(_ context.Context) error {
 		Handler: router,
 
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 0,
 	}
 
 	return server.Serve(listener)
