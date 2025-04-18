@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lxc/incus/v6/shared/subprocess"
@@ -169,6 +171,18 @@ func (n *NVME) Start(ctx context.Context) error {
 	}
 
 	for _, target := range n.state.Services.NVME.Config.Targets {
+		// Attempt to connect to the target (wait up to 5s).
+		//
+		// This isn't fatal as some controllers may be temporarily offline.
+		for range 10 {
+			_, err = subprocess.RunCommandContext(ctx, "nvme", "discover", "--transport", target.Transport, "--traddr", target.Address, "--trsvcid", strconv.Itoa(target.Port))
+			if err == nil {
+				break
+			}
+
+			time.Sleep(500 * time.Millisecond)
+		}
+
 		_, err = fmt.Fprintf(f, "--transport=%s --traddr=%s --trsvcid=%d\n", target.Transport, target.Address, target.Port)
 		if err != nil {
 			return err
