@@ -83,6 +83,14 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 		return err
 	}
 
+	// Set proxy environment variables, if defined.
+	if networkCfg.Proxy != nil {
+		err := SetProxyEnvironment(*networkCfg.Proxy)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = generateNetworkConfiguration(ctx, networkCfg)
 	if err != nil {
 		return err
@@ -249,10 +257,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-LLDP=%s
-EmitLLDP=%s
-LinkLocalAddressing=ipv6
-`, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
+%s`, i.Name, generateNetworkSectionContents(i.LLDP, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -292,10 +297,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-LLDP=%s
-EmitLLDP=%s
-LinkLocalAddressing=ipv6
-`, b.Name, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP))
+%s`, b.Name, generateNetworkSectionContents(b.LLDP, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -373,6 +375,34 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 		}
 
 		ret += fmt.Sprintf("Destination=%s\n", route.To)
+	}
+
+	return ret
+}
+
+func generateNetworkSectionContents(lldpEnabled bool, dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
+	// Start with generic network config.
+	ret := fmt.Sprintf(`LLDP=%s
+EmitLLDP=%s
+LinkLocalAddressing=ipv6
+`, strconv.FormatBool(lldpEnabled), strconv.FormatBool(lldpEnabled))
+
+	// If there are search domains or name servers, add those to the config.
+	if dns != nil {
+		if len(dns.SearchDomains) > 0 {
+			ret += fmt.Sprintf("Domains=%s\n", strings.Join(dns.SearchDomains, " "))
+		}
+
+		for _, ns := range dns.Nameservers {
+			ret += fmt.Sprintf("DNS=%s\n", ns)
+		}
+	}
+
+	// If there are time servers defined, add them to the config.
+	if ntp != nil {
+		for _, ts := range ntp.Timeservers {
+			ret += fmt.Sprintf("NTP=%s\n", ts)
+		}
 	}
 
 	return ret
