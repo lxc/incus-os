@@ -4,8 +4,9 @@ package api
 type SystemNetwork struct {
 	Version string `json:"version" yaml:"version"`
 
-	Hostname string `json:"hostname" yaml:"hostname"`
-	Domain   string `json:"domain"   yaml:"domain"`
+	DNS   *SystemNetworkDNS   `json:"dns"   yaml:"dns"`
+	NTP   *SystemNetworkNTP   `json:"ntp"   yaml:"ntp"`
+	Proxy *SystemNetworkProxy `json:"proxy" yaml:"proxy"`
 
 	Interfaces []SystemNetworkInterface `json:"interfaces" yaml:"interfaces"`
 	Bonds      []SystemNetworkBond      `json:"bonds"      yaml:"bonds"`
@@ -49,4 +50,24 @@ type SystemNetworkVlan struct {
 type SystemNetworkRoute struct {
 	To  string `json:"to"  yaml:"to"`
 	Via string `json:"via" yaml:"via"`
+}
+
+// SystemNetworkDNS defines DNS configuration options.
+type SystemNetworkDNS struct {
+	Hostname      string   `json:"hostname"       yaml:"hostname"`
+	Domain        string   `json:"domain"         yaml:"domain"`
+	SearchDomains []string `json:"search_domains" yaml:"search_domains"`
+	Nameservers   []string `json:"nameservers"    yaml:"nameservers"`
+}
+
+// SystemNetworkNTP defines static timeservers to use.
+type SystemNetworkNTP struct {
+	Timeservers []string `json:"timeservers" yaml:"timeservers"`
+}
+
+// SystemNetworkProxy defines proxy configuration.
+type SystemNetworkProxy struct {
+	HTTPProxy  string `json:"http_proxy"  yaml:"http_proxy"`
+	HTTPSProxy string `json:"https_proxy" yaml:"https_proxy"`
+	NoProxy    string `json:"no_proxy"    yaml:"no_proxy"`
 }

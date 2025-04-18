@@ -70,10 +70,10 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 
 	// Get hostname and domain from network config, if defined.
 	hostname := ""
-	if networkCfg.Hostname != "" {
-		hostname = networkCfg.Hostname
-		if networkCfg.Domain != "" {
-			hostname += "." + networkCfg.Domain
+	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
+		hostname = networkCfg.DNS.Hostname
+		if networkCfg.DNS.Domain != "" {
+			hostname += "." + networkCfg.DNS.Domain
 		}
 	}
 
