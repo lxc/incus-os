@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
@@ -107,6 +110,38 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
+	// Set up handler for shutdown tasks.
+	s.TriggerReboot = make(chan error, 1)
+	s.TriggerShutdown = make(chan error, 1)
+	chSignal := make(chan os.Signal, 1)
+	signal.Notify(chSignal, unix.SIGTERM)
+	go func() {
+		action := "exit"
+
+		// Shutdown handler.
+		select {
+		case <-chSignal:
+		case <-s.TriggerReboot:
+			action = "reboot"
+		case <-s.TriggerShutdown:
+			action = "shutdown"
+		}
+
+		err := shutdown(ctx, s, t)
+		if err != nil {
+			slog.Error("Failed shutdown sequence", "err", err)
+		}
+
+		switch action {
+		case "shutdown":
+			_ = systemd.SystemPowerOff(ctx)
+		case "reboot":
+			_ = systemd.SystemReboot(ctx)
+		}
+
+		os.Exit(0) //nolint:revive
+	}()
+
 	// Start the API.
 	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
 	if err != nil {
@@ -114,6 +149,52 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	return server.Serve(ctx)
+}
+
+func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
+	// Save state on exit.
+	defer func() { _ = s.Save(ctx) }()
+
+	slog.Info("Shutting down", "release", s.RunningRelease)
+	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
+
+	// Run application shutdown actions..
+	for appName, appInfo := range s.Applications {
+		// Get the application.
+		app, err := applications.Load(ctx, appName)
+		if err != nil {
+			return err
+		}
+
+		// Start the application.
+		slog.Info("Stopping application", "name", appName, "version", appInfo.Version)
+
+		err = app.Stop(ctx, appInfo.Version)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Run services startup actions.
+	for _, srvName := range services.ValidNames {
+		srv, err := services.Load(ctx, s, srvName)
+		if err != nil {
+			return err
+		}
+
+		if !srv.ShouldStart() {
+			continue
+		}
+
+		slog.Info("Stopping service", "name", srvName)
+
+		err = srv.Stop(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
