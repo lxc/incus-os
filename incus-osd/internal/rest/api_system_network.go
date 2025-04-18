@@ -12,7 +12,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-func (s *Server) apiNetwork10(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	switch r.Method {
