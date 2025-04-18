@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 func TestGetFileContents(t *testing.T) {
 	t.Parallel()
 
-	var config NetworkConfig
+	var config api.SystemNetwork
 	err := parseFileContents("testdata.tar", "network", &config)
 	require.NoError(t, err)
 }

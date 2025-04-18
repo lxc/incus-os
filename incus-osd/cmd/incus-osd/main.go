@@ -17,6 +17,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
@@ -157,21 +158,16 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
-	if s.NetworkConfig == nil {
-		s.NetworkConfig, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
+	if s.System.Network == nil {
+		s.System.Network, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
 	}
 
 	// Perform network configuration.
-	err = systemd.ApplyNetworkConfiguration(ctx, s.NetworkConfig, 10*time.Second)
-	if err != nil {
-		return err
-	}
-
-	// Ensure  the "local" ZFS pool is available.
-	err = zfs.ImportOrCreateLocalPool(ctx)
+	slog.Info("Bringing up the network")
+	err = systemd.ApplyNetworkConfiguration(ctx, s.System.Network, 10*time.Second)
 	if err != nil {
 		return err
 	}
@@ -206,6 +202,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
+	// Ensure  the "local" ZFS pool is available.
+	slog.Info("Bringing up the local ZFS pool")
+	err = zfs.ImportOrCreateLocalPool(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Apply the system users.
 	slog.Info("Refreshing users")
 	err = systemd.RefreshUsers(ctx)
@@ -213,7 +216,26 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	// Run startup actions.
+	// Run services startup actions.
+	for _, srvName := range services.ValidNames {
+		srv, err := services.Load(ctx, s, srvName)
+		if err != nil {
+			return err
+		}
+
+		if !srv.ShouldStart() {
+			continue
+		}
+
+		slog.Info("Starting service", "name", srvName)
+
+		err = srv.Start(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Run application startup actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
 		app, err := applications.Load(ctx, appName)

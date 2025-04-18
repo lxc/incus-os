@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 var networkdConfig1 = `
@@ -76,7 +76,7 @@ interfaces:
 func TestNetworkConfigMarshalling(t *testing.T) {
 	t.Parallel()
 
-	var cfg, cfgAgain seed.NetworkConfig
+	var cfg, cfgAgain api.SystemNetwork
 
 	// Test unmarshalling of the first test config.
 	err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
@@ -138,7 +138,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 func TestLinkFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg seed.NetworkConfig
+	var networkCfg api.SystemNetwork
 
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.Equal(t, "00-enaabbccddee02.link", cfgs[1].Name)
 	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=enaabbccddee02\n", cfgs[1].Contents)
 
-	networkCfg = seed.NetworkConfig{}
+	networkCfg = api.SystemNetwork{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
@@ -163,7 +163,7 @@ func TestLinkFileGeneration(t *testing.T) {
 func TestNetdevFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg seed.NetworkConfig
+	var networkCfg api.SystemNetwork
 
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
@@ -179,7 +179,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "00-vluplink.netdev", cfgs[3].Name)
 	require.Equal(t, "[NetDev]\nName=vluplink\nKind=vlan\nMTUBytes=1500\n\n[Bridge]\nId=1234\n", cfgs[3].Contents)
 
-	networkCfg = seed.NetworkConfig{}
+	networkCfg = api.SystemNetwork{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
@@ -192,7 +192,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 func TestNetworkFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg seed.NetworkConfig
+	var networkCfg api.SystemNetwork
 
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
@@ -214,7 +214,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "00-bnmanagement-dev1.network", cfgs[6].Name)
 	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:04\n\n[Network]\nBond=bnmanagement\n", cfgs[6].Contents)
 
-	networkCfg = seed.NetworkConfig{}
+	networkCfg = api.SystemNetwork{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
