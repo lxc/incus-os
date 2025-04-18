@@ -14,6 +14,10 @@ type Application struct {
 type State struct {
 	path string
 
+	// Triggers for daemon shutdown sequence.
+	TriggerReboot   chan error `json:"-"`
+	TriggerShutdown chan error `json:"-"`
+
 	Applications   map[string]Application `json:"applications"`
 	RunningRelease string                 `json:"running_release"`
 
