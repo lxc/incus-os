@@ -76,63 +76,69 @@ interfaces:
 func TestNetworkConfigMarshalling(t *testing.T) {
 	t.Parallel()
 
-	var cfg, cfgAgain api.SystemNetwork
+	{
+		var cfg, cfgAgain api.SystemNetwork
 
-	// Test unmarshalling of the first test config.
-	err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
-	require.NoError(t, err)
+		// Test unmarshalling of the first test config.
+		err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
+		require.NoError(t, err)
 
-	// Verify values were parsed correctly.
-	require.Len(t, cfg.Interfaces, 2)
-	require.Equal(t, "san1", cfg.Interfaces[0].Name)
-	require.Len(t, cfg.Interfaces[0].Addresses, 2)
-	require.Equal(t, "fd40:1234:1234:101::10/64", cfg.Interfaces[0].Addresses[1])
-	require.Len(t, cfg.Interfaces[1].Addresses, 2)
-	require.Equal(t, "10.0.102.10/24", cfg.Interfaces[1].Addresses[0])
-	require.Equal(t, "AA:BB:CC:DD:EE:02", cfg.Interfaces[1].Hwaddr)
-	require.Len(t, cfg.Interfaces[1].Roles, 1)
-	require.Equal(t, "storage", cfg.Interfaces[1].Roles[0])
-	require.Len(t, cfg.Bonds, 1)
-	require.Equal(t, "management", cfg.Bonds[0].Name)
-	require.Equal(t, 9000, cfg.Bonds[0].MTU)
-	require.Len(t, cfg.Bonds[0].Routes, 2)
-	require.Len(t, cfg.Bonds[0].Members, 2)
-	require.Equal(t, "AA:BB:CC:DD:EE:03", cfg.Bonds[0].Members[0])
-	require.Len(t, cfg.Vlans, 1)
-	require.Equal(t, "uplink", cfg.Vlans[0].Name)
-	require.Equal(t, 1234, cfg.Vlans[0].ID)
-	require.Len(t, cfg.Vlans[0].Roles, 1)
-	require.Equal(t, "ovn-uplink", cfg.Vlans[0].Roles[0])
+		// Verify values were parsed correctly.
+		require.Len(t, cfg.Interfaces, 2)
+		require.Equal(t, "san1", cfg.Interfaces[0].Name)
+		require.Len(t, cfg.Interfaces[0].Addresses, 2)
+		require.Equal(t, "fd40:1234:1234:101::10/64", cfg.Interfaces[0].Addresses[1])
+		require.Len(t, cfg.Interfaces[1].Addresses, 2)
+		require.Equal(t, "10.0.102.10/24", cfg.Interfaces[1].Addresses[0])
+		require.Equal(t, "AA:BB:CC:DD:EE:02", cfg.Interfaces[1].Hwaddr)
+		require.Len(t, cfg.Interfaces[1].Roles, 1)
+		require.Equal(t, "storage", cfg.Interfaces[1].Roles[0])
+		require.Len(t, cfg.Bonds, 1)
+		require.Equal(t, "management", cfg.Bonds[0].Name)
+		require.Equal(t, 9000, cfg.Bonds[0].MTU)
+		require.Len(t, cfg.Bonds[0].Routes, 2)
+		require.Len(t, cfg.Bonds[0].Members, 2)
+		require.Equal(t, "AA:BB:CC:DD:EE:03", cfg.Bonds[0].Members[0])
+		require.Len(t, cfg.Vlans, 1)
+		require.Equal(t, "uplink", cfg.Vlans[0].Name)
+		require.Equal(t, 1234, cfg.Vlans[0].ID)
+		require.Len(t, cfg.Vlans[0].Roles, 1)
+		require.Equal(t, "ovn-uplink", cfg.Vlans[0].Roles[0])
 
-	// Verify we can marshal and unmarshal the test config and don't loose any information.
-	content, err := yaml.Marshal(&cfg)
-	require.NoError(t, err)
+		// Verify we can marshal and unmarshal the test config and don't loose any information.
+		content, err := yaml.Marshal(&cfg)
+		require.NoError(t, err)
 
-	err = yaml.Unmarshal(content, &cfgAgain)
-	require.NoError(t, err)
-	require.Equal(t, cfg, cfgAgain)
+		err = yaml.Unmarshal(content, &cfgAgain)
+		require.NoError(t, err)
+		require.Equal(t, cfg, cfgAgain)
+	}
 
-	// Test unmarshalling of the second test config.
-	err = yaml.Unmarshal([]byte(networkdConfig2), &cfg)
-	require.NoError(t, err)
+	{
+		var cfg, cfgAgain api.SystemNetwork
 
-	// Verify values were parsed correctly.
-	require.Len(t, cfg.Interfaces, 1)
-	require.Equal(t, "management", cfg.Interfaces[0].Name)
-	require.Len(t, cfg.Interfaces[0].Addresses, 2)
-	require.Equal(t, "slaac", cfg.Interfaces[0].Addresses[1])
-	require.Equal(t, "AA:BB:CC:DD:EE:01", cfg.Interfaces[0].Hwaddr)
-	require.Len(t, cfg.Interfaces[0].Routes, 2)
-	require.Equal(t, "0.0.0.0/0", cfg.Interfaces[0].Routes[0].To)
-	require.Equal(t, "dhcp4", cfg.Interfaces[0].Routes[0].Via)
+		// Test unmarshalling of the second test config.
+		err := yaml.Unmarshal([]byte(networkdConfig2), &cfg)
+		require.NoError(t, err)
 
-	// Verify we can marshal and unmarshal the test config and don't loose any information.
-	content, err = yaml.Marshal(&cfg)
-	require.NoError(t, err)
+		// Verify values were parsed correctly.
+		require.Len(t, cfg.Interfaces, 1)
+		require.Equal(t, "management", cfg.Interfaces[0].Name)
+		require.Len(t, cfg.Interfaces[0].Addresses, 2)
+		require.Equal(t, "slaac", cfg.Interfaces[0].Addresses[1])
+		require.Equal(t, "AA:BB:CC:DD:EE:01", cfg.Interfaces[0].Hwaddr)
+		require.Len(t, cfg.Interfaces[0].Routes, 2)
+		require.Equal(t, "0.0.0.0/0", cfg.Interfaces[0].Routes[0].To)
+		require.Equal(t, "dhcp4", cfg.Interfaces[0].Routes[0].Via)
 
-	err = yaml.Unmarshal(content, &cfgAgain)
-	require.NoError(t, err)
-	require.Equal(t, cfg, cfgAgain)
+		// Verify we can marshal and unmarshal the test config and don't loose any information.
+		content, err := yaml.Marshal(&cfg)
+		require.NoError(t, err)
+
+		err = yaml.Unmarshal(content, &cfgAgain)
+		require.NoError(t, err)
+		require.Equal(t, cfg, cfgAgain)
+	}
 }
 
 func TestLinkFileGeneration(t *testing.T) {
