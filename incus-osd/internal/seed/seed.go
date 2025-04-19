@@ -78,7 +78,7 @@ func parseFileContents(partition string, filename string, target any) error {
 
 			return nil
 
-		case filename + ".yaml":
+		case filename + ".yaml", filename + ".yml":
 			decoder := yaml.NewDecoder(tr)
 			err = decoder.Decode(target)
 			if err != nil {
