@@ -359,18 +359,25 @@ func processAddresses(addresses []string) string {
 
 	hasDHCP4 := false
 	hasDHCP6 := false
+	acceptIPv6RA := false
 	for _, addr := range addresses {
 		switch addr {
 		case "dhcp4":
 			hasDHCP4 = true
 		case "dhcp6":
 			hasDHCP6 = true
-			ret += "IPv6AcceptRA=false\n"
 		case "slaac":
-			ret += "IPv6AcceptRA=true\n"
+			acceptIPv6RA = true
+
 		default:
 			ret += fmt.Sprintf("Address=%s\n", addr)
 		}
+	}
+
+	if acceptIPv6RA {
+		ret += "IPv6AcceptRA=true\n"
+	} else {
+		ret += "IPv6AcceptRA=false\n"
 	}
 
 	if hasDHCP4 && hasDHCP6 { //nolint:gocritic
