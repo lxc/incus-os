@@ -37,34 +37,55 @@ The instructions below assume a functional Incus environment with VM support.
 Two scripts are available to test Incus OS using the publicly published releases.
 
 Creating a new Incus OS VM can be done with:
-
+```bash
     ./scripts/spawn-image VERSION NAME
+```
 
 This will retrieve the relevant image from Github and create a VM using it.
 It will also automatically load the relevant packages (`incus` and `debug`).
 
 To update it to a newer version, you can do:
-
+```bash
     ./scripts/update-image VERSION NAME
+```
 
 This will retrieve the update files and apply the update.
+
+## Setup Debian 13 build environment ##
+```bash
+sudo apt update -y && sudo apt install git mkosi build-essential wget
+```
+
+## Install GO ##
+```bash
+mkdir -p ~/Downloads && pushd ~/Downloads && wget -c https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local/ -xzf go1.24.2.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=$HOME/.local/go
+popd
+```
 
 ## By building your own images
 Building your own images require the current version of `mkosi`.
 
 To build an image, run:
-
+```bash
     make
+```
 
 To load that image as a VM, run:
-
+```bash
     make test
+```
 
 To load the packages, run:
-
+```bash
     make test-extensions
+```
 
 To test an update, build a new image and update to it with:
-
+```bash
     make
     make update
+```
