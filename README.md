@@ -51,9 +51,9 @@ To update it to a newer version, you can do:
 
 This will retrieve the update files and apply the update.
 
-## Setup Debian build environment ##
+## Setup Debian 13 build environment ##
 ```bash
-sudo apt udpate -y && sudo apt install git mkosi build-essential
+sudo apt update -y && sudo apt install git mkosi build-essential wget
 ```
 
 ## Install GO ##
@@ -64,13 +64,6 @@ sudo tar -C /usr/local/ -xzf go1.24.2.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
 export GOPATH=$HOME/.local/go
 popd
-```
-
-## Create mkosi certificate ##
-```bash
-openssl genrsa -out mkosi.key 2048
-openssl req -new -key mkosi.key -out mkosi.csr
-openssl x509 -req -days 365 -in mkosi.csr -signkey mkosi.key -out mkosi.crt
 ```
 
 ## By building your own images
