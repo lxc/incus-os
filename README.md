@@ -53,9 +53,18 @@ This will retrieve the update files and apply the update.
 
 ## Setup Debian build environment ##
 ```bash
-sudo apt udpate -y && sudo apt install mkosi
+sudo apt udpate -y && sudo apt install git mkosi build-essential
 ```
-TODO: go install instructions
+
+## Install GO ##
+```bash
+mkdir -p ~/Downloads && pushd ~/Downloads && wget -c https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local/ -xzf go1.24.2.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=$HOME/.local/go
+popd
+```
 
 ## Create mkosi certificate ##
 ```bash
