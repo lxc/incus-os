@@ -37,34 +37,53 @@ The instructions below assume a functional Incus environment with VM support.
 Two scripts are available to test Incus OS using the publicly published releases.
 
 Creating a new Incus OS VM can be done with:
-
+```bash
     ./scripts/spawn-image VERSION NAME
+```
 
 This will retrieve the relevant image from Github and create a VM using it.
 It will also automatically load the relevant packages (`incus` and `debug`).
 
 To update it to a newer version, you can do:
-
+```bash
     ./scripts/update-image VERSION NAME
+```
 
 This will retrieve the update files and apply the update.
+
+## Setup Debian build environment ##
+```bash
+sudo apt udpate -y && sudo apt install mkosi
+```
+TODO: go install instructions
+
+## Create mkosi certificate ##
+```bash
+openssl genrsa -out mkosi.key 2048
+openssl req -new -key mkosi.key -out mkosi.csr
+openssl x509 -req -days 365 -in mkosi.csr -signkey mkosi.key -out mkosi.crt
+```
 
 ## By building your own images
 Building your own images require the current version of `mkosi`.
 
 To build an image, run:
-
+```bash
     make
+```
 
 To load that image as a VM, run:
-
+```bash
     make test
+```
 
 To load the packages, run:
-
+```bash
     make test-extensions
+```
 
 To test an update, build a new image and update to it with:
-
+```bash
     make
     make update
+```
