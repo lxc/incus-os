@@ -19,7 +19,13 @@ type local struct {
 	releaseVersion string
 }
 
-func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
+func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare the OS update struct.
 	update := localOSUpdate{
 		provider: p,
@@ -30,7 +36,13 @@ func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *local) GetApplication(_ context.Context, name string) (Application, error) {
+func (p *local) GetApplication(ctx context.Context, name string) (Application, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare the application struct.
 	app := localApplication{
 		provider: p,
