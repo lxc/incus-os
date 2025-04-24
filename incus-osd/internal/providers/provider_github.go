@@ -169,6 +169,10 @@ func (a *githubApplication) Version() string {
 	return a.version
 }
 
+func (a *githubApplication) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(a.version, otherVersion)
+}
+
 func (a *githubApplication) Download(ctx context.Context, target string) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
@@ -204,6 +208,10 @@ type githubOSUpdate struct {
 
 func (o *githubOSUpdate) Version() string {
 	return o.version
+}
+
+func (o *githubOSUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
 }
 
 func (o *githubOSUpdate) Download(ctx context.Context, target string) error {

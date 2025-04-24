@@ -154,6 +154,10 @@ func (a *localApplication) Version() string {
 	return a.version
 }
 
+func (a *localApplication) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(a.version, otherVersion)
+}
+
 func (a *localApplication) Download(ctx context.Context, target string) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
@@ -189,6 +193,10 @@ type localOSUpdate struct {
 
 func (o *localOSUpdate) Version() string {
 	return o.version
+}
+
+func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
 }
 
 func (o *localOSUpdate) Download(ctx context.Context, target string) error {
