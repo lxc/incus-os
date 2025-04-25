@@ -74,7 +74,6 @@ interfaces:
 `
 
 var networkdConfig3 = `
-version: 1.2.3
 dns:
   hostname: host
   domain: example.org
@@ -171,7 +170,6 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
-		require.Equal(t, "1.2.3", cfg.Version)
 		require.Equal(t, "host", cfg.DNS.Hostname)
 		require.Equal(t, "example.org", cfg.DNS.Domain)
 		require.Len(t, cfg.DNS.SearchDomains, 1)

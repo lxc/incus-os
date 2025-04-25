@@ -9,8 +9,6 @@ type SystemNetwork struct {
 
 // SystemNetworkConfig represents the user modifiable network configuration.
 type SystemNetworkConfig struct {
-	Version string `json:"version" yaml:"version"`
-
 	DNS   *SystemNetworkDNS   `json:"dns"   yaml:"dns"`
 	NTP   *SystemNetworkNTP   `json:"ntp"   yaml:"ntp"`
 	Proxy *SystemNetworkProxy `json:"proxy" yaml:"proxy"`

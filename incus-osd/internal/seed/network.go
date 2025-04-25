@@ -7,11 +7,18 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
+// NetworkSeed defines a struct to hold network configuration.
+type NetworkSeed struct {
+	api.SystemNetworkConfig
+
+	Version string `json:"version" yaml:"version"`
+}
+
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
 func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, error) {
 	// Get the network configuration.
-	var config api.SystemNetworkConfig
+	var config NetworkSeed
 
 	err := parseFileContents(partition, "network", &config)
 	if err != nil {
@@ -25,7 +32,7 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 	}
 
 	// If no interfaces, bonds, or vlans are defined, add a minimal default configuration for the interfaces.
-	if NetworkConfigHasEmptyDevices(config) {
+	if NetworkConfigHasEmptyDevices(config.SystemNetworkConfig) {
 		defaultNetwork, err := getDefaultNetworkConfig()
 		if err != nil {
 			return nil, err
@@ -33,7 +40,7 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 		config.Interfaces = defaultNetwork.Interfaces
 	}
 
-	return &config, nil
+	return &config.SystemNetworkConfig, nil
 }
 
 // NetworkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
