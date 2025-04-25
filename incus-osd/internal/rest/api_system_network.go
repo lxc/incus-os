@@ -21,7 +21,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
-		newConfig := &api.SystemNetwork{}
+		newConfig := &api.SystemNetworkConfig{}
 
 		// If updating, grab the current configuration.
 		if r.Method == http.MethodPatch {
@@ -58,8 +58,8 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Apply the updated configuration.
-		s.state.System.Network = newConfig
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state.System.Network, 10*time.Second)
+		s.state.System.Network.Config = newConfig
+		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state.System.Network.Config, 10*time.Second)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 

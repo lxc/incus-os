@@ -2,6 +2,13 @@ package api
 
 // SystemNetwork defines a struct to hold the three types of supported network configuration.
 type SystemNetwork struct {
+	Config *SystemNetworkConfig `json:"config" yaml:"config"`
+
+	State struct{} `json:"state" yaml:"state"`
+}
+
+// SystemNetworkConfig represents the user modifiable network configuration.
+type SystemNetworkConfig struct {
 	Version string `json:"version" yaml:"version"`
 
 	DNS   *SystemNetworkDNS   `json:"dns"   yaml:"dns"`

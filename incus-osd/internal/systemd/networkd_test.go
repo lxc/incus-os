@@ -100,7 +100,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	t.Parallel()
 
 	{
-		var cfg, cfgAgain api.SystemNetwork
+		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the first test config.
 		err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
@@ -138,7 +138,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	}
 
 	{
-		var cfg, cfgAgain api.SystemNetwork
+		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the second test config.
 		err := yaml.Unmarshal([]byte(networkdConfig2), &cfg)
@@ -164,7 +164,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 	}
 
 	{
-		var cfg, cfgAgain api.SystemNetwork
+		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the third test config.
 		err := yaml.Unmarshal([]byte(networkdConfig3), &cfg)
@@ -197,7 +197,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 func TestLinkFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg api.SystemNetwork
+	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .link file generation.
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
@@ -211,7 +211,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=enaabbccddee02\n", cfgs[1].Contents)
 
 	// Test second config .link file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
@@ -221,7 +221,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nNamePolicy=\nName=enaabbccddee01\n", cfgs[0].Contents)
 
 	// Test third config .link file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
@@ -234,7 +234,7 @@ func TestLinkFileGeneration(t *testing.T) {
 func TestNetdevFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg api.SystemNetwork
+	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .netdev file generation.
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
@@ -252,7 +252,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "[NetDev]\nName=vluplink\nKind=vlan\nMTUBytes=1500\n\n[Bridge]\nId=1234\n", cfgs[3].Contents)
 
 	// Test second config .netdev file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
@@ -262,7 +262,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "[NetDev]\nName=management\nKind=bridge\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
 
 	// Test third config .netdev file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
@@ -275,7 +275,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 func TestNetworkFileGeneration(t *testing.T) {
 	t.Parallel()
 
-	var networkCfg api.SystemNetwork
+	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .network file generation.
 	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
@@ -299,7 +299,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "[Match]\nMACAddress=AA:BB:CC:DD:EE:04\n\n[Network]\nBond=bnmanagement\n", cfgs[6].Contents)
 
 	// Test second config .network file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
@@ -311,7 +311,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "[Match]\nName=enaabbccddee01\n\n[Network]\nBridge=management\n", cfgs[1].Contents)
 
 	// Test third config .network file generation.
-	networkCfg = api.SystemNetwork{}
+	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 

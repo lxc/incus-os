@@ -23,7 +23,7 @@ type networkdConfigFile struct {
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
 // new config files from the supplied NetworkConfig struct.
-func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwork) error {
+func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetworkConfig) error {
 	// Remove any existing configuration.
 	err := os.RemoveAll(SystemdNetworkConfigPath)
 	if err != nil {
@@ -81,7 +81,7 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwork, timeout time.Duration) error {
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
 	if networkCfg == nil {
 		return errors.New("no network configuration provided")
 	}
@@ -147,7 +147,7 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 
 // waitForNetworkRoutable waits up to a provided timeout for all configured network interfaces,
 // bonds, and vlans to become routable.
-func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetwork, timeout time.Duration) error {
+func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
 	isRoutable := func(name string) bool {
 		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
 		if err != nil {
@@ -191,7 +191,7 @@ mainloop:
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html
-func generateLinkFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
+func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	for _, i := range networkCfg.Interfaces {
@@ -213,7 +213,7 @@ Name=en%s
 
 // generateNetdevFileContents generates the contents of systemd.netdev files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.netdev.html
-func generateNetdevFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
+func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	// Create bridge devices for each interface.
@@ -265,7 +265,7 @@ Id=%d
 
 // generateNetworkFileContents generates the contents of systemd.network files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html
-func generateNetworkFileContents(networkCfg api.SystemNetwork) []networkdConfigFile {
+func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
 	// Create networks for each interface.
