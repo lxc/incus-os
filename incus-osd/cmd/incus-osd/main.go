@@ -457,6 +457,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, installedOSVersion string, isStartupCheck bool) (string, error) {
 	update, err := p.GetOSUpdate(ctx)
 	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			return "", nil
+		}
+
 		return "", err
 	}
 
@@ -498,6 +502,10 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
 	app, err := p.GetApplication(ctx, appName)
 	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			return "", nil
+		}
+
 		return "", err
 	}
 

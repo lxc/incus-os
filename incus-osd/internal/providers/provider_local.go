@@ -26,6 +26,21 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 		return nil, err
 	}
 
+	// Verify the list of returned assets for the OS update contains at least
+	// one file for the release version, otherwise we shouldn't report an OS update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if strings.HasPrefix(filepath.Base(asset), "IncusOS_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
+	}
+
 	// Prepare the OS update struct.
 	update := localOSUpdate{
 		provider: p,
@@ -41,6 +56,21 @@ func (p *local) GetApplication(ctx context.Context, name string) (Application, e
 	err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify the list of returned assets contains a "<name>.raw" file, otherwise
+	// we shouldn't return an application update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if filepath.Base(asset) == name+".raw" {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the application struct.

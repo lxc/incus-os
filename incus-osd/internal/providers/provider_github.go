@@ -36,6 +36,21 @@ func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 		return nil, err
 	}
 
+	// Verify the list of returned assets for the OS update contains at least
+	// one file for the release version, otherwise we shouldn't report an OS update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if strings.HasPrefix(asset.GetName(), "IncusOS_") && strings.Contains(asset.GetName(), p.releaseVersion) {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
+	}
+
 	// Prepare the OS update struct.
 	update := githubOSUpdate{
 		provider: p,
@@ -51,6 +66,21 @@ func (p *github) GetApplication(ctx context.Context, name string) (Application, 
 	err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify the list of returned assets contains a "<name>.raw.gz" file, otherwise
+	// we shouldn't return an application update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if asset.GetName() == name+".raw.gz" {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the application struct.
