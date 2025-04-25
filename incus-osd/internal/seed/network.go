@@ -49,7 +49,7 @@ func getDefaultNetworkConfig() (*api.SystemNetwork, error) {
 		return nil, err
 	}
 
-	ret := new(api.SystemNetwork)
+	ret := &api.SystemNetwork{}
 
 	for _, i := range interfaces {
 		if i.Name == "lo" {

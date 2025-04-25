@@ -16,7 +16,8 @@ func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 
 		Applications: map[string]Application{},
 	}
-	s.System.Encryption = new(api.SystemEncryption)
+
+	s.System.Encryption = &api.SystemEncryption{}
 
 	body, err := os.ReadFile(s.path)
 	if err != nil {

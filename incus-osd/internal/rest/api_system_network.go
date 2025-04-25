@@ -21,7 +21,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
-		newConfig := new(api.SystemNetwork)
+		newConfig := &api.SystemNetwork{}
 
 		// If updating, grab the current configuration.
 		if r.Method == http.MethodPatch {
