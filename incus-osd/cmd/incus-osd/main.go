@@ -97,7 +97,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
 		// Don't display warning about recovery key during install.
-		s.System.Encryption.RecoveryKeysRetrieved = true
+		s.System.Encryption.State.RecoveryKeysRetrieved = true
 
 		inst, err := install.NewInstall(t)
 		if err != nil {
@@ -240,7 +240,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
-	if len(s.System.Encryption.RecoveryKeys) == 0 {
+	if len(s.System.Encryption.Config.RecoveryKeys) == 0 {
 		err := systemd.GenerateRecoveryKey(ctx, s)
 		if err != nil {
 			return err
@@ -250,8 +250,8 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
-	if s.System.Network == nil {
-		s.System.Network, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
+	if s.System.Network.Config == nil {
+		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
@@ -259,7 +259,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Perform network configuration.
 	slog.Info("Bringing up the network")
-	err = systemd.ApplyNetworkConfiguration(ctx, s.System.Network, 10*time.Second)
+	err = systemd.ApplyNetworkConfiguration(ctx, s.System.Network.Config, 10*time.Second)
 	if err != nil {
 		return err
 	}

@@ -208,10 +208,6 @@ func (*NVME) Struct() any {
 	return &api.ServiceNVME{}
 }
 
-func (n *NVME) init(_ context.Context) error {
-	if n.state.Services.NVME == nil {
-		n.state.Services.NVME = &api.ServiceNVME{}
-	}
-
+func (*NVME) init(_ context.Context) error {
 	return nil
 }

@@ -20,8 +20,8 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	s.System.Encryption.RecoveryKeys = append(s.System.Encryption.RecoveryKeys, strings.TrimSuffix(output, "\n"))
-	s.System.Encryption.RecoveryKeysRetrieved = false
+	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, strings.TrimSuffix(output, "\n"))
+	s.System.Encryption.State.RecoveryKeysRetrieved = false
 
 	return nil
 }
@@ -29,7 +29,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 // AddEncryptionKey utilizes systemd-cryptenroll to add a user-specified key for the
 // root LUKS volume. Depends on an existing tpm2-backed key being enrolled and accessible.
 func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if slices.Contains(s.System.Encryption.RecoveryKeys, key) {
+	if slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
@@ -39,7 +39,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 		return err
 	}
 
-	s.System.Encryption.RecoveryKeys = append(s.System.Encryption.RecoveryKeys, key)
+	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, key)
 
 	return nil
 }
@@ -49,7 +49,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 // Due to systemd-cryptenroll only being able to wipe slots by index or type, we must first
 // remove all recovery and password slots, then re-add any remaining keys.
 func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if !slices.Contains(s.System.Encryption.RecoveryKeys, key) {
+	if !slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
 		return errors.New("provided encryption key is not enrolled")
 	}
 
@@ -59,8 +59,8 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 		return err
 	}
 
-	existingKeys := s.System.Encryption.RecoveryKeys
-	s.System.Encryption.RecoveryKeys = []string{}
+	existingKeys := s.System.Encryption.Config.RecoveryKeys
+	s.System.Encryption.Config.RecoveryKeys = []string{}
 
 	// Re-add remaining keys.
 	for _, existingKey := range existingKeys {

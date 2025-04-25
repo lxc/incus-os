@@ -15,7 +15,7 @@ func (s *Server) apiSystemEncryption(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// Mark that the keys have been retrieved via the API.
-		s.state.System.Encryption.RecoveryKeysRetrieved = true
+		s.state.System.Encryption.State.RecoveryKeysRetrieved = true
 
 		// Return the current system encryption state.
 		_ = response.SyncResponse(true, s.state.System.Encryption).Render(w)

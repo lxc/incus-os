@@ -7,11 +7,18 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
+// NetworkSeed defines a struct to hold network configuration.
+type NetworkSeed struct {
+	api.SystemNetworkConfig
+
+	Version string `json:"version" yaml:"version"`
+}
+
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
-func GetNetwork(_ context.Context, partition string) (*api.SystemNetwork, error) {
+func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, error) {
 	// Get the network configuration.
-	var config api.SystemNetwork
+	var config NetworkSeed
 
 	err := parseFileContents(partition, "network", &config)
 	if err != nil {
@@ -25,7 +32,7 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetwork, error)
 	}
 
 	// If no interfaces, bonds, or vlans are defined, add a minimal default configuration for the interfaces.
-	if NetworkConfigHasEmptyDevices(config) {
+	if NetworkConfigHasEmptyDevices(config.SystemNetworkConfig) {
 		defaultNetwork, err := getDefaultNetworkConfig()
 		if err != nil {
 			return nil, err
@@ -33,23 +40,23 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetwork, error)
 		config.Interfaces = defaultNetwork.Interfaces
 	}
 
-	return &config, nil
+	return &config.SystemNetworkConfig, nil
 }
 
 // NetworkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
-func NetworkConfigHasEmptyDevices(networkCfg api.SystemNetwork) bool {
+func NetworkConfigHasEmptyDevices(networkCfg api.SystemNetworkConfig) bool {
 	return len(networkCfg.Interfaces) == 0 && len(networkCfg.Bonds) == 0 && len(networkCfg.Vlans) == 0
 }
 
 // getDefaultNetworkConfig returns a minimal network configuration, with every interface
 // configured to acquire an IP via DHCP and SLAAC.
-func getDefaultNetworkConfig() (*api.SystemNetwork, error) {
+func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
 
-	ret := new(api.SystemNetwork)
+	ret := &api.SystemNetworkConfig{}
 
 	for _, i := range interfaces {
 		if i.Name == "lo" {

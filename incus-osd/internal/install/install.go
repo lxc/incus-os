@@ -22,7 +22,7 @@ import (
 
 // Install holds information necessary to perform an installation.
 type Install struct {
-	config *seed.InstallConfig
+	config *seed.InstallSeed
 	tui    *tui.TUI
 }
 
