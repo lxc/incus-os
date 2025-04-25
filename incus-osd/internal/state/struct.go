@@ -22,12 +22,12 @@ type State struct {
 	RunningRelease string                 `json:"running_release"`
 
 	Services struct {
-		ISCSI *api.ServiceISCSI `json:"iscsi"`
-		NVME  *api.ServiceNVME  `json:"nvme"`
+		ISCSI api.ServiceISCSI `json:"iscsi"`
+		NVME  api.ServiceNVME  `json:"nvme"`
 	} `json:"services"`
 
 	System struct {
-		Encryption *api.SystemEncryption `json:"encryption"`
-		Network    *api.SystemNetwork    `json:"network"`
+		Encryption api.SystemEncryption `json:"encryption"`
+		Network    api.SystemNetwork    `json:"network"`
 	} `json:"system"`
 }

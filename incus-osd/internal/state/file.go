@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-
-	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
@@ -16,8 +14,6 @@ func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 
 		Applications: map[string]Application{},
 	}
-
-	s.System.Encryption = &api.SystemEncryption{}
 
 	body, err := os.ReadFile(s.path)
 	if err != nil {

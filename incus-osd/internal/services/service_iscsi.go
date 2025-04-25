@@ -210,10 +210,6 @@ func (*ISCSI) Struct() any {
 	return &api.ServiceISCSI{}
 }
 
-func (n *ISCSI) init(_ context.Context) error {
-	if n.state.Services.ISCSI == nil {
-		n.state.Services.ISCSI = &api.ServiceISCSI{}
-	}
-
+func (*ISCSI) init(_ context.Context) error {
 	return nil
 }
