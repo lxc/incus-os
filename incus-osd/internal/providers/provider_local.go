@@ -19,7 +19,28 @@ type local struct {
 	releaseVersion string
 }
 
-func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
+func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the list of returned assets for the OS update contains at least
+	// one file for the release version, otherwise we shouldn't report an OS update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if strings.HasPrefix(filepath.Base(asset), "IncusOS_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
+	}
+
 	// Prepare the OS update struct.
 	update := localOSUpdate{
 		provider: p,
@@ -30,7 +51,28 @@ func (p *local) GetOSUpdate(_ context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *local) GetApplication(_ context.Context, name string) (Application, error) {
+func (p *local) GetApplication(ctx context.Context, name string) (Application, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the list of returned assets contains a "<name>.raw" file, otherwise
+	// we shouldn't return an application update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if filepath.Base(asset) == name+".raw" {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
+	}
+
 	// Prepare the application struct.
 	app := localApplication{
 		provider: p,
@@ -142,6 +184,10 @@ func (a *localApplication) Version() string {
 	return a.version
 }
 
+func (a *localApplication) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(a.version, otherVersion)
+}
+
 func (a *localApplication) Download(ctx context.Context, target string) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
@@ -177,6 +223,10 @@ type localOSUpdate struct {
 
 func (o *localOSUpdate) Version() string {
 	return o.version
+}
+
+func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
 }
 
 func (o *localOSUpdate) Download(ctx context.Context, target string) error {

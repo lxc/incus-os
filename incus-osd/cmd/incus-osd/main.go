@@ -287,11 +287,8 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	if p != nil {
-		// Run update function if we have a working provider.
-		err = update(ctx, s, t, p)
-		if err != nil {
-			return err
-		}
+		// Perform an initial blocking check for updates before proceeding.
+		updateChecker(ctx, s, t, p, true)
 	}
 
 	// Ensure  the "local" ZFS pool is available.
@@ -357,101 +354,185 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
+	// Run periodic update checks if we have a working provider.
+	if p != nil {
+		go updateChecker(ctx, s, t, p, false)
+	}
+
 	return nil
 }
 
-func update(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider) error {
-	// Determine what to install.
-	toInstall := []string{"incus"}
+func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) {
+	persistentModalMessage := ""
+	installedOSVersion := s.RunningRelease
 
-	if len(s.Applications) == 0 {
-		// Assume first start.
-		apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
-		if err != nil && !seed.IsMissing(err) {
-			return err
+	for {
+		if persistentModalMessage != "" {
+			t.DisplayModal("Incus OS Update", persistentModalMessage, 0, 0)
 		}
 
-		if apps != nil {
-			// We have valid seed data.
+		// Sleep at the top of each loop, except if we're performing a startup check.
+		if !isStartupCheck {
+			time.Sleep(6 * time.Hour)
+		}
+
+		// Determine what applications to install.
+		toInstall := []string{"incus"}
+
+		if len(s.Applications) == 0 && isStartupCheck {
+			// Assume first start of the daemon.
+			apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
+			if err != nil && !seed.IsMissing(err) {
+				slog.Error(err.Error())
+
+				continue
+			}
+
+			if apps != nil {
+				// We have valid seed data.
+				toInstall = []string{}
+
+				for _, app := range apps.Applications {
+					toInstall = append(toInstall, app.Name)
+				}
+			}
+		} else {
+			// We have an existing application list.
 			toInstall = []string{}
 
-			for _, app := range apps.Applications {
-				toInstall = append(toInstall, app.Name)
+			for name := range s.Applications {
+				toInstall = append(toInstall, name)
 			}
 		}
-	} else {
-		// We have an existing application list.
-		toInstall = []string{}
 
-		for name := range s.Applications {
-			toInstall = append(toInstall, name)
-		}
-	}
-
-	// Check for the latest OS update.
-	update, err := p.GetOSUpdate(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Apply the update.
-	if update.Version() != s.RunningRelease {
-		// Download the update into place.
-		slog.Info("Downloading OS update", "release", update.Version())
-		t.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
-		err := update.Download(ctx, systemd.SystemUpdatesPath)
+		// Check for the latest OS update.
+		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, installedOSVersion, isStartupCheck)
 		if err != nil {
-			return err
-		}
-
-		// Apply the update and reboot.
-		slog.Info("Applying OS update", "release", update.Version())
-		t.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
-		err = systemd.ApplySystemUpdate(ctx, update.Version(), true)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	slog.Info("System is already running latest OS release", "release", s.RunningRelease)
-
-	// Check for application updates.
-	for _, appName := range toInstall {
-		// Get the application.
-		app, err := p.GetApplication(ctx, appName)
-		if err != nil {
-			return err
-		}
-
-		// Check if already up to date.
-		if s.Applications[app.Name()].Version == app.Version() {
-			slog.Info("System is already running latest application release", "application", app.Name(), "release", app.Version())
+			slog.Error(err.Error())
+			persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 			continue
 		}
 
+		if newInstalledOSVersion != "" {
+			installedOSVersion = newInstalledOSVersion
+			persistentModalMessage = "Incus OS has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update."
+			t.DisplayModal("Incus OS Update", persistentModalMessage, 0, 0)
+		}
+
+		// Check for application updates.
+		appsUpdated := false
+		for _, appName := range toInstall {
+			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
+			if err != nil {
+				slog.Error(err.Error())
+				persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+				break
+			}
+
+			if newAppVersion != "" {
+				appsUpdated = true
+			}
+		}
+
+		// Apply the system extensions.
+		if appsUpdated {
+			slog.Info("Refreshing system extensions")
+			err = systemd.RefreshExtensions(ctx)
+			if err != nil {
+				slog.Error(err.Error())
+				persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+				continue
+			}
+		}
+
+		if isStartupCheck {
+			break
+		}
+	}
+}
+
+func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, installedOSVersion string, isStartupCheck bool) (string, error) {
+	update, err := p.GetOSUpdate(ctx)
+	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	// Apply the update.
+	if update.Version() != s.RunningRelease {
+		if !update.IsNewerThan(s.RunningRelease) {
+			return "", errors.New("local Incus OS version (" + s.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+		}
+
+		// Only apply OS update if it's different from what has been most recently been installed.
+		if update.Version() != installedOSVersion {
+			// Download the update into place.
+			slog.Info("Downloading OS update", "release", update.Version())
+			t.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
+			err := update.Download(ctx, systemd.SystemUpdatesPath)
+			if err != nil {
+				return "", err
+			}
+
+			// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
+			slog.Info("Applying OS update", "release", update.Version())
+			t.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
+			err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
+			if err != nil {
+				return "", err
+			}
+
+			t.RemoveModal()
+
+			return update.Version(), nil
+		}
+	} else if isStartupCheck {
+		slog.Info("System is already running latest OS release", "release", s.RunningRelease)
+	}
+
+	return "", nil
+}
+
+func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
+	app, err := p.GetApplication(ctx, appName)
+	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	// Apply the update.
+	if app.Version() != s.Applications[app.Name()].Version {
+		if s.Applications[app.Name()].Version != "" && !app.IsNewerThan(s.Applications[app.Name()].Version) {
+			return "", errors.New("local application " + app.Name() + " version (" + s.Applications[app.Name()].Version + ") is newer than available update (" + app.Version() + "); skipping")
+		}
+
 		// Download the application.
 		slog.Info("Downloading system extension", "application", app.Name(), "release", app.Version())
-		t.DisplayModal("Incus OS Extension Update", "Downloading system extension "+app.Name()+" update "+update.Version(), 0, 0)
+		t.DisplayModal("Incus OS Update", "Downloading system extension "+app.Name()+" update "+app.Version(), 0, 0)
 		err = app.Download(ctx, systemd.SystemExtensionsPath)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		t.RemoveModal()
 
-		// Record newly installed application.
+		// Record newly installed application and save state to disk.
 		s.Applications[app.Name()] = state.Application{Version: app.Version()}
+		_ = s.Save(ctx)
+
+		return app.Version(), nil
+	} else if isStartupCheck {
+		slog.Info("System is already running latest application release", "application", app.Name(), "release", app.Version())
 	}
 
-	// Apply the system extensions.
-	slog.Info("Refreshing system extensions")
-	err = systemd.RefreshExtensions(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return "", nil
 }
