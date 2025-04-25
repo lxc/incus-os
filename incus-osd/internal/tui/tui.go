@@ -187,7 +187,7 @@ func (t *TUI) redrawScreen() {
 		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 	}
 
-	if !t.state.System.Encryption.RecoveryKeysRetrieved {
+	if !t.state.System.Encryption.State.RecoveryKeysRetrieved {
 		t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
 	}
 
