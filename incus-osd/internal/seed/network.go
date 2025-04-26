@@ -22,6 +22,10 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 
 	err := parseFileContents(partition, "network", &config)
 	if err != nil {
+		if !IsMissing(err) {
+			return nil, err
+		}
+
 		// No seed network available; return a minimal default.
 		defaultNetwork, err := getDefaultNetworkConfig()
 		if err != nil {
@@ -37,6 +41,7 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 		if err != nil {
 			return nil, err
 		}
+
 		config.Interfaces = defaultNetwork.Interfaces
 	}
 
