@@ -23,6 +23,7 @@ type State struct {
 
 	Services struct {
 		ISCSI api.ServiceISCSI `json:"iscsi"`
+		LVM   api.ServiceLVM   `json:"lvm"`
 		NVME  api.ServiceNVME  `json:"nvme"`
 		OVN   api.ServiceOVN   `json:"ovn"`
 	} `json:"services"`
