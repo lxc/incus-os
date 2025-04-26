@@ -7,6 +7,6 @@ type SystemEncryption struct {
 	} `json:"config" yaml:"config"`
 
 	State struct {
-		RecoveryKeysRetrieved bool `json:"-" yaml:"-"`
+		RecoveryKeysRetrieved bool `json:"recovery_keys_retrieved" yaml:"recovery_keys_retrieved"`
 	} `json:"state" yaml:"state"`
 }
