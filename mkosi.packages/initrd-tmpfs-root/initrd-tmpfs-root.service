@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount rootfs as tmpfs when systemd-repart fails
+
+[Service]
+Type=oneshot
+
+ExecStart=/usr/bin/rm /run/systemd/generator.late/initrd-root-device.target.d/50-root-device.conf
+ExecStart=/usr/bin/touch /run/systemd/generator.late/initrd-root-device.target.d/50-root-device.conf
+ExecStart=/usr/bin/chattr +i /run/systemd/generator.late/initrd-root-device.target.d/50-root-device.conf
+
+ExecStart=/bin/sh -c '/usr/bin/echo -e "[Unit]\nDescription=Root Partition\nBefore=initrd-root-fs.target\nRequires=systemd-fsck-root.service\nAfter=systemd-fsck-root.service\n\n[Mount]\nWhat=tmpfs\nWhere=/sysroot\nType=tmpfs" > /run/systemd/generator.late/sysroot.mount'
+ExecStart=/usr/bin/chattr +i /run/systemd/generator.late/sysroot.mount
+
+ExecStart=/usr/bin/systemctl daemon-reload
