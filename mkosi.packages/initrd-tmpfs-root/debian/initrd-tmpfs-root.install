@@ -1,2 +1,4 @@
 override.conf usr/lib/systemd/system/systemd-repart.service.d/
 initrd-tmpfs-root.service usr/lib/systemd/system/
+
+add-cdrom-partitions.service usr/lib/systemd/system/
