@@ -322,6 +322,26 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		}
 	}
 
+	// If we're running from a read-only media, cheat a bit and pre-create the three additional empty
+	// partitions rather than relying on systemd-repart to do so at first boot time. This is because
+	// systemd-repart likes to place the small /usr-verity sig partition prior to the ESP partition.
+	if sourceIsReadonly {
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8385", "-c", "6:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "7::+100MiB", "-t", "7:8319", "-c", "7:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "8::+1GiB", "-t", "8:8314", "-c", "8:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Get partition prefixes, if needed.
 	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
 	targetPartitionPrefix := getPartitionPrefix(targetDevice)
