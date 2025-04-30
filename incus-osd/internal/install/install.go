@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -96,6 +97,14 @@ func (*Install) getSourceDevice() (string, bool, error) {
 	s := unix.Stat_t{}
 	err := unix.Stat("/boot/EFI", &s)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// Check if we're running from a CDROM.
+			err = unix.Stat("/dev/sr0", &s)
+			if err == nil {
+				return "/dev/mapper/sr0", true, nil
+			}
+		}
+
 		return "", false, err
 	}
 
@@ -247,34 +256,75 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 
 	err = unix.Unmount("/boot/", 0)
 	if err != nil {
-		return err
-	}
-
-	if !sourceIsReadonly {
-		// Delete auto-created partitions from source device before cloning its GPT table.
-		for i := 9; i <= 11; i++ {
-			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-d", strconv.Itoa(i), sourceDevice)
-			if err != nil {
-				return err
-			}
+		// /boot/ won't exist when installer is running from a CDROM.
+		if !errors.Is(err, os.ErrNotExist) || !sourceIsReadonly {
+			return err
 		}
 	}
-
-	// Clone the GPT partition table to the target device.
-	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-R", targetDevice, sourceDevice)
-	if err != nil {
-		return err
-	}
-
-	// Get partition prefixes, if needed.
-	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
-	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
 	// Number of partitions to copy.
 	numPartitionsToCopy := 8
 	if sourceIsReadonly {
 		numPartitionsToCopy = 5
 	}
+
+	// Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
+	// because the install media may have a different sector size than the target device (for example,
+	// if the installer is running from a CDROM).
+	copyPartitionDefinition := func(src string, tgt string, partitionIndex int) error {
+		// Get source partition information.
+		output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", strconv.Itoa(partitionIndex), src)
+		if err != nil {
+			return err
+		}
+
+		partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)
+		partitionGUIDRegex := regexp.MustCompile(`Partition unique GUID: (.+)`)
+		partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
+		partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
+
+		partitionHexCode := ""
+		partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
+		partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
+		partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
+		partitionSize := strings.ReplaceAll(partitionSizeRegex.FindStringSubmatch(output)[1], " ", "")
+
+		switch partitionType {
+		case "EFI system partition":
+			partitionHexCode = "EF00"
+		case "Linux filesystem":
+			partitionHexCode = "8300"
+		case "Linux x86-64 /usr verity signature":
+			partitionHexCode = "8385"
+		case "Linux x86-64 /usr verity":
+			partitionHexCode = "8319"
+		case "Linux x86-64 /usr":
+			partitionHexCode = "8314"
+		}
+
+		// Create the partition on the target device.
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", strconv.Itoa(partitionIndex)+"::+"+partitionSize, "-u", strconv.Itoa(partitionIndex)+":"+partitionGUID, "-t", strconv.Itoa(partitionIndex)+":"+partitionHexCode, "-c", strconv.Itoa(partitionIndex)+":"+partitionName, tgt)
+
+		return err
+	}
+
+	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
+	actualSourceDevice := sourceDevice
+	if actualSourceDevice == "/dev/mapper/sr0" {
+		actualSourceDevice = "/dev/sr0"
+	}
+
+	// Copy partition definitions.
+	for i := 1; i <= numPartitionsToCopy; i++ {
+		err := copyPartitionDefinition(actualSourceDevice, targetDevice, i)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Get partition prefixes, if needed.
+	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
+	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
 	doCopy := func(partitionIndex int) error {
 		sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
@@ -368,7 +418,7 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 // getPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme devices have partitions named "pN", while traditional disk partitions are just "N".
 func getPartitionPrefix(device string) string {
-	if strings.Contains(device, "/nvme") {
+	if strings.Contains(device, "/nvme") || strings.Contains(device, "mapper/sr0") {
 		return "p"
 	}
 
