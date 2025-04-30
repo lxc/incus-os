@@ -97,6 +97,7 @@ jobs:
           sudo apt-get install --yes \
             binutils \
             debian-archive-keyring \
+            devscripts \
             make \
             pipx \
             qemu-utils
