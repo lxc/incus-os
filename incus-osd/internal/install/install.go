@@ -268,46 +268,6 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		numPartitionsToCopy = 5
 	}
 
-	// Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
-	// because the install media may have a different sector size than the target device (for example,
-	// if the installer is running from a CDROM).
-	copyPartitionDefinition := func(src string, tgt string, partitionIndex int) error {
-		// Get source partition information.
-		output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", strconv.Itoa(partitionIndex), src)
-		if err != nil {
-			return err
-		}
-
-		partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)
-		partitionGUIDRegex := regexp.MustCompile(`Partition unique GUID: (.+)`)
-		partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
-		partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
-
-		partitionHexCode := ""
-		partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
-		partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
-		partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
-		partitionSize := strings.ReplaceAll(partitionSizeRegex.FindStringSubmatch(output)[1], " ", "")
-
-		switch partitionType {
-		case "EFI system partition":
-			partitionHexCode = "EF00"
-		case "Linux filesystem":
-			partitionHexCode = "8300"
-		case "Linux x86-64 /usr verity signature":
-			partitionHexCode = "8385"
-		case "Linux x86-64 /usr verity":
-			partitionHexCode = "8319"
-		case "Linux x86-64 /usr":
-			partitionHexCode = "8314"
-		}
-
-		// Create the partition on the target device.
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", strconv.Itoa(partitionIndex)+"::+"+partitionSize, "-u", strconv.Itoa(partitionIndex)+":"+partitionGUID, "-t", strconv.Itoa(partitionIndex)+":"+partitionHexCode, "-c", strconv.Itoa(partitionIndex)+":"+partitionName, tgt)
-
-		return err
-	}
-
 	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
 	actualSourceDevice := sourceDevice
 	if actualSourceDevice == "/dev/mapper/sr0" {
@@ -315,8 +275,8 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 	}
 
 	// Copy partition definitions.
-	for i := 1; i <= numPartitionsToCopy; i++ {
-		err := copyPartitionDefinition(actualSourceDevice, targetDevice, i)
+	for idx := 1; idx <= numPartitionsToCopy; idx++ {
+		err := copyPartitionDefinition(ctx, actualSourceDevice, targetDevice, idx)
 		if err != nil {
 			return err
 		}
@@ -346,53 +306,9 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
 	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
-	doCopy := func(partitionIndex int) error {
-		sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
-		if err != nil {
-			return err
-		}
-		defer sourcePartition.Close()
-
-		partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
-		if err != nil {
-			return err
-		}
-
-		_, err = sourcePartition.Seek(0, 0)
-		if err != nil {
-			return err
-		}
-
-		targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
-		if err != nil {
-			return err
-		}
-		defer targetPartition.Close()
-
-		// Copy data in 1MiB chunks.
-		count := int64(0)
-		for {
-			_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return err
-			}
-
-			if count%10 == 0 {
-				i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of %d.", partitionIndex, numPartitionsToCopy), count*1024*1024, partitionSize)
-			}
-			count++
-		}
-
-		return nil
-	}
-
 	// Copy the partition contents.
-	for i := 1; i <= numPartitionsToCopy; i++ {
-		err := doCopy(i)
+	for idx := 1; idx <= numPartitionsToCopy; idx++ {
+		err := i.doCopy(sourceDevice, sourcePartitionPrefix, targetDevice, targetPartitionPrefix, idx, numPartitionsToCopy)
 		if err != nil {
 			return err
 		}
@@ -405,6 +321,90 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
+// because the install media may have a different sector size than the target device (for example,
+// if the installer is running from a CDROM).
+func copyPartitionDefinition(ctx context.Context, src string, tgt string, partitionIndex int) error {
+	// Get source partition information.
+	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", strconv.Itoa(partitionIndex), src)
+	if err != nil {
+		return err
+	}
+
+	partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)
+	partitionGUIDRegex := regexp.MustCompile(`Partition unique GUID: (.+)`)
+	partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
+	partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
+
+	partitionHexCode := ""
+	partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
+	partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
+	partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
+	partitionSize := strings.ReplaceAll(partitionSizeRegex.FindStringSubmatch(output)[1], " ", "")
+
+	switch partitionType {
+	case "EFI system partition":
+		partitionHexCode = "EF00"
+	case "Linux filesystem":
+		partitionHexCode = "8300"
+	case "Linux x86-64 /usr verity signature":
+		partitionHexCode = "8385"
+	case "Linux x86-64 /usr verity":
+		partitionHexCode = "8319"
+	case "Linux x86-64 /usr":
+		partitionHexCode = "8314"
+	}
+
+	// Create the partition on the target device.
+	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", strconv.Itoa(partitionIndex)+"::+"+partitionSize, "-u", strconv.Itoa(partitionIndex)+":"+partitionGUID, "-t", strconv.Itoa(partitionIndex)+":"+partitionHexCode, "-c", strconv.Itoa(partitionIndex)+":"+partitionName, tgt)
+
+	return err
+}
+
+func (i *Install) doCopy(sourceDevice string, sourcePartitionPrefix string, targetDevice string, targetPartitionPrefix string, partitionIndex int, numPartitionsToCopy int) error {
+	sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
+	if err != nil {
+		return err
+	}
+	defer sourcePartition.Close()
+
+	partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+
+	_, err = sourcePartition.Seek(0, 0)
+	if err != nil {
+		return err
+	}
+
+	targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
+	if err != nil {
+		return err
+	}
+	defer targetPartition.Close()
+
+	// Copy data in 1MiB chunks.
+	count := int64(0)
+	for {
+		_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		if count%10 == 0 {
+			i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of %d.", partitionIndex, numPartitionsToCopy), count*1024*1024, partitionSize)
+		}
+		count++
 	}
 
 	return nil
