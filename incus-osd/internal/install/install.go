@@ -29,6 +29,17 @@ type Install struct {
 
 var cdromMappedDevice = "/dev/mapper/sr0"
 
+// CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
+func CheckSystemRequirements() error {
+	// Check if a TPM device is present.
+	_, err := os.Stat("/dev/tpm0")
+	if err != nil {
+		return errors.New("no TPM device found")
+	}
+
+	return nil
+}
+
 // IsInstallNeeded checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
 func IsInstallNeeded() bool {
