@@ -81,7 +81,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	slog.Info("Starting install of incus-osd to local disk")
 	i.tui.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
-	sourceDevice, sourceIsReadonly, err := i.getSourceDevice()
+	sourceDevice, sourceIsReadonly, err := i.getSourceDevice(ctx)
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
@@ -113,7 +113,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func (*Install) getSourceDevice() (string, bool, error) {
+func (*Install) getSourceDevice(ctx context.Context) (string, bool, error) {
 	// Start by determining the underlying device that /boot/EFI is on.
 	s := unix.Stat_t{}
 	err := unix.Stat("/boot/EFI", &s)
@@ -140,6 +140,10 @@ func (*Install) getSourceDevice() (string, bool, error) {
 		isReadonlyInstallFS = true
 	default:
 		return "", false, err
+	}
+
+	if systemd.IsFailed(ctx, "systemd-repart") {
+		isReadonlyInstallFS = true
 	}
 
 	major := unix.Major(s.Dev)
