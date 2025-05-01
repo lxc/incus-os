@@ -24,7 +24,6 @@ curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.ra
 # Add seed data
 echo "=> Injecting seed data"
 dd status=none if=test/seed.install.tar of=.incus-os.img seek=4196352 bs=512 conv=notrunc
-truncate --size=50GiB .incus-os.img
 
 # Create an instance
 echo "=> Creating an Incus OS instance"
