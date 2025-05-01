@@ -38,6 +38,7 @@ jobs:
           sudo apt-get install --yes \
             binutils \
             debian-archive-keyring \
+            devscripts \
             make \
             pipx \
             qemu-utils
@@ -52,7 +53,7 @@ jobs:
         run: |
           pipx install git+https://github.com/systemd/mkosi.git@v25.3
 
-      - name: Build the image
+      - name: Build the images
         run: |
           export PATH="${PATH}:/root/.local/bin"
 
@@ -70,19 +71,23 @@ jobs:
 
           make
 
-      - name: Prepare the files
-        run: |
           mkdir upload
 
           mv mkosi.output/debug.raw upload/
           mv mkosi.output/incus.raw upload/
 
-          mv "$(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1)" upload/
-          mv "$(ls mkosi.output/IncusOS_*.efi | sort | tail -1)" upload/
-          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64.* | sort | tail -1)" upload/
-          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity.* | sort | tail -1)" upload/
-          mv "$(ls mkosi.output/IncusOS_*.usr-x86-64-verity-sig.* | sort | tail -1)" upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64.* upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity.* upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity-sig.* upload/
 
+          make build-iso
+
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.iso
+
+      - name: Compress the files
+        run: |
           cd upload
           for i in *; do
             gzip -9 "${i}"

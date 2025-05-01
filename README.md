@@ -1,6 +1,6 @@
 # Introduction
 Incus OS is a minimal immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
-It's based on [Debian](https://www.debian.org) Testing and built using [mkosi](https://github.com/systemd/mkosi).
+It's based on [Debian](https://www.debian.org) trixie and built using [mkosi](https://github.com/systemd/mkosi).
 
 This aims at provided a very fast, safe and reliable way to run an Incus server.
 
@@ -68,3 +68,8 @@ To test an update, build a new image and update to it with:
 
     make
     make update
+
+### Building an ISO image
+It is possible to build an image suitable for use as a (virtual) CDROM:
+
+    make build-iso

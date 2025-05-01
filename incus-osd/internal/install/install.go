@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -59,7 +60,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	slog.Info("Starting install of incus-osd to local disk")
 	i.tui.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
-	sourceDevice, err := i.getSourceDevice()
+	sourceDevice, sourceIsReadonly, err := i.getSourceDevice()
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
@@ -76,7 +77,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	slog.Info("Installing incus-osd", "source", sourceDevice, "target", targetDevice)
 	i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Installing incus-osd from %s to %s.", sourceDevice, targetDevice), 0, 0)
 
-	err = i.performInstall(ctx, sourceDevice, targetDevice)
+	err = i.performInstall(ctx, sourceDevice, targetDevice, sourceIsReadonly)
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
@@ -90,13 +91,34 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }
 
-// getSourceDevice determines the underlying device incus-osd is running on.
-func (*Install) getSourceDevice() (string, error) {
+// getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
+func (*Install) getSourceDevice() (string, bool, error) {
 	// Start by determining the underlying device that /boot/EFI is on.
 	s := unix.Stat_t{}
 	err := unix.Stat("/boot/EFI", &s)
 	if err != nil {
-		return "", err
+		if errors.Is(err, os.ErrNotExist) {
+			// Check if we're running from a CDROM.
+			err = unix.Stat("/dev/sr0", &s)
+			if err == nil {
+				return "/dev/mapper/sr0", true, nil
+			}
+		}
+
+		return "", false, err
+	}
+
+	// Test if we're on a read-only file system.
+	isReadonlyInstallFS := false
+	f, err := os.Create("/boot/EFI/testfile")
+	switch {
+	case err == nil:
+		_ = f.Close()
+		_ = os.Remove("/boot/EFI/testfile")
+	case strings.Contains(err.Error(), "read-only file system"):
+		isReadonlyInstallFS = true
+	default:
+		return "", false, err
 	}
 
 	major := unix.Major(s.Dev)
@@ -106,7 +128,7 @@ func (*Install) getSourceDevice() (string, error) {
 	// Get a list of all the block devices.
 	entries, err := os.ReadDir("/sys/class/block")
 	if err != nil {
-		return "", err
+		return "", isReadonlyInstallFS, err
 	}
 
 	// Iterate through each of the block devices until we find the one for /boot/EFI.
@@ -123,18 +145,18 @@ func (*Install) getSourceDevice() (string, error) {
 			// Read the symlink for the device, which will end with something like "/block/sda/sda1".
 			path, err := os.Readlink(entryPath)
 			if err != nil {
-				return "", err
+				return "", isReadonlyInstallFS, err
 			}
 
 			// Drop the last element of the path (the partition), then get the base of the resulting path (the actual device).
 			parentDir, _ := filepath.Split(path)
 			underlyingDev := filepath.Base(parentDir)
 
-			return "/dev/" + underlyingDev, nil
+			return "/dev/" + underlyingDev, isReadonlyInstallFS, nil
 		}
 	}
 
-	return "", errors.New("unable to determine source device")
+	return "", isReadonlyInstallFS, errors.New("unable to determine source device")
 }
 
 // getTargetDevice determines the underlying device to install incus-osd on.
@@ -215,7 +237,7 @@ func (i *Install) getTargetDevice(ctx context.Context, sourceDevice string) (str
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
-func (i *Install) performInstall(ctx context.Context, sourceDevice string, targetDevice string) error {
+func (i *Install) performInstall(ctx context.Context, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
 	// Verify the target device doesn't already have a partition table, or that `ForceInstall` is set to true.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
@@ -234,74 +256,59 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 
 	err = unix.Unmount("/boot/", 0)
 	if err != nil {
-		return err
+		// /boot/ won't exist when installer is running from a CDROM.
+		if !errors.Is(err, os.ErrNotExist) || !sourceIsReadonly {
+			return err
+		}
 	}
 
-	// Delete auto-created partitions from source device before cloning its GPT table.
-	for i := 9; i <= 11; i++ {
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-d", strconv.Itoa(i), sourceDevice)
+	// Number of partitions to copy.
+	numPartitionsToCopy := 8
+	if sourceIsReadonly {
+		numPartitionsToCopy = 5
+	}
+
+	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
+	actualSourceDevice := sourceDevice
+	if actualSourceDevice == "/dev/mapper/sr0" {
+		actualSourceDevice = "/dev/sr0"
+	}
+
+	// Copy partition definitions.
+	for idx := 1; idx <= numPartitionsToCopy; idx++ {
+		err := copyPartitionDefinition(ctx, actualSourceDevice, targetDevice, idx)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Clone the GPT partition table to the target device.
-	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-R", targetDevice, sourceDevice)
-	if err != nil {
-		return err
+	// If we're running from a read-only media, cheat a bit and pre-create the three additional empty
+	// partitions rather than relying on systemd-repart to do so at first boot time. This is because
+	// systemd-repart likes to place the small /usr-verity sig partition prior to the ESP partition.
+	if sourceIsReadonly {
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8385", "-c", "6:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "7::+100MiB", "-t", "7:8319", "-c", "7:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "8::+1GiB", "-t", "8:8314", "-c", "8:_empty", targetDevice)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Get partition prefixes, if needed.
 	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
 	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
-	doCopy := func(partitionIndex int) error {
-		sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
-		if err != nil {
-			return err
-		}
-		defer sourcePartition.Close()
-
-		partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
-		if err != nil {
-			return err
-		}
-
-		_, err = sourcePartition.Seek(0, 0)
-		if err != nil {
-			return err
-		}
-
-		targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
-		if err != nil {
-			return err
-		}
-		defer targetPartition.Close()
-
-		// Copy data in 1MiB chunks.
-		count := int64(0)
-		for {
-			_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return err
-			}
-
-			if count%10 == 0 {
-				i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of 8.", partitionIndex), count*1024*1024, partitionSize)
-			}
-			count++
-		}
-
-		return nil
-	}
-
 	// Copy the partition contents.
-	for i := 1; i <= 8; i++ {
-		err := doCopy(i)
+	for idx := 1; idx <= numPartitionsToCopy; idx++ {
+		err := i.doCopy(sourceDevice, sourcePartitionPrefix, targetDevice, targetPartitionPrefix, idx, numPartitionsToCopy)
 		if err != nil {
 			return err
 		}
@@ -314,6 +321,90 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
+// because the install media may have a different sector size than the target device (for example,
+// if the installer is running from a CDROM).
+func copyPartitionDefinition(ctx context.Context, src string, tgt string, partitionIndex int) error {
+	// Get source partition information.
+	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", strconv.Itoa(partitionIndex), src)
+	if err != nil {
+		return err
+	}
+
+	partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)
+	partitionGUIDRegex := regexp.MustCompile(`Partition unique GUID: (.+)`)
+	partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
+	partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
+
+	partitionHexCode := ""
+	partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
+	partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
+	partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
+	partitionSize := strings.ReplaceAll(partitionSizeRegex.FindStringSubmatch(output)[1], " ", "")
+
+	switch partitionType {
+	case "EFI system partition":
+		partitionHexCode = "EF00"
+	case "Linux filesystem":
+		partitionHexCode = "8300"
+	case "Linux x86-64 /usr verity signature":
+		partitionHexCode = "8385"
+	case "Linux x86-64 /usr verity":
+		partitionHexCode = "8319"
+	case "Linux x86-64 /usr":
+		partitionHexCode = "8314"
+	}
+
+	// Create the partition on the target device.
+	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", strconv.Itoa(partitionIndex)+"::+"+partitionSize, "-u", strconv.Itoa(partitionIndex)+":"+partitionGUID, "-t", strconv.Itoa(partitionIndex)+":"+partitionHexCode, "-c", strconv.Itoa(partitionIndex)+":"+partitionName, tgt)
+
+	return err
+}
+
+func (i *Install) doCopy(sourceDevice string, sourcePartitionPrefix string, targetDevice string, targetPartitionPrefix string, partitionIndex int, numPartitionsToCopy int) error {
+	sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
+	if err != nil {
+		return err
+	}
+	defer sourcePartition.Close()
+
+	partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+
+	_, err = sourcePartition.Seek(0, 0)
+	if err != nil {
+		return err
+	}
+
+	targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
+	if err != nil {
+		return err
+	}
+	defer targetPartition.Close()
+
+	// Copy data in 1MiB chunks.
+	count := int64(0)
+	for {
+		_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		if count%10 == 0 {
+			i.tui.DisplayModal("Incus OS Install", fmt.Sprintf("Copying partition %d of %d.", partitionIndex, numPartitionsToCopy), count*1024*1024, partitionSize)
+		}
+		count++
 	}
 
 	return nil
@@ -347,7 +438,7 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 // getPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme devices have partitions named "pN", while traditional disk partitions are just "N".
 func getPartitionPrefix(device string) string {
-	if strings.Contains(device, "/nvme") {
+	if strings.Contains(device, "/nvme") || strings.Contains(device, "mapper/sr0") {
 		return "p"
 	}
 
