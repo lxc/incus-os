@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
@@ -30,7 +31,14 @@ type Install struct {
 var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
-func CheckSystemRequirements() error {
+func CheckSystemRequirements(ctx context.Context) error {
+	// Check if systemd-repart has failed (we're either running from read-only media or a
+	// small USB stick) which normally indicates we're about to start an install and there's
+	// no install seed present.
+	if systemd.IsFailed(ctx, "systemd-repart") && !ShouldPerformInstall() {
+		return errors.New("unable to begin install without seed configuration")
+	}
+
 	// Check if a TPM device is present.
 	_, err := os.Stat("/dev/tpm0")
 	if err != nil {
@@ -40,9 +48,9 @@ func CheckSystemRequirements() error {
 	return nil
 }
 
-// IsInstallNeeded checks for the presence of an install.{json,yaml} file in the
+// ShouldPerformInstall checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
-func IsInstallNeeded() bool {
+func ShouldPerformInstall() bool {
 	_, err := seed.GetInstallConfig(seed.SeedPartitionPath)
 
 	// If we have any empty install file, that should still trigger an install.
@@ -73,7 +81,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	slog.Info("Starting install of incus-osd to local disk")
 	i.tui.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
-	sourceDevice, sourceIsReadonly, err := i.getSourceDevice()
+	sourceDevice, sourceIsReadonly, err := i.getSourceDevice(ctx)
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
@@ -105,7 +113,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func (*Install) getSourceDevice() (string, bool, error) {
+func (*Install) getSourceDevice(ctx context.Context) (string, bool, error) {
 	// Start by determining the underlying device that /boot/EFI is on.
 	s := unix.Stat_t{}
 	err := unix.Stat("/boot/EFI", &s)
@@ -132,6 +140,10 @@ func (*Install) getSourceDevice() (string, bool, error) {
 		isReadonlyInstallFS = true
 	default:
 		return "", false, err
+	}
+
+	if systemd.IsFailed(ctx, "systemd-repart") {
+		isReadonlyInstallFS = true
 	}
 
 	major := unix.Major(s.Dev)
@@ -275,6 +287,17 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		}
 	}
 
+	if !sourceIsReadonly {
+		// Delete auto-created partitions from source device before proceeding with the install, so we can
+		// re-use the installer media on other systems.
+		for i := 9; i <= 11; i++ {
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-d", strconv.Itoa(i), sourceDevice)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Number of partitions to copy.
 	numPartitionsToCopy := 8
 	if sourceIsReadonly {
@@ -347,6 +370,11 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", strconv.Itoa(partitionIndex), src)
 	if err != nil {
 		return err
+	}
+
+	// Annoyingly, sgdisk exits with zero if given a non-existent partition.
+	if strings.Contains(output, "does not exist") {
+		return errors.New(output)
 	}
 
 	partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)

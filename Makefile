@@ -56,7 +56,6 @@ test:
 	# Prepare the install media
 	cp $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.img
 	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.img seek=4196352 bs=512 conv=notrunc
-	truncate --size=50GiB mkosi.output/IncusOS_boot_media.img
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \

@@ -62,3 +62,13 @@ func EnableUnit(ctx context.Context, now bool, units ...string) error {
 
 	return nil
 }
+
+// IsFailed returns a boolean indicating if the specified unit is in a failed state.
+func IsFailed(ctx context.Context, unit string) bool {
+	result, err := subprocess.RunCommandContext(ctx, "systemctl", "is-failed", unit)
+	if err != nil {
+		return false
+	}
+
+	return result == "failed\n"
+}
