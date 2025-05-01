@@ -283,6 +283,17 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		}
 	}
 
+	if !sourceIsReadonly {
+		// Delete auto-created partitions from source device before proceeding with the install, so we can
+		// re-use the installer media on other systems.
+		for i := 9; i <= 11; i++ {
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-d", strconv.Itoa(i), sourceDevice)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Number of partitions to copy.
 	numPartitionsToCopy := 8
 	if sourceIsReadonly {
