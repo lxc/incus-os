@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
@@ -30,7 +31,14 @@ type Install struct {
 var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
-func CheckSystemRequirements() error {
+func CheckSystemRequirements(ctx context.Context) error {
+	// Check if systemd-repart has failed (we're either running from read-only media or a
+	// small USB stick) which normally indicates we're about to start an install and there's
+	// no install seed present.
+	if systemd.IsFailed(ctx, "systemd-repart") && !ShouldPerformInstall() {
+		return errors.New("unable to begin install without seed configuration")
+	}
+
 	// Check if a TPM device is present.
 	_, err := os.Stat("/dev/tpm0")
 	if err != nil {
@@ -40,9 +48,9 @@ func CheckSystemRequirements() error {
 	return nil
 }
 
-// IsInstallNeeded checks for the presence of an install.{json,yaml} file in the
+// ShouldPerformInstall checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
-func IsInstallNeeded() bool {
+func ShouldPerformInstall() bool {
 	_, err := seed.GetInstallConfig(seed.SeedPartitionPath)
 
 	// If we have any empty install file, that should still trigger an install.
