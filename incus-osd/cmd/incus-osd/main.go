@@ -94,6 +94,14 @@ func main() {
 }
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
+	// Verify that the system meets minimum requirements for running Incus OS.
+	err := install.CheckSystemRequirements()
+	if err != nil {
+		t.DisplayModal("Incus OS", "System check error: [red]"+err.Error()+"[white]\nIncus OS is unable to run until the problem is resolved.", 0, 0)
+
+		return err
+	}
+
 	// Check if we should try to install to a local disk.
 	if install.IsInstallNeeded() {
 		// Don't display warning about recovery key during install.
@@ -108,7 +116,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Run startup tasks.
-	err := startup(ctx, s, t)
+	err = startup(ctx, s, t)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,19 @@ type Install struct {
 	tui    *tui.TUI
 }
 
+var cdromMappedDevice = "/dev/mapper/sr0"
+
+// CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
+func CheckSystemRequirements() error {
+	// Check if a TPM device is present.
+	_, err := os.Stat("/dev/tpm0")
+	if err != nil {
+		return errors.New("no TPM device found")
+	}
+
+	return nil
+}
+
 // IsInstallNeeded checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
 func IsInstallNeeded() bool {
@@ -101,7 +114,7 @@ func (*Install) getSourceDevice() (string, bool, error) {
 			// Check if we're running from a CDROM.
 			err = unix.Stat("/dev/sr0", &s)
 			if err == nil {
-				return "/dev/mapper/sr0", true, nil
+				return cdromMappedDevice, true, nil
 			}
 		}
 
@@ -270,7 +283,7 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 
 	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
 	actualSourceDevice := sourceDevice
-	if actualSourceDevice == "/dev/mapper/sr0" {
+	if actualSourceDevice == cdromMappedDevice {
 		actualSourceDevice = "/dev/sr0"
 	}
 
@@ -414,6 +427,11 @@ func (i *Install) doCopy(sourceDevice string, sourcePartitionPrefix string, targ
 // it will reboot the system. If ForceReoot is true in the config, the system will reboot immediately.
 func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) error {
 	partition := fmt.Sprintf("%s%s1", device, getPartitionPrefix(device))
+
+	// If we're running from a CDROM, adjust the device we watch for removal.
+	if device == cdromMappedDevice {
+		partition = "/dev/sr0"
+	}
 
 	// Wait for the partition to disappear; if ForceReboot is true, skip the loop and immediately reboot.
 	for !i.config.ForceReboot {
