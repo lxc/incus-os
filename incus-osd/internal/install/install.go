@@ -357,6 +357,11 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 		return err
 	}
 
+	// Annoyingly, sgdisk exits with zero if given a non-existent partition.
+	if strings.Contains(output, "does not exist") {
+		return errors.New(output)
+	}
+
 	partitionTypeRegex := regexp.MustCompile(`Partition GUID code: .+ \((.+)\)`)
 	partitionGUIDRegex := regexp.MustCompile(`Partition unique GUID: (.+)`)
 	partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
