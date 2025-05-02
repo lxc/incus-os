@@ -270,7 +270,7 @@ func (o *githubOSUpdate) Download(ctx context.Context, target string) error {
 		}
 
 		// Skip the full image.
-		if fields[1] == "raw.gz" {
+		if fields[1] == "img.gz" || fields[1] == "iso.gz" {
 			continue
 		}
 
