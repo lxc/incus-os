@@ -236,7 +236,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	mode := "unsafe"
 
 	for _, key := range keys {
-		if key.Fingerprint == "0b8472547a026a780bfc503259bf31ef4c70a2c6" {
+		if key.Fingerprint == "087a9632734ad5a6c860cdff7887437a4239d9c3" {
 			mode = "release"
 		}
 
