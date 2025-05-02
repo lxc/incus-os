@@ -69,7 +69,7 @@ jobs:
           echo "${{ secrets.SB_KEY }}" > mkosi.key
           chmod 600 mkosi.key
 
-          make
+          make build-iso
 
           mkdir upload
 
@@ -77,14 +77,11 @@ jobs:
           mv mkosi.output/incus.raw upload/
 
           mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.iso upload/IncusOS_${{ github.ref_name }}.iso
           mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
           mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64.* upload/
           mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity.* upload/
           mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity-sig.* upload/
-
-          make build-iso
-
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.iso
 
       - name: Compress the files
         run: |
