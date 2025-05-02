@@ -273,6 +273,14 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDevice)
 	}
 
+	// If ForceInstall is true, zap any existing GPT table on the target device.
+	if i.config.ForceInstall {
+		_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Turn off swap and unmount /boot.
 	_, err = subprocess.RunCommandContext(ctx, "swapoff", "-a")
 	if err != nil {
