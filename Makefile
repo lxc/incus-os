@@ -28,24 +28,20 @@ initrd-deb-package:
 static-analysis:
 	(cd incus-osd && golangci-lint run)
 
-.PHONY: build-common
-build-common: incus-osd initrd-deb-package
+.PHONY: build
+build: incus-osd initrd-deb-package
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
-
-.PHONY: build
-build: build-common
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
 
 .PHONY: build-iso
-build-iso: build-common
-	sudo -E $(shell command -v mkosi) --sector-size 2048 --cache-dir .cache/ build
-	sudo chown $(shell id -u):$(shell id -g) mkosi.output
+build-iso: build
+	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
 .PHONY: test
 test:
@@ -88,7 +84,7 @@ test-iso:
 	rm -f mkosi.output/IncusOS_boot_media.iso
 
 	# Prepare the install media
-	cp $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.iso
+	cp $(shell ls mkosi.output/IncusOS_*.iso | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.iso
 	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.iso seek=4196352 bs=512 conv=notrunc
 	incus storage volume import default mkosi.output/IncusOS_boot_media.iso IncusOS_boot_media.iso --type=iso
 

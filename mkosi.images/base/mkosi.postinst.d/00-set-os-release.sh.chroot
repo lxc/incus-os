@@ -1,0 +1,11 @@
+#!/bin/sh
+
+cat > /usr/lib/os-release <<EOF
+PRETTY_NAME="$IMAGE_ID $IMAGE_VERSION"
+NAME="$IMAGE_ID"
+VERSION="$IMAGE_VERSION"
+ID=IncusOS
+HOME_URL="https://github.com/lxc/incus-os"
+SUPPORT_URL="https://github.com/lxc/incus-os/issues"
+BUG_REPORT_URL="https://github.com/lxc/incus-os/issues"
+EOF

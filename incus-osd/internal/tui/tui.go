@@ -72,9 +72,9 @@ func (t *TUI) Write(p []byte) (int, error) {
 	s := string(p)
 
 	// Colorize any warning or error level messages.
-	if strings.Contains(s, "level=WARN") {
+	if strings.Contains(s, " WARN:") {
 		s = "[orange]" + s + "[white]"
-	} else if strings.Contains(s, "level=ERROR") {
+	} else if strings.Contains(s, " ERROR:") {
 		s = "[red]" + s + "[white]"
 	}
 
