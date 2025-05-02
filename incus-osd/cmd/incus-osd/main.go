@@ -78,7 +78,7 @@ func main() {
 	}()
 
 	// Prepare a logger.
-	logger := slog.New(slog.NewTextHandler(tuiApp, nil))
+	logger := slog.New(tui.NewCustomTextHandler(tuiApp))
 	slog.SetDefault(logger)
 
 	// Run the daemon.
