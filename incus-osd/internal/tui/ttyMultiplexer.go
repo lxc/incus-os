@@ -23,7 +23,7 @@ func newTtyMultiplexer(ttys ...string) (ttyMultiplexer, error) {
 	for _, tty := range ttys {
 		ttyDev, err := tcell.NewDevTtyFromDev(tty)
 		if err != nil {
-			return ret, err
+			continue
 		}
 
 		ret.ttys = append(ret.ttys, ttyDev)
