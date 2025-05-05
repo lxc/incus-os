@@ -14,6 +14,14 @@ type NetworkSeed struct {
 	Version string `json:"version" yaml:"version"`
 }
 
+// NetworkSeedExists returns true if a network seed exists.
+func NetworkSeedExists() bool {
+	var config NetworkSeed
+	err := parseFileContents(SeedPartitionPath, "network", &config)
+
+	return err == nil
+}
+
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
 func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, error) {
