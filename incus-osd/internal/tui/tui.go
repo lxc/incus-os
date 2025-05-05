@@ -1,14 +1,16 @@
 package tui
 
 import (
+	"context"
 	"fmt"
-	"net"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/rivo/tview"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -180,7 +182,7 @@ func (t *TUI) redrawScreen() {
 	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
 
 	consoleWidth, _ := t.screen.Size()
-	for _, line := range wrapFooterText("IP Address(es)", strings.Join(getIPAddresses(), ", "), consoleWidth) {
+	for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
 		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 	}
 	for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
@@ -198,22 +200,48 @@ func (t *TUI) redrawScreen() {
 	t.app.Draw()
 }
 
-// Return a list of IP addresses, excluding empty, local, and link-local addresses.
-func getIPAddresses() []string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return []string{err.Error()}
+// Return a list of IP addresses for configured interfaces.
+func (t *TUI) getIPAddresses() []string {
+	if t.state.System.Network.Config == nil {
+		return []string{}
 	}
 
+	ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
 	ret := []string{}
 
-	for _, addr := range addrs {
-		// Skip empty, local, and link-local addresses.
-		if addr.String() == "" || addr.String() == "127.0.0.1/8" || addr.String() == "::1/128" || strings.HasPrefix(addr.String(), "fe80:") {
-			continue
+	appendIPs := func(name string) {
+		output, err := subprocess.RunCommandContext(context.Background(), "ip", "address", "show", name)
+		if err != nil {
+			ret = append(ret, name+"("+err.Error()+")")
+
+			return
 		}
 
-		ret = append(ret, addr.String())
+		addrs := []string{}
+		matches := ipAddressRegex.FindAllStringSubmatch(output, -1)
+
+		for _, addr := range matches {
+			// Don't show link-local address.
+			if strings.HasPrefix(addr[1], "fe80:") {
+				continue
+			}
+
+			addrs = append(addrs, addr[1])
+		}
+
+		ret = append(ret, name+"("+strings.Join(addrs, ", ")+")")
+	}
+
+	for _, i := range t.state.System.Network.Config.Interfaces {
+		appendIPs(i.Name)
+	}
+
+	for _, b := range t.state.System.Network.Config.Bonds {
+		appendIPs(b.Name)
+	}
+
+	for _, v := range t.state.System.Network.Config.Vlans {
+		appendIPs(v.Name)
 	}
 
 	return ret

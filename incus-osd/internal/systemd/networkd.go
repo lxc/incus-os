@@ -13,6 +13,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/seed"
 )
 
 // networkdConfigFile represents a given filename and its contents.
@@ -142,12 +143,12 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 	}
 
 	// Wait for the network to apply.
-	return waitForNetworkRoutable(ctx, networkCfg, timeout)
+	return waitForNetworkRoutable(ctx, networkCfg, timeout, seed.NetworkSeedExists())
 }
 
-// waitForNetworkRoutable waits up to a provided timeout for all configured network interfaces,
+// waitForNetworkRoutable waits up to a provided timeout for configured network interfaces,
 // bonds, and vlans to become routable.
-func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
+func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration, requireAllRoutable bool) error {
 	isRoutable := func(name string) bool {
 		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
 		if err != nil {
@@ -159,7 +160,6 @@ func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkCo
 
 	endTime := time.Now().Add(timeout)
 
-mainloop:
 	for {
 		if time.Now().After(endTime) {
 			return errors.New("timed out waiting for network to become routable")
@@ -167,21 +167,63 @@ mainloop:
 
 		time.Sleep(500 * time.Millisecond)
 
-		for _, i := range networkCfg.Interfaces {
-			if !isRoutable(i.Name) {
-				continue mainloop
+		if len(networkCfg.Interfaces) > 0 {
+			allInterfacesRoutable := true
+			atLestOneInterfaceRoutable := false
+
+			for _, i := range networkCfg.Interfaces {
+				routable := isRoutable(i.Name)
+
+				allInterfacesRoutable = allInterfacesRoutable && routable
+				atLestOneInterfaceRoutable = atLestOneInterfaceRoutable || routable
+			}
+
+			if requireAllRoutable && !allInterfacesRoutable {
+				continue
+			}
+
+			if !requireAllRoutable && !atLestOneInterfaceRoutable {
+				continue
 			}
 		}
 
-		for _, b := range networkCfg.Bonds {
-			if !isRoutable(b.Name) {
-				continue mainloop
+		if len(networkCfg.Bonds) > 0 {
+			allBondsRoutable := true
+			atLestOneBondRoutable := false
+
+			for _, b := range networkCfg.Bonds {
+				routable := isRoutable(b.Name)
+
+				allBondsRoutable = allBondsRoutable && routable
+				atLestOneBondRoutable = atLestOneBondRoutable || routable
+			}
+
+			if requireAllRoutable && !allBondsRoutable {
+				continue
+			}
+
+			if !requireAllRoutable && !atLestOneBondRoutable {
+				continue
 			}
 		}
 
-		for _, v := range networkCfg.Vlans {
-			if !isRoutable(v.Name) {
-				continue mainloop
+		if len(networkCfg.Vlans) > 0 {
+			allVlansRoutable := true
+			atLestOneVlanRoutable := false
+
+			for _, v := range networkCfg.Vlans {
+				routable := isRoutable(v.Name)
+
+				allVlansRoutable = allVlansRoutable && routable
+				atLestOneVlanRoutable = atLestOneVlanRoutable || routable
+			}
+
+			if requireAllRoutable && !allVlansRoutable {
+				continue
+			}
+
+			if !requireAllRoutable && !atLestOneVlanRoutable {
+				continue
 			}
 		}
 
