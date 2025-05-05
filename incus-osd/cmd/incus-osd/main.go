@@ -237,7 +237,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	for _, key := range keys {
 		if key.Fingerprint == "087a9632734ad5a6c860cdff7887437a4239d9c3" {
-			mode = "release"
+			mode = "production"
 		}
 
 		if mode == "unsafe" && strings.HasPrefix(key.Description, "mkosi of ") {
@@ -276,7 +276,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	var provider string
 
 	switch mode {
-	case "release":
+	case "production":
 		provider = "github"
 	case "dev":
 		provider = "local"
