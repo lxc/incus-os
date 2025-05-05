@@ -111,6 +111,15 @@ func (p *github) load(ctx context.Context) error {
 	return nil
 }
 
+func (*github) checkLimit(err error) error {
+	_, ok := err.(*ghapi.RateLimitError) //nolint:errorlint
+	if ok {
+		return ErrProviderUnavailable
+	}
+
+	return err
+}
+
 func (p *github) checkRelease(ctx context.Context) error {
 	// Acquire lock.
 	p.releaseMu.Lock()
@@ -124,13 +133,13 @@ func (p *github) checkRelease(ctx context.Context) error {
 	// Get the latest release.
 	release, _, err := p.gh.Repositories.GetLatestRelease(ctx, p.organization, p.repository)
 	if err != nil {
-		return err
+		return p.checkLimit(err)
 	}
 
 	// Get the list of files for the release.
 	assets, _, err := p.gh.Repositories.ListReleaseAssets(ctx, p.organization, p.repository, release.GetID(), nil)
 	if err != nil {
-		return err
+		return p.checkLimit(err)
 	}
 
 	// Record the release.
@@ -145,7 +154,7 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 	// Get a reader for the release asset.
 	rc, _, err := p.gh.Repositories.DownloadReleaseAsset(ctx, p.organization, p.repository, assetID, http.DefaultClient)
 	if err != nil {
-		return err
+		return p.checkLimit(err)
 	}
 
 	defer rc.Close()
