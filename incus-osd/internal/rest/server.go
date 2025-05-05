@@ -48,6 +48,8 @@ func (s *Server) Serve(_ context.Context) error {
 
 	router.HandleFunc("/", s.apiRoot)
 	router.HandleFunc("/1.0", s.apiRoot10)
+	router.HandleFunc("/1.0/debug", s.apiDebug)
+	router.HandleFunc("/1.0/debug/log", s.apiDebugLog)
 	router.HandleFunc("/1.0/services", s.apiServices)
 	router.HandleFunc("/1.0/services/{name}", s.apiServicesEndpoint)
 	router.HandleFunc("/1.0/system", s.apiSystem)
