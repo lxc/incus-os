@@ -159,6 +159,9 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
+	// Done with all initialization.
+	slog.Info("System is ready", "release", s.RunningRelease)
+
 	return server.Serve(ctx)
 }
 
@@ -166,7 +169,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
 
-	slog.Info("Shutting down", "release", s.RunningRelease)
+	slog.Info("System is shutting down", "release", s.RunningRelease)
 	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
 
 	// Run application shutdown actions.
@@ -213,7 +216,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	defer func() { _ = s.Save(ctx) }()
 
 	// Get running release.
-	slog.Info("Getting local OS information")
+	slog.Debug("Getting local OS information")
 	runningRelease, err := systemd.GetCurrentRelease(ctx)
 	if err != nil {
 		return err
@@ -222,7 +225,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	s.RunningRelease = runningRelease
 
 	// Check kernel keyring.
-	slog.Info("Getting trusted system keys")
+	slog.Debug("Getting trusted system keys")
 	keys, err := keyring.GetKeys(ctx, keyring.PlatformKeyring)
 	if err != nil {
 		return err
@@ -244,7 +247,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			mode = "dev"
 		}
 
-		slog.Info("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
+		slog.Debug("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
 	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
@@ -255,7 +258,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	slog.Info("Starting up", "mode", mode, "release", s.RunningRelease)
+	slog.Info("System is starting up", "mode", mode, "release", s.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
@@ -300,14 +303,14 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Ensure  the "local" ZFS pool is available.
-	slog.Info("Bringing up the local ZFS pool")
+	slog.Info("Bringing up the local storage")
 	err = zfs.ImportOrCreateLocalPool(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Apply the system users.
-	slog.Info("Refreshing users")
+	slog.Debug("Refreshing users")
 	err = systemd.RefreshUsers(ctx)
 	if err != nil {
 		return err
@@ -446,7 +449,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		// Apply the system extensions.
 		if appsUpdated {
-			slog.Info("Refreshing system extensions")
+			slog.Debug("Refreshing system extensions")
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
 				slog.Error(err.Error())
@@ -463,6 +466,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 }
 
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, installedOSVersion string, isStartupCheck bool) (string, error) {
+	slog.Debug("Checking for OS updates")
+
 	update, err := p.GetOSUpdate(ctx)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
@@ -501,13 +506,15 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 			return update.Version(), nil
 		}
 	} else if isStartupCheck {
-		slog.Info("System is already running latest OS release", "release", s.RunningRelease)
+		slog.Debug("System is already running latest OS release", "release", s.RunningRelease)
 	}
 
 	return "", nil
 }
 
 func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
+	slog.Debug("Checking for application updates")
+
 	app, err := p.GetApplication(ctx, appName)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
@@ -524,8 +531,8 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		}
 
 		// Download the application.
-		slog.Info("Downloading system extension", "application", app.Name(), "release", app.Version())
-		t.DisplayModal("Incus OS Update", "Downloading system extension "+app.Name()+" update "+app.Version(), 0, 0)
+		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
+		t.DisplayModal("Incus OS Update", "Downloading application "+app.Name()+" update "+app.Version(), 0, 0)
 		err = app.Download(ctx, systemd.SystemExtensionsPath)
 		if err != nil {
 			return "", err
@@ -539,7 +546,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		return app.Version(), nil
 	} else if isStartupCheck {
-		slog.Info("System is already running latest application release", "application", app.Name(), "release", app.Version())
+		slog.Debug("System is already running latest application release", "application", app.Name(), "release", app.Version())
 	}
 
 	return "", nil
