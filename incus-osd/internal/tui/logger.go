@@ -25,8 +25,12 @@ func NewCustomTextHandler(out io.Writer) *CustomTextHandler {
 }
 
 // Enabled reports whether the handler handles records at the given level.
-func (*CustomTextHandler) Enabled(_ context.Context, _ slog.Level) bool {
-	// For now, return true and display any log messages.
+func (*CustomTextHandler) Enabled(_ context.Context, level slog.Level) bool {
+	// We hide debug messages from the UI.
+	if level == slog.LevelDebug {
+		return false
+	}
+
 	return true
 }
 
