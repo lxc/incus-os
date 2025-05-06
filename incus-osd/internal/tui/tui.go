@@ -240,7 +240,7 @@ func (t *TUI) getIPAddresses() []string {
 		appendIPs(b.Name)
 	}
 
-	for _, v := range t.state.System.Network.Config.Vlans {
+	for _, v := range t.state.System.Network.Config.VLANs {
 		appendIPs(v.Name)
 	}
 
