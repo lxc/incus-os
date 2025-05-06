@@ -15,7 +15,7 @@ type SystemNetworkConfig struct {
 
 	Interfaces []SystemNetworkInterface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
 	Bonds      []SystemNetworkBond      `json:"bonds,omitempty"      yaml:"bonds,omitempty"`
-	Vlans      []SystemNetworkVlan      `json:"vlans,omitempty"      yaml:"vlans,omitempty"`
+	VLANs      []SystemNetworkVLAN      `json:"vlans,omitempty"      yaml:"vlans,omitempty"`
 }
 
 // SystemNetworkInterface contains information about a network interface.
@@ -42,8 +42,8 @@ type SystemNetworkBond struct {
 	LLDP      bool                 `json:"lldp"                yaml:"lldp"`
 }
 
-// SystemNetworkVlan contains information about a network vlan.
-type SystemNetworkVlan struct {
+// SystemNetworkVLAN contains information about a network vlan.
+type SystemNetworkVLAN struct {
 	Name   string   `json:"name"            yaml:"name"`
 	Parent string   `json:"parent"          yaml:"parent"`
 	ID     int      `json:"id"              yaml:"id"`

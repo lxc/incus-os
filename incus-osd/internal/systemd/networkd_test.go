@@ -121,11 +121,11 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Len(t, cfg.Bonds[0].Routes, 2)
 		require.Len(t, cfg.Bonds[0].Members, 2)
 		require.Equal(t, "AA:BB:CC:DD:EE:03", cfg.Bonds[0].Members[0])
-		require.Len(t, cfg.Vlans, 1)
-		require.Equal(t, "uplink", cfg.Vlans[0].Name)
-		require.Equal(t, 1234, cfg.Vlans[0].ID)
-		require.Len(t, cfg.Vlans[0].Roles, 1)
-		require.Equal(t, "ovn-uplink", cfg.Vlans[0].Roles[0])
+		require.Len(t, cfg.VLANs, 1)
+		require.Equal(t, "uplink", cfg.VLANs[0].Name)
+		require.Equal(t, 1234, cfg.VLANs[0].ID)
+		require.Len(t, cfg.VLANs[0].Roles, 1)
+		require.Equal(t, "ovn-uplink", cfg.VLANs[0].Roles[0])
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
 		content, err := yaml.Marshal(&cfg)

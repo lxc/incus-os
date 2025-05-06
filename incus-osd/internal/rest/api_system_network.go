@@ -21,7 +21,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
-		newConfig := &api.SystemNetworkConfig{}
+		newConfig := &api.SystemNetwork{}
 
 		// If updating, grab the current configuration.
 		if r.Method == http.MethodPatch {
@@ -51,14 +51,14 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Don't allow a new configuration that doesn't define any interfaces, bonds, or vlans.
-		if seed.NetworkConfigHasEmptyDevices(*newConfig) {
+		if seed.NetworkConfigHasEmptyDevices(*newConfig.Config) {
 			_ = response.BadRequest(errors.New("network configuration has no devices defined")).Render(w)
 
 			return
 		}
 
 		// Apply the updated configuration.
-		s.state.System.Network.Config = newConfig
+		s.state.System.Network.Config = newConfig.Config
 		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state.System.Network.Config, 10*time.Second)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)

@@ -58,7 +58,7 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 
 // NetworkConfigHasEmptyDevices checks if any device (interface, bond, or vlan) is defined in the given config.
 func NetworkConfigHasEmptyDevices(networkCfg api.SystemNetworkConfig) bool {
-	return len(networkCfg.Interfaces) == 0 && len(networkCfg.Bonds) == 0 && len(networkCfg.Vlans) == 0
+	return len(networkCfg.Interfaces) == 0 && len(networkCfg.Bonds) == 0 && len(networkCfg.VLANs) == 0
 }
 
 // getDefaultNetworkConfig returns a minimal network configuration, with every interface

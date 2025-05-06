@@ -207,22 +207,22 @@ func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkCo
 			}
 		}
 
-		if len(networkCfg.Vlans) > 0 {
-			allVlansRoutable := true
-			atLestOneVlanRoutable := false
+		if len(networkCfg.VLANs) > 0 {
+			allVLANsRoutable := true
+			atLestOneVLANRoutable := false
 
-			for _, v := range networkCfg.Vlans {
+			for _, v := range networkCfg.VLANs {
 				routable := isRoutable(v.Name)
 
-				allVlansRoutable = allVlansRoutable && routable
-				atLestOneVlanRoutable = atLestOneVlanRoutable || routable
+				allVLANsRoutable = allVLANsRoutable && routable
+				atLestOneVLANRoutable = atLestOneVLANRoutable || routable
 			}
 
-			if requireAllRoutable && !allVlansRoutable {
+			if requireAllRoutable && !allVLANsRoutable {
 				continue
 			}
 
-			if !requireAllRoutable && !atLestOneVlanRoutable {
+			if !requireAllRoutable && !atLestOneVLANRoutable {
 				continue
 			}
 		}
@@ -288,7 +288,7 @@ Mode=%s
 	}
 
 	// Create vlans.
-	for _, v := range networkCfg.Vlans {
+	for _, v := range networkCfg.VLANs {
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("00-vl%s.netdev", v.Name),
 			Contents: fmt.Sprintf(`[NetDev]
