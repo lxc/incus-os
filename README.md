@@ -43,11 +43,7 @@ Creating a new Incus OS VM can be done with:
 This will retrieve the relevant image from Github and create a VM using it.
 It will also automatically load the relevant packages (`incus` and `debug`).
 
-To update it to a newer version, you can do:
-
-    ./scripts/update-image VERSION NAME
-
-This will retrieve the update files and apply the update.
+The VM will automatically update every 6 hours with the OS updates applying on reboot.
 
 ## By building your own images
 Building your own images require the current version of `mkosi`.
