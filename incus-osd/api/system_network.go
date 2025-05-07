@@ -21,6 +21,7 @@ type SystemNetworkConfig struct {
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
 	Name      string               `json:"name"                yaml:"name"`
+	MTU       int                  `json:"mtu"                 yaml:"mtu"`
 	VLAN      int                  `json:"vlan"                yaml:"vlan"`
 	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
@@ -37,6 +38,7 @@ type SystemNetworkBond struct {
 	VLAN      int                  `json:"vlan"                yaml:"vlan"`
 	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
+	Hwaddr    string               `json:"hwaddr"              yaml:"hwaddr"`
 	Members   []string             `json:"members,omitempty"   yaml:"members,omitempty"`
 	Roles     []string             `json:"roles,omitempty"     yaml:"roles,omitempty"`
 	LLDP      bool                 `json:"lldp"                yaml:"lldp"`
@@ -44,11 +46,13 @@ type SystemNetworkBond struct {
 
 // SystemNetworkVLAN contains information about a network vlan.
 type SystemNetworkVLAN struct {
-	Name   string   `json:"name"            yaml:"name"`
-	Parent string   `json:"parent"          yaml:"parent"`
-	ID     int      `json:"id"              yaml:"id"`
-	MTU    int      `json:"mtu"             yaml:"mtu"`
-	Roles  []string `json:"roles,omitempty" yaml:"roles,omitempty"`
+	Name      string               `json:"name"                yaml:"name"`
+	Parent    string               `json:"parent"              yaml:"parent"`
+	ID        int                  `json:"id"                  yaml:"id"`
+	MTU       int                  `json:"mtu"                 yaml:"mtu"`
+	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
+	Roles     []string             `json:"roles,omitempty"     yaml:"roles,omitempty"`
 }
 
 // SystemNetworkRoute defines a route.
