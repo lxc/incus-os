@@ -19,7 +19,7 @@ trap cleanup EXIT HUP INT TERM
 # Grab the image
 echo "=> Downloading the image"
 echo "==> Downloading Incus OS ${1}"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.raw.gz" | gzip -d > .incus-os.img
+curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.img.gz" | gzip -d > .incus-os.img
 
 # Add seed data
 echo "=> Injecting seed data"
