@@ -502,6 +502,12 @@ VLAN=vl%s
 
 func processAddresses(addresses []string) string {
 	ret := ""
+	if len(addresses) != 0 {
+		ret += "LinkLocalAddressing=ipv6\n"
+	} else {
+		ret += "LinkLocalAddressing=no\n"
+		ret += "ConfigureWithoutCarrier=yes\n"
+	}
 
 	hasDHCP4 := false
 	hasDHCP6 := false
@@ -557,7 +563,7 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 }
 
 func generateNetworkSectionContents(dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
-	ret := "LinkLocalAddressing=ipv6\n"
+	ret := ""
 
 	// If there are search domains or name servers, add those to the config.
 	if dns != nil {

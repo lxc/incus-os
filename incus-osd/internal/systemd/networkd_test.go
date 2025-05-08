@@ -430,7 +430,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	cfgs = generateNetworkFileContents(networkCfg)
 	require.Len(t, cfgs, 2)
 	require.Equal(t, "20-eth0.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=eth0\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=eth0\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
 	require.Equal(t, "20-brffeeddccbbaa.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=enffeeddccbbaa\n\n[Network]\nBridge=eth0\nLLDP=false\nEmitLLDP=false\n", cfgs[1].Contents)
 
@@ -442,7 +442,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	cfgs = generateNetworkFileContents(networkCfg)
 	require.Len(t, cfgs, 5)
 	require.Equal(t, "21-uplink.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=uplink\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=uplink\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv6AcceptRA=false\n", cfgs[0].Contents)
 	require.Equal(t, "21-braabbccddeee1.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=bnaabbccddeee1\n\n[Network]\nBridge=uplink\n", cfgs[1].Contents)
 	require.Equal(t, "21-bnaabbccddeee1-dev0.network", cfgs[2].Name)
