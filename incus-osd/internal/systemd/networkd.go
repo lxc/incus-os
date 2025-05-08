@@ -171,19 +171,27 @@ func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkCo
 			allInterfacesRoutable := true
 			atLestOneInterfaceRoutable := false
 
+			configuredInterfaces := 0
 			for _, i := range networkCfg.Interfaces {
+				if len(i.Addresses) == 0 {
+					continue
+				}
+
+				configuredInterfaces++
 				routable := isRoutable(i.Name)
 
 				allInterfacesRoutable = allInterfacesRoutable && routable
 				atLestOneInterfaceRoutable = atLestOneInterfaceRoutable || routable
 			}
 
-			if requireAllRoutable && !allInterfacesRoutable {
-				continue
-			}
+			if configuredInterfaces > 0 {
+				if requireAllRoutable && !allInterfacesRoutable {
+					continue
+				}
 
-			if !requireAllRoutable && !atLestOneInterfaceRoutable {
-				continue
+				if !requireAllRoutable && !atLestOneInterfaceRoutable {
+					continue
+				}
 			}
 		}
 
@@ -191,19 +199,27 @@ func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkCo
 			allBondsRoutable := true
 			atLestOneBondRoutable := false
 
+			configuredInterfaces := 0
 			for _, b := range networkCfg.Bonds {
+				if len(b.Addresses) == 0 {
+					continue
+				}
+
+				configuredInterfaces++
 				routable := isRoutable(b.Name)
 
 				allBondsRoutable = allBondsRoutable && routable
 				atLestOneBondRoutable = atLestOneBondRoutable || routable
 			}
 
-			if requireAllRoutable && !allBondsRoutable {
-				continue
-			}
+			if configuredInterfaces > 0 {
+				if requireAllRoutable && !allBondsRoutable {
+					continue
+				}
 
-			if !requireAllRoutable && !atLestOneBondRoutable {
-				continue
+				if !requireAllRoutable && !atLestOneBondRoutable {
+					continue
+				}
 			}
 		}
 
@@ -211,19 +227,27 @@ func waitForNetworkRoutable(ctx context.Context, networkCfg *api.SystemNetworkCo
 			allVLANsRoutable := true
 			atLestOneVLANRoutable := false
 
+			configuredInterfaces := 0
 			for _, v := range networkCfg.VLANs {
+				if len(v.Addresses) == 0 {
+					continue
+				}
+
+				configuredInterfaces++
 				routable := isRoutable(v.Name)
 
 				allVLANsRoutable = allVLANsRoutable && routable
 				atLestOneVLANRoutable = atLestOneVLANRoutable || routable
 			}
 
-			if requireAllRoutable && !allVLANsRoutable {
-				continue
-			}
+			if configuredInterfaces > 0 {
+				if requireAllRoutable && !allVLANsRoutable {
+					continue
+				}
 
-			if !requireAllRoutable && !atLestOneVLANRoutable {
-				continue
+				if !requireAllRoutable && !atLestOneVLANRoutable {
+					continue
+				}
 			}
 		}
 
