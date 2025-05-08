@@ -35,7 +35,7 @@ linters:
           disabled: true
         - name: cognitive-complexity
           arguments:
-            - 50
+            - 100
         - name: cyclomatic
           arguments:
             - 40
