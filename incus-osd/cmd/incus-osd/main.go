@@ -541,7 +541,10 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		t.RemoveModal()
 
 		// Record newly installed application and save state to disk.
-		s.Applications[app.Name()] = state.Application{Version: app.Version()}
+		newAppInfo := s.Applications[app.Name()]
+		newAppInfo.Version = app.Version()
+
+		s.Applications[app.Name()] = newAppInfo
 		_ = s.Save(ctx)
 
 		return app.Version(), nil
