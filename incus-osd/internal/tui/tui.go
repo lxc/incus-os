@@ -233,15 +233,21 @@ func (t *TUI) getIPAddresses() []string {
 	}
 
 	for _, i := range t.state.System.Network.Config.Interfaces {
-		appendIPs(i.Name)
+		if len(i.Addresses) > 0 {
+			appendIPs(i.Name)
+		}
 	}
 
 	for _, b := range t.state.System.Network.Config.Bonds {
-		appendIPs(b.Name)
+		if len(b.Addresses) > 0 {
+			appendIPs(b.Name)
+		}
 	}
 
 	for _, v := range t.state.System.Network.Config.VLANs {
-		appendIPs(v.Name)
+		if len(v.Addresses) > 0 {
+			appendIPs(v.Name)
+		}
 	}
 
 	return ret
