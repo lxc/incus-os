@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -321,7 +322,13 @@ VLANFiltering=true
 
 	// Create bond and bridge devices for each bond.
 	for _, b := range networkCfg.Bonds {
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(b.Hwaddr, ":", ""))
+		bondMacAddr := b.Hwaddr
+		if bondMacAddr == "" {
+			bondMacAddr = b.Members[0]
+		}
+
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
+
 		mtuString := ""
 		if b.MTU != 0 {
 			mtuString = fmt.Sprintf("MTUBytes=%d", b.MTU)
@@ -338,7 +345,7 @@ MACAddress=%s
 
 [Bond]
 Mode=%s
-`, strippedHwaddr, b.Hwaddr, mtuString, b.Mode),
+`, strippedHwaddr, bondMacAddr, mtuString, b.Mode),
 		})
 
 		// Bridge.
@@ -352,7 +359,7 @@ MACAddress=%s
 
 [Bridge]
 VLANFiltering=true
-`, b.Name, b.Hwaddr, mtuString),
+`, b.Name, bondMacAddr, mtuString),
 		})
 	}
 
@@ -363,15 +370,15 @@ VLANFiltering=true
 			mtuString = fmt.Sprintf("MTUBytes=%d", v.MTU)
 		}
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("12-vl%s.netdev", v.Name),
+			Name: fmt.Sprintf("12-%s.netdev", v.Name),
 			Contents: fmt.Sprintf(`[NetDev]
-Name=vl%s
-Kind=vlan
+Name=%s
+Kind=veth
 %s
 
-[VLAN]
-Id=%d
-`, v.Name, mtuString, v.ID),
+[Peer]
+Name=vl%s
+`, v.Name, mtuString, v.Name),
 		})
 	}
 
@@ -403,35 +410,36 @@ UseMTU=true
 			cfgString += processRoutes(i.Routes)
 		}
 
-		if i.VLAN != 0 {
-			cfgString += fmt.Sprintf(`
-[BridgeVLAN]
-VLAN=1-4094
-PVID=%d
-`, i.VLAN)
-		}
-
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-%s.network", i.Name),
 			Contents: cfgString,
 		})
 
-		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("20-br%s.network", strippedHwaddr),
-			Contents: fmt.Sprintf(`[Match]
+		cfgString = fmt.Sprintf(`[Match]
 Name=en%s
 
 [Network]
 Bridge=%s
 LLDP=%s
 EmitLLDP=%s
-`, strippedHwaddr, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP)),
+`, strippedHwaddr, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
+
+		cfgString += generateBridgeVLANContents(i.Name, i.VLAN, i.VLANTags, networkCfg.VLANs)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("20-en%s.network", strippedHwaddr),
+			Contents: cfgString,
 		})
 	}
 
 	// Create networks for each bond and its member(s).
 	for _, b := range networkCfg.Bonds {
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(b.Hwaddr, ":", ""))
+		bondMacAddr := b.Hwaddr
+		if bondMacAddr == "" {
+			bondMacAddr = b.Members[0]
+		}
+
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
 
 		// Bond.
 		cfgString := fmt.Sprintf(`[Match]
@@ -451,14 +459,6 @@ UseMTU=true
 			cfgString += processRoutes(b.Routes)
 		}
 
-		if b.VLAN != 0 {
-			cfgString += fmt.Sprintf(`
-[BridgeVLAN]
-VLAN=1-4094
-PVID=%d
-`, b.VLAN)
-		}
-
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-%s.network", b.Name),
 			Contents: cfgString,
@@ -472,8 +472,10 @@ Name=bn%s
 Bridge=%s
 `, strippedHwaddr, b.Name)
 
+		cfgString += generateBridgeVLANContents(b.Name, b.VLAN, b.VLANTags, networkCfg.VLANs)
+
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("21-br%s.network", strippedHwaddr),
+			Name:     fmt.Sprintf("21-bn%s.network", strippedHwaddr),
 			Contents: cfgString,
 		})
 
@@ -498,6 +500,22 @@ EmitLLDP=%s
 	// Create networks for each VLAN.
 	for _, v := range networkCfg.VLANs {
 		cfgString := fmt.Sprintf(`[Match]
+Name=vl%s
+
+[Network]
+Bridge=%s
+
+[BridgeVLAN]
+VLAN=%d
+PVID=%d
+`, v.Name, v.Parent, v.ID, v.ID)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("22-vl%s.network", v.Name),
+			Contents: cfgString,
+		})
+
+		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
 [DHCP]
@@ -506,8 +524,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-VLAN=vl%s
-%s`, v.Parent, v.Name, generateNetworkSectionContents(networkCfg.DNS, networkCfg.NTP))
+%s`, v.Name, generateNetworkSectionContents(networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(v.Addresses)
 
@@ -516,7 +533,7 @@ VLAN=vl%s
 		}
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("22-vl%s.network", v.Name),
+			Name:     fmt.Sprintf("22-%s.network", v.Name),
 			Contents: cfgString,
 		})
 	}
@@ -616,4 +633,41 @@ func generateTimesyncContents(ntp api.SystemNetworkNTP) string {
 	}
 
 	return "[Time]\nFallbackNTP=" + strings.Join(ntp.Timeservers, " ") + "\n"
+}
+
+func generateBridgeVLANContents(bridgeName string, specificVLAN int, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) string {
+	vlanTags := []int{}
+
+	// Add specific VLAN tag, if configured.
+	if specificVLAN != 0 {
+		vlanTags = append(vlanTags, specificVLAN)
+	}
+
+	// Add any additional VLAN tags.
+	vlanTags = append(vlanTags, additionalVLANTags...)
+
+	// Grab any relevant tags for this bridge from VLAN definitions.
+	for _, vlan := range vlans {
+		if vlan.Parent == bridgeName {
+			vlanTags = append(vlanTags, vlan.ID)
+		}
+	}
+
+	// Sort and remove any duplicate tags.
+	slices.Sort(vlanTags)
+	vlanTags = slices.Compact(vlanTags)
+
+	ret := ""
+
+	if len(vlanTags) > 0 {
+		ret += "\n[BridgeVLAN]\n"
+		if specificVLAN != 0 {
+			ret += fmt.Sprintf("PVID=%d\n", specificVLAN)
+		}
+		for _, tag := range vlanTags {
+			ret += fmt.Sprintf("VLAN=%d\n", tag)
+		}
+	}
+
+	return ret
 }
