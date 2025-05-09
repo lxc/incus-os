@@ -35,6 +35,11 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 	return nil
 }
 
+// Update triggers a partial restart after an application update.
+func (*incus) Update(ctx context.Context, _ string) error {
+	return systemd.RestartUnit(ctx, "incus.service")
+}
+
 // Initialize runs first time initialization.
 func (a *incus) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
