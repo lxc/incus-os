@@ -660,11 +660,13 @@ func generateBridgeVLANContents(bridgeName string, specificVLAN int, additionalV
 	ret := ""
 
 	if len(vlanTags) > 0 {
-		ret += "\n[BridgeVLAN]\n"
 		if specificVLAN != 0 {
+			ret += "\n[BridgeVLAN]\n"
 			ret += fmt.Sprintf("PVID=%d\n", specificVLAN)
 		}
+
 		for _, tag := range vlanTags {
+			ret += "\n[BridgeVLAN]\n"
 			ret += fmt.Sprintf("VLAN=%d\n", tag)
 		}
 	}
