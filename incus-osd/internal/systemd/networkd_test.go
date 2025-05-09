@@ -407,7 +407,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "21-management.network", cfgs[4].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n", cfgs[4].Contents)
 	require.Equal(t, "21-bnaabbccddee03.network", cfgs[5].Name)
-	require.Equal(t, "[Match]\nName=bnaabbccddee03\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nPVID=100\nVLAN=100\nVLAN=1234\n", cfgs[5].Contents)
+	require.Equal(t, "[Match]\nName=bnaabbccddee03\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nPVID=100\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[5].Contents)
 	require.Equal(t, "21-bnaabbccddee03-dev0.network", cfgs[6].Name)
 	require.Equal(t, "[Match]\nName=enaabbccddee03\n\n[Network]\nBond=bnaabbccddee03\nLLDP=false\nEmitLLDP=false\n", cfgs[6].Contents)
 	require.Equal(t, "21-bnaabbccddee03-dev1.network", cfgs[7].Name)
