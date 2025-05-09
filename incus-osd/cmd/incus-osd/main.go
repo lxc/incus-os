@@ -432,7 +432,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for application updates.
-		appsUpdated := false
+		appsUpdated := map[string]string{}
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
@@ -443,12 +443,12 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 
 			if newAppVersion != "" {
-				appsUpdated = true
+				appsUpdated[appName] = newAppVersion
 			}
 		}
 
 		// Apply the system extensions.
-		if appsUpdated {
+		if len(appsUpdated) > 0 {
 			slog.Debug("Refreshing system extensions")
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
@@ -460,7 +460,31 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		if isStartupCheck {
+			// If running a one-time update, we're done.
 			break
+		}
+
+		// Notify the applications that they need to update/restart.
+		for appName, appVersion := range appsUpdated {
+			// Get the application.
+			app, err := applications.Load(ctx, appName)
+			if err != nil {
+				slog.Error(err.Error())
+				persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+				continue
+			}
+
+			// Reload the application.
+			slog.Info("Reloading application", "name", appName, "version", appVersion)
+
+			err = app.Update(ctx, appVersion)
+			if err != nil {
+				slog.Error(err.Error())
+				persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+				continue
+			}
 		}
 	}
 }
