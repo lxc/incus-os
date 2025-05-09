@@ -15,6 +15,13 @@ type incus struct{}
 
 // Start starts all the systemd units.
 func (*incus) Start(ctx context.Context, _ string) error {
+	// Refresh the system users.
+	err := systemd.RefreshUsers(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Start the units.
 	return systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 }
 
@@ -37,6 +44,13 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 
 // Update triggers a partial restart after an application update.
 func (*incus) Update(ctx context.Context, _ string) error {
+	// Refresh the system users.
+	err := systemd.RefreshUsers(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Restart the main unit.
 	return systemd.RestartUnit(ctx, "incus.service")
 }
 

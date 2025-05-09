@@ -309,13 +309,6 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	// Apply the system users.
-	slog.Debug("Refreshing users")
-	err = systemd.RefreshUsers(ctx)
-	if err != nil {
-		return err
-	}
-
 	// Run services startup actions.
 	for _, srvName := range services.ValidNames {
 		srv, err := services.Load(ctx, s, srvName)
