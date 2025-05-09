@@ -508,7 +508,8 @@ Bridge=%s
 [BridgeVLAN]
 VLAN=%d
 PVID=%d
-`, v.Name, v.Parent, v.ID, v.ID)
+EgressUntagged=%d
+`, v.Name, v.Parent, v.ID, v.ID, v.ID)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("22-vl%s.network", v.Name),
@@ -663,6 +664,7 @@ func generateBridgeVLANContents(bridgeName string, specificVLAN int, additionalV
 		if specificVLAN != 0 {
 			ret += "\n[BridgeVLAN]\n"
 			ret += fmt.Sprintf("PVID=%d\n", specificVLAN)
+			ret += fmt.Sprintf("EgressUntagged=%d\n", specificVLAN)
 		}
 
 		for _, tag := range vlanTags {
