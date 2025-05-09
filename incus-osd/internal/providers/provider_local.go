@@ -19,6 +19,11 @@ type local struct {
 	releaseVersion string
 }
 
+func (*local) ClearCache(_ context.Context) error {
+	// No cache for the local provider.
+	return nil
+}
+
 func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

@@ -24,6 +24,8 @@ type OSUpdate interface {
 
 // Provider represents an update/application provider.
 type Provider interface {
+	ClearCache(ctx context.Context) error
+
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
 	GetApplication(ctx context.Context, name string) (Application, error)
 
