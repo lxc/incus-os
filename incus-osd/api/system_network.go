@@ -23,6 +23,7 @@ type SystemNetworkInterface struct {
 	Name      string               `json:"name"                yaml:"name"`
 	MTU       int                  `json:"mtu"                 yaml:"mtu"`
 	VLAN      int                  `json:"vlan"                yaml:"vlan"`
+	VLANTags  []int                `json:"vlan_tags,omitempty" yaml:"vlan_tags,omitempty"`
 	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
 	Hwaddr    string               `json:"hwaddr"              yaml:"hwaddr"`
@@ -36,6 +37,7 @@ type SystemNetworkBond struct {
 	Mode      string               `json:"mode"                yaml:"mode"`
 	MTU       int                  `json:"mtu"                 yaml:"mtu"`
 	VLAN      int                  `json:"vlan"                yaml:"vlan"`
+	VLANTags  []int                `json:"vlan_tags,omitempty" yaml:"vlan_tags,omitempty"`
 	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
 	Hwaddr    string               `json:"hwaddr"              yaml:"hwaddr"`
