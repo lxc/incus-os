@@ -386,6 +386,16 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			time.Sleep(6 * time.Hour)
 		}
 
+		// If user requested, clear cache.
+		if isUserRequested {
+			err := p.ClearCache(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				slog.Error(err.Error())
+
+				break
+			}
+		}
+
 		// Determine what applications to install.
 		toInstall := []string{"incus"}
 
