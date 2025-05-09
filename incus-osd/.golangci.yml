@@ -12,6 +12,7 @@ linters:
     - gocyclo
     - ireturn
     - lll
+    - maintidx
     - mnd
     - testpackage
     - unparam
