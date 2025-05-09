@@ -29,6 +29,13 @@ type github struct {
 	releaseMu        sync.Mutex
 }
 
+func (p *github) ClearCache(_ context.Context) error {
+	// Reset the last check time.
+	p.releaseLastCheck = time.Time{}
+
+	return nil
+}
+
 func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

@@ -121,38 +121,6 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	// Set up handler for shutdown tasks.
-	s.TriggerReboot = make(chan error, 1)
-	s.TriggerShutdown = make(chan error, 1)
-	chSignal := make(chan os.Signal, 1)
-	signal.Notify(chSignal, unix.SIGTERM)
-	go func() {
-		action := "exit"
-
-		// Shutdown handler.
-		select {
-		case <-chSignal:
-		case <-s.TriggerReboot:
-			action = "reboot"
-		case <-s.TriggerShutdown:
-			action = "shutdown"
-		}
-
-		err := shutdown(ctx, s, t)
-		if err != nil {
-			slog.Error("Failed shutdown sequence", "err", err)
-		}
-
-		switch action {
-		case "shutdown":
-			_ = systemd.SystemPowerOff(ctx)
-		case "reboot":
-			_ = systemd.SystemReboot(ctx)
-		}
-
-		os.Exit(0) //nolint:revive
-	}()
-
 	// Start the API.
 	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
 	if err != nil {
@@ -299,7 +267,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	if p != nil {
 		// Perform an initial blocking check for updates before proceeding.
-		updateChecker(ctx, s, t, p, true)
+		updateChecker(ctx, s, t, p, true, false)
 	}
 
 	// Ensure  the "local" ZFS pool is available.
@@ -360,13 +328,51 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Run periodic update checks if we have a working provider.
 	if p != nil {
-		go updateChecker(ctx, s, t, p, false)
+		go updateChecker(ctx, s, t, p, false, false)
 	}
+
+	// Set up handler for shutdown tasks.
+	s.TriggerReboot = make(chan error, 1)
+	s.TriggerShutdown = make(chan error, 1)
+	s.TriggerUpdate = make(chan bool, 1)
+	chSignal := make(chan os.Signal, 1)
+	signal.Notify(chSignal, unix.SIGTERM)
+	go func() {
+		action := "exit"
+
+		// Action handler.
+	waitSignal:
+		select {
+		case <-chSignal:
+		case <-s.TriggerReboot:
+			action = "reboot"
+		case <-s.TriggerShutdown:
+			action = "shutdown"
+		case <-s.TriggerUpdate:
+			updateChecker(ctx, s, t, p, false, true)
+
+			goto waitSignal
+		}
+
+		err := shutdown(ctx, s, t)
+		if err != nil {
+			slog.Error("Failed shutdown sequence", "err", err)
+		}
+
+		switch action {
+		case "shutdown":
+			_ = systemd.SystemPowerOff(ctx)
+		case "reboot":
+			_ = systemd.SystemReboot(ctx)
+		}
+
+		os.Exit(0) //nolint:revive
+	}()
 
 	return nil
 }
 
-func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) {
+func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) {
 	persistentModalMessage := ""
 	installedOSVersion := s.RunningRelease
 
@@ -376,8 +382,18 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Sleep at the top of each loop, except if we're performing a startup check.
-		if !isStartupCheck {
+		if !isStartupCheck && !isUserRequested {
 			time.Sleep(6 * time.Hour)
+		}
+
+		// If user requested, clear cache.
+		if isUserRequested {
+			err := p.ClearCache(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				slog.Error(err.Error())
+
+				break
+			}
 		}
 
 		// Determine what applications to install.
@@ -452,7 +468,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
-		if isStartupCheck {
+		if isStartupCheck || isUserRequested {
 			// If running a one-time update, we're done.
 			break
 		}
