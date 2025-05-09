@@ -6,6 +6,11 @@ import (
 
 type common struct{}
 
+// Initialize runs first time initialization.
+func (*common) Initialize(_ context.Context) error {
+	return nil
+}
+
 // Start runs startup action.
 func (*common) Start(_ context.Context, _ string) error {
 	return nil
@@ -16,7 +21,7 @@ func (*common) Stop(_ context.Context, _ string) error {
 	return nil
 }
 
-// Initialize runs first time initialization.
-func (*common) Initialize(_ context.Context) error {
+// Update triggers a partial application restart after an update.
+func (*common) Update(_ context.Context, _ string) error {
 	return nil
 }
