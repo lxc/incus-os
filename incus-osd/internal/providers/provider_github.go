@@ -101,19 +101,13 @@ func (p *github) GetApplication(ctx context.Context, name string) (Application, 
 	return &app, nil
 }
 
-func (p *github) load(ctx context.Context) error {
+func (p *github) load(_ context.Context) error {
 	// Setup the Github client.
 	p.gh = ghapi.NewClient(nil)
 
 	// Fixed configuration for now.
 	p.organization = "lxc"
 	p.repository = "incus-os"
-
-	// Get latest release.
-	err := p.checkRelease(ctx)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
