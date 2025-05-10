@@ -468,11 +468,6 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
-		if isStartupCheck || isUserRequested {
-			// If running a one-time update, we're done.
-			break
-		}
-
 		// Notify the applications that they need to update/restart.
 		for appName, appVersion := range appsUpdated {
 			// Get the application.
@@ -494,6 +489,11 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 				continue
 			}
+		}
+
+		if isStartupCheck || isUserRequested {
+			// If running a one-time update, we're done.
+			break
 		}
 	}
 }
