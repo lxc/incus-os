@@ -257,12 +257,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	p, err := providers.Load(ctx, provider, nil)
 	if err != nil {
-		if !errors.Is(err, providers.ErrProviderUnavailable) {
-			return err
-		}
-
-		// Provider is currently unavailable.
-		slog.Warn("Update provider is currently unavailable", "provider", provider)
+		return err
 	}
 
 	if p != nil {
@@ -389,8 +384,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// If user requested, clear cache.
 		if isUserRequested {
 			err := p.ClearCache(ctx)
-			if err != nil && !seed.IsMissing(err) {
-				slog.Error(err.Error())
+			if err != nil {
+				slog.Error("Failed to clear provider cache", "err", err.Error())
 
 				break
 			}
@@ -403,7 +398,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Assume first start of the daemon.
 			apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
 			if err != nil && !seed.IsMissing(err) {
-				slog.Error(err.Error())
+				slog.Error("Failed to get application list", "err", err.Error())
 
 				continue
 			}
@@ -428,7 +423,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Check for the latest OS update.
 		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, installedOSVersion, isStartupCheck)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("Failed to check for OS updates", "err", err.Error())
 			persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 			continue
@@ -445,7 +440,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.Error("Failed to check for application updates", "err", err.Error())
 				persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 				break
@@ -461,7 +456,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			slog.Debug("Refreshing system extensions")
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.Error("Failed to refresh system extensions", "err", err.Error())
 				persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 				continue
@@ -473,7 +468,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Get the application.
 			app, err := applications.Load(ctx, appName)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.Error("Failed to load application", "err", err.Error())
 				persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 				continue
@@ -484,7 +479,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 			err = app.Update(ctx, appVersion)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.Error("Failed to update application", "err", err.Error())
 				persistentModalMessage = "[red]Error:[white] " + err.Error()
 
 				continue
@@ -504,6 +499,8 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	update, err := p.GetOSUpdate(ctx)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			slog.Warn("OS update provider is currently unavailable")
+
 			return "", nil
 		}
 
@@ -551,6 +548,8 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	app, err := p.GetApplication(ctx, appName)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			slog.Warn("Application update provider is currently unavailable")
+
 			return "", nil
 		}
 
