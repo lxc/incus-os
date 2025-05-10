@@ -487,14 +487,16 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 
 			// Reload the application.
-			slog.Info("Reloading application", "name", appName, "version", appVersion)
+			if !isStartupCheck {
+				slog.Info("Reloading application", "name", appName, "version", appVersion)
 
-			err = app.Update(ctx, appVersion)
-			if err != nil {
-				slog.Error("Failed to update application", "err", err.Error())
-				persistentModalMessage = "[red]Error:[white] " + err.Error()
+				err = app.Update(ctx, appVersion)
+				if err != nil {
+					slog.Error("Failed to update application", "err", err.Error())
+					persistentModalMessage = "[red]Error:[white] " + err.Error()
 
-				continue
+					continue
+				}
 			}
 		}
 
