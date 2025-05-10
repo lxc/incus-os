@@ -586,9 +586,11 @@ func processAddresses(addresses []string) string {
 }
 
 func processRoutes(routes []api.SystemNetworkRoute) string {
-	ret := "\n[Route]\n"
+	ret := ""
 
 	for _, route := range routes {
+		ret += "\n[Route]\n"
+
 		switch route.Via {
 		case "dhcp4":
 			ret += "Gateway=_dhcp4\n"

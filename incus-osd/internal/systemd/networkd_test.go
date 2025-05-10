@@ -405,7 +405,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-enaabbccddee02.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=enaabbccddee02\n\n[Network]\nBridge=san2\nLLDP=false\nEmitLLDP=false\n\n[BridgeVLAN]\nVLAN=10\n", cfgs[3].Contents)
 	require.Equal(t, "21-management.network", cfgs[4].Name)
-	require.Equal(t, "[Match]\nName=management\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n", cfgs[4].Contents)
+	require.Equal(t, "[Match]\nName=management\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n", cfgs[4].Contents)
 	require.Equal(t, "21-bnaabbccddee03.network", cfgs[5].Name)
 	require.Equal(t, "[Match]\nName=bnaabbccddee03\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nPVID=100\nEgressUntagged=100\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[5].Contents)
 	require.Equal(t, "21-bnaabbccddee03-dev0.network", cfgs[6].Name)
@@ -425,7 +425,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	cfgs = generateNetworkFileContents(networkCfg)
 	require.Len(t, cfgs, 2)
 	require.Equal(t, "20-management.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=management\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=true\nDHCP=ipv4\n\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\nGateway=_ipv6ra\nDestination=::/0\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=management\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=true\nDHCP=ipv4\n\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\n\n[Route]\nGateway=_ipv6ra\nDestination=::/0\n", cfgs[0].Contents)
 	require.Equal(t, "20-enaabbccddee01.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=enaabbccddee01\n\n[Network]\nBridge=management\nLLDP=false\nEmitLLDP=false\n", cfgs[1].Contents)
 
