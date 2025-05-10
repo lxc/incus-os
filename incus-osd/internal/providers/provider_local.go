@@ -89,10 +89,14 @@ func (p *local) GetApplication(ctx context.Context, name string) (Application, e
 	return &app, nil
 }
 
-func (p *local) load(ctx context.Context) error {
+func (p *local) load(_ context.Context) error {
 	// Use a hardcoded path for now.
 	p.path = "/root/updates/"
 
+	return nil
+}
+
+func (p *local) checkRelease(_ context.Context) error {
 	// Deal with missing path.
 	_, err := os.Lstat(p.path)
 	if err != nil {
@@ -103,16 +107,6 @@ func (p *local) load(ctx context.Context) error {
 		return err
 	}
 
-	// Get latest release.
-	err = p.checkRelease(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *local) checkRelease(_ context.Context) error {
 	// Parse the version string.
 	body, err := os.ReadFile(filepath.Join(p.path, "RELEASE"))
 	if err != nil {
