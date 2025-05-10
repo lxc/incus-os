@@ -400,6 +400,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if err != nil && !seed.IsMissing(err) {
 				slog.Error("Failed to get application list", "err", err.Error())
 
+				if isStartupCheck || isUserRequested {
+					break
+				}
+
 				continue
 			}
 
@@ -425,6 +429,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if err != nil {
 			slog.Error("Failed to check for OS updates", "err", err.Error())
 			persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+			if isStartupCheck || isUserRequested {
+				break
+			}
 
 			continue
 		}
@@ -458,6 +466,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if err != nil {
 				slog.Error("Failed to refresh system extensions", "err", err.Error())
 				persistentModalMessage = "[red]Error:[white] " + err.Error()
+
+				if isStartupCheck || isUserRequested {
+					break
+				}
 
 				continue
 			}
