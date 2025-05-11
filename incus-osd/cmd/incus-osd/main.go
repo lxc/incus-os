@@ -128,7 +128,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Done with all initialization.
-	slog.Info("System is ready", "release", s.RunningRelease)
+	slog.Info("System is ready", "release", s.OS.RunningRelease)
 
 	return server.Serve(ctx)
 }
@@ -137,7 +137,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
 
-	slog.Info("System is shutting down", "release", s.RunningRelease)
+	slog.Info("System is shutting down", "release", s.OS.RunningRelease)
 	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
 
 	// Run application shutdown actions.
@@ -190,7 +190,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	s.RunningRelease = runningRelease
+	s.OS.RunningRelease = runningRelease
 
 	// Check kernel keyring.
 	slog.Debug("Getting trusted system keys")
@@ -226,7 +226,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	slog.Info("System is starting up", "mode", mode, "release", s.RunningRelease)
+	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
@@ -369,7 +369,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) {
 	persistentModalMessage := ""
-	installedOSVersion := s.RunningRelease
+	installedOSVersion := s.OS.RunningRelease
 
 	for {
 		if persistentModalMessage != "" {
@@ -522,9 +522,9 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	}
 
 	// Apply the update.
-	if update.Version() != s.RunningRelease {
-		if !update.IsNewerThan(s.RunningRelease) {
-			return "", errors.New("local Incus OS version (" + s.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+	if update.Version() != s.OS.RunningRelease {
+		if !update.IsNewerThan(s.OS.RunningRelease) {
+			return "", errors.New("local Incus OS version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 
 		// Only apply OS update if it's different from what has been most recently been installed.
@@ -550,7 +550,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 			return update.Version(), nil
 		}
 	} else if isStartupCheck {
-		slog.Debug("System is already running latest OS release", "release", s.RunningRelease)
+		slog.Debug("System is already running latest OS release", "release", s.OS.RunningRelease)
 	}
 
 	return "", nil

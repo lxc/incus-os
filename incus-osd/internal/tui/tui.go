@@ -178,7 +178,7 @@ func (t *TUI) redrawScreen() {
 
 	t.frame.Clear()
 
-	t.frame.AddText("Incus OS "+t.state.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
+	t.frame.AddText("Incus OS "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
 	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
 
 	consoleWidth, _ := t.screen.Size()
