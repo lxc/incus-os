@@ -128,7 +128,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Done with all initialization.
-	slog.Info("System is ready", "release", s.RunningRelease)
+	slog.Info("System is ready", "release", s.OS.RunningRelease)
 
 	return server.Serve(ctx)
 }
@@ -137,7 +137,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
 
-	slog.Info("System is shutting down", "release", s.RunningRelease)
+	slog.Info("System is shutting down", "release", s.OS.RunningRelease)
 	t.DisplayModal("System shutdown", "Shutting down the system", 0, 0)
 
 	// Run application shutdown actions.
@@ -190,7 +190,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	s.RunningRelease = runningRelease
+	s.OS.RunningRelease = runningRelease
 
 	// Check kernel keyring.
 	slog.Debug("Getting trusted system keys")
@@ -226,7 +226,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	slog.Info("System is starting up", "mode", mode, "release", s.RunningRelease)
+	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
@@ -369,7 +369,6 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) {
 	persistentModalMessage := ""
-	installedOSVersion := s.RunningRelease
 
 	for {
 		if persistentModalMessage != "" {
@@ -425,7 +424,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for the latest OS update.
-		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, installedOSVersion, isStartupCheck)
+		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
 		if err != nil {
 			slog.Error("Failed to check for OS updates", "err", err.Error())
 			persistentModalMessage = "[red]Error:[white] " + err.Error()
@@ -438,7 +437,6 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		if newInstalledOSVersion != "" {
-			installedOSVersion = newInstalledOSVersion
 			persistentModalMessage = "Incus OS has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update."
 			t.DisplayModal("Incus OS Update", persistentModalMessage, 0, 0)
 		}
@@ -507,7 +505,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	}
 }
 
-func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, installedOSVersion string, isStartupCheck bool) (string, error) {
+func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.Debug("Checking for OS updates")
 
 	update, err := p.GetOSUpdate(ctx)
@@ -522,35 +520,35 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	}
 
 	// Apply the update.
-	if update.Version() != s.RunningRelease {
-		if !update.IsNewerThan(s.RunningRelease) {
-			return "", errors.New("local Incus OS version (" + s.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
+		if !update.IsNewerThan(s.OS.RunningRelease) {
+			return "", errors.New("local Incus OS version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 
-		// Only apply OS update if it's different from what has been most recently been installed.
-		if update.Version() != installedOSVersion {
-			// Download the update into place.
-			slog.Info("Downloading OS update", "release", update.Version())
-			t.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
-			err := update.Download(ctx, systemd.SystemUpdatesPath)
-			if err != nil {
-				return "", err
-			}
-
-			// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
-			slog.Info("Applying OS update", "release", update.Version())
-			t.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
-			err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
-			if err != nil {
-				return "", err
-			}
-
-			t.RemoveModal()
-
-			return update.Version(), nil
+		// Download the update into place.
+		slog.Info("Downloading OS update", "release", update.Version())
+		t.DisplayModal("Incus OS Update", "Downloading Incus OS update version "+update.Version(), 0, 0)
+		err := update.Download(ctx, systemd.SystemUpdatesPath)
+		if err != nil {
+			return "", err
 		}
+
+		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
+		slog.Info("Applying OS update", "release", update.Version())
+		t.DisplayModal("Incus OS Update", "Applying Incus OS update version "+update.Version(), 0, 0)
+		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
+		if err != nil {
+			return "", err
+		}
+
+		// Record the release.
+		s.OS.NextRelease = update.Version()
+
+		t.RemoveModal()
+
+		return update.Version(), nil
 	} else if isStartupCheck {
-		slog.Debug("System is already running latest OS release", "release", s.RunningRelease)
+		slog.Debug("System is already running latest OS release", "release", s.OS.RunningRelease)
 	}
 
 	return "", nil

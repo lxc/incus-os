@@ -10,6 +10,12 @@ type Application struct {
 	Version     string `json:"version"`
 }
 
+// OS represents the current OS image state.
+type OS struct {
+	RunningRelease string `json:"running_release"`
+	NextRelease    string `json:"next_release"`
+}
+
 // State represents the on-disk persistent state.
 type State struct {
 	path string
@@ -19,8 +25,9 @@ type State struct {
 	TriggerShutdown chan error `json:"-"`
 	TriggerUpdate   chan bool  `json:"-"`
 
-	Applications   map[string]Application `json:"applications"`
-	RunningRelease string                 `json:"running_release"`
+	Applications map[string]Application `json:"applications"`
+
+	OS OS `json:"os"`
 
 	Services struct {
 		ISCSI api.ServiceISCSI `json:"iscsi"`
