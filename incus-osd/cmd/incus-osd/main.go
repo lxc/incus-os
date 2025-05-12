@@ -503,6 +503,11 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			break
 		}
 	}
+
+	// Check if we need to display a message after exiting loop, such as on startup check.
+	if persistentModalMessage != "" {
+		t.DisplayModal("Incus OS Update", persistentModalMessage, 0, 0)
+	}
 }
 
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
