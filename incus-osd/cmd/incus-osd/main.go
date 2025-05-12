@@ -426,8 +426,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Check for the latest OS update.
 		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
 		if err != nil {
-			slog.Error("Failed to check for OS updates", "err", err.Error())
-			persistentModalMessage = "[red]Error:[white] " + err.Error()
+			slog.Error("Failed to check for OS updates", "err", err.Error(), "provider", p.Type())
+			persistentModalMessage = "[red]Error[white] Failed to check for OS updates: " + err.Error() + " (provider: " + p.Type() + ")"
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -446,8 +446,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
-				slog.Error("Failed to check for application updates", "err", err.Error())
-				persistentModalMessage = "[red]Error:[white] " + err.Error()
+				slog.Error("Failed to check for application updates", "err", err.Error(), "provider", p.Type())
+				persistentModalMessage = "[red]Error[white] Failed to check for application updates: " + err.Error() + " (provider: " + p.Type() + ")"
 
 				break
 			}
@@ -463,7 +463,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
 				slog.Error("Failed to refresh system extensions", "err", err.Error())
-				persistentModalMessage = "[red]Error:[white] " + err.Error()
+				persistentModalMessage = "[red]Error[white] Failed to refresh system extensions: " + err.Error()
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -479,7 +479,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			app, err := applications.Load(ctx, appName)
 			if err != nil {
 				slog.Error("Failed to load application", "err", err.Error())
-				persistentModalMessage = "[red]Error:[white] " + err.Error()
+				persistentModalMessage = "[red]Error[white] Failed to load application: " + err.Error()
 
 				continue
 			}
@@ -491,7 +491,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				err = app.Update(ctx, appVersion)
 				if err != nil {
 					slog.Error("Failed to update application", "err", err.Error())
-					persistentModalMessage = "[red]Error:[white] " + err.Error()
+					persistentModalMessage = "[red]Error[white] Failed to update application: " + err.Error()
 
 					continue
 				}
