@@ -28,6 +28,15 @@ type Install struct {
 	tui    *tui.TUI
 }
 
+type blockdevices struct {
+	KName string `json:"kname"`
+	ID    string `json:"id-link"` //nolint:tagliatelle
+}
+
+type lsblkOutput struct {
+	Blockdevices []blockdevices `json:"blockdevices"`
+}
+
 var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
@@ -43,6 +52,35 @@ func CheckSystemRequirements(ctx context.Context) error {
 	_, err := os.Stat("/dev/tpm0")
 	if err != nil {
 		return errors.New("no TPM device found")
+	}
+
+	// Perform install-specific checks.
+	if ShouldPerformInstall() {
+		// Check that we have either been told what target device to use, or that we can automatically figure it out.
+		source, _, err := getSourceDevice(ctx)
+		if err != nil {
+			return err
+		}
+
+		targets, err := getAllTargets(ctx)
+		if err != nil {
+			return err
+		}
+
+		config, err := seed.GetInstallConfig(seed.SeedPartitionPath)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return err
+		}
+
+		_, err = getTargetDevice(targets, config.Target, source)
+		if err != nil {
+			devices := []string{}
+			for _, t := range targets {
+				devices = append(devices, t.ID)
+			}
+
+			return errors.New(err.Error() + " (detected devices: " + strings.Join(devices, ", ") + ")")
+		}
 	}
 
 	return nil
@@ -81,14 +119,21 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	slog.Info("Starting install of incus-osd to local disk")
 	i.tui.DisplayModal("Incus OS Install", "Starting install of incus-osd to local disk.", 0, 0)
 
-	sourceDevice, sourceIsReadonly, err := i.getSourceDevice(ctx)
+	sourceDevice, sourceIsReadonly, err := getSourceDevice(ctx)
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
 		return err
 	}
 
-	targetDevice, err := i.getTargetDevice(ctx, sourceDevice)
+	targets, err := getAllTargets(ctx)
+	if err != nil {
+		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
+
+		return err
+	}
+
+	targetDevice, err := getTargetDevice(targets, i.config.Target, sourceDevice)
 	if err != nil {
 		i.tui.DisplayModal("Incus OS Install", "[red]Error: "+err.Error(), 0, 0)
 
@@ -113,7 +158,7 @@ func (i *Install) DoInstall(ctx context.Context) error {
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func (*Install) getSourceDevice(ctx context.Context) (string, bool, error) {
+func getSourceDevice(ctx context.Context) (string, bool, error) {
 	// Start by determining the underlying device that /boot/EFI is on.
 	s := unix.Stat_t{}
 	err := unix.Stat("/boot/EFI", &s)
@@ -184,66 +229,62 @@ func (*Install) getSourceDevice(ctx context.Context) (string, bool, error) {
 	return "", isReadonlyInstallFS, errors.New("unable to determine source device")
 }
 
-// getTargetDevice determines the underlying device to install incus-osd on.
-func (i *Install) getTargetDevice(ctx context.Context, sourceDevice string) (string, error) {
-	type blockdevices struct {
-		KName string `json:"kname"`
-		ID    string `json:"id-link"` //nolint:tagliatelle
-	}
-
-	type lsblkOutput struct {
-		Blockdevices []blockdevices `json:"blockdevices"`
-	}
-
-	potentialTargets := []blockdevices{}
+// getAllTargets returns a list of all potential install target devices.
+func getAllTargets(ctx context.Context) ([]blockdevices, error) {
+	ret := []blockdevices{}
 
 	// Get NVME drives first.
 	nvmeTargets := lsblkOutput{}
 	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-o", "KNAME,ID_LINK")
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &nvmeTargets)
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
-	potentialTargets = append(potentialTargets, nvmeTargets.Blockdevices...)
+	ret = append(ret, nvmeTargets.Blockdevices...)
 
 	// Get SCSI drives second.
 	scsiTargets := lsblkOutput{}
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-o", "KNAME,ID_LINK")
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &scsiTargets)
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
-	potentialTargets = append(potentialTargets, scsiTargets.Blockdevices...)
+	ret = append(ret, scsiTargets.Blockdevices...)
 
 	// Get virtual drives last.
 	virtualTargets := lsblkOutput{}
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-o", "KNAME,ID_LINK")
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &virtualTargets)
 	if err != nil {
-		return "", err
+		return []blockdevices{}, err
 	}
 
-	potentialTargets = append(potentialTargets, virtualTargets.Blockdevices...)
+	ret = append(ret, virtualTargets.Blockdevices...)
 
+	return ret, nil
+}
+
+// getTargetDevice determines the underlying device to install incus-osd on.
+func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSeedTarget, sourceDevice string) (string, error) {
 	// Ensure we found at least two devices (the install device and potential install device(s)). If no Target
 	// configuration was found, only proceed if exactly two devices were found.
 	if len(potentialTargets) < 2 {
 		return "", errors.New("no potential install devices found")
-	} else if i.config.Target == nil && len(potentialTargets) != 2 {
+	} else if seedTarget == nil && len(potentialTargets) != 2 {
 		return "", errors.New("no target configuration provided, and didn't find exactly one install device")
 	}
 
@@ -253,7 +294,7 @@ func (i *Install) getTargetDevice(ctx context.Context, sourceDevice string) (str
 			continue
 		}
 
-		if i.config.Target == nil || strings.Contains(device.ID, i.config.Target.ID) {
+		if seedTarget == nil || strings.Contains(device.ID, seedTarget.ID) {
 			return device.KName, nil
 		}
 	}
