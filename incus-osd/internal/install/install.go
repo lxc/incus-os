@@ -359,6 +359,8 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		actualSourceDevice = "/dev/sr0"
 	}
 
+	i.tui.DisplayModal("Incus OS Install", "Cloning GPT partitions.", 0, 0)
+
 	// Copy partition definitions.
 	for idx := 1; idx <= numPartitionsToCopy; idx++ {
 		err := copyPartitionDefinition(ctx, actualSourceDevice, targetDevice, idx)
@@ -391,8 +393,54 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
 	targetPartitionPrefix := getPartitionPrefix(targetDevice)
 
-	// Copy the partition contents.
-	for idx := 1; idx <= numPartitionsToCopy; idx++ {
+	// Format the target ESP partition and manually copy any files from the source.
+	// This is a speed optimization since we don't care about copying any unused data
+	// from the source.
+	i.tui.DisplayModal("Incus OS Install", "Copying ESP partition data.", 0, 0)
+
+	_, err = subprocess.RunCommandContext(ctx, "mkfs.vfat", "-n", "ESP", targetDevice+targetPartitionPrefix+"1")
+	if err != nil {
+		return err
+	}
+
+	err = os.Mkdir("/tmp/sourceESP", 0o755)
+	if err != nil {
+		return err
+	}
+
+	err = os.Mkdir("/tmp/targetESP", 0o755)
+	if err != nil {
+		return err
+	}
+
+	err = unix.Mount(sourceDevice+sourcePartitionPrefix+"1", "/tmp/sourceESP", "vfat", 0, "ro")
+	if err != nil {
+		return err
+	}
+
+	err = unix.Mount(targetDevice+targetPartitionPrefix+"1", "/tmp/targetESP", "vfat", 0, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "sh", "-c", "cp -ar /tmp/sourceESP/* /tmp/targetESP/")
+	if err != nil {
+		return err
+	}
+
+	err = unix.Unmount("/tmp/sourceESP", 0)
+	if err != nil {
+		return err
+	}
+
+	err = unix.Unmount("/tmp/targetESP", 0)
+	if err != nil {
+		return err
+	}
+
+	// Copy the partition contents. We skip the first (ESP) partition, because we've copied
+	// everything in that partition above.
+	for idx := 2; idx <= numPartitionsToCopy; idx++ {
 		err := i.doCopy(sourceDevice, sourcePartitionPrefix, targetDevice, targetPartitionPrefix, idx, numPartitionsToCopy)
 		if err != nil {
 			return err
