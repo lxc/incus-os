@@ -36,6 +36,10 @@ func (p *github) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*github) Type() string {
+	return "github"
+}
+
 func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

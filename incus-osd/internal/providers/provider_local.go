@@ -24,6 +24,10 @@ func (*local) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*local) Type() string {
+	return "local"
+}
+
 func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

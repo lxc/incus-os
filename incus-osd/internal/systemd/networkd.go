@@ -365,20 +365,45 @@ VLANFiltering=true
 
 	// Create vlans.
 	for _, v := range networkCfg.VLANs {
+		parentMACAddress := ""
+		for _, i := range networkCfg.Interfaces {
+			if i.Name == v.Parent {
+				parentMACAddress = i.Hwaddr
+
+				break
+			}
+		}
+		if parentMACAddress == "" {
+			for _, b := range networkCfg.Bonds {
+				if b.Name == v.Parent {
+					if b.Hwaddr != "" {
+						parentMACAddress = b.Hwaddr
+					} else {
+						parentMACAddress = b.Members[0]
+					}
+
+					break
+				}
+			}
+		}
+
 		mtuString := ""
 		if v.MTU != 0 {
 			mtuString = fmt.Sprintf("MTUBytes=%d", v.MTU)
 		}
+
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("12-%s.netdev", v.Name),
 			Contents: fmt.Sprintf(`[NetDev]
 Name=%s
 Kind=veth
+MACAddress=%s
 %s
 
 [Peer]
 Name=vl%s
-`, v.Name, mtuString, v.Name),
+MACAddress=%s
+`, v.Name, parentMACAddress, mtuString, v.Name, parentMACAddress),
 		})
 	}
 
