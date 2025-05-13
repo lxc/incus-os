@@ -2,3 +2,5 @@ override.conf usr/lib/systemd/system/systemd-repart.service.d/
 initrd-tmpfs-root.service usr/lib/systemd/system/
 
 99-add-cdrom-partitions.rules usr/lib/udev/rules.d/
+
+00-device-timeout.conf usr/lib/systemd/system.conf.d/
