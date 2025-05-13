@@ -1,0 +1,1 @@
+SUBSYSTEM=="block", KERNEL=="sr[0-9]*", ACTION=="add", RUN+="/usr/sbin/kpartx -ar /dev/%k"
