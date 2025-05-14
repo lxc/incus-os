@@ -114,18 +114,7 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 		return err
 	}
 
-	// At system start there's a small race between udev being fully started and
-	// our reconfiguring of the network. Sleep for a couple seconds before triggering udev.
-	time.Sleep(2 * time.Second)
-
-	// Trigger udev rule update to pickup device names.
-	_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
-	if err != nil {
-		return err
-	}
-
-	// Wait for udev to be done processing the events.
-	_, err = subprocess.RunCommandContext(ctx, "udevadm", "settle")
+	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -145,6 +134,41 @@ func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetwor
 
 	// Wait for the network to apply.
 	return waitForNetworkRoutable(ctx, networkCfg, timeout, seed.NetworkSeedExists())
+}
+
+// waitForUdevInterfaceRename waits up to a provided timeout for udev to pickup and process
+// the renaming of interfaces. At system startup there's a small race between udev being fully
+// started and our reconfiguring of the network, so we poll in a loop until we see the kernel
+// has been notified of the rename.
+func waitForUdevInterfaceRename(ctx context.Context, timeout time.Duration) error {
+	endTime := time.Now().Add(timeout)
+
+	for {
+		if time.Now().After(endTime) {
+			return errors.New("timed out waiting for udev to rename interface(s)")
+		}
+
+		// Trigger udev rule update to pickup device names.
+		_, err := subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
+		if err != nil {
+			return err
+		}
+
+		// Wait for udev to be done processing the events.
+		_, err = subprocess.RunCommandContext(ctx, "udevadm", "settle")
+		if err != nil {
+			return err
+		}
+
+		// Check if the kernel has noticed the renaming of (at least) one interface to
+		// the expected "en<MAC address>" format.
+		_, err = subprocess.RunCommandContext(ctx, "journalctl", "-t", "kernel", "-g", "en[[:xdigit:]]{12}: renamed from ")
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
 }
 
 // waitForNetworkRoutable waits up to a provided timeout for configured network interfaces,
@@ -402,8 +426,7 @@ MACAddress=%s
 
 [Peer]
 Name=vl%s
-MACAddress=%s
-`, v.Name, parentMACAddress, mtuString, v.Name, parentMACAddress),
+`, v.Name, parentMACAddress, mtuString, v.Name),
 		})
 	}
 

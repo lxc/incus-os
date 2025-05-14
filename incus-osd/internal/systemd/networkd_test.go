@@ -348,7 +348,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "11-braabbccddee03.netdev", cfgs[3].Name)
 	require.Equal(t, "[NetDev]\nName=management\nKind=bridge\nMACAddress=AA:BB:CC:DD:EE:03\nMTUBytes=9000\n\n[Bridge]\nVLANFiltering=true\n", cfgs[3].Contents)
 	require.Equal(t, "12-uplink.netdev", cfgs[4].Name)
-	require.Equal(t, "[NetDev]\nName=uplink\nKind=veth\nMACAddress=AA:BB:CC:DD:EE:03\nMTUBytes=1500\n\n[Peer]\nName=vluplink\nMACAddress=AA:BB:CC:DD:EE:03\n", cfgs[4].Contents)
+	require.Equal(t, "[NetDev]\nName=uplink\nKind=veth\nMACAddress=AA:BB:CC:DD:EE:03\nMTUBytes=1500\n\n[Peer]\nName=vluplink\n", cfgs[4].Contents)
 
 	// Test second config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -382,7 +382,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "11-braabbccddeee1.netdev", cfgs[1].Name)
 	require.Equal(t, "[NetDev]\nName=uplink\nKind=bridge\nMACAddress=aa:bb:cc:dd:ee:e1\nMTUBytes=9000\n\n[Bridge]\nVLANFiltering=true\n", cfgs[1].Contents)
 	require.Equal(t, "12-management.netdev", cfgs[2].Name)
-	require.Equal(t, "[NetDev]\nName=management\nKind=veth\nMACAddress=aa:bb:cc:dd:ee:e1\nMTUBytes=1500\n\n[Peer]\nName=vlmanagement\nMACAddress=aa:bb:cc:dd:ee:e1\n", cfgs[2].Contents)
+	require.Equal(t, "[NetDev]\nName=management\nKind=veth\nMACAddress=aa:bb:cc:dd:ee:e1\nMTUBytes=1500\n\n[Peer]\nName=vlmanagement\n", cfgs[2].Contents)
 }
 
 func TestNetworkFileGeneration(t *testing.T) {
