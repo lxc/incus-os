@@ -456,7 +456,25 @@ func (i *Install) performInstall(ctx context.Context, sourceDevice string, targe
 		}
 	}
 
-	return nil
+	// Finally, run `bootctl install`.
+	err = os.MkdirAll("/boot", 0o755)
+	if err != nil {
+		return err
+	}
+
+	err = unix.Mount(targetDevice+targetPartitionPrefix+"1", "/boot", "vfat", 0, "")
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "bootctl", "install")
+	if err != nil {
+		return err
+	}
+
+	err = unix.Unmount("/boot", 0)
+
+	return err
 }
 
 // Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
