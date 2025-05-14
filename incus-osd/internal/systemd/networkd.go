@@ -402,8 +402,7 @@ MACAddress=%s
 
 [Peer]
 Name=vl%s
-MACAddress=%s
-`, v.Name, parentMACAddress, mtuString, v.Name, parentMACAddress),
+`, v.Name, parentMACAddress, mtuString, v.Name),
 		})
 	}
 
