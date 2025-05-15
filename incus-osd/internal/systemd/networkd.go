@@ -162,7 +162,7 @@ func waitForUdevInterfaceRename(ctx context.Context, timeout time.Duration) erro
 
 		// Check if the kernel has noticed the renaming of (at least) one interface to
 		// the expected "en<MAC address>" format.
-		_, err = subprocess.RunCommandContext(ctx, "journalctl", "-t", "kernel", "-g", "en[[:xdigit:]]{12}: renamed from ")
+		_, err = subprocess.RunCommandContext(ctx, "journalctl", "-b", "-t", "kernel", "-g", "en[[:xdigit:]]{12}: renamed from ")
 		if err == nil {
 			return nil
 		}
