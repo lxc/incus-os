@@ -77,19 +77,20 @@ func NewTUI(s *state.State) (*TUI, error) {
 func (t *TUI) Write(p []byte) (int, error) {
 	s := string(p)
 
-	// Colorize any warning or error level messages.
-	if strings.Contains(s, " WARN:") {
-		s = "[orange]" + s + "[white]"
-	} else if strings.Contains(s, " ERROR:") {
-		s = "[red]" + s + "[white]"
-	}
-
 	num, err := fmt.Fprint(t.textView, s)
 	if err != nil {
 		return num, err
 	}
 
-	return fmt.Fprint(os.Stdout, string(p))
+	// Strip out coloring tags before writing to stdout for the journal.
+	s = strings.ReplaceAll(s, "[blue]", "")
+	s = strings.ReplaceAll(s, "[green]", "")
+	s = strings.ReplaceAll(s, "[orange]", "")
+	s = strings.ReplaceAll(s, "[pink]", "")
+	s = strings.ReplaceAll(s, "[red]", "")
+	s = strings.ReplaceAll(s, "[white]", "")
+
+	return fmt.Fprint(os.Stdout, s)
 }
 
 // Run is a wrapper to start the underlying TUI application.
