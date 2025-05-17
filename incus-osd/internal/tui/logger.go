@@ -45,7 +45,18 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 		return err
 	}
 
-	_, err = buf.WriteString(r.Level.String() + ": ")
+	levelColor := ""
+	switch r.Level {
+	case slog.LevelDebug:
+		levelColor = "[blue]"
+	case slog.LevelInfo:
+		levelColor = "[green]"
+	case slog.LevelWarn:
+		levelColor = "[orange]"
+	case slog.LevelError:
+		levelColor = "[red]"
+	}
+	_, err = buf.WriteString(levelColor + r.Level.String() + "[white] ")
 	if err != nil {
 		return err
 	}
@@ -72,12 +83,22 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 		}
 		sort.Strings(keys)
 
+		_, err = buf.WriteString("[pink]")
+		if err != nil {
+			return err
+		}
+
 		// Append "k=v" to the log message.
 		for _, k := range keys {
 			_, err = buf.WriteString(" " + k + "=" + attrs[k])
 			if err != nil {
 				return err
 			}
+		}
+
+		_, err = buf.WriteString("[white]")
+		if err != nil {
+			return err
 		}
 	}
 
