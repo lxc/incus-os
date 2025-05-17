@@ -20,41 +20,44 @@ type SystemNetworkConfig struct {
 
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
-	Name      string               `json:"name"                yaml:"name"`
-	MTU       int                  `json:"mtu"                 yaml:"mtu"`
-	VLAN      int                  `json:"vlan"                yaml:"vlan"`
-	VLANTags  []int                `json:"vlan_tags,omitempty" yaml:"vlan_tags,omitempty"`
-	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
-	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
-	Hwaddr    string               `json:"hwaddr"              yaml:"hwaddr"`
-	Roles     []string             `json:"roles,omitempty"     yaml:"roles,omitempty"`
-	LLDP      bool                 `json:"lldp"                yaml:"lldp"`
+	Name              string               `json:"name"                          yaml:"name"`
+	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	VLAN              int                  `json:"vlan"                          yaml:"vlan"`
+	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
+	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
 }
 
 // SystemNetworkBond contains information about a network bond.
 type SystemNetworkBond struct {
-	Name      string               `json:"name"                yaml:"name"`
-	Mode      string               `json:"mode"                yaml:"mode"`
-	MTU       int                  `json:"mtu"                 yaml:"mtu"`
-	VLAN      int                  `json:"vlan"                yaml:"vlan"`
-	VLANTags  []int                `json:"vlan_tags,omitempty" yaml:"vlan_tags,omitempty"`
-	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
-	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
-	Hwaddr    string               `json:"hwaddr"              yaml:"hwaddr"`
-	Members   []string             `json:"members,omitempty"   yaml:"members,omitempty"`
-	Roles     []string             `json:"roles,omitempty"     yaml:"roles,omitempty"`
-	LLDP      bool                 `json:"lldp"                yaml:"lldp"`
+	Name              string               `json:"name"                          yaml:"name"`
+	Mode              string               `json:"mode"                          yaml:"mode"`
+	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	VLAN              int                  `json:"vlan"                          yaml:"vlan"`
+	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
+	Members           []string             `json:"members,omitempty"             yaml:"members,omitempty"`
+	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.
 type SystemNetworkVLAN struct {
-	Name      string               `json:"name"                yaml:"name"`
-	Parent    string               `json:"parent"              yaml:"parent"`
-	ID        int                  `json:"id"                  yaml:"id"`
-	MTU       int                  `json:"mtu"                 yaml:"mtu"`
-	Addresses []string             `json:"addresses,omitempty" yaml:"addresses,omitempty"`
-	Routes    []SystemNetworkRoute `json:"routes,omitempty"    yaml:"routes,omitempty"`
-	Roles     []string             `json:"roles,omitempty"     yaml:"roles,omitempty"`
+	Name              string               `json:"name"                          yaml:"name"`
+	Parent            string               `json:"parent"                        yaml:"parent"`
+	ID                int                  `json:"id"                            yaml:"id"`
+	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
 }
 
 // SystemNetworkRoute defines a route.

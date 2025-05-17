@@ -221,8 +221,8 @@ func (t *TUI) getIPAddresses() []string {
 		matches := ipAddressRegex.FindAllStringSubmatch(output, -1)
 
 		for _, addr := range matches {
-			// Don't show link-local address.
-			if strings.HasPrefix(addr[1], "fe80:") {
+			// Don't show link-local addresses.
+			if strings.HasPrefix(addr[1], "169.254.") || strings.HasPrefix(addr[1], "fe80:") {
 				continue
 			}
 
