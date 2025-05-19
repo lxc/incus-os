@@ -35,9 +35,9 @@ bonds:
   - name: management
     mode: 802.3ad
     mtu: 9000
-    vlan: 100
+    vlan: 1234
     vlan_tags:
-      - 1234
+      - 100
     addresses:
       - 10.0.100.10/24
       - fd40:1234:1234:100::10/64
@@ -148,6 +148,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
 		require.NoError(t, err)
 
+		err = ValidateNetworkConfiguration(&cfg)
+		require.NoError(t, err)
+
 		// Verify values were parsed correctly.
 		require.Len(t, cfg.Interfaces, 2)
 		require.Equal(t, "san1", cfg.Interfaces[0].Name)
@@ -192,6 +195,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig2), &cfg)
 		require.NoError(t, err)
 
+		err = ValidateNetworkConfiguration(&cfg)
+		require.NoError(t, err)
+
 		// Verify values were parsed correctly.
 		require.Len(t, cfg.Interfaces, 1)
 		require.Equal(t, "management", cfg.Interfaces[0].Name)
@@ -216,6 +222,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 
 		// Test unmarshalling of the third test config.
 		err := yaml.Unmarshal([]byte(networkdConfig3), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -245,6 +254,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 
 		// Test unmarshalling of the fourth test config.
 		err := yaml.Unmarshal([]byte(networkdConfig4), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -413,7 +425,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "21-management.network", cfgs[4].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n", cfgs[4].Contents)
 	require.Equal(t, "21-bnaabbccddee03.network", cfgs[5].Name)
-	require.Equal(t, "[Match]\nName=bnaabbccddee03\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nPVID=100\nEgressUntagged=100\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[5].Contents)
+	require.Equal(t, "[Match]\nName=bnaabbccddee03\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nPVID=1234\nEgressUntagged=1234\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[5].Contents)
 	require.Equal(t, "21-bnaabbccddee03-dev0.network", cfgs[6].Name)
 	require.Equal(t, "[Match]\nName=enaabbccddee03\n\n[Network]\nBond=bnaabbccddee03\nLLDP=false\nEmitLLDP=false\n", cfgs[6].Contents)
 	require.Equal(t, "21-bnaabbccddee03-dev1.network", cfgs[7].Name)

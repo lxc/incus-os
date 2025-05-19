@@ -23,6 +23,85 @@ type networkdConfigFile struct {
 	Contents string
 }
 
+// ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
+	err := ValidateNetworkConfiguration(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	// Get hostname and domain from network config, if defined.
+	hostname := ""
+	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
+		hostname = networkCfg.DNS.Hostname
+		if networkCfg.DNS.Domain != "" {
+			hostname += "." + networkCfg.DNS.Domain
+		}
+	}
+
+	// Apply the configured hostname, or reset back to default if not set.
+	err = SetHostname(ctx, hostname)
+	if err != nil {
+		return err
+	}
+
+	// Set proxy environment variables, or clear existing ones if none are defined.
+	err = UpdateEnvironment(networkCfg.Proxy)
+	if err != nil {
+		return err
+	}
+
+	err = generateNetworkConfiguration(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	// Restart networking after new config files have been generated.
+	err = RestartUnit(ctx, "systemd-networkd")
+	if err != nil {
+		return err
+	}
+
+	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+	// the service is disabled by default and only started once we have performed the network (re)configuration.
+	err = RestartUnit(ctx, "systemd-timesyncd")
+	if err != nil {
+		return err
+	}
+
+	// Wait for the network to apply.
+	return waitForNetworkOnline(ctx, networkCfg, timeout)
+}
+
+// ValidateNetworkConfiguration performs some basic validation checks on the supplied network configuration.
+func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig) error {
+	if networkCfg == nil {
+		return errors.New("no network configuration provided")
+	}
+
+	err := validateInterfaces(networkCfg.Interfaces, networkCfg.VLANs)
+	if err != nil {
+		return err
+	}
+
+	err = validateBonds(networkCfg.Bonds, networkCfg.VLANs)
+	if err != nil {
+		return err
+	}
+
+	err = validateVLANs(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
 // new config files from the supplied NetworkConfig struct.
 func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetworkConfig) error {
@@ -80,60 +159,6 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 	}
 
 	return nil
-}
-
-// ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
-	if networkCfg == nil {
-		return errors.New("no network configuration provided")
-	}
-
-	// Get hostname and domain from network config, if defined.
-	hostname := ""
-	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
-		hostname = networkCfg.DNS.Hostname
-		if networkCfg.DNS.Domain != "" {
-			hostname += "." + networkCfg.DNS.Domain
-		}
-	}
-
-	// Apply the configured hostname, or reset back to default if not set.
-	err := SetHostname(ctx, hostname)
-	if err != nil {
-		return err
-	}
-
-	// Set proxy environment variables, or clear existing ones if none are defined.
-	err = UpdateEnvironment(networkCfg.Proxy)
-	if err != nil {
-		return err
-	}
-
-	err = generateNetworkConfiguration(ctx, networkCfg)
-	if err != nil {
-		return err
-	}
-
-	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
-	if err != nil {
-		return err
-	}
-
-	// Restart networking after new config files have been generated.
-	err = RestartUnit(ctx, "systemd-networkd")
-	if err != nil {
-		return err
-	}
-
-	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
-	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = RestartUnit(ctx, "systemd-timesyncd")
-	if err != nil {
-		return err
-	}
-
-	// Wait for the network to apply.
-	return waitForNetworkOnline(ctx, networkCfg, timeout)
 }
 
 // waitForUdevInterfaceRename waits up to a provided timeout for udev to pickup and process
@@ -594,11 +619,11 @@ func processAddresses(addresses []string) string {
 	acceptIPv6RA := false
 	for _, addr := range addresses {
 		switch addr {
-		case "dhcp4":
+		case "dhcp4": //nolint:goconst
 			hasDHCP4 = true
 		case "dhcp6":
 			hasDHCP6 = true
-		case "slaac":
+		case "slaac": //nolint:goconst
 			acceptIPv6RA = true
 
 		default:
