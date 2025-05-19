@@ -105,7 +105,7 @@ func (p *local) checkRelease(_ context.Context) error {
 	_, err := os.Lstat(p.path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return ErrProviderUnavailable
+			return ErrNoUpdateAvailable
 		}
 
 		return err
