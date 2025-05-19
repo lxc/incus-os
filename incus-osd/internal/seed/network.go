@@ -9,7 +9,7 @@ import (
 
 // NetworkSeed defines a struct to hold network configuration.
 type NetworkSeed struct {
-	api.SystemNetworkConfig
+	api.SystemNetworkConfig `yaml:",inline"`
 
 	Version string `json:"version" yaml:"version"`
 }
