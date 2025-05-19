@@ -59,17 +59,17 @@ func CheckSystemRequirements(ctx context.Context) error {
 		// Check that we have either been told what target device to use, or that we can automatically figure it out.
 		source, _, err := getSourceDevice(ctx)
 		if err != nil {
-			return err
+			return errors.New("unable to determine source device: " + err.Error())
 		}
 
 		targets, err := getAllTargets(ctx)
 		if err != nil {
-			return err
+			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
 		config, err := seed.GetInstallConfig(seed.SeedPartitionPath)
 		if err != nil && !errors.Is(err, io.EOF) {
-			return err
+			return errors.New("unable to get seed config: " + err.Error())
 		}
 
 		_, err = getTargetDevice(targets, config.Target, source)
