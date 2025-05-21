@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -23,6 +24,9 @@ type TUI struct {
 	pages    *tview.Pages
 	screen   tcell.Screen
 	textView *tview.TextView
+
+	modalMessages []*Modal
+	modalMutex    sync.Mutex
 
 	state *state.State
 }
@@ -73,24 +77,54 @@ func NewTUI(s *state.State) (*TUI, error) {
 func (t *TUI) Write(p []byte) (int, error) {
 	s := string(p)
 
-	// Colorize any warning or error level messages.
-	if strings.Contains(s, " WARN:") {
-		s = "[orange]" + s + "[white]"
-	} else if strings.Contains(s, " ERROR:") {
-		s = "[red]" + s + "[white]"
-	}
-
 	num, err := fmt.Fprint(t.textView, s)
 	if err != nil {
 		return num, err
 	}
 
-	return fmt.Fprint(os.Stdout, string(p))
+	// Strip out coloring tags before writing to stdout for the journal.
+	s = strings.ReplaceAll(s, "[blue]", "")
+	s = strings.ReplaceAll(s, "[green]", "")
+	s = strings.ReplaceAll(s, "[orange]", "")
+	s = strings.ReplaceAll(s, "[pink]", "")
+	s = strings.ReplaceAll(s, "[red]", "")
+	s = strings.ReplaceAll(s, "[white]", "")
+
+	return fmt.Fprint(os.Stdout, s)
 }
 
 // Run is a wrapper to start the underlying TUI application.
 func (t *TUI) Run() error {
-	// Setup a gofunc to periodically re-draw the screen.
+	// Setup a gofunc to cycle through modal dialogs, one per second.
+	go func() {
+		for i := 0; ; i++ {
+			t.modalMutex.Lock()
+
+			// Remove any deleted modals.
+			t.modalMessages = slices.DeleteFunc(t.modalMessages, func(m *Modal) bool {
+				return m.isDone
+			})
+
+			numModals := len(t.modalMessages)
+			switch {
+			case numModals > 1:
+				// Cycle through each of the current modals.
+				modalIndex := i % numModals
+				t.renderModal(fmt.Sprintf("[%d/%d] %s", modalIndex+1, numModals, t.modalMessages[modalIndex].title), t.modalMessages[modalIndex].message, t.modalMessages[modalIndex].progress)
+			case numModals == 1:
+				t.renderModal(t.modalMessages[0].title, t.modalMessages[0].message, t.modalMessages[0].progress)
+			default:
+				// No modal to display.
+				t.pages.RemovePage("modal")
+			}
+
+			t.modalMutex.Unlock()
+
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	// Setup a gofunc to periodically re-draw the entire screen.
 	go func() {
 		for i := 0; ; i++ {
 			// When the daemon starts up, several log messages from systemd are
@@ -109,9 +143,41 @@ func (t *TUI) Run() error {
 	return t.app.Run()
 }
 
-// DisplayModal displays a centered popup dialog. Optionally, if maxProgress is greater than zero,
+// AddModal adds a new modal popup to display to the user.
+func (t *TUI) AddModal(title string) *Modal {
+	ret := &Modal{
+		title:  title,
+		isDone: false,
+		t:      t,
+	}
+
+	t.modalMutex.Lock()
+	t.modalMessages = append(t.modalMessages, ret)
+	t.modalMutex.Unlock()
+
+	return ret
+}
+
+// quickDraw() will immediately render the modal update if there is only a single modal
+// in existence. Otherwise, do nothing and wait for the normal rotation of modal messages
+// to display the update.
+func (t *TUI) quickDraw() {
+	t.modalMutex.Lock()
+
+	if len(t.modalMessages) == 1 {
+		if !t.modalMessages[0].isDone {
+			t.renderModal(t.modalMessages[0].title, t.modalMessages[0].message, t.modalMessages[0].progress)
+		} else {
+			t.pages.RemovePage("modal")
+		}
+	}
+
+	t.modalMutex.Unlock()
+}
+
+// renderModal displays a centered popup dialog. Optionally, if progress is greater than zero,
 // renders a progress bar at the bottom.
-func (t *TUI) DisplayModal(title string, msg string, progress int64, maxProgress int64) {
+func (t *TUI) renderModal(title string, msg string, progress float64) {
 	// Returns a new primitive which puts the provided primitive in the center and
 	// sets its size to the given width and height.
 	modal := func(p tview.Primitive, width, height int) tview.Primitive {
@@ -144,22 +210,17 @@ func (t *TUI) DisplayModal(title string, msg string, progress int64, maxProgress
 		AddItem(textView, 0, 0, 1, 1, 0, 0, false)
 
 	// If a maximum value is provided, display the progress bar.
-	if maxProgress > 0 {
+	if progress > 0 {
 		progressBar := NewProgressBar()
-		progressBar.SetMax(maxProgress)
-		progressBar.SetProgress(progress)
+		progressBar.SetMax(100)
+		progressBar.SetProgress(int64(progress * 100))
 		grid.SetRows(modalHeight-6, 1).AddItem(progressBar, 1, 0, 1, 1, 0, 0, false)
 	}
 
-	grid.SetTitle(title).SetBorder(true)
+	grid.SetTitle(" " + title + " ").SetBorder(true)
 
 	t.pages.AddPage("modal", modal(grid, modalWidth, modalHeight), true, true)
 	t.app.Draw()
-}
-
-// RemoveModal hides the modal popup.
-func (t *TUI) RemoveModal() {
-	t.pages.RemovePage("modal")
 }
 
 // redrawScreen clears and completely re-draws the TUI frame. This is necessary when updating
@@ -169,30 +230,35 @@ func (t *TUI) redrawScreen() {
 		return
 	}
 
-	// Get list of applications from state.
-	applications := []string{}
-	for app, info := range t.state.Applications {
-		applications = append(applications, app+"("+info.Version+")")
-	}
-	slices.Sort(applications)
-
 	t.frame.Clear()
 
+	// Display header.
 	t.frame.AddText("Incus OS "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
 	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
 
-	consoleWidth, _ := t.screen.Size()
-	for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
-		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
-	}
-	for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
-		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+	// Don't display footer during install.
+	if !t.state.ShouldPerformInstall {
+		// Get list of applications from state.
+		applications := []string{}
+		for app, info := range t.state.Applications {
+			applications = append(applications, app+"("+info.Version+")")
+		}
+		slices.Sort(applications)
+
+		consoleWidth, _ := t.screen.Size()
+		for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
+			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+		}
+		for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
+			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+		}
+
+		if !t.state.System.Encryption.State.RecoveryKeysRetrieved {
+			t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
+		}
 	}
 
-	if !t.state.System.Encryption.State.RecoveryKeysRetrieved {
-		t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
-	}
-
+	// Show main content.
 	if t.textView != nil {
 		t.frame.SetPrimitive(t.textView)
 	}
