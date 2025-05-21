@@ -23,6 +23,85 @@ type networkdConfigFile struct {
 	Contents string
 }
 
+// ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
+func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
+	err := ValidateNetworkConfiguration(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	// Get hostname and domain from network config, if defined.
+	hostname := ""
+	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
+		hostname = networkCfg.DNS.Hostname
+		if networkCfg.DNS.Domain != "" {
+			hostname += "." + networkCfg.DNS.Domain
+		}
+	}
+
+	// Apply the configured hostname, or reset back to default if not set.
+	err = SetHostname(ctx, hostname)
+	if err != nil {
+		return err
+	}
+
+	// Set proxy environment variables, or clear existing ones if none are defined.
+	err = UpdateEnvironment(networkCfg.Proxy)
+	if err != nil {
+		return err
+	}
+
+	err = generateNetworkConfiguration(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	// Restart networking after new config files have been generated.
+	err = RestartUnit(ctx, "systemd-networkd")
+	if err != nil {
+		return err
+	}
+
+	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+	// the service is disabled by default and only started once we have performed the network (re)configuration.
+	err = RestartUnit(ctx, "systemd-timesyncd")
+	if err != nil {
+		return err
+	}
+
+	// Wait for the network to apply.
+	return waitForNetworkOnline(ctx, networkCfg, timeout)
+}
+
+// ValidateNetworkConfiguration performs some basic validation checks on the supplied network configuration.
+func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig) error {
+	if networkCfg == nil {
+		return errors.New("no network configuration provided")
+	}
+
+	err := validateInterfaces(networkCfg.Interfaces, networkCfg.VLANs)
+	if err != nil {
+		return err
+	}
+
+	err = validateBonds(networkCfg.Bonds, networkCfg.VLANs)
+	if err != nil {
+		return err
+	}
+
+	err = validateVLANs(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
 // new config files from the supplied NetworkConfig struct.
 func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetworkConfig) error {
@@ -80,60 +159,6 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 	}
 
 	return nil
-}
-
-// ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
-	if networkCfg == nil {
-		return errors.New("no network configuration provided")
-	}
-
-	// Get hostname and domain from network config, if defined.
-	hostname := ""
-	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
-		hostname = networkCfg.DNS.Hostname
-		if networkCfg.DNS.Domain != "" {
-			hostname += "." + networkCfg.DNS.Domain
-		}
-	}
-
-	// Apply the configured hostname, or reset back to default if not set.
-	err := SetHostname(ctx, hostname)
-	if err != nil {
-		return err
-	}
-
-	// Set proxy environment variables, or clear existing ones if none are defined.
-	err = UpdateEnvironment(networkCfg.Proxy)
-	if err != nil {
-		return err
-	}
-
-	err = generateNetworkConfiguration(ctx, networkCfg)
-	if err != nil {
-		return err
-	}
-
-	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
-	if err != nil {
-		return err
-	}
-
-	// Restart networking after new config files have been generated.
-	err = RestartUnit(ctx, "systemd-networkd")
-	if err != nil {
-		return err
-	}
-
-	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
-	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = RestartUnit(ctx, "systemd-timesyncd")
-	if err != nil {
-		return err
-	}
-
-	// Wait for the network to apply.
-	return waitForNetworkOnline(ctx, networkCfg, timeout)
 }
 
 // waitForUdevInterfaceRename waits up to a provided timeout for udev to pickup and process
@@ -274,6 +299,7 @@ func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConf
 PermanentMACAddress=%s
 
 [Link]
+MACAddressPolicy=random
 NamePolicy=
 Name=en%s
 `, i.Hwaddr, strippedHwaddr),
@@ -304,36 +330,43 @@ Name=en%s
 func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
-	// Create a bridge device for each interface.
+	// Create bridge and veth devices for each interface.
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		mtuString := ""
 		if i.MTU != 0 {
 			mtuString = fmt.Sprintf("MTUBytes=%d", i.MTU)
 		}
+
+		// Bridge.
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("10-br%s.netdev", strippedHwaddr),
+			Name: fmt.Sprintf("10-br%s.netdev", i.Name),
 			Contents: fmt.Sprintf(`[NetDev]
-Name=%s
+Name=br%s
 Kind=bridge
-MACAddress=%s
 %s
 
 [Bridge]
 VLANFiltering=true
-`, i.Name, i.Hwaddr, mtuString),
+`, i.Name, mtuString),
+		})
+
+		// veth.
+		ret = append(ret, networkdConfigFile{
+			Name: fmt.Sprintf("10-%s.netdev", i.Name),
+			Contents: fmt.Sprintf(`[NetDev]
+Name=%s
+Kind=veth
+MACAddress=%s
+%s
+
+[Peer]
+Name=vt%s
+`, i.Name, i.Hwaddr, mtuString, i.Name),
 		})
 	}
 
-	// Create bond and bridge devices for each bond.
+	// Create bond, bridge, and veth devices for each bond.
 	for _, b := range networkCfg.Bonds {
-		bondMacAddr := b.Hwaddr
-		if bondMacAddr == "" {
-			bondMacAddr = b.Members[0]
-		}
-
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
-
 		mtuString := ""
 		if b.MTU != 0 {
 			mtuString = fmt.Sprintf("MTUBytes=%d", b.MTU)
@@ -341,57 +374,52 @@ VLANFiltering=true
 
 		// Bond.
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("11-bn%s.netdev", strippedHwaddr),
+			Name: fmt.Sprintf("11-bn%s.netdev", b.Name),
 			Contents: fmt.Sprintf(`[NetDev]
 Name=bn%s
 Kind=bond
-MACAddress=%s
 %s
 
 [Bond]
 Mode=%s
-`, strippedHwaddr, bondMacAddr, mtuString, b.Mode),
+`, b.Name, mtuString, b.Mode),
 		})
 
 		// Bridge.
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("11-br%s.netdev", strippedHwaddr),
+			Name: fmt.Sprintf("11-br%s.netdev", b.Name),
 			Contents: fmt.Sprintf(`[NetDev]
-Name=%s
+Name=br%s
 Kind=bridge
-MACAddress=%s
 %s
 
 [Bridge]
 VLANFiltering=true
-`, b.Name, bondMacAddr, mtuString),
+`, b.Name, mtuString),
+		})
+
+		// veth.
+		bondMacAddr := b.Hwaddr
+		if bondMacAddr == "" {
+			bondMacAddr = b.Members[0]
+		}
+
+		ret = append(ret, networkdConfigFile{
+			Name: fmt.Sprintf("11-%s.netdev", b.Name),
+			Contents: fmt.Sprintf(`[NetDev]
+Name=%s
+Kind=veth
+MACAddress=%s
+%s
+
+[Peer]
+Name=vt%s
+`, b.Name, bondMacAddr, mtuString, b.Name),
 		})
 	}
 
 	// Create vlans.
 	for _, v := range networkCfg.VLANs {
-		parentMACAddress := ""
-		for _, i := range networkCfg.Interfaces {
-			if i.Name == v.Parent {
-				parentMACAddress = i.Hwaddr
-
-				break
-			}
-		}
-		if parentMACAddress == "" {
-			for _, b := range networkCfg.Bonds {
-				if b.Name == v.Parent {
-					if b.Hwaddr != "" {
-						parentMACAddress = b.Hwaddr
-					} else {
-						parentMACAddress = b.Members[0]
-					}
-
-					break
-				}
-			}
-		}
-
 		mtuString := ""
 		if v.MTU != 0 {
 			mtuString = fmt.Sprintf("MTUBytes=%d", v.MTU)
@@ -401,13 +429,12 @@ VLANFiltering=true
 			Name: fmt.Sprintf("12-%s.netdev", v.Name),
 			Contents: fmt.Sprintf(`[NetDev]
 Name=%s
-Kind=veth
-MACAddress=%s
+Kind=vlan
 %s
 
-[Peer]
-Name=vl%s
-`, v.Name, parentMACAddress, mtuString, v.Name),
+[VLAN]
+Id=%d
+`, v.Name, mtuString, v.ID),
 		})
 	}
 
@@ -419,9 +446,9 @@ Name=vl%s
 func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
-	// Create networks for each interface.
+	// Create networks for each interface and its bridge.
 	for _, i := range networkCfg.Interfaces {
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
+		// User side of veth device.
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
@@ -434,7 +461,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(networkCfg.DNS, networkCfg.NTP))
+%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -447,14 +474,31 @@ UseMTU=true
 			Contents: cfgString,
 		})
 
+		// Bridge side of veth device.
+		cfgString = fmt.Sprintf(`[Match]
+Name=vt%s
+
+[Network]
+Bridge=br%s
+`, i.Name, i.Name)
+
+		cfgString += generateBridgeVLANContents(i.Name, i.VLAN, i.VLANTags, networkCfg.VLANs)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("20-vt%s.network", i.Name),
+			Contents: cfgString,
+		})
+
+		// Add underlying interface to bridge.
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		cfgString = fmt.Sprintf(`[Match]
 Name=en%s
 
 [Network]
-Bridge=%s
 LLDP=%s
 EmitLLDP=%s
-`, strippedHwaddr, i.Name, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP))
+Bridge=br%s
+`, strippedHwaddr, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP), i.Name)
 
 		cfgString += generateBridgeVLANContents(i.Name, i.VLAN, i.VLANTags, networkCfg.VLANs)
 
@@ -462,18 +506,25 @@ EmitLLDP=%s
 			Name:     fmt.Sprintf("20-en%s.network", strippedHwaddr),
 			Contents: cfgString,
 		})
+
+		// Bridge.
+		cfgString = fmt.Sprintf(`[Match]
+Name=br%s
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+`, i.Name)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("20-br%s.network", i.Name),
+			Contents: cfgString,
+		})
 	}
 
-	// Create networks for each bond and its member(s).
+	// Create networks for each bond, its member(s), and its bridge.
 	for _, b := range networkCfg.Bonds {
-		bondMacAddr := b.Hwaddr
-		if bondMacAddr == "" {
-			bondMacAddr = b.Members[0]
-		}
-
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
-
-		// Bond.
+		// User side of veth device.
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
@@ -486,7 +537,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(networkCfg.DNS, networkCfg.NTP))
+%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -499,18 +550,49 @@ UseMTU=true
 			Contents: cfgString,
 		})
 
-		// Bridge.
+		// Bridge side of veth device.
 		cfgString = fmt.Sprintf(`[Match]
-Name=bn%s
+Name=vt%s
 
 [Network]
-Bridge=%s
-`, strippedHwaddr, b.Name)
+Bridge=br%s
+`, b.Name, b.Name)
 
 		cfgString += generateBridgeVLANContents(b.Name, b.VLAN, b.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("21-bn%s.network", strippedHwaddr),
+			Name:     fmt.Sprintf("21-vt%s.network", b.Name),
+			Contents: cfgString,
+		})
+
+		// Add bond to bridge.
+		cfgString = fmt.Sprintf(`[Match]
+Name=bn%s
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+Bridge=br%s
+`, b.Name, b.Name)
+
+		cfgString += generateBridgeVLANContents(b.Name, b.VLAN, b.VLANTags, networkCfg.VLANs)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("21-bn%s.network", b.Name),
+			Contents: cfgString,
+		})
+
+		// Bridge.
+		cfgString = fmt.Sprintf(`[Match]
+Name=br%s
+
+[Network]
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+`, b.Name)
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("21-br%s.network", b.Name),
 			Contents: cfgString,
 		})
 
@@ -519,39 +601,22 @@ Bridge=%s
 			memberStrippedHwaddr := strings.ToLower(strings.ReplaceAll(member, ":", ""))
 
 			ret = append(ret, networkdConfigFile{
-				Name: fmt.Sprintf("21-bn%s-dev%d.network", strippedHwaddr, index),
+				Name: fmt.Sprintf("21-bn%s-dev%d.network", b.Name, index),
 				Contents: fmt.Sprintf(`[Match]
 Name=en%s
 
 [Network]
-Bond=bn%s
 LLDP=%s
 EmitLLDP=%s
-`, memberStrippedHwaddr, strippedHwaddr, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP)),
+Bond=bn%s
+`, memberStrippedHwaddr, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP), b.Name),
 			})
 		}
 	}
 
-	// Create networks for each VLAN.
+	// Create network for each VLAN.
 	for _, v := range networkCfg.VLANs {
 		cfgString := fmt.Sprintf(`[Match]
-Name=vl%s
-
-[Network]
-Bridge=%s
-
-[BridgeVLAN]
-VLAN=%d
-PVID=%d
-EgressUntagged=%d
-`, v.Name, v.Parent, v.ID, v.ID, v.ID)
-
-		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("22-vl%s.network", v.Name),
-			Contents: cfgString,
-		})
-
-		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
 [Link]
@@ -563,7 +628,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(networkCfg.DNS, networkCfg.NTP))
+%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(v.Addresses)
 
@@ -594,11 +659,11 @@ func processAddresses(addresses []string) string {
 	acceptIPv6RA := false
 	for _, addr := range addresses {
 		switch addr {
-		case "dhcp4":
+		case "dhcp4": //nolint:goconst
 			hasDHCP4 = true
 		case "dhcp6":
 			hasDHCP6 = true
-		case "slaac":
+		case "slaac": //nolint:goconst
 			acceptIPv6RA = true
 
 		default:
@@ -644,8 +709,15 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 	return ret
 }
 
-func generateNetworkSectionContents(dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
+func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
 	ret := ""
+
+	// Add any matching VLANs to the config.
+	for _, v := range vlans {
+		if v.Parent == name {
+			ret += fmt.Sprintf("VLAN=%s\n", v.Name)
+		}
+	}
 
 	// If there are search domains or name servers, add those to the config.
 	if dns != nil {
