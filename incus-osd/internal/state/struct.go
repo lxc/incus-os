@@ -20,6 +20,8 @@ type OS struct {
 type State struct {
 	path string
 
+	ShouldPerformInstall bool `json:"-"`
+
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
 	TriggerShutdown chan error `json:"-"`

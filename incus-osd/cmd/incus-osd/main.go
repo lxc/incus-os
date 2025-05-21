@@ -62,6 +62,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Perform the install check here, so we don't render the TUI footer during install.
+	s.ShouldPerformInstall = install.ShouldPerformInstall()
+
 	// Get and start the console TUI.
 	tuiApp, err := tui.NewTUI(s)
 	if err != nil {
@@ -104,10 +107,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Check if we should try to install to a local disk.
-	if install.ShouldPerformInstall() {
-		// Don't display warning about recovery key during install.
-		s.System.Encryption.State.RecoveryKeysRetrieved = true
-
+	if s.ShouldPerformInstall {
 		inst, err := install.NewInstall(t)
 		if err != nil {
 			return err

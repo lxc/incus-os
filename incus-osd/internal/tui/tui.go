@@ -230,30 +230,35 @@ func (t *TUI) redrawScreen() {
 		return
 	}
 
-	// Get list of applications from state.
-	applications := []string{}
-	for app, info := range t.state.Applications {
-		applications = append(applications, app+"("+info.Version+")")
-	}
-	slices.Sort(applications)
-
 	t.frame.Clear()
 
+	// Display header.
 	t.frame.AddText("Incus OS "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
 	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
 
-	consoleWidth, _ := t.screen.Size()
-	for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
-		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
-	}
-	for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
-		t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+	// Don't display footer during install.
+	if !t.state.ShouldPerformInstall {
+		// Get list of applications from state.
+		applications := []string{}
+		for app, info := range t.state.Applications {
+			applications = append(applications, app+"("+info.Version+")")
+		}
+		slices.Sort(applications)
+
+		consoleWidth, _ := t.screen.Size()
+		for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
+			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+		}
+		for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
+			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+		}
+
+		if !t.state.System.Encryption.State.RecoveryKeysRetrieved {
+			t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
+		}
 	}
 
-	if !t.state.System.Encryption.State.RecoveryKeysRetrieved {
-		t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
-	}
-
+	// Show main content.
 	if t.textView != nil {
 		t.frame.SetPrimitive(t.textView)
 	}
