@@ -125,6 +125,29 @@ func (*github) checkLimit(err error) error {
 	return err
 }
 
+func (p *github) tryGetRelease(ctx context.Context) (*ghapi.RepositoryRelease, error) {
+	var err error
+
+	for range 5 {
+		var release *ghapi.RepositoryRelease
+
+		release, _, err = p.gh.Repositories.GetLatestRelease(ctx, p.organization, p.repository)
+		if err == nil {
+			return release, nil
+		}
+
+		// Check if dealing with a Github limit error.
+		if !errors.Is(p.checkLimit(err), err) {
+			return nil, err
+		}
+
+		// Wait and try again.
+		time.Sleep(time.Second)
+	}
+
+	return nil, err
+}
+
 func (p *github) checkRelease(ctx context.Context) error {
 	// Acquire lock.
 	p.releaseMu.Lock()
@@ -136,7 +159,7 @@ func (p *github) checkRelease(ctx context.Context) error {
 	}
 
 	// Get the latest release.
-	release, _, err := p.gh.Repositories.GetLatestRelease(ctx, p.organization, p.repository)
+	release, err := p.tryGetRelease(ctx)
 	if err != nil {
 		return p.checkLimit(err)
 	}
