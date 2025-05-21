@@ -6,7 +6,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/google/go-github/v68 v68.0.0
 	github.com/google/uuid v1.6.0
-	github.com/lxc/incus/v6 v6.12.0
+	github.com/lxc/incus/v6 v6.12.1-0.20250521153927-b7a69e7b034a
 	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sys v0.33.0

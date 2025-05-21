@@ -13,9 +13,6 @@ type IncusConfig struct {
 	ApplyDefaults bool `json:"apply_defaults" yaml:"apply_defaults"`
 
 	Preseed *incusapi.InitPreseed `json:"preseed" yaml:"preseed"`
-
-	// NOTE: Temporary until https://github.com/lxc/incus/issues/1804.
-	Certificates []incusapi.CertificatesPost `json:"certificates" yaml:"certificates"`
 }
 
 // GetIncus extracts the Incus preseed from the seed data.

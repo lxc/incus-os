@@ -85,7 +85,7 @@ func (a *incus) Initialize(ctx context.Context) error {
 
 	// Handle the defaults.
 	if incusSeed.ApplyDefaults {
-		err = a.applyDefaults(c, incusSeed)
+		err = a.applyDefaults(c)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (a *incus) Initialize(ctx context.Context) error {
 	return nil
 }
 
-func (*incus) applyDefaults(c incusclient.InstanceServer, incusSeed *seed.IncusConfig) error {
+func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()
 	if err != nil {
@@ -213,15 +213,6 @@ func (*incus) applyDefaults(c incusclient.InstanceServer, incusSeed *seed.IncusC
 	err = c.UpdateServer(serverConfig.Writable(), serverConfigEtag)
 	if err != nil {
 		return err
-	}
-
-	// Enroll the extra certificates.
-	// NOTE: This is a temporary measure until we get https://github.com/lxc/incus/issues/1804.
-	for _, cert := range incusSeed.Certificates {
-		err = c.CreateCertificate(cert)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -45,6 +45,10 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/lxc/incus/v6 v6.12.0 h1:XMjlk5nvRSIqzqj3bsMrM+lu8X84aKBwKEx1e1JC4g8=
 github.com/lxc/incus/v6 v6.12.0/go.mod h1:8y7uDdiLvApGJVXh2UIB7SL6SSGPBWT96Sti/2LiToM=
+github.com/lxc/incus/v6 v6.12.1-0.20250506022743-14a14fd0006d h1:buU6BT2d11APXAvp7vMp/X7Ath5k7JEUDv9fNIwvcRI=
+github.com/lxc/incus/v6 v6.12.1-0.20250506022743-14a14fd0006d/go.mod h1:ejgQxcEzSB5iSLQlNktFdrFfi2DLfko84JdrxOdbKZ0=
+github.com/lxc/incus/v6 v6.12.1-0.20250521153927-b7a69e7b034a h1:bCkd6Nq9Lb1c2mhNrKre23+CX1OFvlc1LSVUbHrom8A=
+github.com/lxc/incus/v6 v6.12.1-0.20250521153927-b7a69e7b034a/go.mod h1:yYaWvXqvTl6M8sI/of9JCbQe6y5KXscvSq6upBvw9m4=
 github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6TULQc=
 github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/muhlemmer/gu v0.3.1 h1:7EAqmFrW7n3hETvuAdmFmn4hS8W+z3LgKtrnow+YzNM=
