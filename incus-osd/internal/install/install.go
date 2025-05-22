@@ -305,10 +305,17 @@ func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSe
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
 func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
-	// Verify the target device doesn't already have a partition table, or that `ForceInstall` is set to true.
+	// Check if the target device already has a partition table.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
-		return err
+		// If the device has no main partition table, but does have a backup, assume it's been
+		// partially wiped with something like `dd if=/dev/zero of=/dev/sda ...` and proceed with install.
+		if !strings.Contains(err.Error(), "Caution: invalid main GPT header, but valid backup; regenerating main header") {
+			return err
+		}
+
+		// Set ForceInstall to true in this case since the install should continue.
+		i.config.ForceInstall = true
 	}
 
 	if !strings.Contains(output, "Creating new GPT entries in memory") && !i.config.ForceInstall {
