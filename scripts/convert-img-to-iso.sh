@@ -34,11 +34,11 @@ PART3NAME=$(sgdisk -i 3 "$SRC" | grep "Partition name:" | sed -e "s/Partition na
 PART4NAME=$(sgdisk -i 4 "$SRC" | grep "Partition name:" | sed -e "s/Partition name: '//" | sed -e "s/'//")
 PART5NAME=$(sgdisk -i 5 "$SRC" | grep "Partition name:" | sed -e "s/Partition name: '//" | sed -e "s/'//")
 
-sgdisk -n 1::+2GiB -u "1:$PART1GUID" -t 1:EF00 -c 1:esp "$DSTLOOPDEV"
-sgdisk -n 2::+100MiB -u "2:$PART2GUID" -t 2:8300 -c 2:seed-data "$DSTLOOPDEV"
-sgdisk -n 3::+16KiB -u "3:$PART3GUID" -t 3:8385 -c "3:$PART3NAME" "$DSTLOOPDEV"
-sgdisk -n 4::+100MiB -u "4:$PART4GUID" -t 4:8319 -c "4:$PART4NAME" "$DSTLOOPDEV"
-sgdisk -n 5::+1024MiB -u "5:$PART5GUID" -t 5:8314 -c "5:$PART5NAME" "$DSTLOOPDEV"
+sgdisk -n 1::+2GiB -u "1:$PART1GUID" -t 1:C12A7328-F81F-11D2-BA4B-00A0C93EC93B -c 1:esp "$DSTLOOPDEV"
+sgdisk -n 2::+100MiB -u "2:$PART2GUID" -t 2:0FC63DAF-8483-4772-8E79-3D69D8477DE4 -c 2:seed-data "$DSTLOOPDEV"
+sgdisk -n 3::+16KiB -u "3:$PART3GUID" -t 3:E7BB33FB-06CF-4E81-8273-E543B413E2E2 -c "3:$PART3NAME" "$DSTLOOPDEV"
+sgdisk -n 4::+100MiB -u "4:$PART4GUID" -t 4:77FF5F63-E7B6-4633-ACF4-1565B864C0E6 -c "4:$PART4NAME" "$DSTLOOPDEV"
+sgdisk -n 5::+1024MiB -u "5:$PART5GUID" -t 5:8484680C-9521-48C6-9C11-B0720656F69E -c "5:$PART5NAME" "$DSTLOOPDEV"
 
 partprobe "$DSTLOOPDEV"
 
