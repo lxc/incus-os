@@ -315,13 +315,18 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDevice)
 	}
 
-	// If ForceInstall is true, zap any existing GPT table on the target device.
+	// At this point, the target device either has no GPT table, or we will be force-installing over any existing data.
+
+	// Zap any existing GPT table on the target device.
 	if i.config.ForceInstall {
-		_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
-		if err != nil {
-			return err
-		}
+		// Don't check return status, since sgdisk always returns an error if there's a mismatch
+		// between the main and backup GPT tables.
+		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
 	}
+
+	// Before starting the install, run blkdiscard to fully wipe the target device. blkdiscard may
+	// not work for all devices, so don't check its return status.
+	_, _ = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", targetDevice)
 
 	// Turn off swap and unmount /boot.
 	_, err = subprocess.RunCommandContext(ctx, "swapoff", "-a")
