@@ -518,7 +518,7 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 	partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
 	partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
 
-	partitionHexCode := ""
+	var partitionHexCode string
 	partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
 	partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
 	partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
@@ -535,6 +535,8 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 		partitionHexCode = "8319"
 	case "Linux x86-64 /usr":
 		partitionHexCode = "8314"
+	default:
+		return fmt.Errorf("unrecognized partition type '%s'", partitionType)
 	}
 
 	// Create the partition on the target device.
