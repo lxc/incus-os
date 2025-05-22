@@ -102,8 +102,14 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	if err != nil {
 		modal := t.AddModal("Incus OS")
 		modal.Update("System check error: [red]" + err.Error() + "[white]\nIncus OS is unable to run until the problem is resolved.")
+		slog.Error(err.Error())
 
-		return err
+		// If we fail the system requirement check, we'll enter a startup loop with the systemd service
+		// constantly trying to restart the daemon. Rather than doing that, just sleep here for an hour
+		// so the error message doesn't flicker off and on, then exit and let systemd start us again.
+		time.Sleep(1 * time.Hour)
+
+		os.Exit(1) //nolint:revive
 	}
 
 	// Check if we should try to install to a local disk.
