@@ -48,8 +48,16 @@ func CheckSystemRequirements(ctx context.Context) error {
 		return errors.New("unable to begin install without seed configuration")
 	}
 
+	// Check if Secure Boot is enabled.
+	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
+	if err != nil {
+		return err
+	} else if !strings.Contains(output, "Secure Boot: enabled (user)") {
+		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
+	}
+
 	// Check if a TPM device is present.
-	_, err := os.Stat("/dev/tpm0")
+	_, err = os.Stat("/dev/tpm0")
 	if err != nil {
 		return errors.New("no TPM device found")
 	}
@@ -236,7 +244,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get NVME drives first.
 	nvmeTargets := lsblkOutput{}
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -250,7 +258,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get SCSI drives second.
 	scsiTargets := lsblkOutput{}
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -264,7 +272,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get virtual drives last.
 	virtualTargets := lsblkOutput{}
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -305,23 +313,35 @@ func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSe
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
 func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
-	// Verify the target device doesn't already have a partition table, or that `ForceInstall` is set to true.
+	// Check if the target device already has a partition table.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
-		return err
+		// If the device has no main partition table, but does have a backup, assume it's been
+		// partially wiped with something like `dd if=/dev/zero of=/dev/sda ...` and proceed with install.
+		if !strings.Contains(err.Error(), "Caution: invalid main GPT header, but valid backup; regenerating main header") {
+			return err
+		}
+
+		// Set ForceInstall to true in this case since the install should continue.
+		i.config.ForceInstall = true
 	}
 
 	if !strings.Contains(output, "Creating new GPT entries in memory") && !i.config.ForceInstall {
 		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDevice)
 	}
 
-	// If ForceInstall is true, zap any existing GPT table on the target device.
+	// At this point, the target device either has no GPT table, or we will be force-installing over any existing data.
+
+	// Zap any existing GPT table on the target device.
 	if i.config.ForceInstall {
-		_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
-		if err != nil {
-			return err
-		}
+		// Don't check return status, since sgdisk always returns an error if there's a mismatch
+		// between the main and backup GPT tables.
+		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
 	}
+
+	// Before starting the install, run blkdiscard to fully wipe the target device. blkdiscard may
+	// not work for all devices, so don't check its return status.
+	_, _ = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", targetDevice)
 
 	// Turn off swap and unmount /boot.
 	_, err = subprocess.RunCommandContext(ctx, "swapoff", "-a")
@@ -498,7 +518,7 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 	partitionNameRegex := regexp.MustCompile(`Partition name: '(.+)'`)
 	partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
 
-	partitionHexCode := ""
+	var partitionHexCode string
 	partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
 	partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
 	partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
@@ -515,6 +535,8 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 		partitionHexCode = "8319"
 	case "Linux x86-64 /usr":
 		partitionHexCode = "8314"
+	default:
+		return fmt.Errorf("unrecognized partition type '%s'", partitionType)
 	}
 
 	// Create the partition on the target device.
