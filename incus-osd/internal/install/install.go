@@ -236,7 +236,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get NVME drives first.
 	nvmeTargets := lsblkOutput{}
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -250,7 +250,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get SCSI drives second.
 	scsiTargets := lsblkOutput{}
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -264,7 +264,7 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	// Get virtual drives last.
 	virtualTargets := lsblkOutput{}
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
 	}
