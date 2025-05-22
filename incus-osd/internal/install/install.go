@@ -48,8 +48,16 @@ func CheckSystemRequirements(ctx context.Context) error {
 		return errors.New("unable to begin install without seed configuration")
 	}
 
+	// Check if Secure Boot is enabled.
+	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
+	if err != nil {
+		return err
+	} else if !strings.Contains(output, "Secure Boot: enabled (user)") {
+		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
+	}
+
 	// Check if a TPM device is present.
-	_, err := os.Stat("/dev/tpm0")
+	_, err = os.Stat("/dev/tpm0")
 	if err != nil {
 		return errors.New("no TPM device found")
 	}
