@@ -52,7 +52,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
 	if err != nil {
 		return err
-	} else if !strings.Contains(output, "Secure Boot: enabled (user)") {
+	} else if !strings.Contains(output, "Secure Boot: enabled") {
 		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
 	}
 
