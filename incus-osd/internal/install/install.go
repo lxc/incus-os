@@ -284,7 +284,18 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 
 	ret = append(ret, virtualTargets.Blockdevices...)
 
-	return ret, nil
+	// Filter out devices that are known to not be valid targets.
+	filtered := make([]blockdevices, 0, len(ret))
+	for _, entry := range ret {
+		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
+			// Virtual BMC devices on DELL servers.
+			continue
+		}
+
+		filtered = append(filtered, entry)
+	}
+
+	return filtered, nil
 }
 
 // getTargetDevice determines the underlying device to install incus-osd on.
