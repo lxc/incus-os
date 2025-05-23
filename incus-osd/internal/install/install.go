@@ -37,6 +37,8 @@ type lsblkOutput struct {
 	Blockdevices []blockdevices `json:"blockdevices"`
 }
 
+var cdromDevice = "/dev/sr0"
+
 var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
@@ -70,7 +72,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to determine source device: " + err.Error())
 		}
 
-		targets, err := getAllTargets(ctx)
+		targets, err := getAllTargets(ctx, source)
 		if err != nil {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
@@ -80,7 +82,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
 
-		_, err = getTargetDevice(targets, config.Target, source)
+		_, err = getTargetDevice(targets, config.Target)
 		if err != nil {
 			devices := []string{}
 			for _, t := range targets {
@@ -135,14 +137,14 @@ func (i *Install) DoInstall(ctx context.Context) error {
 		return err
 	}
 
-	targets, err := getAllTargets(ctx)
+	targets, err := getAllTargets(ctx, sourceDevice)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
 		return err
 	}
 
-	targetDevice, err := getTargetDevice(targets, i.config.Target, sourceDevice)
+	targetDevice, err := getTargetDevice(targets, i.config.Target)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
@@ -174,7 +176,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			// Check if we're running from a CDROM.
-			err = unix.Stat("/dev/sr0", &s)
+			err = unix.Stat(cdromDevice, &s)
 			if err == nil {
 				return cdromMappedDevice, true, nil
 			}
@@ -239,7 +241,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 }
 
 // getAllTargets returns a list of all potential install target devices.
-func getAllTargets(ctx context.Context) ([]blockdevices, error) {
+func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, error) {
 	ret := []blockdevices{}
 
 	// Get NVME drives first.
@@ -287,6 +289,10 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 	// Filter out devices that are known to not be valid targets.
 	filtered := make([]blockdevices, 0, len(ret))
 	for _, entry := range ret {
+		if entry.KName == sourceDevice || entry.KName == cdromDevice {
+			continue
+		}
+
 		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
 			// Virtual BMC devices on DELL servers.
 			continue
@@ -299,21 +305,17 @@ func getAllTargets(ctx context.Context) ([]blockdevices, error) {
 }
 
 // getTargetDevice determines the underlying device to install incus-osd on.
-func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSeedTarget, sourceDevice string) (string, error) {
-	// Ensure we found at least two devices (the install device and potential install device(s)). If no Target
-	// configuration was found, only proceed if exactly two devices were found.
-	if len(potentialTargets) < 2 {
+func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSeedTarget) (string, error) {
+	// Ensure we found at least one potential install device. If no Target configuration was found,
+	// only proceed if exactly one device was found.
+	if len(potentialTargets) == 0 {
 		return "", errors.New("no potential install devices found")
-	} else if seedTarget == nil && len(potentialTargets) != 2 {
+	} else if seedTarget == nil && len(potentialTargets) != 1 {
 		return "", errors.New("no target configuration provided, and didn't find exactly one install device")
 	}
 
-	// Loop through all disks, selecting the first one that isn't the source and matches the Target configuration.
+	// Loop through all disks, selecting the first one that matches the Target configuration.
 	for _, device := range potentialTargets {
-		if device.KName == sourceDevice {
-			continue
-		}
-
 		if seedTarget == nil || strings.Contains(device.ID, seedTarget.ID) {
 			return device.KName, nil
 		}
@@ -388,7 +390,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
 	actualSourceDevice := sourceDevice
 	if actualSourceDevice == cdromMappedDevice {
-		actualSourceDevice = "/dev/sr0"
+		actualSourceDevice = cdromDevice
 	}
 
 	modal.Update("Cloning GPT partitions.")
@@ -613,7 +615,7 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 
 	// If we're running from a CDROM, adjust the device we watch for removal.
 	if device == cdromMappedDevice {
-		partition = "/dev/sr0"
+		partition = cdromDevice
 	}
 
 	// Wait for the partition to disappear; if ForceReboot is true, skip the loop and immediately reboot.
