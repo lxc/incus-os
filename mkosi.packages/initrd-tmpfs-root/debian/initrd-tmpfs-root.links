@@ -1,0 +1,1 @@
+usr/lib/systemd/system/initrd-message.service usr/lib/systemd/system/veritysetup.target.wants/initrd-message.service

@@ -1,0 +1,16 @@
+[Unit]
+Description=Display startup message
+Before=veritysetup.target
+After=veritysetup-pre.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+Environment=MSG="Incus OS is starting..."
+Environment=TTYS="/dev/tty1 /dev/tty2 /dev/tty3 /dev/tty4 /dev/tty5 /dev/tty6 /dev/tty6 /dev/tty7 /dev/ttyS0"
+
+ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY; done"
+
+[Install]
+WantedBy=veritysetup.target
