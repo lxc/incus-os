@@ -170,36 +170,27 @@ func (i *Install) DoInstall(ctx context.Context) error {
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
 func getSourceDevice(ctx context.Context) (string, bool, error) {
-	// Start by determining the underlying device that /boot/EFI is on.
+	// Check if we're running from a CDROM.
 	s := unix.Stat_t{}
-	err := unix.Stat("/boot/EFI", &s)
+	err := unix.Stat(cdromDevice, &s)
+	if err == nil {
+		return cdromMappedDevice, true, nil
+	}
+
+	// If boot.mount has failed, we're running from a read-only USB stick.
+	// (fsck.fat fails on the read-only ESP partition.) Can't use systemd.IsFailed(),
+	// since systemd doesn't actually report the mount unit as failed, so we
+	// need to check the its output.
+	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			// Check if we're running from a CDROM.
-			err = unix.Stat(cdromDevice, &s)
-			if err == nil {
-				return cdromMappedDevice, true, nil
-			}
-		}
-
 		return "", false, err
 	}
+	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
 
-	// Test if we're on a read-only file system.
-	isReadonlyInstallFS := false
-	f, err := os.Create("/boot/EFI/testfile")
-	switch {
-	case err == nil:
-		_ = f.Close()
-		_ = os.Remove("/boot/EFI/testfile")
-	case strings.Contains(err.Error(), "read-only file system"):
-		isReadonlyInstallFS = true
-	default:
-		return "", false, err
-	}
-
-	if systemd.IsFailed(ctx, "systemd-repart") {
-		isReadonlyInstallFS = true
+	// Determine the device we're running from.
+	err = unix.Stat("/usr/local/bin/incus-osd", &s)
+	if err != nil {
+		return "", isReadonlyInstallFS, err
 	}
 
 	major := unix.Major(s.Dev)
@@ -212,7 +203,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 		return "", isReadonlyInstallFS, err
 	}
 
-	// Iterate through each of the block devices until we find the one for /boot/EFI.
+	// Iterate through each of the block devices until we find the one for /usr.
 	for _, entry := range entries {
 		entryPath := filepath.Join("/sys/class/block", entry.Name())
 
@@ -221,10 +212,16 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 			continue
 		}
 
-		// We've found the device.
+		// We've found the mapped device.
 		if string(dev) == rootDev {
-			// Read the symlink for the device, which will end with something like "/block/sda/sda1".
-			path, err := os.Readlink(entryPath)
+			// Get the underlying device.
+			members, err := os.ReadDir(filepath.Join(entryPath, "slaves"))
+			if err != nil {
+				return "", isReadonlyInstallFS, err
+			}
+
+			// Read the symlink for the underlying device, which will end with something like "/block/sda/sda1".
+			path, err := os.Readlink(filepath.Join(entryPath, "slaves", members[0].Name()))
 			if err != nil {
 				return "", isReadonlyInstallFS, err
 			}
@@ -364,13 +361,23 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 
 	err = unix.Unmount("/boot/", 0)
 	if err != nil {
-		// /boot/ won't exist when installer is running from a CDROM.
-		if !errors.Is(err, os.ErrNotExist) || !sourceIsReadonly {
+		// /boot/ won't be mounted when installer is running from read-only media.
+		if !sourceIsReadonly {
 			return err
 		}
 	}
 
-	if !sourceIsReadonly {
+	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
+	actualSourceDevice := sourceDevice
+	if actualSourceDevice == cdromMappedDevice {
+		actualSourceDevice = cdromDevice
+	}
+
+	output, err = subprocess.RunCommandContext(ctx, "sgdisk", "-i", "9", actualSourceDevice)
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(output, "Partition #9 does not exist.") {
 		// Delete auto-created partitions from source device before proceeding with the install, so we can
 		// re-use the installer media on other systems.
 		for i := 9; i <= 11; i++ {
@@ -383,14 +390,12 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 
 	// Number of partitions to copy.
 	numPartitionsToCopy := 8
-	if sourceIsReadonly {
-		numPartitionsToCopy = 5
+	output, err = subprocess.RunCommandContext(ctx, "sgdisk", "-i", "8", actualSourceDevice)
+	if err != nil {
+		return err
 	}
-
-	// If we're running from a CDROM, fixup the actual device we should look at for the partitions.
-	actualSourceDevice := sourceDevice
-	if actualSourceDevice == cdromMappedDevice {
-		actualSourceDevice = cdromDevice
+	if strings.Contains(output, "Partition #8 does not exist.") {
+		numPartitionsToCopy = 5
 	}
 
 	modal.Update("Cloning GPT partitions.")
@@ -403,10 +408,11 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		}
 	}
 
-	// If we're running from a read-only media, cheat a bit and pre-create the three additional empty
-	// partitions rather than relying on systemd-repart to do so at first boot time. This is because
-	// systemd-repart likes to place the small /usr-verity sig partition prior to the ESP partition.
-	if sourceIsReadonly {
+	// If we're running from media with only the first five partitions, cheat a bit and pre-create
+	// the other three additional empty partitions rather than relying on systemd-repart to do so
+	// at first boot time. This is because systemd-repart likes to place the small /usr-verity sig
+	// partition prior to the ESP partition.
+	if numPartitionsToCopy == 5 {
 		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8385", "-c", "6:_empty", targetDevice)
 		if err != nil {
 			return err
