@@ -43,10 +43,10 @@ var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
 func CheckSystemRequirements(ctx context.Context) error {
-	// Check if systemd-repart has failed (we're either running from read-only media or a
-	// small USB stick) which normally indicates we're about to start an install and there's
-	// no install seed present.
-	if systemd.IsFailed(ctx, "systemd-repart") && !ShouldPerformInstall() {
+	// Check if systemd-repart has failed (we're either running from a read-only or a small USB
+	// stick), or we're running from a CDROM, which normally indicates we're about to start an
+	// install but there's no install seed present.
+	if (systemd.IsFailed(ctx, "systemd-repart") || runningFromCDROM()) && !ShouldPerformInstall() {
 		return errors.New("unable to begin install without seed configuration")
 	}
 
@@ -168,29 +168,29 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }
 
-// getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func getSourceDevice(ctx context.Context) (string, bool, error) {
-	// Check if we're running from a CDROM.
+// runningFromCDROM returns true we're running from a CDROM, which should only happen during an install.
+func runningFromCDROM() bool {
 	s := unix.Stat_t{}
 	err := unix.Stat(cdromDevice, &s)
-	if err == nil {
-		return cdromMappedDevice, true, nil
-	}
-
-	// If boot.mount has failed, we're running from a read-only USB stick.
-	// (fsck.fat fails on the read-only ESP partition.) Can't use systemd.IsFailed(),
-	// since systemd doesn't actually report the mount unit as failed, so we
-	// need to check the its output.
-	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
 	if err != nil {
-		return "", false, err
+		return false
 	}
-	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
 
+	underlyingDevice, err := getUnderlyingDevice()
+	if err != nil {
+		return false
+	}
+
+	return underlyingDevice == "/dev/sr0"
+}
+
+// getUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
+func getUnderlyingDevice() (string, error) {
 	// Determine the device we're running from.
-	err = unix.Stat("/usr/local/bin/incus-osd", &s)
+	s := unix.Stat_t{}
+	err := unix.Stat("/usr/local/bin/incus-osd", &s)
 	if err != nil {
-		return "", isReadonlyInstallFS, err
+		return "", err
 	}
 
 	major := unix.Major(s.Dev)
@@ -200,7 +200,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 	// Get a list of all the block devices.
 	entries, err := os.ReadDir("/sys/class/block")
 	if err != nil {
-		return "", isReadonlyInstallFS, err
+		return "", err
 	}
 
 	// Iterate through each of the block devices until we find the one for /usr.
@@ -217,24 +217,60 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 			// Get the underlying device.
 			members, err := os.ReadDir(filepath.Join(entryPath, "slaves"))
 			if err != nil {
-				return "", isReadonlyInstallFS, err
+				return "", err
 			}
 
-			// Read the symlink for the underlying device, which will end with something like "/block/sda/sda1".
+			// Read the symlink for the underlying device.
 			path, err := os.Readlink(filepath.Join(entryPath, "slaves", members[0].Name()))
 			if err != nil {
-				return "", isReadonlyInstallFS, err
+				return "", err
 			}
 
-			// Drop the last element of the path (the partition), then get the base of the resulting path (the actual device).
-			parentDir, _ := filepath.Split(path)
-			underlyingDev := filepath.Base(parentDir)
+			// We're running from a USB stick.
+			if strings.HasPrefix(path, "../../../") {
+				// Drop the last element of the path (the partition), then get the base of the resulting path (the actual device).
+				parentDir, _ := filepath.Split(path)
 
-			return "/dev/" + underlyingDev, isReadonlyInstallFS, nil
+				return filepath.Join("/dev/", filepath.Base(parentDir)), nil
+			}
+
+			// We're running from a CDROM; need to do one more level of indirection to get the actual device.
+			entryPath = filepath.Join("/sys/class/block", filepath.Base(path))
+			members, err = os.ReadDir(filepath.Join(entryPath, "slaves"))
+			if err != nil {
+				return "", err
+			}
+
+			return filepath.Join("/dev/", members[0].Name()), nil
 		}
 	}
 
-	return "", isReadonlyInstallFS, errors.New("unable to determine source device")
+	return "", errors.New("unable to determine underlying device")
+}
+
+// getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
+func getSourceDevice(ctx context.Context) (string, bool, error) {
+	// Check if we're running from a CDROM.
+	if runningFromCDROM() {
+		return cdromMappedDevice, true, nil
+	}
+
+	// If boot.mount has failed, we're running from a read-only USB stick.
+	// (fsck.fat fails on the read-only ESP partition.) Can't use systemd.IsFailed(),
+	// since systemd doesn't actually report the mount unit as failed, so we
+	// need to check its output.
+	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
+	if err != nil {
+		return "", false, err
+	}
+	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
+
+	underlyingDevice, err := getUnderlyingDevice()
+	if err != nil {
+		return "", isReadonlyInstallFS, err
+	}
+
+	return underlyingDevice, isReadonlyInstallFS, nil
 }
 
 // getAllTargets returns a list of all potential install target devices.
