@@ -12,6 +12,7 @@ type Application struct {
 
 // OS represents the current OS image state.
 type OS struct {
+	Name           string `json:"name"`
 	RunningRelease string `json:"running_release"`
 	NextRelease    string `json:"next_release"`
 }

@@ -4,7 +4,7 @@ cat > /usr/lib/os-release <<EOF
 PRETTY_NAME="$IMAGE_ID $IMAGE_VERSION"
 NAME="$IMAGE_ID"
 VERSION="$IMAGE_VERSION"
-ID=IncusOS
+ID="$IMAGE_ID"
 HOME_URL="https://github.com/lxc/incus-os"
 SUPPORT_URL="https://github.com/lxc/incus-os/issues"
 BUG_REPORT_URL="https://github.com/lxc/incus-os/issues"

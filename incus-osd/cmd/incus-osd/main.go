@@ -62,6 +62,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get the OS name and version from /lib/os-release.
+	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	s.OS.Name = osName
+	s.OS.RunningRelease = osRelease
+
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
@@ -100,8 +110,8 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Verify that the system meets minimum requirements for running Incus OS.
 	err := install.CheckSystemRequirements(ctx)
 	if err != nil {
-		modal := t.AddModal("Incus OS")
-		modal.Update("System check error: [red]" + err.Error() + "[white]\nIncus OS is unable to run until the problem is resolved.")
+		modal := t.AddModal(s.OS.Name)
+		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
 		slog.Error(err.Error())
 
 		// If we fail the system requirement check, we'll enter a startup loop with the systemd service
@@ -119,7 +129,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 			return err
 		}
 
-		return inst.DoInstall(ctx)
+		return inst.DoInstall(ctx, s.OS.Name)
 	}
 
 	// Run startup tasks.
@@ -190,15 +200,6 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
-
-	// Get running release.
-	slog.Debug("Getting local OS information")
-	runningRelease, err := systemd.GetCurrentRelease(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.OS.RunningRelease = runningRelease
 
 	// Check kernel keyring.
 	slog.Debug("Getting trusted system keys")
@@ -432,7 +433,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if err != nil {
 			slog.Error("Failed to check for OS updates", "err", err.Error(), "provider", p.Type())
 			if modal == nil {
-				modal = t.AddModal("Incus OS Update")
+				modal = t.AddModal(s.OS.Name + " Update")
 			}
 			modal.Update("[red]Error[white] Failed to check for OS updates: " + err.Error() + " (provider: " + p.Type() + ")")
 
@@ -445,9 +446,9 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		if newInstalledOSVersion != "" {
 			if modal == nil {
-				modal = t.AddModal("Incus OS Update")
+				modal = t.AddModal(s.OS.Name + " Update")
 			}
-			modal.Update("Incus OS has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
+			modal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
 		}
 
 		// Check for application updates.
@@ -457,7 +458,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if err != nil {
 				slog.Error("Failed to check for application updates", "err", err.Error(), "provider", p.Type())
 				if modal == nil {
-					modal = t.AddModal("Incus OS Update")
+					modal = t.AddModal(s.OS.Name + " Update")
 				}
 				modal.Update("[red]Error[white] Failed to check for application updates: " + err.Error() + " (provider: " + p.Type() + ")")
 
@@ -476,7 +477,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if err != nil {
 				slog.Error("Failed to refresh system extensions", "err", err.Error())
 				if modal == nil {
-					modal = t.AddModal("Incus OS Update")
+					modal = t.AddModal(s.OS.Name + " Update")
 				}
 				modal.Update("[red]Error[white] Failed to refresh system extensions: " + err.Error())
 
@@ -495,7 +496,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if err != nil {
 				slog.Error("Failed to load application", "err", err.Error())
 				if modal == nil {
-					modal = t.AddModal("Incus OS Update")
+					modal = t.AddModal(s.OS.Name + " Update")
 				}
 				modal.Update("[red]Error[white] Failed to load application: " + err.Error())
 
@@ -510,7 +511,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				if err != nil {
 					slog.Error("Failed to update application", "err", err.Error())
 					if modal == nil {
-						modal = t.AddModal("Incus OS Update")
+						modal = t.AddModal(s.OS.Name + " Update")
 					}
 					modal.Update("[red]Error[white] Failed to update application: " + err.Error())
 
@@ -543,13 +544,13 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	// Apply the update.
 	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
 		if !update.IsNewerThan(s.OS.RunningRelease) {
-			return "", errors.New("local Incus OS version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 
 		// Download the update into place.
-		modal := t.AddModal("Incus OS Update")
+		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading OS update", "release", update.Version())
-		modal.Update("Downloading Incus OS update version " + update.Version())
+		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 		err := update.Download(ctx, systemd.SystemUpdatesPath)
 		if err != nil {
 			return "", err
@@ -557,7 +558,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
-		modal.Update("Applying Incus OS update version " + update.Version())
+		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
 		if err != nil {
 			return "", err
@@ -597,7 +598,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		}
 
 		// Download the application.
-		modal := t.AddModal("Incus OS Update")
+		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
 		err = app.Download(ctx, systemd.SystemExtensionsPath)

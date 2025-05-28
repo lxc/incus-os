@@ -14,15 +14,18 @@ import (
 // ErrReleaseNotFound is returned when the os-release file can't be located.
 var ErrReleaseNotFound = errors.New("couldn't determine current OS release")
 
-// GetCurrentRelease returns the current IMAGE_VERSION from the os-release file.
-func GetCurrentRelease(_ context.Context) (string, error) {
+// GetCurrentRelease returns the current NAME and IMAGE_VERSION from the os-release file.
+func GetCurrentRelease(_ context.Context) (string, string, error) { //nolint:revive
 	// Open the os-release file.
 	fd, err := os.Open("/lib/os-release")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	defer fd.Close()
+
+	name := ""
+	version := ""
 
 	// Prepare reader.
 	fdScan := bufio.NewScanner(fd)
@@ -34,12 +37,19 @@ func GetCurrentRelease(_ context.Context) (string, error) {
 			continue
 		}
 
-		if fields[0] == "IMAGE_VERSION" {
-			return strings.Trim(fields[1], "\""), nil
+		switch fields[0] {
+		case "NAME":
+			name = strings.Trim(fields[1], "\"")
+		case "IMAGE_VERSION":
+			version = strings.Trim(fields[1], "\"")
 		}
 	}
 
-	return "", ErrReleaseNotFound
+	if name != "" && version != "" {
+		return name, version, nil
+	}
+
+	return "", "", ErrReleaseNotFound
 }
 
 // ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
