@@ -168,6 +168,22 @@ func (i *Install) DoInstall(ctx context.Context) error {
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
 }
 
+// runningFromCDROM returns true we're running from a CDROM, which should only happen during an install.
+func runningFromCDROM() bool {
+	s := unix.Stat_t{}
+	err := unix.Stat(cdromDevice, &s)
+	if err != nil {
+		return false
+	}
+
+	underlyingDevice, err := getUnderlyingDevice()
+	if err != nil {
+		return false
+	}
+
+	return underlyingDevice == "/dev/sr0"
+}
+
 // getUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
 func getUnderlyingDevice() (string, error) {
 	// Determine the device we're running from.
@@ -235,9 +251,7 @@ func getUnderlyingDevice() (string, error) {
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
 func getSourceDevice(ctx context.Context) (string, bool, error) {
 	// Check if we're running from a CDROM.
-	s := unix.Stat_t{}
-	err := unix.Stat(cdromDevice, &s)
-	if err == nil {
+	if runningFromCDROM() {
 		return cdromMappedDevice, true, nil
 	}
 
