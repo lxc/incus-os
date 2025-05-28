@@ -62,6 +62,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get the OS name and version from /lib/os-release.
+	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	s.OS.Name = osName
+	s.OS.RunningRelease = osRelease
+
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
@@ -190,15 +200,6 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save(ctx) }()
-
-	// Get running release.
-	slog.Debug("Getting local OS information")
-	runningRelease, err := systemd.GetCurrentRelease(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.OS.RunningRelease = runningRelease
 
 	// Check kernel keyring.
 	slog.Debug("Getting trusted system keys")
