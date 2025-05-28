@@ -43,10 +43,10 @@ var cdromMappedDevice = "/dev/mapper/sr0"
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
 func CheckSystemRequirements(ctx context.Context) error {
-	// Check if systemd-repart has failed (we're either running from read-only media or a
-	// small USB stick) which normally indicates we're about to start an install and there's
-	// no install seed present.
-	if systemd.IsFailed(ctx, "systemd-repart") && !ShouldPerformInstall() {
+	// Check if systemd-repart has failed (we're either running from a read-only or a small USB
+	// stick), or we're running from a CDROM, which normally indicates we're about to start an
+	// install but there's no install seed present.
+	if (systemd.IsFailed(ctx, "systemd-repart") || runningFromCDROM()) && !ShouldPerformInstall() {
 		return errors.New("unable to begin install without seed configuration")
 	}
 
