@@ -237,6 +237,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
+	// Display a warning if we're running from the backup image.
+	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
+		slog.Warn("Booted from backup " + s.OS.Name + " image version " + s.OS.RunningRelease)
+	}
+
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
 		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
@@ -541,12 +546,20 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		return "", err
 	}
 
+	// If we're running from the backup image don't attempt to re-update to a broken version.
+	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
+		slog.Warn("Latest " + s.OS.Name + " image version " + s.OS.NextRelease + " has been identified as problematic, skipping update")
+
+		return "", nil
+	}
+
+	// Skip any update that isn't newer than what we are already running.
+	if s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
+		return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+	}
+
 	// Apply the update.
 	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
-		if !update.IsNewerThan(s.OS.RunningRelease) {
-			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-
 		// Download the update into place.
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading OS update", "release", update.Version())
