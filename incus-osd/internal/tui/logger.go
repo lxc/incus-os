@@ -52,7 +52,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 	case slog.LevelInfo:
 		levelColor = "[green]"
 	case slog.LevelWarn:
-		levelColor = "[orange]"
+		levelColor = "[yellow]"
 	case slog.LevelError:
 		levelColor = "[red]"
 	}
@@ -83,7 +83,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 		}
 		sort.Strings(keys)
 
-		_, err = buf.WriteString("[pink]")
+		_, err = buf.WriteString("[purple]")
 		if err != nil {
 			return err
 		}

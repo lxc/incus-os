@@ -40,7 +40,7 @@ func (*github) Type() string {
 	return "github"
 }
 
-func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *github) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -51,7 +51,7 @@ func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
 	for _, asset := range p.releaseAssets {
-		if strings.HasPrefix(asset.GetName(), "IncusOS_") && strings.Contains(asset.GetName(), p.releaseVersion) {
+		if strings.HasPrefix(asset.GetName(), osName+"_") && strings.Contains(asset.GetName(), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -178,7 +178,7 @@ func (p *github) checkRelease(ctx context.Context) error {
 	return nil
 }
 
-func (p *github) downloadAsset(ctx context.Context, assetID int64, target string) error {
+func (p *github) downloadAsset(ctx context.Context, assetID int64, target string, progressFunc func(float64)) error {
 	// Get a reader for the release asset.
 	rc, _, err := p.gh.Repositories.DownloadReleaseAsset(ctx, p.organization, p.repository, assetID, http.DefaultClient)
 	if err != nil {
@@ -186,6 +186,13 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 	}
 
 	defer rc.Close()
+
+	// Get the release asset size.
+	ra, _, err := p.gh.Repositories.GetReleaseAsset(ctx, p.organization, p.repository, assetID)
+	if err != nil {
+		return p.checkLimit(err)
+	}
+	srcSize := float64(*ra.Size)
 
 	// Setup a gzip reader to decompress during streaming.
 	body, err := gzip.NewReader(rc)
@@ -205,6 +212,7 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 	defer fd.Close()
 
 	// Read from the decompressor in chunks to avoid excessive memory consumption.
+	count := int64(0)
 	for {
 		_, err = io.CopyN(fd, body, 4*1024*1024)
 		if err != nil {
@@ -214,6 +222,12 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 
 			return err
 		}
+
+		// Update progress every 24MiB.
+		if count%6 == 0 {
+			progressFunc(float64(count*4*1024*1024) / srcSize)
+		}
+		count++
 	}
 
 	return nil
@@ -240,7 +254,7 @@ func (a *githubApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.version, otherVersion)
 }
 
-func (a *githubApplication) Download(ctx context.Context, target string) error {
+func (a *githubApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {
@@ -256,7 +270,7 @@ func (a *githubApplication) Download(ctx context.Context, target string) error {
 		}
 
 		// Download the application.
-		err = a.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")))
+		err = a.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -281,7 +295,7 @@ func (o *githubOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *githubOSUpdate) Download(ctx context.Context, target string) error {
+func (o *githubOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -296,7 +310,7 @@ func (o *githubOSUpdate) Download(ctx context.Context, target string) error {
 
 	for _, asset := range o.assets {
 		// Only select OS files.
-		if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
+		if !strings.HasPrefix(asset.GetName(), osName+"_") {
 			continue
 		}
 
@@ -312,7 +326,7 @@ func (o *githubOSUpdate) Download(ctx context.Context, target string) error {
 		}
 
 		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")))
+		err = o.provider.downloadAsset(ctx, asset.GetID(), filepath.Join(target, strings.TrimSuffix(asset.GetName(), ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}

@@ -237,6 +237,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
+	// Display a warning if we're running from the backup image.
+	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
+		slog.Warn("Booted from backup " + s.OS.Name + " image version " + s.OS.RunningRelease)
+	}
+
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
 		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
@@ -530,7 +535,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.Debug("Checking for OS updates")
 
-	update, err := p.GetOSUpdate(ctx)
+	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
 			slog.Warn("OS update provider is currently unavailable")
@@ -541,31 +546,48 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		return "", err
 	}
 
+	// If we're running from the backup image don't attempt to re-update to a broken version.
+	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
+		slog.Warn("Latest " + s.OS.Name + " image version " + s.OS.NextRelease + " has been identified as problematic, skipping update")
+
+		return "", nil
+	}
+
+	// Skip any update that isn't newer than what we are already running.
+	if s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
+		return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+	}
+
 	// Apply the update.
 	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
-		if !update.IsNewerThan(s.OS.RunningRelease) {
-			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-
 		// Download the update into place.
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
-		err := update.Download(ctx, systemd.SystemUpdatesPath)
+		err := update.Download(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}
+
+		// Hide the progress bar.
+		modal.UpdateProgress(0.0)
+
+		// Record the release. Need to do it here, since if the system reboots as part of the
+		// update we won't be able to save the state to disk.
+		priorNextRelease := s.OS.NextRelease
+		s.OS.NextRelease = update.Version()
+		_ = s.Save(ctx)
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
 		if err != nil {
+			s.OS.NextRelease = priorNextRelease
+			_ = s.Save(ctx)
+
 			return "", err
 		}
-
-		// Record the release.
-		s.OS.NextRelease = update.Version()
 
 		modal.Done()
 
@@ -601,7 +623,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
-		err = app.Download(ctx, systemd.SystemExtensionsPath)
+		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}
