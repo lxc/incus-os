@@ -237,7 +237,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, target string) error {
+func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, target string, progressFunc func(float64)) error {
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
@@ -251,6 +251,9 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 	}
 
 	defer resp.Body.Close()
+
+	// Get the release asset size.
+	srcSize := float64(resp.ContentLength)
 
 	// Setup a gzip reader to decompress during streaming.
 	body, err := gzip.NewReader(resp.Body)
@@ -270,6 +273,7 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 	defer fd.Close()
 
 	// Read from the decompressor in chunks to avoid excessive memory consumption.
+	count := int64(0)
 	for {
 		_, err = io.CopyN(fd, body, 4*1024*1024)
 		if err != nil {
@@ -279,6 +283,12 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 
 			return err
 		}
+
+		// Update progress every 24MiB.
+		if count%6 == 0 {
+			progressFunc(float64(count*4*1024*1024) / srcSize)
+		}
+		count++
 	}
 
 	return nil
@@ -305,7 +315,7 @@ func (a *operationsCenterApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.version, otherVersion)
 }
 
-func (a *operationsCenterApplication) Download(ctx context.Context, target string) error {
+func (a *operationsCenterApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {
@@ -323,7 +333,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, target strin
 		}
 
 		// Download the application.
-		err = a.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")))
+		err = a.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -348,7 +358,7 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) Download(ctx context.Context, target string) error {
+func (o *operationsCenterOSUpdate) Download(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -381,7 +391,7 @@ func (o *operationsCenterOSUpdate) Download(ctx context.Context, target string) 
 		}
 
 		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")))
+		err = o.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}

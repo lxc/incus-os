@@ -564,10 +564,13 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
-		err := update.Download(ctx, systemd.SystemUpdatesPath)
+		err := update.Download(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}
+
+		// Hide the progress bar.
+		modal.UpdateProgress(0.0)
 
 		// Record the release. Need to do it here, since if the system reboots as part of the
 		// update we won't be able to save the state to disk.
@@ -620,7 +623,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
-		err = app.Download(ctx, systemd.SystemExtensionsPath)
+		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}

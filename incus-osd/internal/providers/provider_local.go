@@ -136,7 +136,7 @@ func (p *local) checkRelease(_ context.Context) error {
 	return nil
 }
 
-func (p *local) copyAsset(_ context.Context, name string, target string) error {
+func (p *local) copyAsset(_ context.Context, name string, target string, progressFunc func(float64)) error {
 	// Open the source.
 	// #nosec G304
 	src, err := os.Open(filepath.Join(p.path, name))
@@ -145,6 +145,13 @@ func (p *local) copyAsset(_ context.Context, name string, target string) error {
 	}
 
 	defer src.Close()
+
+	// Get the file size.
+	s, err := src.Stat()
+	if err != nil {
+		return err
+	}
+	srcSize := float64(s.Size())
 
 	// Open the destination.
 	// #nosec G304
@@ -156,6 +163,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string) error {
 	defer dst.Close()
 
 	// Copy the content.
+	count := int64(0)
 	for {
 		_, err := io.CopyN(dst, src, 4*1024*1024)
 		if err != nil {
@@ -165,6 +173,12 @@ func (p *local) copyAsset(_ context.Context, name string, target string) error {
 
 			return err
 		}
+
+		// Update progress every 24MiB.
+		if count%6 == 0 {
+			progressFunc(float64(count*4*1024*1024) / srcSize)
+		}
+		count++
 	}
 
 	return nil
@@ -191,7 +205,7 @@ func (a *localApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.version, otherVersion)
 }
 
-func (a *localApplication) Download(ctx context.Context, target string) error {
+func (a *localApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {
@@ -207,7 +221,7 @@ func (a *localApplication) Download(ctx context.Context, target string) error {
 		}
 
 		// Copy the application.
-		err = a.provider.copyAsset(ctx, filepath.Base(asset), target)
+		err = a.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
 		if err != nil {
 			return err
 		}
@@ -232,7 +246,7 @@ func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) Download(ctx context.Context, target string) error {
+func (o *localOSUpdate) Download(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Clear the path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -263,7 +277,7 @@ func (o *localOSUpdate) Download(ctx context.Context, target string) error {
 		}
 
 		// Download the actual update.
-		err = o.provider.copyAsset(ctx, filepath.Base(asset), target)
+		err = o.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
 		if err != nil {
 			return err
 		}

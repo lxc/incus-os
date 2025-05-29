@@ -11,7 +11,7 @@ type Application interface {
 	Version() string
 	IsNewerThan(otherVersion string) bool
 
-	Download(ctx context.Context, targetPath string) error
+	Download(ctx context.Context, targetPath string, progressFunc func(float64)) error
 }
 
 // OSUpdate represents a full OS update.
@@ -19,7 +19,7 @@ type OSUpdate interface {
 	Version() string
 	IsNewerThan(otherVersion string) bool
 
-	Download(ctx context.Context, targetPath string) error
+	Download(ctx context.Context, targetPath string, progressFunc func(float64)) error
 }
 
 // Provider represents an update/application provider.
