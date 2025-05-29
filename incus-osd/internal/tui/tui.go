@@ -85,8 +85,8 @@ func (t *TUI) Write(p []byte) (int, error) {
 	// Strip out coloring tags before writing to stdout for the journal.
 	s = strings.ReplaceAll(s, "[blue]", "")
 	s = strings.ReplaceAll(s, "[green]", "")
-	s = strings.ReplaceAll(s, "[orange]", "")
-	s = strings.ReplaceAll(s, "[pink]", "")
+	s = strings.ReplaceAll(s, "[yellow]", "")
+	s = strings.ReplaceAll(s, "[purple]", "")
 	s = strings.ReplaceAll(s, "[red]", "")
 	s = strings.ReplaceAll(s, "[white]", "")
 
