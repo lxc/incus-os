@@ -556,16 +556,22 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 			return "", err
 		}
 
+		// Record the release. Need to do it here, since if the system reboots as part of the
+		// update we won't be able to save the state to disk.
+		priorNextRelease := s.OS.NextRelease
+		s.OS.NextRelease = update.Version()
+		_ = s.Save(ctx)
+
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
 		if err != nil {
+			s.OS.NextRelease = priorNextRelease
+			_ = s.Save(ctx)
+
 			return "", err
 		}
-
-		// Record the release.
-		s.OS.NextRelease = update.Version()
 
 		modal.Done()
 
