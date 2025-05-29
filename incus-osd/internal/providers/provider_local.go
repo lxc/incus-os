@@ -260,8 +260,8 @@ func (o *localOSUpdate) Download(ctx context.Context, target string, progressFun
 	}
 
 	for _, asset := range o.assets {
-		// Only select OS files.
-		if !strings.HasPrefix(filepath.Base(asset), "IncusOS_") {
+		// Only select OS files for the expected version.
+		if !strings.HasPrefix(filepath.Base(asset), "IncusOS_"+o.version) {
 			continue
 		}
 
