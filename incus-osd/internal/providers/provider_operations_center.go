@@ -42,7 +42,7 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
-func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -55,7 +55,7 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	for _, asset := range p.releaseAssets {
 		fileName := filepath.Base(asset)
 
-		if strings.HasPrefix(fileName, "IncusOS_") && strings.Contains(fileName, p.releaseVersion) {
+		if strings.HasPrefix(fileName, osName+"_") && strings.Contains(fileName, p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -358,7 +358,7 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -375,7 +375,7 @@ func (o *operationsCenterOSUpdate) Download(ctx context.Context, target string, 
 		fileName := filepath.Base(asset)
 
 		// Only select OS files.
-		if !strings.HasPrefix(fileName, "IncusOS_") {
+		if !strings.HasPrefix(fileName, osName+"_") {
 			continue
 		}
 

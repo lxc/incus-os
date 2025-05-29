@@ -535,7 +535,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.Debug("Checking for OS updates")
 
-	update, err := p.GetOSUpdate(ctx)
+	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
 			slog.Warn("OS update provider is currently unavailable")
@@ -564,7 +564,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
-		err := update.Download(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
+		err := update.Download(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}

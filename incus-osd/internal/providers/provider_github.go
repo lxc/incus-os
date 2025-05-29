@@ -40,7 +40,7 @@ func (*github) Type() string {
 	return "github"
 }
 
-func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *github) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -51,7 +51,7 @@ func (p *github) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
 	for _, asset := range p.releaseAssets {
-		if strings.HasPrefix(asset.GetName(), "IncusOS_") && strings.Contains(asset.GetName(), p.releaseVersion) {
+		if strings.HasPrefix(asset.GetName(), osName+"_") && strings.Contains(asset.GetName(), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -295,7 +295,7 @@ func (o *githubOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *githubOSUpdate) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (o *githubOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -310,7 +310,7 @@ func (o *githubOSUpdate) Download(ctx context.Context, target string, progressFu
 
 	for _, asset := range o.assets {
 		// Only select OS files.
-		if !strings.HasPrefix(asset.GetName(), "IncusOS_") {
+		if !strings.HasPrefix(asset.GetName(), osName+"_") {
 			continue
 		}
 

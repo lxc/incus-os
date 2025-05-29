@@ -28,7 +28,7 @@ func (*local) Type() string {
 	return "local"
 }
 
-func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *local) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -39,7 +39,7 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
 	for _, asset := range p.releaseAssets {
-		if strings.HasPrefix(filepath.Base(asset), "IncusOS_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+		if strings.HasPrefix(filepath.Base(asset), osName+"_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -246,7 +246,7 @@ func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (o *localOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
 	// Clear the path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -261,7 +261,7 @@ func (o *localOSUpdate) Download(ctx context.Context, target string, progressFun
 
 	for _, asset := range o.assets {
 		// Only select OS files for the expected version.
-		if !strings.HasPrefix(filepath.Base(asset), "IncusOS_"+o.version) {
+		if !strings.HasPrefix(filepath.Base(asset), osName+"_"+o.version) {
 			continue
 		}
 
