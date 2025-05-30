@@ -17,7 +17,15 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		// Return the current network configuration.
+		// Refresh network state; needed to get current LLDP info.
+		err := systemd.UpdateNetworkState(r.Context(), &s.state.System.Network)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		// Return the current network state.
 		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
 	case http.MethodPatch, http.MethodPut:
 		// Apply an update or completely replace the network configuration.
