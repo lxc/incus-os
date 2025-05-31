@@ -517,7 +517,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	// Copy the partition contents. We skip the first (ESP) partition, because we've copied
 	// everything in that partition above.
 	for idx := 2; idx <= numPartitionsToCopy; idx++ {
-		err := doCopy(modal, sourceDevice, sourcePartitionPrefix, targetDevice, targetPartitionPrefix, idx, numPartitionsToCopy)
+		err := doCopy(ctx, modal, sourceDevice, sourcePartitionPrefix, targetDevice, targetPartitionPrefix, idx, numPartitionsToCopy)
 		if err != nil {
 			return err
 		}
@@ -600,21 +600,42 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 	return err
 }
 
-func doCopy(modal *tui.Modal, sourceDevice string, sourcePartitionPrefix string, targetDevice string, targetPartitionPrefix string, partitionIndex int, numPartitionsToCopy int) error {
+func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePartitionPrefix string, targetDevice string, targetPartitionPrefix string, partitionIndex int, numPartitionsToCopy int) error {
 	sourcePartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex), os.O_RDONLY, 0o0600)
 	if err != nil {
 		return err
 	}
 	defer sourcePartition.Close()
 
-	partitionSize, err := sourcePartition.Seek(0, io.SeekEnd)
-	if err != nil {
-		return err
-	}
+	var partitionSize int64
 
-	_, err = sourcePartition.Seek(0, 0)
-	if err != nil {
-		return err
+	// Optimize copying of the /usr erofs partition by only copying the actual data.
+	output, err := subprocess.RunCommandContext(ctx, "dump.erofs", fmt.Sprintf("%s%s%d", sourceDevice, sourcePartitionPrefix, partitionIndex))
+	if err == nil {
+		blocksizeRegex := regexp.MustCompile(`Filesystem blocksize:                         (.+)`)
+		blocksRegex := regexp.MustCompile(`Filesystem blocks:                            (.+)`)
+
+		blocksize, err := strconv.Atoi(blocksizeRegex.FindStringSubmatch(output)[1])
+		if err != nil {
+			return err
+		}
+		blocks, err := strconv.Atoi(blocksRegex.FindStringSubmatch(output)[1])
+		if err != nil {
+			return err
+		}
+
+		partitionSize = int64(blocksize * blocks)
+	} else {
+		// Not an erofs image, so fallback to whole partition.
+		partitionSize, err = sourcePartition.Seek(0, io.SeekEnd)
+		if err != nil {
+			return err
+		}
+
+		_, err = sourcePartition.Seek(0, 0)
+		if err != nil {
+			return err
+		}
 	}
 
 	targetPartition, err := os.OpenFile(fmt.Sprintf("%s%s%d", targetDevice, targetPartitionPrefix, partitionIndex), os.O_WRONLY, 0o0600)
@@ -625,10 +646,11 @@ func doCopy(modal *tui.Modal, sourceDevice string, sourcePartitionPrefix string,
 
 	modal.Update(fmt.Sprintf("Copying partition %d of %d.", partitionIndex, numPartitionsToCopy))
 
-	// Copy data in 1MiB chunks.
+	// Copy data in 4MiB chunks.
+	blockSize := int64(4 * 1024 * 1024)
 	count := int64(0)
 	for {
-		_, err := io.CopyN(targetPartition, sourcePartition, 1024*1024)
+		_, err := io.CopyN(targetPartition, sourcePartition, blockSize)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -637,11 +659,16 @@ func doCopy(modal *tui.Modal, sourceDevice string, sourcePartitionPrefix string,
 			return err
 		}
 
-		// Update progress every 25MiB.
-		if count%25 == 0 {
-			modal.UpdateProgress(float64(count*1024*1024) / float64(partitionSize))
+		// Update progress every 24MiB.
+		if count%6 == 0 {
+			modal.UpdateProgress(float64(count*blockSize) / float64(partitionSize))
 		}
 		count++
+
+		// Break out of copy loop early, if possible.
+		if count*blockSize > partitionSize {
+			break
+		}
 	}
 
 	// Hide the progress bar.
