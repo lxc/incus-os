@@ -184,4 +184,9 @@ jobs:
           sleep 3m
 
           incus exec test-incus-os -- journalctl -u incus-osd -b0
-          incus exec test-incus-os -- grep IMAGE_VERSION /usr/lib/os-release
+
+          incus restart test-incus-os
+
+          sleep 1m
+
+          incus exec test-incus-os -- grep $RELEASE /usr/lib/os-release
