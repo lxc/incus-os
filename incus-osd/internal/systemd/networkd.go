@@ -2,6 +2,7 @@ package systemd
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -24,7 +25,12 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
+func ApplyNetworkConfiguration(ctx context.Context, n *api.SystemNetwork, timeout time.Duration) error {
+	if n == nil {
+		return errors.New("SystemNetwork cannot be nil")
+	}
+	networkCfg := n.Config
+
 	err := ValidateNetworkConfiguration(networkCfg)
 	if err != nil {
 		return err
@@ -100,6 +106,241 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig) error {
 	}
 
 	return nil
+}
+
+// UpdateNetworkState updates the network state within the SystemNetwork struct.
+func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
+	// Clear any existing state.
+	n.State = api.SystemNetworkState{
+		Interfaces: make(map[string]api.SystemNetworkInterfaceState),
+	}
+
+	var err error
+	// State update for interfaces.
+	for _, i := range n.Config.Interfaces {
+		n.State.Interfaces[i.Name], err = getInterfaceState(ctx, "interface", i.Name, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	// State update for bonds.
+	for _, b := range n.Config.Bonds {
+		members := make(map[string]api.SystemNetworkInterfaceState)
+		for _, m := range b.Members {
+			mName := "en" + strings.ToLower(strings.ReplaceAll(m, ":", ""))
+			members[mName], err = getInterfaceState(ctx, "", mName, nil)
+			if err != nil {
+				return err
+			}
+		}
+
+		n.State.Interfaces[b.Name], err = getInterfaceState(ctx, "bond", b.Name, members)
+		if err != nil {
+			return err
+		}
+	}
+
+	// State update for vlans.
+	for _, v := range n.Config.VLANs {
+		n.State.Interfaces[v.Name], err = getInterfaceState(ctx, "vlan", v.Name, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getInterfaceState runs various commands to gather network state for a specific interface.
+func getInterfaceState(ctx context.Context, ifaceType string, iface string, members map[string]api.SystemNetworkInterfaceState) (api.SystemNetworkInterfaceState, error) {
+	// Get IPs for the interface.
+	ips, err := getIPAddresses(ctx, iface)
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	// Get routes for the interface.
+	routes := []api.SystemNetworkRoute{}
+	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
+	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", iface)
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	for _, r := range routeRegex.FindAllStringSubmatch(output, -1) {
+		routes = append(routes, api.SystemNetworkRoute{
+			To:  r[1],
+			Via: r[2],
+		})
+	}
+
+	// Get various details from networkctl. It would be better to use the json output
+	// option, but that doesn't include everything we're interested in.
+	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", iface)
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	stateRegex := regexp.MustCompile(`State: (.+?) `)
+	state := ""
+	if len(stateRegex.FindStringSubmatch(output)) == 2 {
+		state = stateRegex.FindStringSubmatch(output)[1]
+	}
+
+	localMACRegex := regexp.MustCompile(`  Hardware Address: (.+)`)
+	localMAC := ""
+	if len(localMACRegex.FindStringSubmatch(output)) == 2 {
+		localMAC = localMACRegex.FindStringSubmatch(output)[1]
+	}
+
+	remoteMACRegex := regexp.MustCompile(`Permanent Hardware Address: (.+)`)
+	remoteMAC := ""
+	if len(remoteMACRegex.FindStringSubmatch(output)) == 2 {
+		remoteMAC = remoteMACRegex.FindStringSubmatch(output)[1]
+	}
+
+	speedRegex := regexp.MustCompile(`Speed: (.+)`)
+	speed := ""
+	if len(speedRegex.FindStringSubmatch(output)) == 2 {
+		speed = speedRegex.FindStringSubmatch(output)[1]
+	}
+
+	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
+	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	rxBytesRegex := regexp.MustCompile(`Rx Bytes: (.+)`)
+	rxBytes, err := strconv.Atoi(rxBytesRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	txBytesRegex := regexp.MustCompile(`Tx Bytes: (.+)`)
+	txBytes, err := strconv.Atoi(txBytesRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	rxErrorsRegex := regexp.MustCompile(`Rx Errors: (.+)`)
+	rxErrors, err := strconv.Atoi(rxErrorsRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	txErrorsRegex := regexp.MustCompile(`Tx Errors: (.+)`)
+	txErrors, err := strconv.Atoi(txErrorsRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	// Fetch any LLDP info.
+	lldp := []api.SystemNetworkLLDPState{}
+	if ifaceType == "interface" || ifaceType == "" {
+		lldpIface := iface
+		if ifaceType == "interface" {
+			lldpIface = "en" + strings.ToLower(strings.ReplaceAll(localMAC, ":", ""))
+		}
+		lldp, err = getLLDPInfo(ctx, lldpIface)
+		if err != nil {
+			return api.SystemNetworkInterfaceState{}, err
+		}
+	}
+
+	// Get LACP info for a bond member.
+	var lacp *api.SystemNetworkLACPState
+	if ifaceType == "" {
+		lacp = &api.SystemNetworkLACPState{
+			LocalMAC:  localMAC,
+			RemoteMAC: remoteMAC,
+		}
+	}
+
+	return api.SystemNetworkInterfaceState{
+		Type:      ifaceType,
+		Addresses: ips,
+		Routes:    routes,
+		MTU:       mtu,
+		Speed:     speed,
+		State:     state,
+		Stats: api.SystemNetworkInterfaceStats{
+			RXBytes:  rxBytes,
+			TXBytes:  txBytes,
+			RXErrors: rxErrors,
+			TXErrors: txErrors,
+		},
+		LLDP:    lldp,
+		LACP:    lacp,
+		Members: members,
+	}, nil
+}
+
+// getIPAddresses returns any non-link-local address for an interface.
+func getIPAddresses(ctx context.Context, iface string) ([]string, error) {
+	ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
+
+	output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", iface)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []string{}
+	matches := ipAddressRegex.FindAllStringSubmatch(output, -1)
+
+	for _, addr := range matches {
+		// Don't count link-local addresses.
+		if strings.HasPrefix(addr[1], "169.254.") || strings.HasPrefix(addr[1], "fe80:") {
+			continue
+		}
+
+		ret = append(ret, addr[1])
+	}
+
+	return ret, nil
+}
+
+// getLLDPInfo returns current LLDP information for the interface's underlying physical device.
+func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPState, error) {
+	output, err := subprocess.RunCommandContext(ctx, "networkctl", "lldp", "--json=short", iface)
+	if err != nil {
+		return nil, err
+	}
+
+	type lldpStruct struct {
+		Neighbors []struct {
+			InterfaceName string `json:"InterfaceName"` //nolint:tagliatelle
+			Neighbors     []struct {
+				SystemName      string `json:"SystemName"`      //nolint:tagliatelle
+				ChassisID       string `json:"ChassisID"`       //nolint:tagliatelle
+				PortID          string `json:"PortID"`          //nolint:tagliatelle
+				PortDescription string `json:"PortDescription"` //nolint:tagliatelle
+			} `json:"Neighbors"` //nolint:tagliatelle
+		} `json:"Neighbors"` //nolint:tagliatelle
+	}
+
+	lldp := lldpStruct{}
+	err = json.Unmarshal([]byte(output), &lldp)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(lldp.Neighbors) == 0 {
+		return nil, nil
+	}
+
+	ret := []api.SystemNetworkLLDPState{}
+	for _, n := range lldp.Neighbors[0].Neighbors {
+		ret = append(ret, api.SystemNetworkLLDPState{
+			Name:      n.SystemName,
+			ChassisID: n.ChassisID,
+			PortID:    n.PortID,
+			Port:      n.PortDescription,
+		})
+	}
+
+	return ret, nil
 }
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
@@ -208,27 +449,10 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 		return strings.Contains(output, "Online state: online"), strings.Contains(output, "Required For Online: yes")
 	}
 
-	hasAtLeastOneConfiguredIP := func(name string) bool {
-		ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
+	hasAtLeastOneConfiguredIP := func(iface string) bool {
+		ips, _ := getIPAddresses(ctx, iface)
 
-		output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", name)
-		if err != nil {
-			return false
-		}
-
-		numIPs := 0
-		matches := ipAddressRegex.FindAllStringSubmatch(output, -1)
-
-		for _, addr := range matches {
-			// Don't count link-local addresses.
-			if strings.HasPrefix(addr[1], "169.254.") || strings.HasPrefix(addr[1], "fe80:") {
-				continue
-			}
-
-			numIPs++
-		}
-
-		return numIPs > 0
+		return len(ips) > 0
 	}
 
 	endTime := time.Now().Add(timeout)

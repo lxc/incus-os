@@ -153,7 +153,7 @@ jobs:
 
           incus exec test-incus-os -- systemctl restart incus-osd
 
-          sleep 1m
+          sleep 3m
 
           incus exec test-incus-os -- journalctl -u incus-osd -b0
 

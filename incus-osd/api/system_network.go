@@ -4,7 +4,7 @@ package api
 type SystemNetwork struct {
 	Config *SystemNetworkConfig `json:"config" yaml:"config"`
 
-	State struct{} `json:"state" yaml:"state"`
+	State SystemNetworkState `json:"state" yaml:"state"`
 }
 
 // SystemNetworkConfig represents the user modifiable network configuration.
@@ -84,4 +84,45 @@ type SystemNetworkProxy struct {
 	HTTPProxy  string `json:"http_proxy"  yaml:"http_proxy"`
 	HTTPSProxy string `json:"https_proxy" yaml:"https_proxy"`
 	NoProxy    string `json:"no_proxy"    yaml:"no_proxy"`
+}
+
+// SystemNetworkState holds information about the current network state.
+type SystemNetworkState struct {
+	Interfaces map[string]SystemNetworkInterfaceState `json:"interfaces" yaml:"interfaces"`
+}
+
+// SystemNetworkInterfaceState holds state information about a specific network interface.
+type SystemNetworkInterfaceState struct {
+	Type      string                                 `json:"type,omitempty"      yaml:"type,omitempty"`
+	Addresses []string                               `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	Routes    []SystemNetworkRoute                   `json:"routes,omitempty"    yaml:"routes,omitempty"`
+	MTU       int                                    `json:"mtu"                 yaml:"mtu"`
+	Speed     string                                 `json:"speed,omitempty"     yaml:"speed,omitempty"`
+	State     string                                 `json:"state"               yaml:"state"`
+	Stats     SystemNetworkInterfaceStats            `json:"stats"               yaml:"stats"`
+	LLDP      []SystemNetworkLLDPState               `json:"lldp,omitempty"      yaml:"lldp,omitempty"`
+	LACP      *SystemNetworkLACPState                `json:"lacp,omitempty"      yaml:"lacp,omitempty"`
+	Members   map[string]SystemNetworkInterfaceState `json:"members,omitempty"   yaml:"members,omitempty"`
+}
+
+// SystemNetworkInterfaceStats holds RX/TX stats for an interface.
+type SystemNetworkInterfaceStats struct {
+	RXBytes  int `json:"rx_bytes"  yaml:"rx_bytes"`
+	TXBytes  int `json:"tx_bytes"  yaml:"tx_bytes"`
+	RXErrors int `json:"rx_errors" yaml:"rx_errors"`
+	TXErrors int `json:"tx_errors" yaml:"tx_errors"`
+}
+
+// SystemNetworkLLDPState holds information about the LLDP state.
+type SystemNetworkLLDPState struct {
+	Name      string `json:"name"           yaml:"name"`
+	ChassisID string `json:"chassis_id"     yaml:"chassis_id"`
+	PortID    string `json:"port_id"        yaml:"port_id"`
+	Port      string `json:"port,omitempty" yaml:"port,omitempty"`
+}
+
+// SystemNetworkLACPState holds information about a bond's LACP state.
+type SystemNetworkLACPState struct {
+	LocalMAC  string `json:"local_mac"  yaml:"local_mac"`
+	RemoteMAC string `json:"remote_mac" yaml:"remote_mac"`
 }
