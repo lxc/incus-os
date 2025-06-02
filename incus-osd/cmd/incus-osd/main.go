@@ -306,32 +306,10 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Run application startup actions.
-	for appName, appInfo := range s.Applications {
-		// Get the application.
-		app, err := applications.Load(ctx, appName)
+	for appName := range s.Applications {
+		err := startInitializeApplication(ctx, s, appName)
 		if err != nil {
 			return err
-		}
-
-		// Start the application.
-		slog.Info("Starting application", "name", appName, "version", appInfo.Version)
-
-		err = app.Start(ctx, appInfo.Version)
-		if err != nil {
-			return err
-		}
-
-		// Run initialization if needed.
-		if !appInfo.Initialized {
-			slog.Info("Initializing application", "name", appName, "version", appInfo.Version)
-
-			err = app.Initialize(ctx)
-			if err != nil {
-				return err
-			}
-
-			appInfo.Initialized = true
-			s.Applications[appName] = appInfo
 		}
 	}
 
@@ -381,8 +359,49 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	return nil
 }
 
+func startInitializeApplication(ctx context.Context, s *state.State, appName string) error {
+	appInfo := s.Applications[appName]
+
+	// Get the application.
+	app, err := applications.Load(ctx, appName)
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	slog.Info("Starting application", "name", appName, "version", appInfo.Version)
+
+	err = app.Start(ctx, appInfo.Version)
+	if err != nil {
+		return err
+	}
+
+	// Run initialization if needed.
+	if !appInfo.Initialized {
+		slog.Info("Initializing application", "name", appName, "version", appInfo.Version)
+
+		err = app.Initialize(ctx)
+		if err != nil {
+			return err
+		}
+
+		appInfo.Initialized = true
+		s.Applications[appName] = appInfo
+	}
+
+	return nil
+}
+
 func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) {
 	var modal *tui.Modal
+
+	showModalError := func(msg string, err error) {
+		slog.Error(msg, "err", err.Error(), "provider", p.Type())
+		if modal == nil {
+			modal = t.AddModal(s.OS.Name + " Update")
+		}
+		modal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
+	}
 
 	for {
 		// Sleep at the top of each loop, except if we're performing a startup check.
@@ -403,7 +422,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Determine what applications to install.
 		toInstall := []string{"incus"}
 
-		if len(s.Applications) == 0 && isStartupCheck {
+		if len(s.Applications) == 0 && (isStartupCheck || isUserRequested) {
 			// Assume first start of the daemon.
 			apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
 			if err != nil && !seed.IsMissing(err) {
@@ -436,11 +455,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Check for the latest OS update.
 		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
 		if err != nil {
-			slog.Error("Failed to check for OS updates", "err", err.Error(), "provider", p.Type())
-			if modal == nil {
-				modal = t.AddModal(s.OS.Name + " Update")
-			}
-			modal.Update("[red]Error[white] Failed to check for OS updates: " + err.Error() + " (provider: " + p.Type() + ")")
+			showModalError("Failed to check for OS updates", err)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -461,11 +476,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
-				slog.Error("Failed to check for application updates", "err", err.Error(), "provider", p.Type())
-				if modal == nil {
-					modal = t.AddModal(s.OS.Name + " Update")
-				}
-				modal.Update("[red]Error[white] Failed to check for application updates: " + err.Error() + " (provider: " + p.Type() + ")")
+				showModalError("Failed to check for application updates", err)
 
 				break
 			}
@@ -480,11 +491,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			slog.Debug("Refreshing system extensions")
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
-				slog.Error("Failed to refresh system extensions", "err", err.Error())
-				if modal == nil {
-					modal = t.AddModal(s.OS.Name + " Update")
-				}
-				modal.Update("[red]Error[white] Failed to refresh system extensions: " + err.Error())
+				showModalError("Failed to refresh system extensions", err)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -499,28 +506,29 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Get the application.
 			app, err := applications.Load(ctx, appName)
 			if err != nil {
-				slog.Error("Failed to load application", "err", err.Error())
-				if modal == nil {
-					modal = t.AddModal(s.OS.Name + " Update")
-				}
-				modal.Update("[red]Error[white] Failed to load application: " + err.Error())
+				showModalError("Failed to load application", err)
 
 				continue
 			}
 
-			// Reload the application.
+			// Start/reload the application.
 			if !isStartupCheck {
-				slog.Info("Reloading application", "name", appName, "version", appVersion)
+				if app.IsRunning(ctx) {
+					slog.Info("Reloading application", "name", appName, "version", appVersion)
 
-				err = app.Update(ctx, appVersion)
-				if err != nil {
-					slog.Error("Failed to update application", "err", err.Error())
-					if modal == nil {
-						modal = t.AddModal(s.OS.Name + " Update")
+					err := app.Update(ctx, appVersion)
+					if err != nil {
+						showModalError("Failed to reload application", err)
+
+						continue
 					}
-					modal.Update("[red]Error[white] Failed to update application: " + err.Error())
+				} else {
+					err := startInitializeApplication(ctx, s, appName)
+					if err != nil {
+						showModalError("Failed to start application", err)
 
-					continue
+						continue
+					}
 				}
 			}
 		}

@@ -94,6 +94,11 @@ func (a *incus) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// IsRunning reports if the application is currently running.
+func (*incus) IsRunning(ctx context.Context) bool {
+	return systemd.IsActive(ctx, "incus.service")
+}
+
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()

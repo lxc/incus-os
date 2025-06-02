@@ -121,7 +121,7 @@ test-applications:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- systemctl restart incus-osd
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
 
 .PHONY: test-update
 test-update:
@@ -134,7 +134,7 @@ test-update:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- systemctl restart incus-osd
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
 
 .PHONY: update-gomod
 update-gomod:
