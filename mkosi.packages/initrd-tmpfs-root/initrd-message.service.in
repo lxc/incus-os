@@ -8,7 +8,7 @@ DefaultDependencies=no
 Type=oneshot
 
 Environment=MSG="@OSNAME@ is starting..."
-Environment=TTYS="/dev/tty1 /dev/tty2 /dev/tty3 /dev/tty4 /dev/tty5 /dev/tty6 /dev/tty6 /dev/tty7 /dev/ttyS0"
+Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
 ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY; done"
 

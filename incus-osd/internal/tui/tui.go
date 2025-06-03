@@ -39,7 +39,7 @@ func NewTUI(s *state.State) (*TUI, error) {
 	}
 
 	// Attempt to open the system's consoles.
-	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/tty2", "/dev/tty3", "/dev/tty4", "/dev/tty5", "/dev/tty6", "/dev/tty7", "/dev/ttyS0")
+	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/ttyS0")
 	if err != nil {
 		return ret, err
 	}
