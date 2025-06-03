@@ -112,7 +112,8 @@ func (t *TUI) Run() error {
 				modalIndex := i % numModals
 				t.renderModal(fmt.Sprintf("[%d/%d] %s", modalIndex+1, numModals, t.modalMessages[modalIndex].title), t.modalMessages[modalIndex].message, t.modalMessages[modalIndex].progress)
 			case numModals == 1:
-				t.renderModal(t.modalMessages[0].title, t.modalMessages[0].message, t.modalMessages[0].progress)
+				// No point in re-drawing anything when there's just one modal. Any updates to it
+				// will have already been drawn in `quickDraw()`.
 			default:
 				// No modal to display.
 				t.pages.RemovePage("modal")
