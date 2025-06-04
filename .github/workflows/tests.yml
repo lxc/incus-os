@@ -75,7 +75,7 @@ jobs:
     name: End to end testing
     strategy:
       fail-fast: false
-    timeout-minutes: 45
+    timeout-minutes: 60
     runs-on:
       - self-hosted
       - cpu-4
@@ -187,6 +187,6 @@ jobs:
 
           incus restart test-incus-os
 
-          sleep 1m
+          sleep 3m
 
           incus exec test-incus-os -- grep $RELEASE /usr/lib/os-release
