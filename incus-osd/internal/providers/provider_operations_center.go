@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/osarch"
 )
 
 // The Operations Center provider.
@@ -171,6 +172,12 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	p.releaseMu.Lock()
 	defer p.releaseMu.Unlock()
 
+	// Get local architecture.
+	archName, err := osarch.ArchitectureGetLocal()
+	if err != nil {
+		return err
+	}
+
 	// Only talk to Operations Center once an hour.
 	if !p.releaseLastCheck.IsZero() && p.releaseLastCheck.Add(time.Hour).After(time.Now()) {
 		return nil
@@ -178,13 +185,17 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	// API structs.
 	type update struct {
-		ID      string `json:"id"`
+		Channel string `json:"channel"`
+		UUID    string `json:"uuid"`
 		Version string `json:"version"`
 	}
 
 	type updateFile struct {
-		Filename string `json:"filename"`
-		Size     int64  `json:"size"`
+		Filename     string `json:"filename"`
+		Size         int64  `json:"size"`
+		Component    string `json:"component"`
+		Type         string `json:"type"`
+		Architecture string `json:"architecture"`
 	}
 
 	// Get the latest release.
@@ -208,7 +219,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	latestRelease := updates[0].Version
 
 	// Get the file list.
-	apiResp, err = p.apiRequest(ctx, "/1.0/provisioning/updates/"+updates[0].ID+"/files")
+	apiResp, err = p.apiRequest(ctx, "/1.0/provisioning/updates/"+updates[0].UUID+"/files")
 	if err != nil {
 		return err
 	}
@@ -226,7 +237,11 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	latestReleaseFiles := make([]string, 0, len(files))
 	for _, file := range files {
-		latestReleaseFiles = append(latestReleaseFiles, p.serverURL+"/1.0/provisioning/updates/"+updates[0].ID+"/files/"+file.Filename)
+		if file.Architecture != archName {
+			continue
+		}
+
+		latestReleaseFiles = append(latestReleaseFiles, p.serverURL+"/1.0/provisioning/updates/"+updates[0].UUID+"/files/"+file.Filename)
 	}
 
 	// Record the release.
