@@ -39,7 +39,7 @@ func NewTUI(s *state.State) (*TUI, error) {
 	}
 
 	// Attempt to open the system's consoles.
-	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/tty2", "/dev/tty3", "/dev/tty4", "/dev/tty5", "/dev/tty6", "/dev/tty7", "/dev/ttyS0")
+	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/ttyS0")
 	if err != nil {
 		return ret, err
 	}
@@ -112,7 +112,8 @@ func (t *TUI) Run() error {
 				modalIndex := i % numModals
 				t.renderModal(fmt.Sprintf("[%d/%d] %s", modalIndex+1, numModals, t.modalMessages[modalIndex].title), t.modalMessages[modalIndex].message, t.modalMessages[modalIndex].progress)
 			case numModals == 1:
-				t.renderModal(t.modalMessages[0].title, t.modalMessages[0].message, t.modalMessages[0].progress)
+				// No point in re-drawing anything when there's just one modal. Any updates to it
+				// will have already been drawn in `quickDraw()`.
 			default:
 				// No modal to display.
 				t.pages.RemovePage("modal")

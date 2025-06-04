@@ -644,7 +644,7 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 	}
 	defer targetPartition.Close()
 
-	modal.Update(fmt.Sprintf("Copying partition %d of %d.", partitionIndex, numPartitionsToCopy))
+	modal.Update(fmt.Sprintf("Copying partition %d of %d (%.2fMiB).", partitionIndex, numPartitionsToCopy, float64(partitionSize)/1024.0/1024.0))
 
 	// Copy data in 4MiB chunks.
 	blockSize := int64(4 * 1024 * 1024)
@@ -659,10 +659,6 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 			return err
 		}
 
-		// Update progress every 24MiB.
-		if count%6 == 0 {
-			modal.UpdateProgress(float64(count*blockSize) / float64(partitionSize))
-		}
 		count++
 
 		// Break out of copy loop early, if possible.
@@ -670,9 +666,6 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 			break
 		}
 	}
-
-	// Hide the progress bar.
-	modal.UpdateProgress(0.0)
 
 	return nil
 }
