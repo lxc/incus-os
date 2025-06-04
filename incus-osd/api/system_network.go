@@ -9,9 +9,9 @@ type SystemNetwork struct {
 
 // SystemNetworkConfig represents the user modifiable network configuration.
 type SystemNetworkConfig struct {
-	DNS   *SystemNetworkDNS   `json:"dns"   yaml:"dns"`
-	NTP   *SystemNetworkNTP   `json:"ntp"   yaml:"ntp"`
-	Proxy *SystemNetworkProxy `json:"proxy" yaml:"proxy"`
+	DNS   *SystemNetworkDNS   `json:"dns,omitempty"   yaml:"dns,omitempty"`
+	NTP   *SystemNetworkNTP   `json:"ntp,omitempty"   yaml:"ntp,omitempty"`
+	Proxy *SystemNetworkProxy `json:"proxy,omitempty" yaml:"proxy,omitempty"`
 
 	Interfaces []SystemNetworkInterface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
 	Bonds      []SystemNetworkBond      `json:"bonds,omitempty"      yaml:"bonds,omitempty"`
@@ -22,7 +22,7 @@ type SystemNetworkConfig struct {
 type SystemNetworkInterface struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	MTU               int                  `json:"mtu"                           yaml:"mtu"`
-	VLAN              int                  `json:"vlan"                          yaml:"vlan"`
+	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
 	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
@@ -37,12 +37,12 @@ type SystemNetworkBond struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	Mode              string               `json:"mode"                          yaml:"mode"`
 	MTU               int                  `json:"mtu"                           yaml:"mtu"`
-	VLAN              int                  `json:"vlan"                          yaml:"vlan"`
+	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
 	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
-	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
+	Hwaddr            string               `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
 	Members           []string             `json:"members,omitempty"             yaml:"members,omitempty"`
 	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
