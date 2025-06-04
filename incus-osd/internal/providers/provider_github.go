@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	ghapi "github.com/google/go-github/v68/github"
+	ghapi "github.com/google/go-github/v72/github"
 )
 
 // The Github provider.
