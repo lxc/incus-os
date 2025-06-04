@@ -15,6 +15,11 @@ incus-osd:
 	(cd incus-osd && go build ./cmd/incus-osd)
 	strip incus-osd/incus-osd
 
+.PHONY: flasher-tool
+flasher-tool:
+	(cd incus-osd && go build ./cmd/flasher-tool)
+	strip incus-osd/flasher-tool
+
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -30,7 +35,7 @@ static-analysis:
 	(cd incus-osd && golangci-lint run)
 
 .PHONY: build
-build: incus-osd initrd-deb-package
+build: incus-osd flasher-tool initrd-deb-package
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
