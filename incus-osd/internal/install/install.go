@@ -77,7 +77,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
-		config, err := seed.GetInstallConfig(seed.SeedPartitionPath)
+		config, err := seed.GetInstall(seed.SeedPartitionPath)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
@@ -99,7 +99,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 // ShouldPerformInstall checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
 func ShouldPerformInstall() bool {
-	_, err := seed.GetInstallConfig(seed.SeedPartitionPath)
+	_, err := seed.GetInstall(seed.SeedPartitionPath)
 
 	// If we have any empty install file, that should still trigger an install.
 	if errors.Is(err, io.EOF) {
@@ -116,7 +116,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 	}
 
 	var err error
-	ret.config, err = seed.GetInstallConfig(seed.SeedPartitionPath)
+	ret.config, err = seed.GetInstall(seed.SeedPartitionPath)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}

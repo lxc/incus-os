@@ -14,8 +14,8 @@ type InstallSeedTarget struct {
 	ID string `json:"id" yaml:"id"` // Name as listed in /dev/disk/by-id/, glob supported.
 }
 
-// GetInstallConfig extracts the installation config from the seed data.
-func GetInstallConfig(partition string) (*InstallSeed, error) {
+// GetInstall extracts the installation config from the seed data.
+func GetInstall(partition string) (*InstallSeed, error) {
 	// Get the install configuration.
 	var config InstallSeed
 
