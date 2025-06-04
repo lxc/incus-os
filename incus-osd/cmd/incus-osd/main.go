@@ -259,6 +259,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Get the provider.
 	var provider string
+	var providerConfig map[string]string
 
 	switch mode {
 	case "production":
@@ -269,7 +270,23 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return errors.New("currently unsupported operating mode")
 	}
 
-	p, err := providers.Load(ctx, provider, nil)
+	if s.System.Provider.Config.Name != "" {
+		provider = s.System.Provider.Config.Name
+		providerConfig = s.System.Provider.Config.Config
+	} else {
+		providerSeed, err := seed.GetProvider(ctx, seed.SeedPartitionPath)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
+
+		if providerSeed != nil {
+			s.System.Provider.Config = providerSeed.SystemProviderConfig
+			provider = s.System.Provider.Config.Name
+			providerConfig = s.System.Provider.Config.Config
+		}
+	}
+
+	p, err := providers.Load(ctx, provider, providerConfig)
 	if err != nil {
 		return err
 	}
