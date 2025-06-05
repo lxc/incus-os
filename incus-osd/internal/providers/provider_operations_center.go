@@ -3,6 +3,7 @@ package providers
 import (
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -131,9 +132,58 @@ func (p *operationsCenter) load(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) apiRequest(ctx context.Context, path string) (*api.Response, error) {
+func (p *operationsCenter) configureTLS() error {
+	// Load the certificate.
+	tlsClientCert, err := os.ReadFile("/var/lib/incus/server.crt")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	tlsClientKey, err := os.ReadFile("/var/lib/incus/server.key")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	// Create the TLS config.
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}
+
+	clientCert, err := tls.X509KeyPair(tlsClientCert, tlsClientKey)
+	if err != nil {
+		return err
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{clientCert}
+
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	p.client.Transport = tr
+
+	return nil
+}
+
+func (p *operationsCenter) apiRequest(ctx context.Context, method string, path string, data io.Reader) (*api.Response, error) {
+	// Attempt to configure TLS on the client if needed.
+	if p.client.Transport == nil {
+		err := p.configureTLS()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Prepare the request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.serverURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, method, p.serverURL+path, data)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +249,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	}
 
 	// Get the latest release.
-	apiResp, err := p.apiRequest(ctx, "/1.0/provisioning/updates?recursion=1")
+	apiResp, err := p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates?recursion=1", nil)
 	if err != nil {
 		return err
 	}
@@ -219,7 +269,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	latestRelease := updates[0].Version
 
 	// Get the file list.
-	apiResp, err = p.apiRequest(ctx, "/1.0/provisioning/updates/"+updates[0].UUID+"/files")
+	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+updates[0].UUID+"/files", nil)
 	if err != nil {
 		return err
 	}
