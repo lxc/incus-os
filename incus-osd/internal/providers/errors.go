@@ -9,3 +9,6 @@ var ErrProviderUnavailable = errors.New("provider isn't currently available")
 
 // ErrNoUpdateAvailable is returned if no OS or application update is available.
 var ErrNoUpdateAvailable = errors.New("no update available")
+
+// ErrRegistrationUnsupported is returned if the provider doesn't (currently) support registration.
+var ErrRegistrationUnsupported = errors.New("registration unsupported")

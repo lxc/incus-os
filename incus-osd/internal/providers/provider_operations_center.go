@@ -1,11 +1,14 @@
 package providers
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	incusclient "github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
 )
@@ -35,6 +39,67 @@ type operationsCenter struct {
 func (p *operationsCenter) ClearCache(_ context.Context) error {
 	// Reset the last check time.
 	p.releaseLastCheck = time.Time{}
+
+	return nil
+}
+
+func (p *operationsCenter) Register(ctx context.Context) error {
+	// API structs.
+	type serverPost struct {
+		Name          string `json:"name"`
+		ConnectionURL string `json:"connection_url"`
+	}
+
+	type serverPostResp struct {
+		Certificate string `json:"certificate"`
+	}
+
+	// Get the hostname.
+	hostname, err := os.Hostname()
+	if err != nil {
+		return err
+	}
+
+	// Prepare the registration request.
+	req := serverPost{
+		Name:          hostname,
+		ConnectionURL: "https://" + net.JoinHostPort(p.networkInterfaceAddress(), "8443"),
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	// Register.
+	resp, err := p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.config["server_token"], bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	// Parse the response.
+	registrationResp := serverPostResp{}
+	err = resp.MetadataAsStruct(&registrationResp)
+	if err != nil {
+		return err
+	}
+
+	// Connect to Incus.
+	c, err := incusclient.ConnectIncusUnix("", nil)
+	if err != nil {
+		return err
+	}
+
+	// Add the certificate.
+	cert := api.CertificatesPost{}
+	cert.Name = p.serverURL
+	cert.Type = "client"
+	cert.Certificate = registrationResp.Certificate
+
+	err = c.CreateCertificate(cert)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -131,9 +196,91 @@ func (p *operationsCenter) load(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) apiRequest(ctx context.Context, path string) (*api.Response, error) {
+func (*operationsCenter) networkInterfaceAddress() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		if len(addrs) == 0 {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+
+			if !ipNet.IP.IsGlobalUnicast() {
+				continue
+			}
+
+			return ipNet.IP.String()
+		}
+	}
+
+	return ""
+}
+
+func (p *operationsCenter) configureTLS() error {
+	// Load the certificate.
+	tlsClientCert, err := os.ReadFile("/var/lib/incus/server.crt")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	tlsClientKey, err := os.ReadFile("/var/lib/incus/server.key")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+
+	// Create the TLS config.
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}
+
+	clientCert, err := tls.X509KeyPair(tlsClientCert, tlsClientKey)
+	if err != nil {
+		return err
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{clientCert}
+
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	p.client.Transport = tr
+
+	return nil
+}
+
+func (p *operationsCenter) apiRequest(ctx context.Context, method string, path string, data io.Reader) (*api.Response, error) {
+	// Attempt to configure TLS on the client if needed.
+	if p.client.Transport == nil {
+		err := p.configureTLS()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Prepare the request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.serverURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, method, p.serverURL+path, data)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +346,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	}
 
 	// Get the latest release.
-	apiResp, err := p.apiRequest(ctx, "/1.0/provisioning/updates?recursion=1")
+	apiResp, err := p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates?recursion=1", nil)
 	if err != nil {
 		return err
 	}
@@ -219,7 +366,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	latestRelease := updates[0].Version
 
 	// Get the file list.
-	apiResp, err = p.apiRequest(ctx, "/1.0/provisioning/updates/"+updates[0].UUID+"/files")
+	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+updates[0].UUID+"/files", nil)
 	if err != nil {
 		return err
 	}

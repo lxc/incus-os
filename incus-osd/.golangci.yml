@@ -39,7 +39,7 @@ linters:
             - 100
         - name: cyclomatic
           arguments:
-            - 40
+            - 50
         - name: flag-parameter
           disabled: true
         - name: function-length
