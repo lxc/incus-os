@@ -335,6 +335,21 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		go updateChecker(ctx, s, t, p, false, false)
 	}
 
+	// Handle registration.
+	if !s.System.Provider.State.Registered {
+		err = p.Register(ctx)
+		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
+			return err
+		}
+
+		if err == nil {
+			slog.Info("Server registered with the provider")
+
+			s.System.Provider.State.Registered = true
+			_ = s.Save(ctx)
+		}
+	}
+
 	// Set up handler for shutdown tasks.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
