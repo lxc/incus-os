@@ -36,6 +36,11 @@ func (p *github) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*github) Register(_ context.Context) error {
+	// No registration with the Github provider.
+	return ErrRegistrationUnsupported
+}
+
 func (*github) Type() string {
 	return "github"
 }

@@ -1,12 +1,14 @@
 package providers
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	incusclient "github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
 )
@@ -36,6 +39,67 @@ type operationsCenter struct {
 func (p *operationsCenter) ClearCache(_ context.Context) error {
 	// Reset the last check time.
 	p.releaseLastCheck = time.Time{}
+
+	return nil
+}
+
+func (p *operationsCenter) Register(ctx context.Context) error {
+	// API structs.
+	type serverPost struct {
+		Name          string `json:"name"`
+		ConnectionURL string `json:"connection_url"`
+	}
+
+	type serverPostResp struct {
+		Certificate string `json:"certificate"`
+	}
+
+	// Get the hostname.
+	hostname, err := os.Hostname()
+	if err != nil {
+		return err
+	}
+
+	// Prepare the registration request.
+	req := serverPost{
+		Name:          hostname,
+		ConnectionURL: "https://" + net.JoinHostPort(p.networkInterfaceAddress(), "8443"),
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	// Register.
+	resp, err := p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.config["server_token"], bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	// Parse the response.
+	registrationResp := serverPostResp{}
+	err = resp.MetadataAsStruct(&registrationResp)
+	if err != nil {
+		return err
+	}
+
+	// Connect to Incus.
+	c, err := incusclient.ConnectIncusUnix("", nil)
+	if err != nil {
+		return err
+	}
+
+	// Add the certificate.
+	cert := api.CertificatesPost{}
+	cert.Name = p.serverURL
+	cert.Type = "client"
+	cert.Certificate = registrationResp.Certificate
+
+	err = c.CreateCertificate(cert)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -130,6 +194,39 @@ func (p *operationsCenter) load(_ context.Context) error {
 	}
 
 	return nil
+}
+
+func (*operationsCenter) networkInterfaceAddress() string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		if len(addrs) == 0 {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+
+			if !ipNet.IP.IsGlobalUnicast() {
+				continue
+			}
+
+			return ipNet.IP.String()
+		}
+	}
+
+	return ""
 }
 
 func (p *operationsCenter) configureTLS() error {

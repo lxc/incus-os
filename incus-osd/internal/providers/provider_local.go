@@ -24,6 +24,11 @@ func (*local) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*local) Register(_ context.Context) error {
+	// No registration with the local provider.
+	return ErrRegistrationUnsupported
+}
+
 func (*local) Type() string {
 	return "local"
 }
