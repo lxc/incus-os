@@ -31,7 +31,7 @@ func ApplyNetworkConfiguration(ctx context.Context, n *api.SystemNetwork, timeou
 	}
 	networkCfg := n.Config
 
-	err := ValidateNetworkConfiguration(networkCfg)
+	err := ValidateNetworkConfiguration(networkCfg, true)
 	if err != nil {
 		return err
 	}
@@ -85,17 +85,17 @@ func ApplyNetworkConfiguration(ctx context.Context, n *api.SystemNetwork, timeou
 }
 
 // ValidateNetworkConfiguration performs some basic validation checks on the supplied network configuration.
-func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig) error {
+func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireValidMAC bool) error {
 	if networkCfg == nil {
 		return errors.New("no network configuration provided")
 	}
 
-	err := validateInterfaces(networkCfg.Interfaces, networkCfg.VLANs)
+	err := validateInterfaces(networkCfg.Interfaces, networkCfg.VLANs, requireValidMAC)
 	if err != nil {
 		return err
 	}
 
-	err = validateBonds(networkCfg.Bonds, networkCfg.VLANs)
+	err = validateBonds(networkCfg.Bonds, networkCfg.VLANs, requireValidMAC)
 	if err != nil {
 		return err
 	}

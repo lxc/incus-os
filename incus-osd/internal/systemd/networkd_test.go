@@ -147,7 +147,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg)
+		err = ValidateNetworkConfiguration(&cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -194,7 +194,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig2), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg)
+		err = ValidateNetworkConfiguration(&cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -223,7 +223,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig3), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg)
+		err = ValidateNetworkConfiguration(&cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -255,7 +255,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Unmarshal([]byte(networkdConfig4), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg)
+		err = ValidateNetworkConfiguration(&cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.

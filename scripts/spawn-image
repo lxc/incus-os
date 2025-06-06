@@ -1,51 +1,47 @@
 #!/bin/sh -eu
-if [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
-    echo "Usage: ${0} VERSION NAME"
+if [ -z "${1:-}" ]; then
+    echo "Usage: ${0} NAME"
     exit 1
 fi
 
 # Check if instance already exists
-if incus info "${2}" >/dev/null 2>&1; then
-    echo "Instance ${2} already exists"
+if incus info "${1}" >/dev/null 2>&1; then
+    echo "Instance ${1} already exists"
     exit 1
 fi
 
 # Setup temporary directory
 cleanup() {
-    rm -f .incus-os.img
+    rm -f IncusOS_*.iso
 }
 trap cleanup EXIT HUP INT TERM
 
-# Grab the image
-echo "=> Downloading the image"
-echo "==> Downloading Incus OS ${1}"
-curl -sL "https://github.com/lxc/incus-os/releases/download/${1}/IncusOS_${1}.img.gz" | gzip -d > .incus-os.img
-
-# Add seed data
-echo "=> Injecting seed data"
-dd status=none if=test/seed.install.tar of=.incus-os.img seek=4196352 bs=512 conv=notrunc
+# Grab and configure the image
+INCUSOS_SEED_TAR=test/seed.install.tar INCUSOS_IMAGE_FORMAT=iso incus-osd/flasher-tool
+# shellcheck disable=SC2010
+IMG_NAME=$(ls IncusOS_*.iso | grep -v usr | grep -v esp | sort | tail -1)
 
 # Create an instance
 echo "=> Creating an Incus OS instance"
-incus create --vm --empty "${2}" \
+incus create --vm --empty "${1}" \
     -c security.secureboot=false \
     -c limits.cpu=4 \
     -c limits.memory=8GiB \
     -d root,size=50GiB
-incus config device add "${2}" vtpm tpm
-incus config device add "${2}" boot-media disk source="$(pwd)/.incus-os.img" boot.priority=10
+incus config device add "${1}" vtpm tpm
+incus config device add "${1}" boot-media disk source="$(pwd)/${IMG_NAME}" boot.priority=10
 
 echo "=> Starting Incus OS for installation"
-incus start "${2}" --console
+incus start "${1}" --console
 sleep 5
-incus console "${2}"
+incus console "${1}"
 sleep 5
 clear
 
 # Remove install media
-incus stop -f "${2}"
-incus config device remove "${2}" boot-media
+incus stop -f "${1}"
+incus config device remove "${1}" boot-media
 
 # Start the installed system
 echo "=> Starting installed Incus OS"
-incus start "${2}" --console
+incus start "${1}" --console

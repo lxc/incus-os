@@ -8,7 +8,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.SystemNetworkVLAN) error {
+func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.SystemNetworkVLAN, requireValidMAC bool) error {
 	for index, iface := range interfaces {
 		err := validateName(iface.Name)
 		if err != nil {
@@ -51,7 +51,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.Sys
 			}
 		}
 
-		err = validateHwaddr(iface.Hwaddr)
+		err = validateHwaddr(iface.Hwaddr, requireValidMAC)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
@@ -60,7 +60,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.Sys
 	return nil
 }
 
-func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN) error {
+func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN, requireValidMAC bool) error {
 	for index, bond := range bonds {
 		err := validateName(bond.Name)
 		if err != nil {
@@ -109,7 +109,7 @@ func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN)
 		}
 
 		if bond.Hwaddr != "" {
-			err = validateHwaddr(bond.Hwaddr)
+			err = validateHwaddr(bond.Hwaddr, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d %s", index, err.Error())
 			}
@@ -119,7 +119,7 @@ func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN)
 			return fmt.Errorf("bond %d has no members", index)
 		}
 		for memberIndex, member := range bond.Members {
-			err := validateHwaddr(member)
+			err := validateHwaddr(member, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
 			}
@@ -275,14 +275,16 @@ func validateRequiredForOnline(val string) error {
 	return nil
 }
 
-func validateHwaddr(hwaddr string) error {
+func validateHwaddr(hwaddr string, requireValidMAC bool) error {
 	if hwaddr == "" {
 		return errors.New("has no MAC address")
 	}
 
-	hwaddrhRegex := regexp.MustCompile(`^[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}$`)
-	if !hwaddrhRegex.MatchString(hwaddr) {
-		return fmt.Errorf("invalid MAC address '%s'", hwaddr)
+	if requireValidMAC {
+		hwaddrhRegex := regexp.MustCompile(`^[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}$`)
+		if !hwaddrhRegex.MatchString(hwaddr) {
+			return fmt.Errorf("invalid MAC address '%s'", hwaddr)
+		}
 	}
 
 	return nil

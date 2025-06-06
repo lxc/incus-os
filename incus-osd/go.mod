@@ -4,7 +4,7 @@ go 1.23.7
 
 require (
 	github.com/gdamore/tcell/v2 v2.8.1
-	github.com/google/go-github/v68 v68.0.0
+	github.com/google/go-github/v72 v72.0.0
 	github.com/google/uuid v1.6.0
 	github.com/lxc/incus/v6 v6.13.0
 	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026

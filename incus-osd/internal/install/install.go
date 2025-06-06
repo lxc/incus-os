@@ -354,7 +354,11 @@ func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSe
 		}
 	}
 
-	return "", errors.New("unable to determine target device")
+	if seedTarget == nil {
+		return "", errors.New("unable to determine target device")
+	}
+
+	return "", errors.New("no target device matched '" + seedTarget.ID + "'")
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.

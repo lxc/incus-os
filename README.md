@@ -2,7 +2,7 @@
 Incus OS is a minimal immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
 It's based on [Debian](https://www.debian.org) trixie and built using [mkosi](https://github.com/systemd/mkosi).
 
-This aims at provided a very fast, safe and reliable way to run an Incus server.
+This aims at providing a very fast, safe and reliable way to run an Incus server.
 
 # Security features
 Incus OS is designed to run on systems using UEFI with Secure Boot enabled.
@@ -25,47 +25,23 @@ newer version while keeping the previous version available should a
 revert be needed.
 
 # Status
-Incus OS is still in early development, the instructions below are there
-to help try it out, mostly for testing purposes as new features get
-added.
+Incus OS is still in early alpha development, which means it comes with some
+important caveats:
 
-# Testing
-Currently all development and testing of Incus OS is done through Incus VMs.
-The instructions below assume a functional Incus environment with VM support.
+  * There can and will be breaking changes, which may ultimately require a
+  fresh reinstall. Therefore, DO NOT use Incus OS with any kind of important
+  data.
+  
+  * Currently all development and testing of Incus OS is done through Incus
+  VMs. While it should be possible to run Incus OS on physical hardware or
+  other virtualization solutions (ie, Proxmox), support will be limited to
+  non-existent.
+  
+  * Incus OS is intentionally opinionated and requires modern hardware to
+  enable its various security features. Incus OS will never be installable
+  on systems without UEFI Secure Boot and a TPM.
 
-## Using the Github releases
-Two scripts are available to test Incus OS using the publicly published releases.
-
-Creating a new Incus OS VM can be done with:
-
-    ./scripts/spawn-image VERSION NAME
-
-This will retrieve the relevant image from Github and create a VM using it.
-It will also automatically load the relevant packages (`incus` and `debug`).
-
-The VM will automatically update every 6 hours with the OS updates applying on reboot.
-
-## By building your own images
-Building your own images require the current version of `mkosi`.
-
-To build an image, run:
-
-    make
-
-To load that image as a VM, run:
-
-    make test
-
-To load the packages, run:
-
-    make test-extensions
-
-To test an update, build a new image and update to it with:
-
-    make
-    make update
-
-### Building an ISO image
-It is possible to build an image suitable for use as a (virtual) CDROM:
-
-    make build-iso
+# Documentation
+More detailed documentation is available in the `doc/` directory, including
+a [brief example](doc/basic-install-steps.md) of how to configure and then
+connect to Incus post-install.
