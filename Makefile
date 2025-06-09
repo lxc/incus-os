@@ -38,6 +38,7 @@ static-analysis:
 generate-test-certs:
 ifeq (,$(wildcard ./certs/))
 	./scripts/generate-test-certificates.sh
+	./scripts/generate-secure-boot-vars.sh
 
 	# mkosi seems to have several hard-coded assumptions that the secure boot key will always be called "mkosi.{crt,key}".
 	ln -s ./certs/TestOS-secure-boot-1.crt ./mkosi.crt
