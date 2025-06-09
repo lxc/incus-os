@@ -34,11 +34,21 @@ initrd-deb-package:
 static-analysis:
 	(cd incus-osd && golangci-lint run)
 
-.PHONY: build
-build: incus-osd flasher-tool initrd-deb-package
-	-mkosi genkey
+.PHONY: generate-test-certs
+generate-test-certs:
+ifeq (,$(wildcard ./certs/))
+	./scripts/generate-test-certificates.sh
+
+	# mkosi seems to have several hard-coded assumptions that the secure boot key will always be called "mkosi.{crt,key}".
+	ln -s ./certs/TestOS-secure-boot-1.crt ./mkosi.crt
+	ln -s ./certs/TestOS-secure-boot-1.key ./mkosi.key
+
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
+endif
+
+.PHONY: build
+build: generate-test-certs incus-osd flasher-tool initrd-deb-package
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
