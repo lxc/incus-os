@@ -19,6 +19,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -351,10 +352,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Set up handler for shutdown tasks.
+	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
 	s.TriggerUpdate = make(chan bool, 1)
+	s.TriggerEFIVarUpdate = make(chan bool, 1)
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, unix.SIGTERM)
 	go func() {
@@ -370,6 +372,10 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			action = "shutdown"
 		case <-s.TriggerUpdate:
 			updateChecker(ctx, s, t, p, false, true)
+
+			goto waitSignal
+		case <-s.TriggerEFIVarUpdate:
+			updateEFIVar(ctx, s, t)
 
 			goto waitSignal
 		}
@@ -684,4 +690,30 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	}
 
 	return "", nil
+}
+
+func updateEFIVar(ctx context.Context, s *state.State, t *tui.TUI) {
+	files, err := os.ReadDir("/var/lib/incus-os/efi-var-updates/")
+	if err != nil || len(files) == 0 {
+		return
+	}
+
+	modal := t.AddModal(s.OS.Name + " EFI Variable Update")
+	slog.Info("Applying EFI variable update from " + files[0].Name())
+	modal.Update("Applying EFI variable update from " + files[0].Name())
+
+	// Apply the first EFI variable update. Only apply one at a time, since we need to reboot after each one to keep PCR7 state consistent.
+	err = secureboot.AppendEFIVarUpdate(ctx, filepath.Join("/var/lib/incus-os/efi-var-updates/", files[0].Name()), strings.TrimSuffix(files[0].Name(), ".auth"))
+	if err != nil {
+		slog.Error(err.Error())
+		modal.Update("[red]ERROR:[white] " + err.Error())
+
+		return
+	}
+
+	// Remove the applied update.
+	_ = os.Remove(filepath.Join("/var/lib/incus-os/efi-var-updates/", files[0].Name()))
+
+	slog.Info("Successfully updated EFI variable. Please reboot system.")
+	modal.Update("Successfully updated EFI variable. Please reboot system.")
 }
