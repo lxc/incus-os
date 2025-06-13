@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -27,9 +28,10 @@ import (
 // HandleSecureBootKeyChange will apply the changes necessary when the Secure Boot
 // signing key used for the UKIs is changed:
 //
-//	1: Replace the existing systemd-boot EFI stub with the newly-signed one.
-//	2: Compute the new PCR7 value expected on next boot.
-//	3: Set the new Secure Boot public key to be used by the TPM for verifying
+//	1: Verify the new certificate is in db and isn't in dbx.
+//	2: Replace the existing systemd-boot EFI stub with the newly-signed one.
+//	3: Compute the new PCR7 value expected on next boot.
+//	4: Set the new Secure Boot public key to be used by the TPM for verifying
 //	   the PCR11 policies. Since this will invalidate the current TPM state, we
 //	   must have an alternative way of authenticating the LUKS changes; by
 //	   default rely on the recovery passphrase that's automatically created on
@@ -46,7 +48,18 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 		return err
 	}
 
-	// Part 1 -- Update the systemd-boot EFI stub.
+	// Part 1 -- Verify the new certificate is in db and isn't in dbx.
+	newCert, err := getPublicKeyFromUKI(ctx, ukiFile)
+	if err != nil {
+		return err
+	}
+
+	err = validatePKICertificate(newCert)
+	if err != nil {
+		return err
+	}
+
+	// Part 2 -- Update the systemd-boot EFI stub.
 	{
 		mountDir, err := os.MkdirTemp("/tmp", "incus-os")
 		if err != nil {
@@ -71,17 +84,13 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 		}
 	}
 
-	// Part 2 -- Compute the new PCR7 value.
+	// Part 3 -- Compute the new PCR7 value.
 	newPCR7, err := computeNewPCR7Value(ctx, eventLog)
 	if err != nil {
 		return err
 	}
 
-	// Part 3 -- Re-enroll the TPM utilizing the new Secure Boot public key.
-	newCert, err := getPublicKeyFromUKI(ctx, ukiFile)
-	if err != nil {
-		return err
-	}
+	// Part 4 -- Re-enroll the TPM utilizing the new Secure Boot public key.
 
 	err = os.WriteFile("/run/systemd/tpm2-pcr-public-key.pem", newCert, 0o600)
 	if err != nil {
@@ -164,6 +173,75 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// validatePKICertificate makes sure the certificate obtained from a potential new UKI
+// is listed in the Secure Boot db, isn't in dbx, and is valid based on the current
+// system time. (Secure Boot can't rely on time being correct; once up and running
+// that's a reasonable assumption, but nothing security critical depends on this. Mostly
+// it's just another easy check to help ensure we only install valid UKIs.)
+func validatePKICertificate(cert []byte) error {
+	dbVal, err := readEFIVariable("db")
+	if err != nil {
+		return err
+	}
+
+	db := tcg.UEFIVariableData{
+		VariableData: dbVal,
+	}
+
+	dbCerts, _, err := db.SignatureData()
+	if err != nil {
+		return err
+	}
+
+	if !slices.ContainsFunc(dbCerts, func(c x509.Certificate) bool {
+		publicKeyDer, err := x509.MarshalPKIXPublicKey(c.PublicKey)
+		if err != nil {
+			return false
+		}
+
+		publicKeyBlock := pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: publicKeyDer,
+		}
+
+		return bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), cert)
+	}) {
+		return errors.New("new UKI signed with certificate not present in Secure Boot db, refusing to continue")
+	}
+
+	dbxVal, err := readEFIVariable("dbx")
+	if err != nil {
+		return err
+	}
+
+	dbx := tcg.UEFIVariableData{
+		VariableData: dbxVal,
+	}
+
+	dbxCerts, _, err := dbx.SignatureData()
+	if err != nil {
+		return err
+	}
+
+	if slices.ContainsFunc(dbxCerts, func(c x509.Certificate) bool {
+		publicKeyDer, err := x509.MarshalPKIXPublicKey(c.PublicKey)
+		if err != nil {
+			return false
+		}
+
+		publicKeyBlock := pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: publicKeyDer,
+		}
+
+		return bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), cert)
+	}) {
+		return errors.New("new UKI signed with revoked Secure Boot certificate, refusing to continue")
 	}
 
 	return nil
