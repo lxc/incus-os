@@ -37,6 +37,7 @@ type State struct {
 		LVM   api.ServiceLVM   `json:"lvm"`
 		NVME  api.ServiceNVME  `json:"nvme"`
 		OVN   api.ServiceOVN   `json:"ovn"`
+		USBIP api.ServiceUSBIP `json:"usbip"`
 	} `json:"services"`
 
 	System struct {

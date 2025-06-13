@@ -8,7 +8,7 @@ import (
 )
 
 // ValidNames contains the list of all valid services.
-var ValidNames = []string{"iscsi", "lvm", "nvme", "ovn"}
+var ValidNames = []string{"iscsi", "lvm", "nvme", "ovn", "usbip"}
 
 // Load returns a handler for the given system service.
 func Load(ctx context.Context, s *state.State, name string) (Service, error) {
@@ -23,6 +23,8 @@ func Load(ctx context.Context, s *state.State, name string) (Service, error) {
 		srv = &NVME{state: s}
 	case "ovn":
 		srv = &OVN{state: s}
+	case "usbip":
+		srv = &USBIP{state: s}
 	default:
 		return nil, errors.New("unknown service")
 	}
