@@ -622,7 +622,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
-		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, s.System.Encryption.Config.RecoveryKeys[0], update.Version(), isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save(ctx)
