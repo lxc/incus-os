@@ -22,6 +22,51 @@ import (
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
 
+// AppendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
+// to the current EFI value, and then updates the expected PCR7 value used to
+// decrypt the root file system and swap at boot.
+func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName string) error {
+	// Verify the file exists.
+	_, err := os.Stat(efiUpdateFile)
+	if err != nil {
+		return err
+	}
+
+	// Get and verify the current PCR7 state.
+	eventLog, err := readTMPEventLog()
+	if err != nil {
+		return err
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Apply the EFI variable update.
+	_, err = subprocess.RunCommandContext(ctx, "efi-updatevar", "-a", "-f", efiUpdateFile, varName)
+	if err != nil {
+		return err
+	}
+
+	// Compute the new expected PCR7 value on next boot.
+	newPCR7, err := computeNewPCR7Value(ctx, eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Update the LUKS-encrypted volumes to use the new PCR7 value.
+	newPCR7String := hex.EncodeToString(newPCR7)
+	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // readTMPEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
 func readTMPEventLog() ([]tcg.Event, error) {
 	rawLog, err := os.Open("/sys/kernel/security/tpm0/binary_bios_measurements")
