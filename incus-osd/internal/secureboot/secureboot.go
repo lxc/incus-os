@@ -13,15 +13,73 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/google/go-eventlog/register"
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/smallstep/pkcs7"
+	"golang.org/x/sys/unix"
 )
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
+
+// HandleSecureBootKeyChange will apply the changes necessary when the Secure Boot
+// signing key used for the UKIs is changed:
+//
+//	1: Replace the existing systemd-boot EFI stub with the newly-signed one.
+//	2: Compute the new PCR7 value expected on next boot.
+//	3: Set the new Secure Boot public key to be used by the TPM for verifying
+//	   the PCR11 policies. Since this will invalidate the current TPM state, we
+//	   must have an alternative way of authenticating the LUKS changes; by
+//	   default rely on the recovery passphrase that's automatically created on
+//	   first boot.
+func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile string, usrImageFile string) error {
+	// Pre-checks -- Verify that the TPM event log matches current TPM values.
+	eventLog, err := readTMPEventLog()
+	if err != nil {
+		return err
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Part 1 -- Update the systemd-boot EFI stub.
+	err = updateEFIBootStub(ctx, usrImageFile)
+	if err != nil {
+		return err
+	}
+
+	// Part 2 -- Compute the new PCR7 value.
+	newPCR7, err := computeNewPCR7Value(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Part 3 -- Re-enroll the TPM utilizing the new Secure Boot public key.
+	newCert, err := getPublicKeyFromUKI(ukiFile)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("/run/systemd/tpm2-pcr-public-key.pem", newCert, 0o600)
+	if err != nil {
+		return err
+	}
+
+	newPCR7String := hex.EncodeToString(newPCR7)
+	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 // UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed
 // with a different Secure Boot certificate than the one that signed the currently running system.
@@ -473,4 +531,31 @@ func getPublicKeyFromUKI(ukiFile string) ([]byte, error) {
 
 	// Trim null bytes from returned buffer.
 	return pcrpkeyData[:451], nil
+}
+
+// updateEFIBootStub synchronizes the systemd-boot EFI stub when the Secure Boot signing key is rotated.
+func updateEFIBootStub(ctx context.Context, usrImageFile string) error {
+	mountDir, err := os.MkdirTemp("/tmp", "incus-os")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(mountDir)
+
+	err = unix.Mount(usrImageFile, mountDir, "erofs", 0, "ro")
+	if err != nil {
+		return err
+	}
+	defer unix.Unmount(mountDir, 0)
+
+	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, "lib/systemd/boot/efi/systemd-bootx64.efi.signed"), "/boot/EFI/systemd/systemd-bootx64.efi")
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, "lib/systemd/boot/efi/systemd-bootx64.efi.signed"), "/boot/EFI/BOOT/BOOTX64.EFI")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
