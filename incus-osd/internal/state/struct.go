@@ -24,9 +24,10 @@ type State struct {
 	ShouldPerformInstall bool `json:"-"`
 
 	// Triggers for daemon actions.
-	TriggerReboot   chan error `json:"-"`
-	TriggerShutdown chan error `json:"-"`
-	TriggerUpdate   chan bool  `json:"-"`
+	TriggerReboot       chan error `json:"-"`
+	TriggerShutdown     chan error `json:"-"`
+	TriggerUpdate       chan bool  `json:"-"`
+	TriggerEFIVarUpdate chan bool  `json:"-"`
 
 	Applications map[string]Application `json:"applications"`
 

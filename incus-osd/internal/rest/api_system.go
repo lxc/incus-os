@@ -37,6 +37,8 @@ func (s *Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 		close(s.state.TriggerReboot)
 	case "update":
 		s.state.TriggerUpdate <- true
+	case "efi-var-update":
+		s.state.TriggerEFIVarUpdate <- true
 	default:
 		_ = response.BadRequest(fmt.Errorf("invalid action %q", req.Action)).Render(w)
 
