@@ -23,6 +23,31 @@ import (
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
 
+// UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed
+// with a different Secure Boot certificate than the one that signed the currently running system.
+func UKIHasDifferentSecureBootCertificate(ukiFile string) (bool, error) {
+	currentCert := make([]byte, 451)
+	file, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	count, err := file.Read(currentCert)
+	if err != nil {
+		return false, err
+	} else if count != 451 {
+		return false, fmt.Errorf("only read %d of 451 bytes while getting current public key from /run/systemd/tpm2-pcr-public-key.pem", count)
+	}
+
+	newCert, err := getPublicKeyFromUKI(ukiFile)
+	if err != nil {
+		return false, err
+	}
+
+	return !bytes.Equal(currentCert, newCert), nil
+}
+
 // AppendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
 // to the current EFI value, and then updates the expected PCR7 value used to
 // decrypt the root file system and swap at boot.
@@ -424,4 +449,28 @@ func efiVariableToFilename(variableName string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported EFI variable '%s'", variableName)
 	}
+}
+
+// getPublicKeyFromUKI extracts the public key from a UKI image.
+func getPublicKeyFromUKI(ukiFile string) ([]byte, error) {
+	peFile, err := pe.Open(ukiFile)
+	if err != nil {
+		return nil, err
+	}
+	defer peFile.Close()
+
+	pcrpkeySection := peFile.Section(".pcrpkey")
+	if pcrpkeySection == nil {
+		return nil, fmt.Errorf("failed to read .pcrpkey section from '%s'", ukiFile)
+	}
+
+	pcrpkeyData, err := pcrpkeySection.Data()
+	if err != nil {
+		return nil, err
+	} else if len(pcrpkeyData) != 512 {
+		return nil, fmt.Errorf("only read %d of 512 bytes while getting UKI public key from '%s'", len(pcrpkeyData), ukiFile)
+	}
+
+	// Trim null bytes from returned buffer.
+	return pcrpkeyData[:451], nil
 }
