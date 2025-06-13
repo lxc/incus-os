@@ -22,6 +22,31 @@ import (
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
 
+// UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed
+// with a different Secure Boot certificate than the one that signed the currently running system.
+func UKIHasDifferentSecureBootCertificate(ctx context.Context, ukiFile string) (bool, error) {
+	currentCert := make([]byte, 451)
+	file, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	count, err := file.Read(currentCert)
+	if err != nil {
+		return false, err
+	} else if count != 451 {
+		return false, fmt.Errorf("only read %d of 451 bytes while getting current public key from /run/systemd/tpm2-pcr-public-key.pem", count)
+	}
+
+	newCert, err := getPublicKeyFromUKI(ctx, ukiFile)
+	if err != nil {
+		return false, err
+	}
+
+	return !bytes.Equal(currentCert, newCert), nil
+}
+
 // AppendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
 // to the current EFI value, and then updates the expected PCR7 value used to
 // decrypt the root file system and swap at boot.
@@ -363,4 +388,31 @@ func readEFIVariable(variableName string) ([]byte, error) {
 
 	// Trim the first four bytes; https://docs.kernel.org/filesystems/efivarfs.html
 	return buf[4:], nil
+}
+
+// getPublicKeyFromUKI extracts the public key from a UKI image.
+func getPublicKeyFromUKI(ctx context.Context, ukiFile string) ([]byte, error) {
+	// Make a temp file to write the certificate to.
+	tmpFile, err := os.CreateTemp("/tmp", "incus-os")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Get certificate from UKI.
+	_, err = subprocess.RunCommandContext(ctx, "objcopy", "-O", "binary", "-j", ".pcrpkey", ukiFile, tmpFile.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	// Read and return the certificate.
+	buf := make([]byte, 451)
+	count, err := tmpFile.Read(buf)
+	if err != nil {
+		return nil, err
+	} else if count != 451 {
+		return nil, fmt.Errorf("only read %d of 451 bytes while getting UKI public key", count)
+	}
+
+	return buf, nil
 }
