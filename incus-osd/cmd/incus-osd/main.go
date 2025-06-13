@@ -227,8 +227,9 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		slog.Debug("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
+	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
 	if len(s.System.Encryption.Config.RecoveryKeys) == 0 {
+		slog.Info("Auto-generating encryption recovery key, this may take a few seconds")
 		err := systemd.GenerateRecoveryKey(ctx, s)
 		if err != nil {
 			return err
