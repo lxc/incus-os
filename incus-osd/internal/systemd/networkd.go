@@ -16,6 +16,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // networkdConfigFile represents a given filename and its contents.
@@ -25,28 +26,16 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, n *api.SystemNetwork, timeout time.Duration) error {
-	if n == nil {
-		return errors.New("SystemNetwork cannot be nil")
-	}
-	networkCfg := n.Config
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time.Duration) error {
+	networkCfg := s.System.Network.Config
 
 	err := ValidateNetworkConfiguration(networkCfg, true)
 	if err != nil {
 		return err
 	}
 
-	// Get hostname and domain from network config, if defined.
-	hostname := ""
-	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
-		hostname = networkCfg.DNS.Hostname
-		if networkCfg.DNS.Domain != "" {
-			hostname += "." + networkCfg.DNS.Domain
-		}
-	}
-
 	// Apply the configured hostname, or reset back to default if not set.
-	err = SetHostname(ctx, hostname)
+	err = SetHostname(ctx, s.Hostname())
 	if err != nil {
 		return err
 	}
@@ -182,10 +171,10 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
-	stateRegex := regexp.MustCompile(`State: (.+?) `)
-	state := ""
-	if len(stateRegex.FindStringSubmatch(output)) == 2 {
-		state = stateRegex.FindStringSubmatch(output)[1]
+	interfaceStateRegex := regexp.MustCompile(`State: (.+?) `)
+	interfaceState := ""
+	if len(interfaceStateRegex.FindStringSubmatch(output)) == 2 {
+		interfaceState = interfaceStateRegex.FindStringSubmatch(output)[1]
 	}
 
 	localMACRegex := regexp.MustCompile(`  Hardware Address: (.+)`)
@@ -264,7 +253,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 		Routes:    routes,
 		MTU:       mtu,
 		Speed:     speed,
-		State:     state,
+		State:     interfaceState,
 		Stats: api.SystemNetworkInterfaceStats{
 			RXBytes:  rxBytes,
 			TXBytes:  txBytes,

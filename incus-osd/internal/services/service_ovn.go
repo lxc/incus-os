@@ -121,23 +121,16 @@ func (*OVN) Struct() any {
 
 // configure takes care of configuring the running OVS and (re)spawning the OVN controller.
 func (n *OVN) configure(ctx context.Context) error {
-	// Get the local hostname.
-	// NOTE: We should change this to get it directly from the state and have it always align with the name in the Incus cluster.
-	hostname, err := os.Hostname()
-	if err != nil {
-		return err
-	}
-
 	// Apply the OVS configuration.
 	args := []string{"set", "open_vswitch", "."}
 
-	args = append(args, "external_ids:hostname="+hostname)
+	args = append(args, "external_ids:hostname="+n.state.Hostname())
 	args = append(args, "external_ids:ovn-remote="+n.state.Services.OVN.Config.Database)
 	args = append(args, "external_ids:ovn-encap-type="+n.state.Services.OVN.Config.TunnelProtocol)
 	args = append(args, "external_ids:ovn-encap-ip="+n.state.Services.OVN.Config.TunnelAddress)
 	args = append(args, fmt.Sprintf("external_ids:ovn-is-interconn=%v", n.state.Services.OVN.Config.ICChassis))
 
-	_, err = subprocess.RunCommand("ovs-vsctl", args...)
+	_, err := subprocess.RunCommand("ovs-vsctl", args...)
 	if err != nil {
 		return err
 	}
