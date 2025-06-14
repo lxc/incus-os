@@ -34,17 +34,8 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
-	// Get hostname and domain from network config, if defined.
-	hostname := ""
-	if networkCfg.DNS != nil && networkCfg.DNS.Hostname != "" {
-		hostname = networkCfg.DNS.Hostname
-		if networkCfg.DNS.Domain != "" {
-			hostname += "." + networkCfg.DNS.Domain
-		}
-	}
-
 	// Apply the configured hostname, or reset back to default if not set.
-	err = SetHostname(ctx, hostname)
+	err = SetHostname(ctx, s.Hostname())
 	if err != nil {
 		return err
 	}
