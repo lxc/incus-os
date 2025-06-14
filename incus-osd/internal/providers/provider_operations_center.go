@@ -46,6 +46,10 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*operationsCenter) RefreshRegister(_ context.Context) error {
+	return nil
+}
+
 func (p *operationsCenter) Register(ctx context.Context) error {
 	// API structs.
 	type serverPost struct {

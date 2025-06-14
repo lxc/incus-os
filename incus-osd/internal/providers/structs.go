@@ -32,6 +32,7 @@ type Provider interface {
 	GetApplication(ctx context.Context, name string) (Application, error)
 
 	Register(ctx context.Context) error
+	RefreshRegister(ctx context.Context) error
 
 	load(ctx context.Context) error
 }
