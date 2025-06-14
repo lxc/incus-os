@@ -286,7 +286,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	p, err := providers.Load(ctx, provider, providerConfig)
+	p, err := providers.Load(ctx, s, provider, providerConfig)
 	if err != nil {
 		return err
 	}

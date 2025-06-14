@@ -19,11 +19,14 @@ import (
 	incusclient "github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // The Operations Center provider.
 type operationsCenter struct {
 	config map[string]string
+	state  *state.State
 
 	client *http.Client
 

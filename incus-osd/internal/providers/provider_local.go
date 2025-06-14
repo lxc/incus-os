@@ -8,12 +8,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // The Local provider.
 type local struct {
 	config map[string]string
-	path   string
+	state  *state.State
+
+	path string
 
 	releaseAssets  []string
 	releaseVersion string

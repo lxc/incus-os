@@ -13,6 +13,8 @@ import (
 	"time"
 
 	ghapi "github.com/google/go-github/v72/github"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // The Github provider.
@@ -22,6 +24,7 @@ type github struct {
 	repository   string
 
 	config map[string]string
+	state  *state.State
 
 	releaseLastCheck time.Time
 	releaseVersion   string
