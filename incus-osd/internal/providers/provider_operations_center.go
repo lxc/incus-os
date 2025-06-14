@@ -57,10 +57,16 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		Certificate string `json:"certificate"`
 	}
 
+	// Get the management address.
+	mgmtAddr := p.state.ManagementAddress()
+	if mgmtAddr == nil {
+		return ErrRegistrationUnsupported
+	}
+
 	// Prepare the registration request.
 	req := serverPost{
 		Name:          p.state.Hostname(),
-		ConnectionURL: "https://" + net.JoinHostPort(p.networkInterfaceAddress(), "8443"),
+		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
 	}
 
 	data, err := json.Marshal(req)
@@ -191,39 +197,6 @@ func (p *operationsCenter) load(_ context.Context) error {
 	}
 
 	return nil
-}
-
-func (*operationsCenter) networkInterfaceAddress() string {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return ""
-	}
-
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-
-		if len(addrs) == 0 {
-			continue
-		}
-
-		for _, addr := range addrs {
-			ipNet, ok := addr.(*net.IPNet)
-			if !ok {
-				continue
-			}
-
-			if !ipNet.IP.IsGlobalUnicast() {
-				continue
-			}
-
-			return ipNet.IP.String()
-		}
-	}
-
-	return ""
 }
 
 func (p *operationsCenter) configureTLS() error {
