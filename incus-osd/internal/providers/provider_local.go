@@ -28,6 +28,11 @@ func (*local) ClearCache(_ context.Context) error {
 	return nil
 }
 
+func (*local) RefreshRegister(_ context.Context) error {
+	// No registration with the Github provider.
+	return ErrRegistrationUnsupported
+}
+
 func (*local) Register(_ context.Context) error {
 	// No registration with the local provider.
 	return ErrRegistrationUnsupported
