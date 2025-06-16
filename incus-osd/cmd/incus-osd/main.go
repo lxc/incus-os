@@ -280,10 +280,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		if providerSeed != nil {
-			s.System.Provider.Config = providerSeed.SystemProviderConfig
-			provider = s.System.Provider.Config.Name
-			providerConfig = s.System.Provider.Config.Config
+			provider = providerSeed.Name
+			providerConfig = providerSeed.Config
 		}
+
+		s.System.Provider.Config.Name = provider
+		s.System.Provider.Config.Config = providerConfig
 	}
 
 	p, err := providers.Load(ctx, s, provider, providerConfig)
