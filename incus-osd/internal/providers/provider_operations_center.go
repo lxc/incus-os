@@ -314,7 +314,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 
 	// Quick validation.
 	if apiResp.Type != "sync" || apiResp.StatusCode != http.StatusOK {
-		return nil, errors.New("bad response from update API")
+		return nil, errors.New("bad response from operations center")
 	}
 
 	return apiResp, nil
