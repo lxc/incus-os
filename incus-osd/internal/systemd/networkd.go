@@ -16,6 +16,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -70,7 +71,25 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 	}
 
 	// Wait for the network to apply.
-	return waitForNetworkOnline(ctx, networkCfg, timeout)
+	err = waitForNetworkOnline(ctx, networkCfg, timeout)
+	if err != nil {
+		return err
+	}
+
+	// Refresh registration.
+	if s.System.Provider.Config.Name != "" {
+		p, err := providers.Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
+		if err != nil {
+			return err
+		}
+
+		err = p.RefreshRegister(ctx)
+		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ValidateNetworkConfiguration performs some basic validation checks on the supplied network configuration.
