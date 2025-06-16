@@ -872,11 +872,11 @@ func processAddresses(addresses []string) string {
 	acceptIPv6RA := false
 	for _, addr := range addresses {
 		switch addr {
-		case "dhcp4": //nolint:goconst
+		case "dhcp4":
 			hasDHCP4 = true
 		case "dhcp6":
 			hasDHCP6 = true
-		case "slaac": //nolint:goconst
+		case "slaac":
 			acceptIPv6RA = true
 
 		default:
