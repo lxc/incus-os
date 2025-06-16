@@ -77,6 +77,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
+	// Refresh the state struct.
+	err = UpdateNetworkState(ctx, &s.System.Network)
+	if err != nil {
+		return err
+	}
+
 	// Refresh registration.
 	if s.System.Provider.Config.Name != "" {
 		p, err := providers.Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
