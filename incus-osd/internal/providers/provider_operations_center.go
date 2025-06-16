@@ -46,7 +46,39 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (*operationsCenter) RefreshRegister(_ context.Context) error {
+func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
+	// Check if registered.
+	if !p.state.System.Provider.State.Registered {
+		return nil
+	}
+
+	// API structs.
+	type serverPut struct {
+		ConnectionURL string `json:"connection_url"`
+	}
+
+	// Get the management address.
+	mgmtAddr := p.state.ManagementAddress()
+	if mgmtAddr == nil {
+		return ErrRegistrationUnsupported
+	}
+
+	// Prepare the registration request.
+	req := serverPut{
+		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	// Register.
+	_, err = p.apiRequest(ctx, http.MethodPut, "/1.0/provisioning/servers/:self", bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
