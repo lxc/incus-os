@@ -1,0 +1,35 @@
+# iSCSI
+disable iscsid.service
+disable iscsid.socket
+disable open-iscsi.service
+
+# LVM
+disable lvm2-monitor.service
+disable lvmlockd.service
+disable lvmlocks.service
+disable sanlock.service
+disable wdmd.service
+
+# OVN
+disable openvswitch-switch.service
+disable ovs-record-hostname.service
+
+# System
+disable dpkg-db-backup.timer
+disable systemd-journald-audit.socket
+disable systemd-sysupdate-reboot.timer
+disable systemd-sysupdate.timer
+disable uuidd.socket
+
+# TPM (state is pre-calculated)
+disable systemd-pcrlock-file-system.service
+disable systemd-pcrlock-firmware-code.service
+disable systemd-pcrlock-firmware-config.service
+disable systemd-pcrlock-machine-id.service
+disable systemd-pcrlock-make-policy.service
+disable systemd-pcrlock-secureboot-authority.service
+disable systemd-pcrlock-secureboot-policy.service
+
+# ZFS
+disable zfs-import-cache.service
+disable zfs-share.service
