@@ -10,7 +10,7 @@ Type=oneshot
 Environment=MSG="@OSNAME@ is starting..."
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
-ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY; done"
+ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY || true; done"
 
 [Install]
 WantedBy=veritysetup.target
