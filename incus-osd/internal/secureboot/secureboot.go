@@ -176,6 +176,22 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	return nil
 }
 
+// GetCertificatesFromVar returns a list of certificates currently in a given EFI variable.
+func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
+	val, err := readEFIVariable(varName)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedVal := tcg.UEFIVariableData{
+		VariableData: val,
+	}
+
+	certs, _, err := parsedVal.SignatureData()
+
+	return certs, err
+}
+
 // validatePKICertificate makes sure the certificate obtained from a potential new UKI
 // is listed in the Secure Boot db, isn't in dbx, and is valid based on the current
 // system time. (Secure Boot can't rely on time being correct; once up and running
@@ -196,16 +212,7 @@ func validatePKICertificate(cert []byte) error {
 		return bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), cert)
 	}
 
-	dbVal, err := readEFIVariable("db")
-	if err != nil {
-		return err
-	}
-
-	db := tcg.UEFIVariableData{
-		VariableData: dbVal,
-	}
-
-	dbCerts, _, err := db.SignatureData()
+	dbCerts, err := GetCertificatesFromVar("db")
 	if err != nil {
 		return err
 	}
@@ -222,16 +229,7 @@ func validatePKICertificate(cert []byte) error {
 		return errors.New("new UKI signed with certificate that has expired, refusing to continue")
 	}
 
-	dbxVal, err := readEFIVariable("dbx")
-	if err != nil {
-		return err
-	}
-
-	dbx := tcg.UEFIVariableData{
-		VariableData: dbxVal,
-	}
-
-	dbxCerts, _, err := dbx.SignatureData()
+	dbxCerts, err := GetCertificatesFromVar("dbx")
 	if err != nil {
 		return err
 	}
@@ -409,16 +407,7 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	}
 
 	// There was a mismatch. Try to get the expected certificate from the db.
-	db, err := readEFIVariable("db")
-	if err != nil {
-		return nil, err
-	}
-
-	parsedDB := tcg.UEFIVariableData{
-		VariableData: db,
-	}
-
-	certs, _, err := parsedDB.SignatureData()
+	certs, err := GetCertificatesFromVar("db")
 	if err != nil {
 		return nil, err
 	}
