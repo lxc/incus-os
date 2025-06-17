@@ -53,6 +53,11 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
+	err = generateHosts(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
 	if err != nil {
 		return err
@@ -356,6 +361,18 @@ func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPStat
 	}
 
 	return ret, nil
+}
+
+func generateHosts(_ context.Context, s *state.State) error {
+	// Generate the /etc/hosts file.
+	return os.WriteFile("/etc/hosts", []byte(fmt.Sprintf(`127.0.0.1	localhost
+127.0.1.1	%s
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+`, s.Hostname())), 0o644)
 }
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates

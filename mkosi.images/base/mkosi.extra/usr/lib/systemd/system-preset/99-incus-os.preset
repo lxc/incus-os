@@ -20,3 +20,4 @@ disable systemd-journald-audit.socket
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
 disable uuidd.socket
+disable zfs-import-cache.service
