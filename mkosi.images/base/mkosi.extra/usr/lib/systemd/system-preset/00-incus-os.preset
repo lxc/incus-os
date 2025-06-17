@@ -21,3 +21,12 @@ disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
 disable uuidd.socket
 disable zfs-import-cache.service
+
+# TPM (state is pre-calculated)
+disable systemd-pcrlock-file-system.service
+disable systemd-pcrlock-firmware-code.service
+disable systemd-pcrlock-firmware-config.service
+disable systemd-pcrlock-machine-id.service
+disable systemd-pcrlock-make-policy.service
+disable systemd-pcrlock-secureboot-authority.service
+disable systemd-pcrlock-secureboot-policy.service
