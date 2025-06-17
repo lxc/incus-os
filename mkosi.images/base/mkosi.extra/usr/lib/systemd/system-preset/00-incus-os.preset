@@ -4,15 +4,15 @@ disable iscsid.socket
 disable open-iscsi.service
 
 # LVM
+disable lvm2-monitor.service
 disable lvmlockd.service
+disable lvmlocks.service
 disable sanlock.service
 disable wdmd.service
 
 # OVN
 disable openvswitch-switch.service
-disable ovsdb-server.service
 disable ovs-record-hostname.service
-disable ovs-vswitchd.service
 
 # System
 disable dpkg-db-backup.timer
@@ -20,7 +20,6 @@ disable systemd-journald-audit.socket
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
 disable uuidd.socket
-disable zfs-import-cache.service
 
 # TPM (state is pre-calculated)
 disable systemd-pcrlock-file-system.service
@@ -30,3 +29,7 @@ disable systemd-pcrlock-machine-id.service
 disable systemd-pcrlock-make-policy.service
 disable systemd-pcrlock-secureboot-authority.service
 disable systemd-pcrlock-secureboot-policy.service
+
+# ZFS
+disable zfs-import-cache.service
+disable zfs-share.service
