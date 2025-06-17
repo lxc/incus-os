@@ -35,7 +35,7 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]any{
 		"environment": map[string]any{
-			"hostname":     s.state.Hostname,
+			"hostname":     s.state.Hostname(),
 			"os_name":      s.state.OS.Name,
 			"os_version":   s.state.OS.RunningRelease,
 			"applications": s.state.Applications,

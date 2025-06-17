@@ -59,7 +59,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Don't allow a new configuration that doesn't define any interfaces, bonds, or vlans.
-		if seed.NetworkConfigHasEmptyDevices(*newConfig.Config) {
+		if newConfig.Config == nil || seed.NetworkConfigHasEmptyDevices(*newConfig.Config) {
 			_ = response.BadRequest(errors.New("network configuration has no devices defined")).Render(w)
 
 			return
