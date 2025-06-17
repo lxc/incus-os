@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -76,6 +77,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
+	// Refresh the state struct.
+	err = UpdateNetworkState(ctx, &s.System.Network)
+	if err != nil {
+		return err
+	}
+
 	// Refresh registration.
 	if s.System.Provider.Config.Name != "" {
 		p, err := providers.Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
@@ -85,7 +92,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 
 		err = p.RefreshRegister(ctx)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
-			return err
+			slog.Warn("Failed to refresh provider registration", "err", err)
 		}
 	}
 
