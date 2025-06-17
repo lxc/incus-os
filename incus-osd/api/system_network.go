@@ -21,7 +21,7 @@ type SystemNetworkConfig struct {
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
 	Name              string               `json:"name"                          yaml:"name"`
-	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
@@ -36,7 +36,7 @@ type SystemNetworkInterface struct {
 type SystemNetworkBond struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	Mode              string               `json:"mode"                          yaml:"mode"`
-	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
@@ -53,7 +53,7 @@ type SystemNetworkVLAN struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	Parent            string               `json:"parent"                        yaml:"parent"`
 	ID                int                  `json:"id"                            yaml:"id"`
-	MTU               int                  `json:"mtu"                           yaml:"mtu"`
+	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
 	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
@@ -96,7 +96,7 @@ type SystemNetworkInterfaceState struct {
 	Type      string                                 `json:"type,omitempty"      yaml:"type,omitempty"`
 	Addresses []string                               `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 	Routes    []SystemNetworkRoute                   `json:"routes,omitempty"    yaml:"routes,omitempty"`
-	MTU       int                                    `json:"mtu"                 yaml:"mtu"`
+	MTU       int                                    `json:"mtu,omitempty"       yaml:"mtu,omitempty"`
 	Speed     string                                 `json:"speed,omitempty"     yaml:"speed,omitempty"`
 	State     string                                 `json:"state"               yaml:"state"`
 	Stats     SystemNetworkInterfaceStats            `json:"stats"               yaml:"stats"`
