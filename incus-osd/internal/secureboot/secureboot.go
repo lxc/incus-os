@@ -125,7 +125,14 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 		return err
 	}
 
-	// TODO -- when applying dbx, verify neither of the two images are relying on that certificate to boot.
+	// When updating the list of revoked certificates, ensure neither of the UKIs are signed
+	// with it, otherwise we'd brick on a reboot with the affected UKI(s).
+	if varName == "dbx" {
+		err := checkDbxUpdateWouldBrickUKI(efiUpdateFile)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Get and verify the current PCR7 state.
 	eventLog, err := readTMPEventLog()
@@ -190,6 +197,74 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	certs, _, err := parsedVal.SignatureData()
 
 	return certs, err
+}
+
+// checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
+// currently present on the system, resulting in a bricked boot.
+func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
+	// Get the pending dbx update certificate from signed .auth file.
+	// #nosec G304
+	dbxFile, err := os.Open(dbxFilePath)
+	if err != nil {
+		return err
+	}
+	defer dbxFile.Close()
+
+	s, err := dbxFile.Stat()
+	if err != nil {
+		return err
+	}
+
+	// .auth files have a timestamp and AuthInfo header before the .esl content. For our use, skip 1287 bytes
+	// into the .auth file to get actual certificate data.
+	buf := make([]byte, s.Size()-1287)
+	readBytes, err := dbxFile.ReadAt(buf, 1287)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	} else if readBytes != len(buf) {
+		return fmt.Errorf("only read %d of %d expected bytes from EFI variable update '%s'", readBytes, len(buf), dbxFilePath)
+	}
+
+	efiVar := tcg.UEFIVariableData{
+		VariableData: buf,
+	}
+
+	certs, _, err := efiVar.SignatureData()
+	if err != nil {
+		return err
+	} else if len(certs) != 1 {
+		return fmt.Errorf("expected exactly one certificate in dbx update, got %d", len(certs))
+	}
+
+	publicKeyDer, err := x509.MarshalPKIXPublicKey(certs[0].PublicKey)
+	if err != nil {
+		return err
+	}
+
+	publicKeyBlock := pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyDer,
+	}
+
+	// Check each UKI image.
+	ukis, err := os.ReadDir("/boot/EFI/Linux/")
+	if err != nil {
+		return err
+	}
+
+	for _, uki := range ukis {
+		ukiFile := filepath.Join("/boot/EFI/Linux/", uki.Name())
+		ukiPubKey, err := getPublicKeyFromUKI(ukiFile)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), ukiPubKey) {
+			return fmt.Errorf("unable to apply dbx update, since UKI image '%s' is signed by the key which would be revoked", ukiFile)
+		}
+	}
+
+	return nil
 }
 
 // validatePKICertificate makes sure the certificate obtained from a potential new UKI
