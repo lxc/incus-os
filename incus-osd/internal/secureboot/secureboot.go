@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/go-eventlog/register"
@@ -80,7 +81,11 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 	}
 
 	newPCR7String := hex.EncodeToString(newPCR7)
-	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+	luksVolumes, err := getLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+	for _, volume := range luksVolumes {
 		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
 		if err != nil {
 			return err
@@ -173,7 +178,11 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
 	newPCR7String := hex.EncodeToString(newPCR7)
-	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+	luksVolumes, err := getLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+	for _, volume := range luksVolumes {
 		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
 		if err != nil {
 			return err
@@ -698,4 +707,24 @@ func updateEFIBootStub(ctx context.Context, usrImageFile string) error {
 	}
 
 	return nil
+}
+
+// getLUKSVolumePartitions returns the underlying partitions that hold the root and swap LUKS volumes.
+// We can't just rely on /dev/disk/by-partlabel/root-x86-64, because as soon as an overlay is applied
+// that symlink is repointed to the newly mapped loop device.
+func getLUKSVolumePartitions() ([]string, error) {
+	// /dev/disk/by-partlabel/swap should always point to the correct underlying device.
+	linkDest, err := os.Readlink("/dev/disk/by-partlabel/swap")
+	if err != nil {
+		return nil, err
+	}
+
+	absSwapDev := filepath.Join("/dev/disk/by-partlabel", linkDest)
+	absRootDev, found := strings.CutSuffix(absSwapDev, "9")
+	if !found {
+		return nil, fmt.Errorf("unexpected swap device: '%s'", absSwapDev)
+	}
+	absRootDev += "10"
+
+	return []string{absRootDev, absSwapDev}, nil
 }
