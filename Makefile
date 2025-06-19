@@ -53,6 +53,11 @@ build: incus-osd flasher-tool initrd-deb-package
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
 
+ifneq (,$(wildcard ./certs/))
+	# For some reason getting the image name via $(shell ...) is always empty here?
+	sudo ./scripts/inject-secure-boot-vars.sh `ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1`
+endif
+
 .PHONY: build-iso
 build-iso: build
 	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1)
