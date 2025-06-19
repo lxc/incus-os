@@ -2,6 +2,7 @@ package secureboot
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/sha256"
 	"crypto/x509"
@@ -16,10 +17,72 @@ import (
 
 	"github.com/google/go-eventlog/register"
 	"github.com/google/go-eventlog/tcg"
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/smallstep/pkcs7"
 )
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
+
+// AppendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
+// to the current EFI value, and then updates the expected PCR7 value used to
+// decrypt the root file system and swap at boot.
+func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName string) error {
+	// Verify the file exists.
+	_, err := os.Stat(efiUpdateFile)
+	if err != nil {
+		return err
+	}
+
+	// TODO -- when applying dbx, verify neither of the two images are relying on that certificate to boot.
+
+	// Get and verify the current PCR7 state.
+	eventLog, err := readTMPEventLog()
+	if err != nil {
+		return err
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// By default, sysfs mounts EFI variables with the immutable attribute set. We need to remove it prior to appending the update.
+	efiVarPath, err := efiVariableToFilename(varName)
+	if err != nil {
+		return err
+	}
+
+	_, err = os.Stat(efiVarPath)
+	if err == nil {
+		_, err = subprocess.RunCommandContext(ctx, "chattr", "-i", efiVarPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the EFI variable update.
+	_, err = subprocess.RunCommandContext(ctx, "efi-updatevar", "-a", "-f", efiUpdateFile, varName)
+	if err != nil {
+		return err
+	}
+
+	// Compute the new expected PCR7 value on next boot.
+	newPCR7, err := computeNewPCR7Value(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Update the LUKS-encrypted volumes to use the new PCR7 value.
+	newPCR7String := hex.EncodeToString(newPCR7)
+	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 // readTMPEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
 func readTMPEventLog() ([]tcg.Event, error) {
@@ -309,20 +372,9 @@ func extendPCRValue(pcr []byte, content []byte, computeSHA256 bool) ([]byte, err
 // readEFIVariable returns the current value, if any, of the specified EFI variable.
 func readEFIVariable(variableName string) ([]byte, error) {
 	// Determine which file to open.
-	var filename string
-	switch variableName {
-	case "SecureBoot":
-		filename = "/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"
-	case "PK":
-		filename = "/sys/firmware/efi/efivars/PK-8be4df61-93ca-11d2-aa0d-00e098032b8c"
-	case "KEK":
-		filename = "/sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c"
-	case "db":
-		filename = "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
-	case "dbx":
-		filename = "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
-	default:
-		return nil, fmt.Errorf("unsupported EFI variable '%s'", variableName)
+	filename, err := efiVariableToFilename(variableName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Open the file.
@@ -354,4 +406,22 @@ func readEFIVariable(variableName string) ([]byte, error) {
 
 	// Trim the first four bytes; https://docs.kernel.org/filesystems/efivarfs.html
 	return buf[4:], nil
+}
+
+// efiVariableToFilename maps an EFI variable name to its file under /sys/.
+func efiVariableToFilename(variableName string) (string, error) {
+	switch variableName {
+	case "SecureBoot":
+		return "/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
+	case "PK":
+		return "/sys/firmware/efi/efivars/PK-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
+	case "KEK":
+		return "/sys/firmware/efi/efivars/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
+	case "db":
+		return "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f", nil
+	case "dbx":
+		return "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f", nil
+	default:
+		return "", fmt.Errorf("unsupported EFI variable '%s'", variableName)
+	}
 }
