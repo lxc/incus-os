@@ -5,7 +5,7 @@ default: build
 
 .PHONY: clean
 clean:
-	sudo -E rm -Rf .cache/ mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
+	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: incus-osd
@@ -161,6 +161,17 @@ test-update:
 	incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+
+.PHONY: test-update-sb-keys
+test-update-sb-keys:
+	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
+	incus exec test-incus-os -- mkdir -p /root/updates
+	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+
+	cd certs/efi/updates/ && tar czf IncusOS_SecureBootKeys_${RELEASE}.tar.gz *.auth
+	incus file push certs/efi/updates/*.tar.gz test-incus-os/root/updates/
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
 
