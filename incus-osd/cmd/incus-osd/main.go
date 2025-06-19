@@ -359,7 +359,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Set up handler for shutdown tasks.
+	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
 	s.TriggerUpdate = make(chan bool, 1)
