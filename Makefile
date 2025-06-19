@@ -39,6 +39,14 @@ endif
 
 	cd incus-osd/ && run-parts $(shell run-parts -V >/dev/null 2>&1 && echo -n "--verbose --exit-on-error --regex '.sh'") ../scripts/lint
 
+.PHONY: generate-test-certs
+generate-test-certs:
+ifeq (,$(wildcard ./certs/))
+	./scripts/test/generate-test-certificates.sh
+	./scripts/test/generate-secure-boot-vars.sh
+	./scripts/test/switch-secure-boot-signing-key.sh 1
+endif
+
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
 ifeq (, $(shell which mkosi))
