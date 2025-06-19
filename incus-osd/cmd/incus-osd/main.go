@@ -2,16 +2,23 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
@@ -19,6 +26,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -452,6 +460,18 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
+		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
+		err := checkDoSecureBootCertUpdate(ctx, s, t, p, isStartupCheck)
+		if err != nil {
+			showModalError("Failed to check for Secure Boot key updates", err)
+
+			if isStartupCheck || isUserRequested {
+				break
+			}
+
+			continue
+		}
+
 		// Determine what applications to install.
 		toInstall := []string{"incus"}
 
@@ -692,4 +712,160 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	}
 
 	return "", nil
+}
+
+func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
+	slog.Debug("Checking for Secure Boot key updates")
+
+	if s.RebootRequired {
+		slog.Debug("A reboot of the system is required to finalize a pending update")
+
+		return nil
+	}
+
+	update, err := p.GetSecureBootCertUpdate(ctx, s.OS.Name)
+	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			slog.Warn("Secure Boot key update provider is currently unavailable")
+
+			return nil
+		}
+
+		return err
+	}
+
+	// Skip any update that isn't newer than what we are already running.
+	if s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
+		return errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+	}
+
+	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar.gz")
+
+	// Apply the update.
+	if update.Version() != s.SecureBoot.Version && !s.SecureBoot.FullyApplied { //nolint:nestif
+		// Immediately set FullyApplied to false and save state to disk.
+		s.SecureBoot.FullyApplied = false
+		_ = s.Save(ctx)
+
+		// Check if we need to download the update or not.
+		_, err := os.Stat(archiveFilepath)
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+
+			err := update.Download(ctx, s.OS.Name, varPath)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Extract the archive and apply any needed updates.
+		tmpDir, err := os.MkdirTemp("/tmp", "incus-os")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		_, err = subprocess.RunCommandContext(ctx, "tar", "-C", tmpDir, "-xf", archiveFilepath)
+		if err != nil {
+			return err
+		}
+
+		err = applyIndividualSecureBootUpdates(ctx, s, t, tmpDir, isStartupCheck)
+		if err != nil {
+			return err
+		}
+
+		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
+		// for the user to restart the system before going any further.
+		if s.RebootRequired {
+			return nil
+		}
+	}
+
+	slog.Debug("System Secure Boot keys are up to date")
+
+	// Update state and remove the cached download.
+	s.SecureBoot.Version = update.Version()
+	s.SecureBoot.FullyApplied = true
+	_ = os.Remove(archiveFilepath)
+
+	return nil
+}
+
+func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tui.TUI, updatesDir string, isStartupCheck bool) error {
+	availableCerts, err := os.ReadDir(updatesDir)
+	if err != nil {
+		return err
+	}
+
+	// Apply any updates in order: KEK, then db, then dbx.
+	for _, certType := range []string{"KEK", "db", "dbx"} {
+		existingCerts, err := secureboot.GetCertificatesFromVar(certType)
+		if err != nil {
+			return fmt.Errorf("failed to read EFI variable '%s'", certType)
+		}
+
+		for _, certFile := range availableCerts {
+			if !strings.HasPrefix(certFile.Name(), certType+"_") {
+				continue
+			}
+
+			updateFingerprint := strings.TrimPrefix(certFile.Name(), certType+"_")
+			updateFingerprint = strings.TrimSuffix(updateFingerprint, ".auth")
+
+			updateFingerprintBytes, err := hex.DecodeString(updateFingerprint)
+			if err != nil {
+				return err
+			}
+
+			if slices.ContainsFunc(existingCerts, func(c x509.Certificate) bool {
+				cFingerprint := sha256.Sum256(c.Raw)
+
+				return bytes.Equal(updateFingerprintBytes, cFingerprint[:])
+			}) {
+				// This update is already present on the system, so nothing to do.
+				continue
+			}
+
+			modal := t.AddModal(s.OS.Name + " EFI Variable Update")
+
+			// Apply the key update.
+			slog.Info("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
+			modal.Update("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
+
+			err = secureboot.AppendEFIVarUpdate(ctx, filepath.Join(updatesDir, certFile.Name()), certType)
+			if err != nil {
+				if certType != "KEK" {
+					slog.Error(err.Error())
+					modal.Update("[red]ERROR:[white] " + err.Error())
+
+					return err
+				}
+
+				slog.Warn("Failed to automatically apply KEK update, likely because a custom PK is configured")
+
+				continue
+			}
+
+			s.RebootRequired = true
+
+			if isStartupCheck {
+				slog.Info("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+				modal.Update("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+
+				time.Sleep(5 * time.Second)
+				_ = systemd.SystemReboot(ctx)
+				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
+			} else {
+				slog.Info("Successfully updated EFI variable. A reboot is required to finalize the update.")
+				modal.Update("Successfully updated EFI variable. A reboot is required to finalize the update.")
+			}
+
+			return nil
+		}
+	}
+
+	return nil
 }
