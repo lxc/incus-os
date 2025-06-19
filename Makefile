@@ -1,9 +1,7 @@
+GO ?= go
+
 .PHONY: default
 default: build
-
-ifeq (, $(shell which mkosi))
-$(error "mkosi couldn't be found, please install it and try again")
-endif
 
 .PHONY: clean
 clean:
@@ -32,10 +30,22 @@ initrd-deb-package:
 
 .PHONY: static-analysis
 static-analysis:
-	(cd incus-osd && golangci-lint run)
+ifeq ($(shell command -v go-licenses),)
+	(cd / ; $(GO) install -v -x github.com/google/go-licenses@latest)
+endif
+ifeq ($(shell command -v golangci-lint),)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$($(GO) env GOPATH)/bin
+endif
+
+	cd incus-osd/ && run-parts $(shell run-parts -V >/dev/null 2>&1 && echo -n "--verbose --exit-on-error --regex '.sh'") ../scripts/lint
 
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
+ifeq (, $(shell which mkosi))
+	@echo "mkosi couldn't be found, please install it and try again"
+	exit 1
+endif
+
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER

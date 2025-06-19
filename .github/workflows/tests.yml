@@ -56,15 +56,14 @@ jobs:
           cd incus-osd
           go mod download
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          working-directory: incus-osd
-
       - name: Run test build
         run: |
           cd incus-osd
           go build ./cmd/incus-osd
+
+      - name: Run static analysis
+        run: |
+          make static-analysis
 
       - name: Run unit tests
         run: |
