@@ -25,7 +25,7 @@ func Load(ctx context.Context, s *state.State, name string, config map[string]st
 		}
 
 	case "local":
-		// Setup the Github provider.
+		// Setup the local provider.
 		p = &local{
 			config: config,
 			state:  s,
