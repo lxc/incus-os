@@ -5,6 +5,7 @@ mkosi.output
 
 mkosi.crt
 mkosi.key
+certs/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/incus-osd
