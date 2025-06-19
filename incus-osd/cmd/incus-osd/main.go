@@ -502,6 +502,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				modal = t.AddModal(s.OS.Name + " Update")
 			}
 			modal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
+
+			s.RebootRequired = true
 		}
 
 		// Check for application updates.
@@ -575,6 +577,12 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.Debug("Checking for OS updates")
+
+	if s.RebootRequired {
+		slog.Debug("A reboot of the system is required to finalize a pending update")
+
+		return "", nil
+	}
 
 	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
