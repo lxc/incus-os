@@ -3,10 +3,6 @@ GO ?= go
 .PHONY: default
 default: build
 
-ifeq (, $(shell which mkosi))
-$(error "mkosi couldn't be found, please install it and try again")
-endif
-
 .PHONY: clean
 clean:
 	sudo -E rm -Rf .cache/ mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
@@ -45,6 +41,11 @@ endif
 
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
+ifeq (, $(shell which mkosi))
+	@echo "mkosi couldn't be found, please install it and try again"
+	exit 1
+endif
+
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
