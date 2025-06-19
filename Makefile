@@ -34,6 +34,14 @@ initrd-deb-package:
 static-analysis:
 	(cd incus-osd && golangci-lint run)
 
+.PHONY: generate-test-certs
+generate-test-certs:
+ifeq (,$(wildcard ./certs/))
+	./scripts/test/generate-test-certificates.sh
+	./scripts/test/generate-secure-boot-vars.sh
+	./scripts/test/switch-secure-boot-signing-key.sh 1
+endif
+
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
 	-mkosi genkey
