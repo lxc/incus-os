@@ -13,30 +13,41 @@ import (
 )
 
 // GenerateRecoveryKey utilizes systemd-cryptenroll to generate a recovery key for the
-// root LUKS volume. Depends on an existing tpm2-backed key being enrolled and accessible.
+// root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
-	output, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", "/dev/disk/by-partlabel/root-x86-64")
+	// First, generate a recovery key for the root volume.
+	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", "/dev/disk/by-partlabel/root-x86-64")
+	if err != nil {
+		return err
+	}
+	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
+
+	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
+	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", "/dev/disk/by-partlabel/swap")
 	if err != nil {
 		return err
 	}
 
-	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, strings.TrimSuffix(output, "\n"))
+	// Finally, save the recovery key into the state.
+	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, recoveryPassword)
 	s.System.Encryption.State.RecoveryKeysRetrieved = false
 
 	return nil
 }
 
 // AddEncryptionKey utilizes systemd-cryptenroll to add a user-specified key for the
-// root LUKS volume. Depends on an existing tpm2-backed key being enrolled and accessible.
+// root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 	if slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
 	// Add the new encryption password. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", "/dev/disk/by-partlabel/root-x86-64")
-	if err != nil {
-		return err
+	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", volume)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, key)
@@ -45,7 +56,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 }
 
 // DeleteEncryptionKey utilizes systemd-cryptenroll to remove a user-specified key from the
-// root LUKS volume. Depends on an existing tpm2-backed key being enrolled and accessible.
+// root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 // Due to systemd-cryptenroll only being able to wipe slots by index or type, we must first
 // remove all recovery and password slots, then re-add any remaining keys.
 func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error {
@@ -53,10 +64,16 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 		return errors.New("provided encryption key is not enrolled")
 	}
 
+	if len(s.System.Encryption.Config.RecoveryKeys) == 1 {
+		return errors.New("cannot remove only existing recovery key")
+	}
+
 	// First, wipe all recovery and password slots.
-	_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--wipe-slot", "recovery,password", "/dev/disk/by-partlabel/root-x86-64")
-	if err != nil {
-		return err
+	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--wipe-slot", "recovery,password", volume)
+		if err != nil {
+			return err
+		}
 	}
 
 	existingKeys := s.System.Encryption.Config.RecoveryKeys

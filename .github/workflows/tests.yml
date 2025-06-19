@@ -97,6 +97,7 @@ jobs:
             binutils \
             debian-archive-keyring \
             devscripts \
+            efitools \
             make \
             pipx \
             qemu-utils
@@ -114,6 +115,7 @@ jobs:
       - name: Build initial image
         run: |
           export PATH=${PATH}:/root/.local/bin
+          make generate-test-certs
           make
 
       - name: Start Incus OS
@@ -165,9 +167,19 @@ jobs:
           incus exec test-incus-os -- sleep 30s
           incus exec test-incus-os -- incus list
 
+      - name: Test EFI db and dbx updates
+        run: |
+          incus file push certs/efi/updates/*.auth test-incus-os/root/updates/
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+
+          sleep 30s
+
+          incus restart test-incus-os
+
       - name: Build a newer version of the image
         run: |
           export PATH=${PATH}:/root/.local/bin
+          ./scripts/test/switch-secure-boot-signing-key.sh 2
           make
 
       - name: Apply the update

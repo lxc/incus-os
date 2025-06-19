@@ -8,6 +8,12 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
+// SecureBoot represents the current state of Secure Boot key updates applied to the system.
+type SecureBoot struct {
+	Version      string `json:"version"`
+	FullyApplied bool   `json:"fully_applied"`
+}
+
 // Application represents an installed application (system extension).
 type Application struct {
 	Initialized bool   `json:"initialized"`
@@ -26,11 +32,14 @@ type State struct {
 	path string
 
 	ShouldPerformInstall bool `json:"-"`
+	RebootRequired       bool `json:"-"`
 
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
 	TriggerShutdown chan error `json:"-"`
 	TriggerUpdate   chan bool  `json:"-"`
+
+	SecureBoot SecureBoot `json:"secure_boot"`
 
 	Applications map[string]Application `json:"applications"`
 
