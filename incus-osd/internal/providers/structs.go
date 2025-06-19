@@ -22,12 +22,21 @@ type OSUpdate interface {
 	Download(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error
 }
 
+// SecureBootCertUpdate represents a Secure Boot UEFI certificate update (typically a db or dbx addition).
+type SecureBootCertUpdate interface {
+	Version() string
+	IsNewerThan(otherVersion string) bool
+
+	Download(ctx context.Context, osName string, target string) error
+}
+
 // Provider represents an update/application provider.
 type Provider interface {
 	ClearCache(ctx context.Context) error
 
 	Type() string
 
+	GetSecureBootCertUpdate(ctx context.Context, osName string) (SecureBootCertUpdate, error)
 	GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error)
 	GetApplication(ctx context.Context, name string) (Application, error)
 
