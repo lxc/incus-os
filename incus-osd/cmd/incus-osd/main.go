@@ -220,7 +220,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			mode = "production"
 		}
 
-		if mode == "unsafe" && strings.HasPrefix(key.Description, "mkosi of ") {
+		if mode == "unsafe" && (strings.HasPrefix(key.Description, "mkosi of ") || strings.HasPrefix(key.Description, "TestOS Secure Boot Key ")) {
 			mode = "dev"
 		}
 
