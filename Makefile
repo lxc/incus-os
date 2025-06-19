@@ -1,3 +1,5 @@
+GO ?= go
+
 .PHONY: default
 default: build
 
@@ -32,7 +34,14 @@ initrd-deb-package:
 
 .PHONY: static-analysis
 static-analysis:
-	(cd incus-osd && golangci-lint run)
+ifeq ($(shell command -v go-licenses),)
+	(cd / ; $(GO) install -v -x github.com/google/go-licenses@latest)
+endif
+ifeq ($(shell command -v golangci-lint),)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$($(GO) env GOPATH)/bin
+endif
+
+	cd incus-osd/ && run-parts $(shell run-parts -V >/dev/null 2>&1 && echo -n "--verbose --exit-on-error --regex '.sh'") ../scripts/lint
 
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
