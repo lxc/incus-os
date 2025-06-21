@@ -453,7 +453,7 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 		}
 
 		// Update progress every 24MiB.
-		if count%6 == 0 {
+		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
 		count++
