@@ -15,6 +15,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -480,7 +481,11 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Get existing certificate from systemd-boot EFI stub.
-	binaryCert, err := extractCertificateFromPE("/boot/EFI/BOOT/BOOTX64.EFI")
+	efiFiles, err := getArchEFIFiles()
+	if err != nil {
+		return nil, err
+	}
+	binaryCert, err := extractCertificateFromPE(efiFiles["bootEFI"])
 	if err != nil {
 		return nil, err
 	}
@@ -684,6 +689,11 @@ func getPublicKeyFromUKI(ukiFile string) ([]byte, error) {
 
 // updateEFIBootStub synchronizes the systemd-boot EFI stub when the Secure Boot signing key is rotated.
 func updateEFIBootStub(ctx context.Context, usrImageFile string) error {
+	efiFiles, err := getArchEFIFiles()
+	if err != nil {
+		return err
+	}
+
 	mountDir, err := os.MkdirTemp("/tmp", "incus-os")
 	if err != nil {
 		return err
@@ -696,12 +706,12 @@ func updateEFIBootStub(ctx context.Context, usrImageFile string) error {
 	}
 	defer unix.Unmount(mountDir, 0)
 
-	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, "lib/systemd/boot/efi/systemd-bootx64.efi.signed"), "/boot/EFI/systemd/systemd-bootx64.efi")
+	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, efiFiles["stub"]), efiFiles["systemdEFI"])
 	if err != nil {
 		return err
 	}
 
-	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, "lib/systemd/boot/efi/systemd-bootx64.efi.signed"), "/boot/EFI/BOOT/BOOTX64.EFI")
+	_, err = subprocess.RunCommandContext(ctx, "cp", filepath.Join(mountDir, efiFiles["stub"]), efiFiles["bootEFI"])
 	if err != nil {
 		return err
 	}
@@ -727,4 +737,21 @@ func getLUKSVolumePartitions() ([]string, error) {
 	absRootDev += "10"
 
 	return []string{absRootDev, absSwapDev}, nil
+}
+
+// getArchEFIFiles returns a map of architecture-specific file paths for the systemd-boot EFI stub
+// and its installed locations.
+func getArchEFIFiles() (map[string]string, error) {
+	ret := make(map[string]string)
+
+	switch runtime.GOARCH {
+	case "amd64":
+		ret["stub"] = "lib/systemd/boot/efi/systemd-bootx64.efi.signed"
+		ret["systemdEFI"] = "/boot/EFI/systemd/systemd-bootx64.efi"
+		ret["bootEFI"] = "/boot/EFI/BOOT/BOOTX64.EFI"
+
+		return ret, nil
+	default:
+		return ret, fmt.Errorf("architecture %s isn't currently supported", runtime.GOARCH)
+	}
 }
