@@ -53,6 +53,10 @@ func (*github) Type() string {
 	return "github"
 }
 
+func (*github) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
+	return nil, ErrNoUpdateAvailable
+}
+
 func (p *github) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

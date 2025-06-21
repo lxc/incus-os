@@ -147,6 +147,11 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
+func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
+	// Eventually we'll have an API from OperationsCenter to query for any updates.
+	return nil, ErrNoUpdateAvailable
+}
+
 func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
