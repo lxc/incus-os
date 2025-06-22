@@ -29,7 +29,7 @@ func (*local) ClearCache(_ context.Context) error {
 }
 
 func (*local) RefreshRegister(_ context.Context) error {
-	// No registration with the Github provider.
+	// No registration with the local provider.
 	return ErrRegistrationUnsupported
 }
 
@@ -40,6 +40,38 @@ func (*local) Register(_ context.Context) error {
 
 func (*local) Type() string {
 	return "local"
+}
+
+func (p *local) GetSecureBootCertUpdate(ctx context.Context, osName string) (SecureBootCertUpdate, error) {
+	// Get latest release.
+	err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the list of returned assets for the Secure Boot update contains at least
+	// one file for the release version, otherwise we shouldn't report an update.
+	foundUpdateFile := false
+	for _, asset := range p.releaseAssets {
+		if strings.HasPrefix(filepath.Base(asset), osName+"_SecureBootKeys_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+			foundUpdateFile = true
+
+			break
+		}
+	}
+
+	if !foundUpdateFile {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	// Prepare the OS update struct.
+	update := localSecureBootCertUpdate{
+		provider: p,
+		assets:   p.releaseAssets,
+		version:  p.releaseVersion,
+	}
+
+	return &update, nil
 }
 
 func (p *local) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
@@ -189,7 +221,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 		}
 
 		// Update progress every 24MiB.
-		if count%6 == 0 {
+		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
 		count++
@@ -292,6 +324,39 @@ func (o *localOSUpdate) Download(ctx context.Context, osName string, target stri
 
 		// Download the actual update.
 		err = o.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Secure Boot key updates from the Local provider.
+type localSecureBootCertUpdate struct {
+	provider *local
+
+	assets  []string
+	version string
+}
+
+func (o *localSecureBootCertUpdate) Version() string {
+	return o.version
+}
+
+func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
+}
+
+func (o *localSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+	for _, asset := range o.assets {
+		// Only select Secure Boot keys for the expected version.
+		if !strings.HasPrefix(filepath.Base(asset), osName+"_SecureBootKeys_"+o.version) {
+			continue
+		}
+
+		// Download the actual update.
+		err := o.provider.copyAsset(ctx, filepath.Base(asset), target, nil)
 		if err != nil {
 			return err
 		}

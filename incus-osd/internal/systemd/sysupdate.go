@@ -5,10 +5,13 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
 
 // ErrReleaseNotFound is returned when the os-release file can't be located.
@@ -53,11 +56,39 @@ func GetCurrentRelease(_ context.Context) (string, string, error) { //nolint:rev
 }
 
 // ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
-func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
+func ApplySystemUpdate(ctx context.Context, luksPassword string, version string, reboot bool) error {
 	// WORKAROUND: Start the boot.mount unit so /boot autofs is active before we create a new mount namespace.
 	err := StartUnit(ctx, "boot.mount")
 	if err != nil {
 		return err
+	}
+
+	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
+	var newUKIFile string
+	var newUsrImageFile string
+	updateFiles, err := os.ReadDir(SystemUpdatesPath)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range updateFiles {
+		if strings.HasSuffix(file.Name(), "_"+version+".efi") {
+			newUKIFile = filepath.Join(SystemUpdatesPath, file.Name())
+		} else if strings.Contains(file.Name(), "_"+version+".usr-x86-64.") {
+			newUsrImageFile = filepath.Join(SystemUpdatesPath, file.Name())
+		}
+	}
+
+	secureBootKeyChanged, err := secureboot.UKIHasDifferentSecureBootCertificate(newUKIFile)
+	if err != nil {
+		return err
+	}
+
+	if secureBootKeyChanged {
+		err := secureboot.HandleSecureBootKeyChange(ctx, luksPassword, newUKIFile, newUsrImageFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	// WORKAROUND: Needed until systemd-sysupdate can be run with system extensions applied.

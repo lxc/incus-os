@@ -6,7 +6,7 @@ This aims at providing a very fast, safe and reliable way to run an Incus server
 
 # Security features
 Incus OS is designed to run on systems using UEFI with Secure Boot enabled.
-On first boot, it will automatically add the relevant Secure Boot key
+On first boot, it will automatically add the relevant Secure Boot keys
 (requires the system be in setup mode).
 
 This ensures that only our signed image can be booted on the system.

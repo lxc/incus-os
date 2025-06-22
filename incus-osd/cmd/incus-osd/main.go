@@ -2,16 +2,23 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
@@ -19,6 +26,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -220,15 +228,16 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			mode = "production"
 		}
 
-		if mode == "unsafe" && strings.HasPrefix(key.Description, "mkosi of ") {
+		if mode == "unsafe" && (strings.HasPrefix(key.Description, "mkosi of ") || strings.HasPrefix(key.Description, "TestOS Secure Boot Key ")) {
 			mode = "dev"
 		}
 
 		slog.Debug("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	// If no encryption recovery keys have been defined for the root partition, generate one before going any further.
+	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
 	if len(s.System.Encryption.Config.RecoveryKeys) == 0 {
+		slog.Info("Auto-generating encryption recovery key, this may take a few seconds")
 		err := systemd.GenerateRecoveryKey(ctx, s)
 		if err != nil {
 			return err
@@ -350,7 +359,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Set up handler for shutdown tasks.
+	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
 	s.TriggerUpdate = make(chan bool, 1)
@@ -451,6 +460,18 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
+		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
+		err := checkDoSecureBootCertUpdate(ctx, s, t, p, isStartupCheck)
+		if err != nil {
+			showModalError("Failed to check for Secure Boot key updates", err)
+
+			if isStartupCheck || isUserRequested {
+				break
+			}
+
+			continue
+		}
+
 		// Determine what applications to install.
 		toInstall := []string{"incus"}
 
@@ -501,6 +522,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				modal = t.AddModal(s.OS.Name + " Update")
 			}
 			modal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
+
+			s.RebootRequired = true
 		}
 
 		// Check for application updates.
@@ -575,6 +598,12 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.Debug("Checking for OS updates")
 
+	if s.RebootRequired {
+		slog.Debug("A reboot of the system is required to finalize a pending update")
+
+		return "", nil
+	}
+
 	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
@@ -621,7 +650,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
-		err = systemd.ApplySystemUpdate(ctx, update.Version(), isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, s.System.Encryption.Config.RecoveryKeys[0], update.Version(), isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save(ctx)
@@ -683,4 +712,160 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	}
 
 	return "", nil
+}
+
+func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
+	slog.Debug("Checking for Secure Boot key updates")
+
+	if s.RebootRequired {
+		slog.Debug("A reboot of the system is required to finalize a pending update")
+
+		return nil
+	}
+
+	update, err := p.GetSecureBootCertUpdate(ctx, s.OS.Name)
+	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			slog.Warn("Secure Boot key update provider is currently unavailable")
+
+			return nil
+		}
+
+		return err
+	}
+
+	// Skip any update that isn't newer than what we are already running.
+	if s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
+		return errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+	}
+
+	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar.gz")
+
+	// Apply the update.
+	if update.Version() != s.SecureBoot.Version && !s.SecureBoot.FullyApplied { //nolint:nestif
+		// Immediately set FullyApplied to false and save state to disk.
+		s.SecureBoot.FullyApplied = false
+		_ = s.Save(ctx)
+
+		// Check if we need to download the update or not.
+		_, err := os.Stat(archiveFilepath)
+		if err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+
+			err := update.Download(ctx, s.OS.Name, varPath)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Extract the archive and apply any needed updates.
+		tmpDir, err := os.MkdirTemp("/tmp", "incus-os")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		_, err = subprocess.RunCommandContext(ctx, "tar", "-C", tmpDir, "-xf", archiveFilepath)
+		if err != nil {
+			return err
+		}
+
+		err = applyIndividualSecureBootUpdates(ctx, s, t, tmpDir, isStartupCheck)
+		if err != nil {
+			return err
+		}
+
+		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
+		// for the user to restart the system before going any further.
+		if s.RebootRequired {
+			return nil
+		}
+	}
+
+	slog.Debug("System Secure Boot keys are up to date")
+
+	// Update state and remove the cached download.
+	s.SecureBoot.Version = update.Version()
+	s.SecureBoot.FullyApplied = true
+	_ = os.Remove(archiveFilepath)
+
+	return nil
+}
+
+func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tui.TUI, updatesDir string, isStartupCheck bool) error {
+	availableCerts, err := os.ReadDir(updatesDir)
+	if err != nil {
+		return err
+	}
+
+	// Apply any updates in order: KEK, then db, then dbx.
+	for _, certType := range []string{"KEK", "db", "dbx"} {
+		existingCerts, err := secureboot.GetCertificatesFromVar(certType)
+		if err != nil {
+			return fmt.Errorf("failed to read EFI variable '%s'", certType)
+		}
+
+		for _, certFile := range availableCerts {
+			if !strings.HasPrefix(certFile.Name(), certType+"_") {
+				continue
+			}
+
+			updateFingerprint := strings.TrimPrefix(certFile.Name(), certType+"_")
+			updateFingerprint = strings.TrimSuffix(updateFingerprint, ".auth")
+
+			updateFingerprintBytes, err := hex.DecodeString(updateFingerprint)
+			if err != nil {
+				return err
+			}
+
+			if slices.ContainsFunc(existingCerts, func(c x509.Certificate) bool {
+				cFingerprint := sha256.Sum256(c.Raw)
+
+				return bytes.Equal(updateFingerprintBytes, cFingerprint[:])
+			}) {
+				// This update is already present on the system, so nothing to do.
+				continue
+			}
+
+			modal := t.AddModal(s.OS.Name + " EFI Variable Update")
+
+			// Apply the key update.
+			slog.Info("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
+			modal.Update("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
+
+			err = secureboot.AppendEFIVarUpdate(ctx, filepath.Join(updatesDir, certFile.Name()), certType)
+			if err != nil {
+				if certType != "KEK" {
+					slog.Error(err.Error())
+					modal.Update("[red]ERROR:[white] " + err.Error())
+
+					return err
+				}
+
+				slog.Warn("Failed to automatically apply KEK update, likely because a custom PK is configured")
+
+				continue
+			}
+
+			s.RebootRequired = true
+
+			if isStartupCheck {
+				slog.Info("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+				modal.Update("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+
+				time.Sleep(5 * time.Second)
+				_ = systemd.SystemReboot(ctx)
+				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
+			} else {
+				slog.Info("Successfully updated EFI variable. A reboot is required to finalize the update.")
+				modal.Update("Successfully updated EFI variable. A reboot is required to finalize the update.")
+			}
+
+			return nil
+		}
+	}
+
+	return nil
 }

@@ -147,6 +147,11 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
+func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
+	// Eventually we'll have an API from OperationsCenter to query for any updates.
+	return nil, ErrNoUpdateAvailable
+}
+
 func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
@@ -453,7 +458,7 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 		}
 
 		// Update progress every 24MiB.
-		if count%6 == 0 {
+		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
 		count++

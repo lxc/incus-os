@@ -5,7 +5,7 @@ default: build
 
 .PHONY: clean
 clean:
-	sudo -E rm -Rf .cache/ mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
+	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: incus-osd
@@ -39,6 +39,14 @@ endif
 
 	cd incus-osd/ && run-parts $(shell run-parts -V >/dev/null 2>&1 && echo -n "--verbose --exit-on-error --regex '.sh'") ../scripts/lint
 
+.PHONY: generate-test-certs
+generate-test-certs:
+ifeq (,$(wildcard ./certs/))
+	./scripts/test/generate-test-certificates.sh
+	./scripts/test/generate-secure-boot-vars.sh
+	./scripts/test/switch-secure-boot-signing-key.sh 1
+endif
+
 .PHONY: build
 build: incus-osd flasher-tool initrd-deb-package
 ifeq (, $(shell which mkosi))
@@ -54,6 +62,11 @@ endif
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
+
+ifneq (,$(wildcard ./certs/))
+	# For some reason getting the image name via $(shell ...) is always empty here?
+	sudo ./scripts/inject-secure-boot-vars.sh `ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1`
+endif
 
 .PHONY: build-iso
 build-iso: build
@@ -148,6 +161,17 @@ test-update:
 	incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+
+.PHONY: test-update-sb-keys
+test-update-sb-keys:
+	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
+	incus exec test-incus-os -- mkdir -p /root/updates
+	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+
+	cd certs/efi/updates/ && tar czf IncusOS_SecureBootKeys_${RELEASE}.tar.gz *.auth
+	incus file push certs/efi/updates/*.tar.gz test-incus-os/root/updates/
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
 
