@@ -607,7 +607,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Warn("OS update provider is currently unavailable")
+			slog.Debug("OS update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -674,7 +674,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	app, err := p.GetApplication(ctx, appName)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Warn("Application update provider is currently unavailable")
+			slog.Debug("Application update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -726,7 +726,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 	update, err := p.GetSecureBootCertUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Warn("Secure Boot key update provider is currently unavailable")
+			slog.Debug("Secure Boot key update provider doesn't currently have any update")
 
 			return nil
 		}
