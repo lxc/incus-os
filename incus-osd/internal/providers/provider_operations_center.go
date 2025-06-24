@@ -129,6 +129,22 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		return err
 	}
 
+	// Set listen address if not set.
+	conf, etag, err := c.GetServer()
+	if err != nil {
+		return err
+	}
+
+	_, ok := conf.Config["core.https_address"]
+	if !ok {
+		conf.Config["core.https_address"] = ":8443"
+
+		err = c.UpdateServer(conf.Writable(), etag)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Add the certificate.
 	cert := api.CertificatesPost{}
 	cert.Name = p.serverURL
