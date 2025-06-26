@@ -244,6 +244,20 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
+	// Temporary migration logic for pre-existing IncusOS installs that don't have a recovery key set for their swap partition.
+	// This should be removed by the end of August, 2025.
+	needsSwapKey, err := systemd.SwapNeedsRecoveryKeySet(ctx)
+	if err != nil {
+		return err
+	}
+	if needsSwapKey {
+		slog.Info("Setting encryption recovery key for swap partition, this may take a few seconds")
+		err := systemd.SwapSetRecoveryKey(ctx, s.System.Encryption.Config.RecoveryKeys[0])
+		if err != nil {
+			return err
+		}
+	}
+
 	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
 	// Display a warning if we're running from the backup image.

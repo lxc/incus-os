@@ -46,7 +46,7 @@ linters:
         - name: function-length
           arguments:
             - 150
-            - 200
+            - 250
         - name: line-length-limit
           disabled: true
         - name: max-public-structs
