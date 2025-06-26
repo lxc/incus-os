@@ -2,8 +2,10 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -277,6 +279,12 @@ func (t *TUI) getIPAddresses() []string {
 	ret := []string{}
 
 	appendIPs := func(name string) {
+		// Handle missing interfaces.
+		_, err := os.Stat(filepath.Join("/sys/class/net/", name))
+		if err != nil && errors.Is(err, os.ErrNotExist) {
+			return
+		}
+
 		output, err := subprocess.RunCommandContext(context.Background(), "ip", "address", "show", name)
 		if err != nil {
 			ret = append(ret, name+"("+err.Error()+")")
