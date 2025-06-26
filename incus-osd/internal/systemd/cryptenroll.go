@@ -93,3 +93,28 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 
 	return nil
 }
+
+// SwapNeedsRecoveryKeySet checks if the swap partition has a recovery key set or not. This
+// is needed to properly upgrade older installs of IncusOS that only have the recovery key
+// set on the root partition. If the swap volume is missing the recovery key, attempts to update
+// Secure Boot keys will fail.
+//
+// This should be removed by the end of August, 2025.
+func SwapNeedsRecoveryKeySet(ctx context.Context) (bool, error) {
+	output, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "/dev/disk/by-partlabel/swap")
+	if err != nil {
+		return false, err
+	}
+
+	return !strings.Contains(output, "password"), nil
+}
+
+// SwapSetRecoveryKey adds the specified recovery password to the swap volume.
+//
+// This should be removed by the end of August, 2025.
+func SwapSetRecoveryKey(ctx context.Context, recoveryPassword string) error {
+	// Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
+	_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", "/dev/disk/by-partlabel/swap")
+
+	return err
+}
