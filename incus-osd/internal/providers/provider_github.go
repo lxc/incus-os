@@ -53,8 +53,34 @@ func (*github) Type() string {
 	return "github"
 }
 
-func (*github) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
-	return nil, ErrNoUpdateAvailable
+func (*github) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
+	// The GitHub Secure Boot provider only ever returns a single update, which contains
+	// new IncusOS KEK and db keys that will be used as we switch to distributing updates via
+	// the Linux Containers CDN.
+
+	updateURL := "https://images.linuxcontainers.org/os/IncusOS_SB_transition.tar.gz"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, updateURL, nil)
+	if err != nil {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, ErrNoUpdateAvailable
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	update := githubSecureBootCertUpdate{
+		url:     updateURL,
+		version: "202506261900",
+	}
+
+	return &update, nil
 }
 
 func (p *github) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
@@ -350,4 +376,46 @@ func (o *githubOSUpdate) Download(ctx context.Context, osName string, target str
 	}
 
 	return nil
+}
+
+// Secure Boot key updates from the GitHub provider.
+type githubSecureBootCertUpdate struct {
+	url     string
+	version string
+}
+
+func (o *githubSecureBootCertUpdate) Version() string {
+	return o.version
+}
+
+func (o *githubSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
+}
+
+func (o *githubSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+	// #nosec G304
+	f, err := os.Create(filepath.Join(target, osName+"_SecureBootKeys_"+o.version+".tar.gz"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, o.url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("error downloading update: " + resp.Status)
+	}
+
+	_, err = io.Copy(f, resp.Body)
+
+	return err
 }

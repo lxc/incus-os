@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/go-eventlog/register"
@@ -169,6 +170,13 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	// Apply the EFI variable update.
 	_, err = subprocess.RunCommandContext(ctx, "efi-updatevar", "-a", "-f", efiUpdateFile, varName)
 	if err != nil {
+		if strings.Contains(err.Error(), "wrong filesystem permissions") {
+			// Internally, if an EFI update doesn't apply (such as when signed by an untrusted certificate),
+			// EACCES is returned and ultimately is reported as a file system error, which is a bit
+			// confusing, so return a nicer error message.
+			return fmt.Errorf("failed to apply %s update, likely due to a bad/untrusted signature", varName)
+		}
+
 		return err
 	}
 
