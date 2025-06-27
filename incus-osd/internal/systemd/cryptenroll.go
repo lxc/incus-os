@@ -10,20 +10,27 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // GenerateRecoveryKey utilizes systemd-cryptenroll to generate a recovery key for the
 // root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
+	// Get the underlying LUKS partitions.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+
 	// First, generate a recovery key for the root volume.
-	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", "/dev/disk/by-partlabel/root-x86-64")
+	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes[0])
 	if err != nil {
 		return err
 	}
 	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
 
 	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", "/dev/disk/by-partlabel/swap")
+	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes[1])
 	if err != nil {
 		return err
 	}
@@ -42,8 +49,14 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
+	// Get the underlying LUKS partitions.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+
 	// Add the new encryption password. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+	for _, volume := range luksVolumes {
 		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", volume)
 		if err != nil {
 			return err
@@ -68,8 +81,14 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 		return errors.New("cannot remove only existing recovery key")
 	}
 
+	// Get the underlying LUKS partitions.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+
 	// First, wipe all recovery and password slots.
-	for _, volume := range []string{"/dev/disk/by-partlabel/root-x86-64", "/dev/disk/by-partlabel/swap"} {
+	for _, volume := range luksVolumes {
 		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--wipe-slot", "recovery,password", volume)
 		if err != nil {
 			return err
