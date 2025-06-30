@@ -1,4 +1,4 @@
-package util
+package util //nolint:revive
 
 import (
 	"fmt"
@@ -18,10 +18,12 @@ func GetLUKSVolumePartitions() ([]string, error) {
 	}
 
 	absSwapDev := filepath.Join("/dev/disk/by-partlabel", linkDest)
+
 	absRootDev, found := strings.CutSuffix(absSwapDev, "9")
 	if !found {
 		return nil, fmt.Errorf("unexpected swap device: '%s'", absSwapDev)
 	}
+
 	absRootDev += "10"
 
 	return []string{absRootDev, absSwapDev}, nil

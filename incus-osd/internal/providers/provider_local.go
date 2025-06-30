@@ -52,6 +52,7 @@ func (p *local) GetSecureBootCertUpdate(ctx context.Context, osName string) (Sec
 	// Verify the list of returned assets for the Secure Boot update contains at least
 	// one file for the release version, otherwise we shouldn't report an update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		if strings.HasPrefix(filepath.Base(asset), osName+"_SecureBootKeys_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
@@ -84,6 +85,7 @@ func (p *local) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error
 	// Verify the list of returned assets for the OS update contains at least
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		if strings.HasPrefix(filepath.Base(asset), osName+"_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
@@ -116,6 +118,7 @@ func (p *local) GetApplication(ctx context.Context, name string) (Application, e
 	// Verify the list of returned assets contains a "<name>.raw" file, otherwise
 	// we shouldn't return an application update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		if filepath.Base(asset) == name+".raw" {
 			foundUpdateFile = true
@@ -197,6 +200,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 	if err != nil {
 		return err
 	}
+
 	srcSize := float64(s.Size())
 
 	// Open the destination.
@@ -210,6 +214,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 
 	// Copy the content.
 	count := int64(0)
+
 	for {
 		_, err := io.CopyN(dst, src, 4*1024*1024)
 		if err != nil {
@@ -224,6 +229,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
+
 		count++
 	}
 

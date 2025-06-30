@@ -118,6 +118,7 @@ func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN,
 		if len(bond.Members) == 0 {
 			return fmt.Errorf("bond %d has no members", index)
 		}
+
 		for memberIndex, member := range bond.Members {
 			err := validateHwaddr(member, requireValidMAC)
 			if err != nil {
@@ -200,6 +201,7 @@ func validateParent(parent string, interfaces []api.SystemNetworkInterface, bond
 	}
 
 	foundParent := false
+
 	for _, i := range interfaces {
 		if i.Name == parent {
 			foundParent = true
@@ -235,6 +237,7 @@ func validateMTU(mtu int) error {
 
 func validateVLAN(vlan int, vlans []api.SystemNetworkVLAN) error {
 	foundVLAN := false
+
 	for _, v := range vlans {
 		if v.ID == vlan {
 			foundVLAN = true

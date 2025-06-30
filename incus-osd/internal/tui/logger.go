@@ -12,6 +12,7 @@ import (
 // CustomTextHandler extends the slog.Handler struct to provide more compact text logging.
 type CustomTextHandler struct {
 	slog.Handler
+
 	w io.Writer
 }
 
@@ -37,6 +38,7 @@ func (*CustomTextHandler) Enabled(_ context.Context, level slog.Level) bool {
 // Handle handles the Record.
 func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 	var buf strings.Builder
+
 	var err error
 
 	// Build up the base line with timestamp, log level, and message.
@@ -46,6 +48,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	levelColor := ""
+
 	switch r.Level {
 	case slog.LevelDebug:
 		levelColor = "[blue]"
@@ -56,6 +59,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 	case slog.LevelError:
 		levelColor = "[red]"
 	}
+
 	_, err = buf.WriteString(levelColor + r.Level.String() + "[white] ")
 	if err != nil {
 		return err
@@ -81,6 +85,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 		for k := range attrs {
 			keys = append(keys, k)
 		}
+
 		sort.Strings(keys)
 
 		_, err = buf.WriteString("[purple]")

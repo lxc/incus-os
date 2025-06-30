@@ -118,6 +118,7 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 
 	// Parse the response.
 	registrationResp := serverPostResp{}
+
 	err = resp.MetadataAsStruct(&registrationResp)
 	if err != nil {
 		return err
@@ -178,6 +179,7 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUp
 	// Verify the list of returned assets for the OS update contains at least
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		fileName := filepath.Base(asset)
 
@@ -212,6 +214,7 @@ func (p *operationsCenter) GetApplication(ctx context.Context, name string) (App
 	// Verify the list of returned assets contains a "<name>.raw.gz" file, otherwise
 	// we shouldn't return an application update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		fileName := filepath.Base(asset)
 
@@ -328,6 +331,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 
 	// Convert to an Incus response struct.
 	apiResp := &api.Response{}
+
 	err = json.Unmarshal(content, apiResp)
 	if err != nil {
 		return nil, err
@@ -380,6 +384,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	// Parse the update list.
 	updates := []update{}
+
 	err = apiResp.MetadataAsStruct(&updates)
 	if err != nil {
 		return err
@@ -400,6 +405,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	// Parse the file list.
 	files := []updateFile{}
+
 	err = apiResp.MetadataAsStruct(&files)
 	if err != nil {
 		return err
@@ -463,6 +469,7 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 
 	// Read from the decompressor in chunks to avoid excessive memory consumption.
 	count := int64(0)
+
 	for {
 		_, err = io.CopyN(fd, body, 4*1024*1024)
 		if err != nil {
@@ -477,6 +484,7 @@ func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, t
 		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
+
 		count++
 	}
 

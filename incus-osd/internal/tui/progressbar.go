@@ -15,6 +15,7 @@ import (
 // ProgressBar indicates the progress of an operation.
 type ProgressBar struct {
 	*tview.Box
+	sync.RWMutex
 
 	// Rune to use when rendering the empty area of the progress bar.
 	emptyRune rune
@@ -37,8 +38,6 @@ type ProgressBar struct {
 
 	// Progress required to fill the bar.
 	max int64
-
-	sync.RWMutex
 }
 
 // NewProgressBar returns a new progress bar.
@@ -164,6 +163,7 @@ func (p *ProgressBar) Draw(screen tcell.Screen) {
 	x, y, width, height := p.GetInnerRect()
 
 	barSize := height
+
 	maxLength := width
 	if p.vertical {
 		barSize = width
@@ -183,6 +183,7 @@ func (p *ProgressBar) Draw(screen tcell.Screen) {
 				screen.SetContent(x+j, y+i, p.filledRune, nil, tcell.StyleDefault.Foreground(p.filledColor).Background(p.GetBackgroundColor()))
 			}
 		}
+
 		for j := barLength; j < maxLength; j++ {
 			if p.vertical {
 				screen.SetContent(x+i, y+(height-1-j), p.emptyRune, nil, tcell.StyleDefault.Foreground(p.emptyColor).Background(p.GetBackgroundColor()))

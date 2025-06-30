@@ -129,6 +129,7 @@ func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	}
 
 	networks := []incusapi.Network{}
+
 	for _, network := range allNetworks {
 		if !network.Managed {
 			continue

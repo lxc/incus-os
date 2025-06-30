@@ -9,6 +9,7 @@ import (
 // etagHash hashes the provided data and returns the sha256.
 func etagHash(data any) (string, error) {
 	etag := sha256.New()
+
 	err := json.NewEncoder(etag).Encode(data)
 	if err != nil {
 		return "", err

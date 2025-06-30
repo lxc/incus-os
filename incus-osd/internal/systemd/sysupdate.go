@@ -65,7 +65,9 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 
 	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
 	var newUKIFile string
+
 	var newUsrImageFile string
+
 	updateFiles, err := os.ReadDir(SystemUpdatesPath)
 	if err != nil {
 		return err

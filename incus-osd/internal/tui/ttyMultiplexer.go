@@ -87,7 +87,9 @@ func (t ttyMultiplexer) Read(p []byte) (int, error) {
 // Write will write bytes to all terminals. Part of the ReadWriteCloser interface.
 func (t ttyMultiplexer) Write(p []byte) (int, error) {
 	var n int
+
 	var err error
+
 	for _, tty := range t.ttys {
 		n, err = tty.Write(p)
 		if err != nil {

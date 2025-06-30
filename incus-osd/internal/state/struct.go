@@ -98,6 +98,7 @@ func (s *State) ManagementAddress() net.IP {
 	}
 
 	var ipv4Address net.IP
+
 	var ipv6Address net.IP
 
 	for _, iface := range s.System.Network.State.Interfaces {

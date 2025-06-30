@@ -57,7 +57,6 @@ func (*github) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBoo
 	// The GitHub Secure Boot provider only ever returns a single update, which contains
 	// new IncusOS KEK and db keys that will be used as we switch to distributing updates via
 	// the Linux Containers CDN.
-
 	updateURL := "https://images.linuxcontainers.org/os/IncusOS_SB_transition.tar.gz"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, updateURL, nil)
@@ -93,6 +92,7 @@ func (p *github) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, erro
 	// Verify the list of returned assets for the OS update contains at least
 	// one file for the release version, otherwise we shouldn't report an OS update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		if strings.HasPrefix(asset.GetName(), osName+"_") && strings.Contains(asset.GetName(), p.releaseVersion) {
 			foundUpdateFile = true
@@ -125,6 +125,7 @@ func (p *github) GetApplication(ctx context.Context, name string) (Application, 
 	// Verify the list of returned assets contains a "<name>.raw.gz" file, otherwise
 	// we shouldn't return an application update.
 	foundUpdateFile := false
+
 	for _, asset := range p.releaseAssets {
 		if asset.GetName() == name+".raw.gz" {
 			foundUpdateFile = true
@@ -235,6 +236,7 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 	if err != nil {
 		return p.checkLimit(err)
 	}
+
 	srcSize := float64(*ra.Size)
 
 	// Setup a gzip reader to decompress during streaming.
@@ -256,6 +258,7 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 
 	// Read from the decompressor in chunks to avoid excessive memory consumption.
 	count := int64(0)
+
 	for {
 		_, err = io.CopyN(fd, body, 4*1024*1024)
 		if err != nil {
@@ -270,6 +273,7 @@ func (p *github) downloadAsset(ctx context.Context, assetID int64, target string
 		if progressFunc != nil && count%6 == 0 {
 			progressFunc(float64(count*4*1024*1024) / srcSize)
 		}
+
 		count++
 	}
 

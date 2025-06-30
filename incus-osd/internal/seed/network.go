@@ -122,6 +122,7 @@ func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 // getMacForInterface attempts to query a give network interface and return its MAC address.
 func getMacForInterface(ctx context.Context, iface string) (string, error) {
 	macAddressRegex := regexp.MustCompile(`link/ether (.+) brd`)
+
 	output, err := subprocess.RunCommandContext(ctx, "ip", "link", "show", iface)
 	if err != nil {
 		return "", err

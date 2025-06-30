@@ -38,6 +38,7 @@ func NewServer(_ context.Context, s *state.State, socketPath string) (*Server, e
 func (s *Server) Serve(_ context.Context) error {
 	// Setup listener.
 	_ = os.Remove(s.socketPath)
+
 	listener, err := net.Listen("unix", s.socketPath)
 	if err != nil {
 		return err

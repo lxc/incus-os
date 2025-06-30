@@ -84,10 +84,12 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 	}
 
 	newPCR7String := hex.EncodeToString(newPCR7)
+
 	luksVolumes, err := util.GetLUKSVolumePartitions()
 	if err != nil {
 		return err
 	}
+
 	for _, volume := range luksVolumes {
 		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
 		if err != nil {
@@ -102,6 +104,7 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 // with a different Secure Boot certificate than the one that signed the currently running system.
 func UKIHasDifferentSecureBootCertificate(ukiFile string) (bool, error) {
 	currentCert := make([]byte, 451)
+
 	file, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
 	if err != nil {
 		return false, err
@@ -188,10 +191,12 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
 	newPCR7String := hex.EncodeToString(newPCR7)
+
 	luksVolumes, err := util.GetLUKSVolumePartitions()
 	if err != nil {
 		return err
 	}
+
 	for _, volume := range luksVolumes {
 		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
 		if err != nil {
@@ -237,6 +242,7 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	// .auth files have a timestamp and AuthInfo header before the .esl content. For our use, skip 1287 bytes
 	// into the .auth file to get actual certificate data.
 	buf := make([]byte, s.Size()-1287)
+
 	readBytes, err := dbxFile.ReadAt(buf, 1287)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return err
@@ -273,6 +279,7 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 
 	for _, uki := range ukis {
 		ukiFile := filepath.Join("/boot/EFI/Linux/", uki.Name())
+
 		ukiPubKey, err := getPublicKeyFromUKI(ukiFile)
 		if err != nil {
 			return err
@@ -363,6 +370,7 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 
 	// Playback the log and compute the resulting PCR7 value.
 	untrustedPCR7Digest := make([]byte, 32)
+
 	for _, e := range eventLog {
 		if e.Index == 7 { // We only care about PCR7.
 			untrustedPCR7Digest, err = extendPCRValue(untrustedPCR7Digest, e.ReplayedDigest(), false)
@@ -380,6 +388,7 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	defer pcr7File.Close()
 
 	actualPCR7Buf := make([]byte, 64)
+
 	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
 	if err != nil {
 		return err
@@ -409,7 +418,6 @@ func computeNewPCR7Value(eventLog []tcg.Event) ([]byte, error) {
 			switch e.Type { //nolint:exhaustive
 			case tcg.EFIVariableDriverConfig:
 				// If an EFI variable (SecureBoot, PK, KEK, db, dbx), fetch the current value and use it for computing the PCR.
-
 				buf, err := computeExpectedVariableDriverConfig(e.Data)
 				if err != nil {
 					return nil, err
@@ -425,7 +433,6 @@ func computeNewPCR7Value(eventLog []tcg.Event) ([]byte, error) {
 				// certificate used for the systemd-boot EFI stub and the one in the event log, we are about to boot
 				// with a new Secure Boot signing key. Fetch the expected new certificate from the EFI db variable
 				// and use it for PCR7 computation.
-
 				buf, err := computeExpectedVariableAuthority(e.Data)
 				if err != nil {
 					return nil, err
@@ -437,8 +444,8 @@ func computeNewPCR7Value(eventLog []tcg.Event) ([]byte, error) {
 				}
 			default:
 				// For all other types, re-use the existing digest from the event log.
-
 				var err error
+
 				actualPCR7Buf, err = extendPCRValue(actualPCR7Buf, e.ReplayedDigest(), false)
 				if err != nil {
 					return nil, err
@@ -494,6 +501,7 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	binaryCert, err := extractCertificateFromPE(efiFiles["bootEFI"])
 	if err != nil {
 		return nil, err
@@ -520,10 +528,12 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 
 	// Update the variable's contents with the expected certificate value.
 	var newBuf bytes.Buffer
+
 	_, err = newBuf.Write(v.VariableData[:16]) // The first 16 bytes are a header; we shouldn't need to care about updating it since we're replacing a certificate with the same type/size as the existing one.
 	if err != nil {
 		return nil, err
 	}
+
 	_, err = newBuf.Write(certs[index].Raw)
 	if err != nil {
 		return nil, err
@@ -550,6 +560,7 @@ func extractCertificateFromPE(filename string) (*x509.Certificate, error) {
 	defer peFile.Close()
 
 	var certSize int64
+
 	var offset int64
 
 	switch t := peFile.OptionalHeader.(type) {
@@ -572,6 +583,7 @@ func extractCertificateFromPE(filename string) (*x509.Certificate, error) {
 	defer rawFile.Close()
 
 	buf := make([]byte, certSize)
+
 	readBytes, err := rawFile.ReadAt(buf, offset)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
@@ -594,6 +606,7 @@ func extractCertificateFromPE(filename string) (*x509.Certificate, error) {
 // extendPCRValue takes an existing pcr and extends it using the provided content.
 func extendPCRValue(pcr []byte, content []byte, computeSHA256 bool) ([]byte, error) {
 	hash := crypto.SHA256.New()
+
 	_, err := hash.Write(pcr)
 	if err != nil {
 		return nil, err
@@ -601,6 +614,7 @@ func extendPCRValue(pcr []byte, content []byte, computeSHA256 bool) ([]byte, err
 
 	if computeSHA256 {
 		sum := sha256.Sum256(content)
+
 		_, err := hash.Write(sum[:])
 		if err != nil {
 			return nil, err
@@ -641,6 +655,7 @@ func readEFIVariable(variableName string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	buf := make([]byte, s.Size())
 
 	numBytes, err := io.ReadFull(file, buf)

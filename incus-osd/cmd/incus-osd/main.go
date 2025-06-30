@@ -45,7 +45,7 @@ func main() {
 
 	// Check privileges.
 	if os.Getuid() != 0 {
-		_, _ = fmt.Fprintf(os.Stderr, "incus-osd must be run as root")
+		_, _ = fmt.Fprint(os.Stderr, "incus-osd must be run as root")
 		os.Exit(1)
 	}
 
@@ -163,6 +163,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	defer func() { _ = s.Save(ctx) }()
 
 	modal := t.AddModal("System shutdown")
+
 	slog.Info("System is shutting down", "release", s.OS.RunningRelease)
 	modal.Update("System is shutting down")
 
@@ -211,6 +212,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Check kernel keyring.
 	slog.Debug("Getting trusted system keys")
+
 	keys, err := keyring.GetKeys(ctx, keyring.PlatformKeyring)
 	if err != nil {
 		return err
@@ -238,6 +240,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
 	if len(s.System.Encryption.Config.RecoveryKeys) == 0 {
 		slog.Info("Auto-generating encryption recovery key, this may take a few seconds")
+
 		err := systemd.GenerateRecoveryKey(ctx, s)
 		if err != nil {
 			return err
@@ -250,8 +253,10 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	if err != nil {
 		return err
 	}
+
 	if needsSwapKey {
 		slog.Info("Setting encryption recovery key for swap partition, this may take a few seconds")
+
 		err := systemd.SwapSetRecoveryKey(ctx, s.System.Encryption.Config.RecoveryKeys[0])
 		if err != nil {
 			return err
@@ -275,6 +280,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Perform network configuration.
 	slog.Info("Bringing up the network")
+
 	err = systemd.ApplyNetworkConfiguration(ctx, s, 30*time.Second)
 	if err != nil {
 		return err
@@ -282,6 +288,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Get the provider.
 	var provider string
+
 	var providerConfig map[string]string
 
 	switch mode {
@@ -321,6 +328,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Ensure  the "local" ZFS pool is available.
 	slog.Info("Bringing up the local storage")
+
 	err = zfs.ImportOrCreateLocalPool(ctx)
 	if err != nil {
 		return err
@@ -379,6 +387,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	s.TriggerUpdate = make(chan bool, 1)
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, unix.SIGTERM)
+
 	go func() {
 		action := "exit"
 
@@ -452,9 +461,11 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 	showModalError := func(msg string, err error) {
 		slog.Error(msg, "err", err.Error(), "provider", p.Type())
+
 		if modal == nil {
 			modal = t.AddModal(s.OS.Name + " Update")
 		}
+
 		modal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
 	}
 
@@ -535,6 +546,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			if modal == nil {
 				modal = t.AddModal(s.OS.Name + " Update")
 			}
+
 			modal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
 
 			s.RebootRequired = true
@@ -542,6 +554,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		// Check for application updates.
 		appsUpdated := map[string]string{}
+
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
@@ -558,6 +571,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Apply the system extensions.
 		if len(appsUpdated) > 0 {
 			slog.Debug("Refreshing system extensions")
+
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
 				showModalError("Failed to refresh system extensions", err)
@@ -645,8 +659,10 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
 		// Download the update into place.
 		modal := t.AddModal(s.OS.Name + " Update")
+
 		slog.Info("Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
+
 		err := update.Download(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
@@ -664,6 +680,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
+
 		err = systemd.ApplySystemUpdate(ctx, s.System.Encryption.Config.RecoveryKeys[0], update.Version(), isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
@@ -706,6 +723,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		modal := t.AddModal(s.OS.Name + " Update")
 		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
+
 		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
@@ -870,7 +888,9 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 				modal.Update("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
 
 				time.Sleep(5 * time.Second)
+
 				_ = systemd.SystemReboot(ctx)
+
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
 				slog.Info("Successfully updated EFI variable. A reboot is required to finalize the update.")

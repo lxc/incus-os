@@ -82,6 +82,7 @@ func (r *syncResponse) Render(w http.ResponseWriter) error {
 
 	if r.location != "" {
 		w.Header().Set("Location", r.location)
+
 		if r.code == 0 {
 			r.code = 201
 		}
@@ -160,6 +161,7 @@ func (r *syncResponse) Render(w http.ResponseWriter) error {
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
+
 	err := enc.Encode(resp)
 	if err != nil {
 		return err

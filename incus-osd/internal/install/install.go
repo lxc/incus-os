@@ -116,6 +116,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 	}
 
 	var err error
+
 	ret.config, err = seed.GetInstall(seed.SeedPartitionPath)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
@@ -171,6 +172,7 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 // runningFromCDROM returns true we're running from a CDROM, which should only happen during an install.
 func runningFromCDROM() bool {
 	s := unix.Stat_t{}
+
 	err := unix.Stat(cdromDevice, &s)
 	if err != nil {
 		return false
@@ -188,6 +190,7 @@ func runningFromCDROM() bool {
 func getUnderlyingDevice() (string, error) {
 	// Determine the device we're running from.
 	s := unix.Stat_t{}
+
 	err := unix.Stat("/usr/local/bin/incus-osd", &s)
 	if err != nil {
 		return "", err
@@ -236,6 +239,7 @@ func getUnderlyingDevice() (string, error) {
 
 			// We're running from a CDROM; need to do one more level of indirection to get the actual device.
 			entryPath = filepath.Join("/sys/class/block", filepath.Base(path))
+
 			members, err = os.ReadDir(filepath.Join(entryPath, "slaves"))
 			if err != nil {
 				return "", err
@@ -263,6 +267,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
+
 	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
 
 	underlyingDevice, err := getUnderlyingDevice()
@@ -279,6 +284,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 
 	// Get NVME drives first.
 	nvmeTargets := lsblkOutput{}
+
 	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
@@ -293,6 +299,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 
 	// Get SCSI drives second.
 	scsiTargets := lsblkOutput{}
+
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
@@ -307,6 +314,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 
 	// Get virtual drives last.
 	virtualTargets := lsblkOutput{}
+
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
 	if err != nil {
 		return []blockdevices{}, err
@@ -417,6 +425,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	if err != nil {
 		return err
 	}
+
 	if !strings.Contains(output, "Partition #9 does not exist.") {
 		// Delete auto-created partitions from source device before proceeding with the install, so we can
 		// re-use the installer media on other systems.
@@ -430,10 +439,12 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 
 	// Number of partitions to copy.
 	numPartitionsToCopy := 8
+
 	output, err = subprocess.RunCommandContext(ctx, "sgdisk", "-i", "8", actualSourceDevice)
 	if err != nil {
 		return err
 	}
+
 	if strings.Contains(output, "Partition #8 does not exist.") {
 		numPartitionsToCopy = 5
 	}
@@ -578,6 +589,7 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 	partitionSizeRegex := regexp.MustCompile(`Partition size: \d+ sectors \((.+)\)`)
 
 	var partitionHexCode string
+
 	partitionType := partitionTypeRegex.FindStringSubmatch(output)[1]
 	partitionGUID := partitionGUIDRegex.FindStringSubmatch(output)[1]
 	partitionName := partitionNameRegex.FindStringSubmatch(output)[1]
@@ -623,6 +635,7 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 		if err != nil {
 			return err
 		}
+
 		blocks, err := strconv.Atoi(blocksRegex.FindStringSubmatch(output)[1])
 		if err != nil {
 			return err
@@ -653,6 +666,7 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 	// Copy data in 4MiB chunks.
 	blockSize := int64(4 * 1024 * 1024)
 	count := int64(0)
+
 	for {
 		_, err := io.CopyN(targetPartition, sourcePartition, blockSize)
 		if err != nil {
