@@ -246,12 +246,14 @@ func (t *TUI) redrawScreen() {
 		for app, info := range t.state.Applications {
 			applications = append(applications, app+"("+info.Version+")")
 		}
+
 		slices.Sort(applications)
 
 		consoleWidth, _ := t.screen.Size()
 		for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
+
 		for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
@@ -350,6 +352,7 @@ func wrapFooterText(label string, text string, maxLineLength int) []string {
 	if len(currentLine) > 0 {
 		ret = append(ret, currentLine)
 	}
+
 	slices.Reverse(ret)
 
 	return ret

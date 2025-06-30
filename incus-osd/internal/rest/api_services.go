@@ -29,6 +29,7 @@ func (*Server) apiServices(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
 	name := r.PathValue("name")
 
 	// Check if the service is valid.
@@ -62,6 +63,7 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 		dest := srv.Struct()
 
 		decoder := json.NewDecoder(r.Body)
+
 		err = decoder.Decode(dest)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)

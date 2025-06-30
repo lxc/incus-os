@@ -38,6 +38,7 @@ func parseFileContents(partition string, filename string, target any) error {
 
 	// Check if seed-data is a tarball.
 	header := make([]byte, 263)
+
 	n, err := f.Read(header)
 	if err != nil {
 		return err
@@ -71,6 +72,7 @@ func parseFileContents(partition string, filename string, target any) error {
 		switch hdr.Name {
 		case filename + ".json":
 			decoder := json.NewDecoder(tr)
+
 			err = decoder.Decode(target)
 			if err != nil {
 				return err
@@ -80,6 +82,7 @@ func parseFileContents(partition string, filename string, target any) error {
 
 		case filename + ".yaml", filename + ".yml":
 			decoder := yaml.NewDecoder(tr)
+
 			err = decoder.Decode(target)
 			if err != nil {
 				return err

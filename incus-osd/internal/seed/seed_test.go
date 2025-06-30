@@ -12,6 +12,8 @@ func TestGetFileContents(t *testing.T) {
 	t.Parallel()
 
 	var config api.SystemNetworkConfig
+
 	err := parseFileContents("testdata.tar", "network", &config)
+
 	require.NoError(t, err)
 }

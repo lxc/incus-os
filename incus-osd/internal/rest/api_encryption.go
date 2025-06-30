@@ -39,6 +39,7 @@ func (s *Server) apiSystemEncryption(w http.ResponseWriter, r *http.Request) {
 		} else {
 			err = systemd.DeleteEncryptionKey(r.Context(), s.state, string(b))
 		}
+
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 

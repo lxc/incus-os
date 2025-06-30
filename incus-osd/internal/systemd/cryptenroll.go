@@ -27,6 +27,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	if err != nil {
 		return err
 	}
+
 	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
 
 	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.

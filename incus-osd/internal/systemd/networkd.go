@@ -154,8 +154,10 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	// State update for bonds.
 	for _, b := range n.Config.Bonds {
 		members := make(map[string]api.SystemNetworkInterfaceState)
+
 		for _, m := range b.Members {
 			mName := "en" + strings.ToLower(strings.ReplaceAll(m, ":", ""))
+
 			members[mName], err = getInterfaceState(ctx, "", mName, nil)
 			if err != nil {
 				return err
@@ -190,6 +192,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 	// Get routes for the interface.
 	routes := []api.SystemNetworkRoute{}
 	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
+
 	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", iface)
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
@@ -210,54 +213,63 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 	}
 
 	interfaceStateRegex := regexp.MustCompile(`State: (.+?) `)
+
 	interfaceState := ""
 	if len(interfaceStateRegex.FindStringSubmatch(output)) == 2 {
 		interfaceState = interfaceStateRegex.FindStringSubmatch(output)[1]
 	}
 
 	localMACRegex := regexp.MustCompile(`  Hardware Address: (.+)`)
+
 	localMAC := ""
 	if len(localMACRegex.FindStringSubmatch(output)) == 2 {
 		localMAC = localMACRegex.FindStringSubmatch(output)[1]
 	}
 
 	remoteMACRegex := regexp.MustCompile(`Permanent Hardware Address: (.+)`)
+
 	remoteMAC := ""
 	if len(remoteMACRegex.FindStringSubmatch(output)) == 2 {
 		remoteMAC = remoteMACRegex.FindStringSubmatch(output)[1]
 	}
 
 	speedRegex := regexp.MustCompile(`Speed: (.+)`)
+
 	speed := ""
 	if len(speedRegex.FindStringSubmatch(output)) == 2 {
 		speed = speedRegex.FindStringSubmatch(output)[1]
 	}
 
 	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
+
 	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
 	rxBytesRegex := regexp.MustCompile(`Rx Bytes: (.+)`)
+
 	rxBytes, err := strconv.Atoi(rxBytesRegex.FindStringSubmatch(output)[1])
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
 	txBytesRegex := regexp.MustCompile(`Tx Bytes: (.+)`)
+
 	txBytes, err := strconv.Atoi(txBytesRegex.FindStringSubmatch(output)[1])
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
 	rxErrorsRegex := regexp.MustCompile(`Rx Errors: (.+)`)
+
 	rxErrors, err := strconv.Atoi(rxErrorsRegex.FindStringSubmatch(output)[1])
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
 	txErrorsRegex := regexp.MustCompile(`Tx Errors: (.+)`)
+
 	txErrors, err := strconv.Atoi(txErrorsRegex.FindStringSubmatch(output)[1])
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
@@ -265,11 +277,13 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 
 	// Fetch any LLDP info.
 	lldp := []api.SystemNetworkLLDPState{}
+
 	if ifaceType == "interface" || ifaceType == "" {
 		lldpIface := iface
 		if ifaceType == "interface" {
 			lldpIface = "en" + strings.ToLower(strings.ReplaceAll(localMAC, ":", ""))
 		}
+
 		lldp, err = getLLDPInfo(ctx, lldpIface)
 		if err != nil {
 			return api.SystemNetworkInterfaceState{}, err
@@ -348,6 +362,7 @@ func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPStat
 	}
 
 	lldp := lldpStruct{}
+
 	err = json.Unmarshal([]byte(output), &lldp)
 	if err != nil {
 		return nil, err
@@ -528,6 +543,7 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 		}
 
 		allDevicesOnline := true
+
 		for _, name := range devicesToCheck {
 			online, requiredOnline := isOnline(name)
 			if !requiredOnline {
@@ -938,6 +954,7 @@ func processAddresses(addresses []string) string {
 	hasDHCP4 := false
 	hasDHCP6 := false
 	acceptIPv6RA := false
+
 	for _, addr := range addresses {
 		switch addr {
 		case "dhcp4":

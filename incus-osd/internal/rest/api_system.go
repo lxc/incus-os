@@ -23,6 +23,7 @@ func (s *Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req reqSystem
+
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)

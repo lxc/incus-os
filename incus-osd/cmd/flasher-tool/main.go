@@ -37,6 +37,7 @@ var networkSeed *seed.NetworkSeed
 
 func main() {
 	var err error
+
 	asker := ask.NewAsker(bufio.NewReader(os.Stdin))
 
 	slog.Info("IncusOS flasher tool")
@@ -81,11 +82,13 @@ func main() {
 		}
 
 		buf := make([]byte, s.Size())
+
 		numBytes, err := seedFD.Read(buf)
 		if err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)
 		}
+
 		if int64(numBytes) != s.Size() {
 			slog.Error(fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), seedTarFilename))
 		}
@@ -141,6 +144,7 @@ func mainMenu(asker ask.Asker, imageFilename string) error {
 		for i := range menuOptions {
 			menuPrompt += fmt.Sprintf("%s) %s\n", menuSelectionOptions[i], menuOptions[i])
 		}
+
 		menuPrompt += "\nSelection: "
 
 		// Prompt the user for a selection.
@@ -188,12 +192,14 @@ func toggleInstallRunningMode(asker ask.Asker, imageFilename string) error {
 		if !defaultInstall {
 			// Expand the .img to 50GiB.
 			slog.Info("Truncating image size to 50GiB")
+
 			err := os.Truncate(imageFilename, 50*1024*1024*1024)
 			if err != nil {
 				return err
 			}
 
 			slog.Info("Will default to running IncusOS from boot media")
+
 			installSeed = nil
 
 			return nil
@@ -254,6 +260,7 @@ func selectApplications(asker ask.Asker) error {
 
 func configureNetworkSeed() error {
 	var err error
+
 	existingContents := []byte("# Provide network seed in yaml format")
 
 	if networkSeed != nil {
@@ -272,6 +279,7 @@ func configureNetworkSeed() error {
 	}
 
 	var newSeed seed.NetworkSeed
+
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
 		slog.Error(err.Error())
@@ -301,6 +309,7 @@ func configureNetworkSeed() error {
 
 func configureIncusSeed() error {
 	var err error
+
 	existingContents := []byte("# Provide Incus seed in yaml format")
 
 	if incusSeed != nil {
@@ -319,6 +328,7 @@ func configureIncusSeed() error {
 	}
 
 	var newSeed seed.IncusConfig
+
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
 		slog.Error(err.Error())
@@ -404,6 +414,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create the tar archive.
 	var buf bytes.Buffer
+
 	tw := tar.NewWriter(&buf)
 	for _, file := range archiveContents {
 		hdr := &tar.Header{
@@ -411,15 +422,18 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 			Mode: 0o600,
 			Size: int64(len(file[1])),
 		}
+
 		err := tw.WriteHeader(hdr)
 		if err != nil {
 			return err
 		}
+
 		_, err = tw.Write([]byte(file[1]))
 		if err != nil {
 			return err
 		}
 	}
+
 	err = tw.Close()
 	if err != nil {
 		return err
@@ -441,6 +455,7 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if numBytes != len(data) {
 		return fmt.Errorf("failed to write seed tar archive into image: copied %d of %d bytes", numBytes, len(data))
 	}
@@ -453,6 +468,7 @@ func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
 	gh := ghapi.NewClient(nil)
 
 	var err error
+
 	imageFormat := os.Getenv("INCUSOS_IMAGE_FORMAT")
 
 	if imageFormat == "" {
@@ -476,7 +492,9 @@ func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
 
 	// Get the asset ID for the image.
 	var filename string
+
 	var assetID int64
+
 	for _, a := range assets {
 		if strings.HasSuffix(*a.BrowserDownloadURL, "."+imageFormat+".gz") {
 			filename = strings.TrimSuffix(*a.Name, ".gz")
@@ -544,7 +562,9 @@ func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
 // Stolen from incus/cmd/incus/utils.go.
 func textEditor(inContent []byte) ([]byte, error) {
 	var f *os.File
+
 	var err error
+
 	var path string
 
 	// Detect the text editor to use
@@ -560,6 +580,7 @@ func textEditor(inContent []byte) ([]byte, error) {
 					break
 				}
 			}
+
 			if editor == "" {
 				return []byte{}, errors.New("no text editor found, please set the EDITOR environment variable")
 			}
@@ -596,6 +617,7 @@ func textEditor(inContent []byte) ([]byte, error) {
 	}
 
 	path = f.Name() + ".yaml"
+
 	err = os.Rename(f.Name(), path)
 	if err != nil {
 		return []byte{}, err
@@ -610,6 +632,7 @@ func textEditor(inContent []byte) ([]byte, error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	err = cmd.Run()
 	if err != nil {
 		return []byte{}, err
