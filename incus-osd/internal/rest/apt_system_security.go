@@ -31,6 +31,9 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Get a list of Secure Boot certificates.
 		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
 
+		// Get TPM status.
+		s.state.System.Security.State.TPMStatus = secureboot.TPMStatus()
+
 		// Return the current system security state.
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
 	case http.MethodPut, http.MethodDelete:
