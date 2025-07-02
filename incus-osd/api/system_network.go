@@ -103,6 +103,7 @@ type SystemNetworkInterfaceState struct {
 	LLDP      []SystemNetworkLLDPState               `json:"lldp,omitempty"      yaml:"lldp,omitempty"`
 	LACP      *SystemNetworkLACPState                `json:"lacp,omitempty"      yaml:"lacp,omitempty"`
 	Members   map[string]SystemNetworkInterfaceState `json:"members,omitempty"   yaml:"members,omitempty"`
+	Roles     []string                               `json:"roles,omitempty"     yaml:"roles,omitempty"`
 }
 
 // SystemNetworkInterfaceStats holds RX/TX stats for an interface.
