@@ -8,6 +8,7 @@ type SystemSecurity struct {
 
 	State struct {
 		EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
+		EncryptedVolumes                []SystemSecurityEncryptedVolume       `json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
 		SecureBootEnabled               bool                                  `json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
 		SecureBootCertificates          []SystemSecuritySecureBootCertificate `json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 		TPMStatus                       string                                `json:"tpm_status"                         yaml:"tpm_status"`
@@ -20,4 +21,10 @@ type SystemSecuritySecureBootCertificate struct {
 	Fingerprint string `json:"fingerprint" yaml:"fingerprint"`
 	Subject     string `json:"subject"     yaml:"subject"`
 	Issuer      string `json:"issuer"      yaml:"issuer"`
+}
+
+// SystemSecurityEncryptedVolume defines a struct that holds basic information about an encrypted volume.
+type SystemSecurityEncryptedVolume struct {
+	Volume string `json:"volume" yaml:"volume"`
+	State  string `json:"state"  yaml:"state"`
 }
