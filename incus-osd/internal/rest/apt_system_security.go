@@ -15,8 +15,18 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		var err error
+
 		// Mark that the keys have been retrieved via the API.
 		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
+
+		// Get Secure Boot state (we always expect this to be true).
+		s.state.System.Security.State.SecureBootEnabled, err = secureboot.Enabled()
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
 
 		// Get a list of Secure Boot certificates.
 		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
