@@ -248,6 +248,16 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 	return ret
 }
 
+// Enabled checks if Secure Boot is currently enabled.
+func Enabled() (bool, error) {
+	state, err := readEFIVariable("SecureBoot")
+	if err != nil {
+		return false, err
+	}
+
+	return state[0] == 1, nil
+}
+
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
 // currently present on the system, resulting in a bricked boot.
 func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
