@@ -10,6 +10,7 @@ type SystemSecurity struct {
 		EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
 		SecureBootEnabled               bool                                  `json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
 		SecureBootCertificates          []SystemSecuritySecureBootCertificate `json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
+		TPMStatus                       string                                `json:"tpm_status"                         yaml:"tpm_status"`
 	} `json:"state" yaml:"state"`
 }
 
