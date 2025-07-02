@@ -32,6 +32,9 @@ import (
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
 
+// TPMPCRMismatch holds the string returned by TPMStatus() if there's a PCR mismatch between the TPM and our computed value.
+var TPMPCRMismatch = "pending PCR7 update"
+
 // HandleSecureBootKeyChange will apply the changes necessary when the Secure Boot
 // signing key used for the UKIs is changed:
 //
@@ -258,6 +261,35 @@ func Enabled() (bool, error) {
 	return state[0] == 1, nil
 }
 
+// TPMStatus returns basic information about the status of the TPM.
+func TPMStatus() string {
+	eventLog, err := readTMPEventLog()
+	if err != nil {
+		return err.Error()
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err.Error()
+	}
+
+	computedPCR, err := computeNewPCR7Value(eventLog)
+	if err != nil {
+		return err.Error()
+	}
+
+	actualPCR, err := readPCR7()
+	if err != nil {
+		return err.Error()
+	}
+
+	if !bytes.Equal(computedPCR, actualPCR) {
+		return TPMPCRMismatch
+	}
+
+	return "ok"
+}
+
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
 // currently present on the system, resulting in a bricked boot.
 func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
@@ -416,22 +448,7 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	}
 
 	// Get the current PCR7 value from the TPM.
-	pcr7File, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/7")
-	if err != nil {
-		return err
-	}
-	defer pcr7File.Close()
-
-	actualPCR7Buf := make([]byte, 64)
-
-	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
-	if err != nil {
-		return err
-	} else if numBytes != 64 {
-		return fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/7", numBytes)
-	}
-
-	actualPCR7, err := hex.DecodeString(string(actualPCR7Buf))
+	actualPCR7, err := readPCR7()
 	if err != nil {
 		return err
 	}
@@ -441,6 +458,26 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	}
 
 	return nil
+}
+
+// readPCR7 returns the current PCR7 value from the TPM.
+func readPCR7() ([]byte, error) {
+	pcr7File, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/7")
+	if err != nil {
+		return nil, err
+	}
+	defer pcr7File.Close()
+
+	actualPCR7Buf := make([]byte, 64)
+
+	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
+	if err != nil {
+		return nil, err
+	} else if numBytes != 64 {
+		return nil, fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/7", numBytes)
+	}
+
+	return hex.DecodeString(string(actualPCR7Buf))
 }
 
 // computeNewPCR7Value will compute the future PCR7 value after the KEK, db, and/or dbx EFI variables are updated.
