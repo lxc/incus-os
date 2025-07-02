@@ -9,6 +9,8 @@ import (
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
+	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
@@ -112,6 +114,59 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 	}
 
 	return nil
+}
+
+// ListEncryptedVolumes returns a list of each encrypted volume and its status.
+func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVolume, error) {
+	ret := []api.SystemSecurityEncryptedVolume{}
+
+	// Get the LUKS partitions.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return ret, err
+	}
+
+	for volumeName, volumeDev := range luksVolumes {
+		// First, check if the volume is mapped, and therefore unlocked.
+		_, err := subprocess.RunCommandContext(ctx, "dmsetup", "info", volumeName)
+		if err != nil {
+			ret = append(ret, api.SystemSecurityEncryptedVolume{
+				Volume: volumeName,
+				State:  "locked",
+			})
+
+			continue
+		}
+
+		// Second, test if we can auto-unlock with the current TPM state.
+		// Ideally we wouldn't have to depend on cryptsetup, but systemd-cryptenroll (and friends) don't
+		// seem to have an equivalent of "--test-passphrase".
+		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
+		if err != nil {
+			// Do we have a PCR mismatch on the TPM? If so, assume we can unlock with the TPM upon reboot.
+			if secureboot.TPMStatus() == secureboot.TPMPCRMismatch {
+				ret = append(ret, api.SystemSecurityEncryptedVolume{
+					Volume: volumeName,
+					State:  "unlocked (TPM; PCR update pending)",
+				})
+			} else {
+				ret = append(ret, api.SystemSecurityEncryptedVolume{
+					Volume: volumeName,
+					State:  "unlocked (recovery passphrase)",
+				})
+			}
+
+			continue
+		}
+
+		// The volume auto-unlocked using the TPM.
+		ret = append(ret, api.SystemSecurityEncryptedVolume{
+			Volume: volumeName,
+			State:  "unlocked (TPM)",
+		})
+	}
+
+	return ret, nil
 }
 
 // SwapNeedsRecoveryKeySet checks if the swap partition has a recovery key set or not. This
