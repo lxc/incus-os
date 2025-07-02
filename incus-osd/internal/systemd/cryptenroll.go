@@ -37,8 +37,8 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	}
 
 	// Finally, save the recovery key into the state.
-	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, recoveryPassword)
-	s.System.Encryption.State.RecoveryKeysRetrieved = false
+	s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, recoveryPassword)
+	s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
 
 	return nil
 }
@@ -46,7 +46,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 // AddEncryptionKey utilizes systemd-cryptenroll to add a user-specified key for the
 // root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
+	if slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
@@ -64,7 +64,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 		}
 	}
 
-	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, key)
+	s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, key)
 
 	return nil
 }
@@ -74,11 +74,11 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 // Due to systemd-cryptenroll only being able to wipe slots by index or type, we must first
 // remove all recovery and password slots, then re-add any remaining keys.
 func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if !slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
+	if !slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is not enrolled")
 	}
 
-	if len(s.System.Encryption.Config.RecoveryKeys) == 1 {
+	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 1 {
 		return errors.New("cannot remove only existing recovery key")
 	}
 
@@ -96,8 +96,8 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 		}
 	}
 
-	existingKeys := s.System.Encryption.Config.RecoveryKeys
-	s.System.Encryption.Config.RecoveryKeys = []string{}
+	existingKeys := s.System.Security.Config.EncryptionRecoveryKeys
+	s.System.Security.Config.EncryptionRecoveryKeys = []string{}
 
 	// Re-add remaining keys.
 	for _, existingKey := range existingKeys {

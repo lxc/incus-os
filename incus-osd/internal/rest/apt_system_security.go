@@ -9,16 +9,16 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-func (s *Server) apiSystemEncryption(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	switch r.Method {
 	case http.MethodGet:
 		// Mark that the keys have been retrieved via the API.
-		s.state.System.Encryption.State.RecoveryKeysRetrieved = true
+		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
 
-		// Return the current system encryption state.
-		_ = response.SyncResponse(true, s.state.System.Encryption).Render(w)
+		// Return the current system security state.
+		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
 	case http.MethodPut, http.MethodDelete:
 		// Add or remove an encryption key.
 		if r.ContentLength <= 0 {

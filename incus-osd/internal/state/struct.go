@@ -56,9 +56,9 @@ type State struct {
 	} `json:"services"`
 
 	System struct {
-		Encryption api.SystemEncryption `json:"encryption"`
-		Network    api.SystemNetwork    `json:"network"`
-		Provider   api.SystemProvider   `json:"provider"`
+		Security api.SystemSecurity `json:"security"`
+		Network  api.SystemNetwork  `json:"network"`
+		Provider api.SystemProvider `json:"provider"`
 	} `json:"system"`
 }
 
