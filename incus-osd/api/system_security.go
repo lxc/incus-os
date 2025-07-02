@@ -7,6 +7,15 @@ type SystemSecurity struct {
 	} `json:"config" yaml:"config"`
 
 	State struct {
-		EncryptionRecoveryKeysRetrieved bool `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
+		EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
+		SecureBootCertificates          []SystemSecuritySecureBootCertificate `json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 	} `json:"state" yaml:"state"`
+}
+
+// SystemSecuritySecureBootCertificate defines a struct that holds information about Secure Boot keys present on the host.
+type SystemSecuritySecureBootCertificate struct {
+	Type        string `json:"type"        yaml:"type"`
+	Fingerprint string `json:"fingerprint" yaml:"fingerprint"`
+	Subject     string `json:"subject"     yaml:"subject"`
+	Issuer      string `json:"issuer"      yaml:"issuer"`
 }
