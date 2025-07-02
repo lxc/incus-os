@@ -4,7 +4,7 @@ package api
 type SystemNetwork struct {
 	Config *SystemNetworkConfig `json:"config" yaml:"config"`
 
-	State SystemNetworkState `json:"state" yaml:"state"`
+	State SystemNetworkState `incusos:"-" json:"state" yaml:"state"`
 }
 
 // SystemNetworkConfig represents the user modifiable network configuration.

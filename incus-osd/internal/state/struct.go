@@ -31,6 +31,8 @@ type OS struct {
 type State struct {
 	path string
 
+	StateVersion int `json:"-"`
+
 	ShouldPerformInstall bool `json:"-"`
 	RebootRequired       bool `json:"-"`
 
