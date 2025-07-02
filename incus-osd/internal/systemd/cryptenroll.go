@@ -23,7 +23,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	}
 
 	// First, generate a recovery key for the root volume.
-	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes[0])
+	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes["root"])
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
 
 	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes[1])
+	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes["swap"])
 	if err != nil {
 		return err
 	}
