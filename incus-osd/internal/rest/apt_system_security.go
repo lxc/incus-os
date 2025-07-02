@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
@@ -16,6 +17,9 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// Mark that the keys have been retrieved via the API.
 		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
+
+		// Get a list of Secure Boot certificates.
+		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
 
 		// Return the current system security state.
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
