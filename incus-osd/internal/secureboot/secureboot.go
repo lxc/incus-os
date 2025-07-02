@@ -26,6 +26,7 @@ import (
 	"github.com/smallstep/pkcs7"
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
@@ -221,6 +222,30 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	certs, _, err := parsedVal.SignatureData()
 
 	return certs, err
+}
+
+// ListCertificates returns a list of all Secure Boot certificates present on the system.
+func ListCertificates() []api.SystemSecuritySecureBootCertificate {
+	ret := []api.SystemSecuritySecureBootCertificate{}
+
+	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
+		certs, err := GetCertificatesFromVar(varName)
+		if err != nil {
+			continue
+		}
+
+		for _, cert := range certs {
+			rawFp := sha256.Sum256(cert.Raw)
+			ret = append(ret, api.SystemSecuritySecureBootCertificate{
+				Type:        varName,
+				Fingerprint: hex.EncodeToString(rawFp[:]),
+				Subject:     cert.Subject.String(),
+				Issuer:      cert.Issuer.String(),
+			})
+		}
+	}
+
+	return ret
 }
 
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
