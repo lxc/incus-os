@@ -69,9 +69,31 @@ func (*images) Type() string {
 	return "images"
 }
 
-func (*images) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
-	// Need to implement for upcoming key transition.
-	return nil, ErrNoUpdateAvailable
+func (*images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
+	// Hardcode a single upadte for now until we have support for it in the provider.
+	updateURL := "https://images.linuxcontainers.org/os/IncusOS_SB_transition.tar.gz"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, updateURL, nil)
+	if err != nil {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, ErrNoUpdateAvailable
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	update := imagesSecureBootCertUpdate{
+		url:     updateURL,
+		version: "202506261900",
+	}
+
+	return &update, nil
 }
 
 func (p *images) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
@@ -407,4 +429,46 @@ func (o *imagesOSUpdate) Download(ctx context.Context, osName string, target str
 	}
 
 	return nil
+}
+
+// Secure Boot key updates from the GitHub provider.
+type imagesSecureBootCertUpdate struct {
+	url     string
+	version string
+}
+
+func (o *imagesSecureBootCertUpdate) Version() string {
+	return o.version
+}
+
+func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
+	return datetimeComparison(o.version, otherVersion)
+}
+
+func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+	// #nosec G304
+	f, err := os.Create(filepath.Join(target, osName+"_SecureBootKeys_"+o.version+".tar.gz"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, o.url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("error downloading update: " + resp.Status)
+	}
+
+	_, err = io.Copy(f, resp.Body)
+
+	return err
 }
