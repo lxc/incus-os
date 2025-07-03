@@ -143,12 +143,16 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	}
 
 	var err error
+
 	// State update for interfaces.
 	for _, i := range n.Config.Interfaces {
-		n.State.Interfaces[i.Name], err = getInterfaceState(ctx, "interface", i.Name, nil)
+		iState, err := getInterfaceState(ctx, "interface", i.Name, nil)
 		if err != nil {
 			return err
 		}
+
+		iState.Roles = i.Roles
+		n.State.Interfaces[i.Name] = iState
 	}
 
 	// State update for bonds.
@@ -164,18 +168,24 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			}
 		}
 
-		n.State.Interfaces[b.Name], err = getInterfaceState(ctx, "bond", b.Name, members)
+		bState, err := getInterfaceState(ctx, "bond", b.Name, members)
 		if err != nil {
 			return err
 		}
+
+		bState.Roles = b.Roles
+		n.State.Interfaces[b.Name] = bState
 	}
 
 	// State update for vlans.
 	for _, v := range n.Config.VLANs {
-		n.State.Interfaces[v.Name], err = getInterfaceState(ctx, "vlan", v.Name, nil)
+		vState, err := getInterfaceState(ctx, "vlan", v.Name, nil)
 		if err != nil {
 			return err
 		}
+
+		vState.Roles = v.Roles
+		n.State.Interfaces[v.Name] = vState
 	}
 
 	return nil
