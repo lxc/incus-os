@@ -22,6 +22,9 @@ linters:
     - wsl
 
   settings:
+    dupl:
+      threshold: 200
+
     gosec:
       config:
         G301: "0755"
