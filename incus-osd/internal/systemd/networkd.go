@@ -137,18 +137,26 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 
 // UpdateNetworkState updates the network state within the SystemNetwork struct.
 func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
+	var err error
+
 	// Clear any existing state.
 	n.State = api.SystemNetworkState{
 		Interfaces: make(map[string]api.SystemNetworkInterfaceState),
 	}
 
-	var err error
+	// Keep track of all the roles being applied.
+	rolesFound := []string{}
+
 	// State update for interfaces.
 	for _, i := range n.Config.Interfaces {
-		n.State.Interfaces[i.Name], err = getInterfaceState(ctx, "interface", i.Name, nil)
+		iState, err := getInterfaceState(ctx, "interface", i.Name, nil)
 		if err != nil {
 			return err
 		}
+
+		iState.Roles = i.Roles
+		rolesFound = append(rolesFound, i.Roles...)
+		n.State.Interfaces[i.Name] = iState
 	}
 
 	// State update for bonds.
@@ -164,17 +172,46 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			}
 		}
 
-		n.State.Interfaces[b.Name], err = getInterfaceState(ctx, "bond", b.Name, members)
+		bState, err := getInterfaceState(ctx, "bond", b.Name, members)
 		if err != nil {
 			return err
 		}
+
+		bState.Roles = b.Roles
+		rolesFound = append(rolesFound, b.Roles...)
+		n.State.Interfaces[b.Name] = bState
 	}
 
 	// State update for vlans.
 	for _, v := range n.Config.VLANs {
-		n.State.Interfaces[v.Name], err = getInterfaceState(ctx, "vlan", v.Name, nil)
+		vState, err := getInterfaceState(ctx, "vlan", v.Name, nil)
 		if err != nil {
 			return err
+		}
+
+		vState.Roles = v.Roles
+		rolesFound = append(rolesFound, v.Roles...)
+		n.State.Interfaces[v.Name] = vState
+	}
+
+	// Ensure required roles exist.
+	if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleManagement) || !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleCluster) {
+		for iName, i := range n.State.Interfaces {
+			iState := i
+
+			if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleManagement) && iState.State == "routable" {
+				if iState.Roles == nil {
+					iState.Roles = []string{}
+				}
+
+				iState.Roles = append(iState.Roles, api.SystemNetworkInterfaceRoleManagement)
+			}
+
+			if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleCluster) && slices.Contains(iState.Roles, api.SystemNetworkInterfaceRoleManagement) {
+				iState.Roles = append(iState.Roles, api.SystemNetworkInterfaceRoleCluster)
+			}
+
+			n.State.Interfaces[iName] = iState
 		}
 	}
 
