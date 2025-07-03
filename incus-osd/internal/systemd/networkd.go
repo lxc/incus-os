@@ -137,12 +137,15 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 
 // UpdateNetworkState updates the network state within the SystemNetwork struct.
 func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
+	var err error
+
 	// Clear any existing state.
 	n.State = api.SystemNetworkState{
 		Interfaces: make(map[string]api.SystemNetworkInterfaceState),
 	}
 
-	var err error
+	// Keep track of all the roles being applied.
+	rolesFound := []string{}
 
 	// State update for interfaces.
 	for _, i := range n.Config.Interfaces {
@@ -152,6 +155,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		}
 
 		iState.Roles = i.Roles
+		rolesFound = append(rolesFound, i.Roles...)
 		n.State.Interfaces[i.Name] = iState
 	}
 
@@ -174,6 +178,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		}
 
 		bState.Roles = b.Roles
+		rolesFound = append(rolesFound, b.Roles...)
 		n.State.Interfaces[b.Name] = bState
 	}
 
@@ -185,7 +190,29 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		}
 
 		vState.Roles = v.Roles
+		rolesFound = append(rolesFound, v.Roles...)
 		n.State.Interfaces[v.Name] = vState
+	}
+
+	// Ensure required roles exist.
+	if !slices.Contains(rolesFound, "management") || !slices.Contains(rolesFound, "cluster") {
+		for iName, i := range n.State.Interfaces {
+			iState := i
+
+			if !slices.Contains(rolesFound, "management") && iState.State == "routable" {
+				if iState.Roles == nil {
+					iState.Roles = []string{}
+				}
+
+				iState.Roles = append(iState.Roles, "management")
+			}
+
+			if !slices.Contains(rolesFound, "cluster") && slices.Contains(iState.Roles, "management") {
+				iState.Roles = append(iState.Roles, "cluster")
+			}
+
+			n.State.Interfaces[iName] = iState
+		}
 	}
 
 	return nil
