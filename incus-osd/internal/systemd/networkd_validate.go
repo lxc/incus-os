@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -16,6 +17,11 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.Sys
 		}
 
 		err = validateMTU(iface.MTU)
+		if err != nil {
+			return fmt.Errorf("interface %d %s", index, err.Error())
+		}
+
+		err = validateRoles(iface.Roles)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
@@ -73,6 +79,11 @@ func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN,
 		}
 
 		err = validateMTU(bond.MTU)
+		if err != nil {
+			return fmt.Errorf("bond %d %s", index, err.Error())
+		}
+
+		err = validateRoles(bond.Roles)
 		if err != nil {
 			return fmt.Errorf("bond %d %s", index, err.Error())
 		}
@@ -151,6 +162,11 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 			return fmt.Errorf("vlan %d %s", index, err.Error())
 		}
 
+		err = validateRoles(vlan.Roles)
+		if err != nil {
+			return fmt.Errorf("vlan %d %s", index, err.Error())
+		}
+
 		for addressIndex, address := range vlan.Addresses {
 			err := validateAddress(address)
 			if err != nil {
@@ -222,6 +238,26 @@ func validateParent(parent string, interfaces []api.SystemNetworkInterface, bond
 
 	if !foundParent {
 		return fmt.Errorf("unable to find parent '%s'", parent)
+	}
+
+	return nil
+}
+
+func validateRoles(roles []string) error {
+	existing := make([]string, 0, len(roles))
+
+	for _, role := range roles {
+		// Confirm role is valid.
+		if !slices.Contains([]string{"management", "cluster", "instances", "storage"}, role) {
+			return fmt.Errorf("role %q is unsupported", role)
+		}
+
+		// Duplicate detection.
+		if slices.Contains(existing, role) {
+			return fmt.Errorf("role %q is listed multiple times", role)
+		}
+
+		existing = append(existing, role)
 	}
 
 	return nil
