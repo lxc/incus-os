@@ -1,5 +1,9 @@
 package api
 
+import (
+	"slices"
+)
+
 // SystemNetwork defines a struct to hold the three types of supported network configuration.
 type SystemNetwork struct {
 	Config *SystemNetworkConfig `json:"config" yaml:"config"`
@@ -89,6 +93,19 @@ type SystemNetworkProxy struct {
 // SystemNetworkState holds information about the current network state.
 type SystemNetworkState struct {
 	Interfaces map[string]SystemNetworkInterfaceState `json:"interfaces" yaml:"interfaces"`
+}
+
+// GetInterfaceNamesByRole returns a slice of interface names that have the given role applied to them.
+func (n *SystemNetworkState) GetInterfaceNamesByRole(role string) []string {
+	names := []string{}
+
+	for name, iState := range n.Interfaces {
+		if slices.Contains(iState.Roles, role) {
+			names = append(names, name)
+		}
+	}
+
+	return names
 }
 
 // SystemNetworkInterfaceState holds state information about a specific network interface.
