@@ -293,7 +293,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	switch mode {
 	case "production":
-		provider = "github"
+		provider = "images"
 	case "dev":
 		provider = "local"
 	default:
