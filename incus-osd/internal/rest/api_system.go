@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
 
 func (s *Server) apiSystem(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +39,13 @@ func (s *Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 		close(s.state.TriggerReboot)
 	case "update":
 		s.state.TriggerUpdate <- true
+	case "reset_encryption_bindings":
+		err := secureboot.ForceUpdatePCRBindings(r.Context(), s.state.OS.Name, s.state.OS.RunningRelease, s.state.System.Security.Config.EncryptionRecoveryKeys[0])
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
 	default:
 		_ = response.BadRequest(fmt.Errorf("invalid action %q", req.Action)).Render(w)
 
