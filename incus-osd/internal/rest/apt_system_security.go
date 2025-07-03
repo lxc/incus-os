@@ -6,19 +6,44 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-func (s *Server) apiSystemEncryption(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	switch r.Method {
 	case http.MethodGet:
-		// Mark that the keys have been retrieved via the API.
-		s.state.System.Encryption.State.RecoveryKeysRetrieved = true
+		var err error
 
-		// Return the current system encryption state.
-		_ = response.SyncResponse(true, s.state.System.Encryption).Render(w)
+		// Mark that the keys have been retrieved via the API.
+		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
+
+		// Get the state of each encrypted volume.
+		s.state.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(r.Context())
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		// Get Secure Boot state (we always expect this to be true).
+		s.state.System.Security.State.SecureBootEnabled, err = secureboot.Enabled()
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		// Get a list of Secure Boot certificates.
+		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
+
+		// Get TPM status.
+		s.state.System.Security.State.TPMStatus = secureboot.TPMStatus()
+
+		// Return the current system security state.
+		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
 	case http.MethodPut, http.MethodDelete:
 		// Add or remove an encryption key.
 		if r.ContentLength <= 0 {

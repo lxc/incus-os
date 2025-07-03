@@ -9,6 +9,8 @@ import (
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
+	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
@@ -23,7 +25,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	}
 
 	// First, generate a recovery key for the root volume.
-	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes[0])
+	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes["root"])
 	if err != nil {
 		return err
 	}
@@ -31,14 +33,14 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
 
 	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes[1])
+	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes["swap"])
 	if err != nil {
 		return err
 	}
 
 	// Finally, save the recovery key into the state.
-	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, recoveryPassword)
-	s.System.Encryption.State.RecoveryKeysRetrieved = false
+	s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, recoveryPassword)
+	s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
 
 	return nil
 }
@@ -46,7 +48,7 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 // AddEncryptionKey utilizes systemd-cryptenroll to add a user-specified key for the
 // root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
+	if slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
@@ -64,7 +66,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 		}
 	}
 
-	s.System.Encryption.Config.RecoveryKeys = append(s.System.Encryption.Config.RecoveryKeys, key)
+	s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, key)
 
 	return nil
 }
@@ -74,11 +76,11 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 // Due to systemd-cryptenroll only being able to wipe slots by index or type, we must first
 // remove all recovery and password slots, then re-add any remaining keys.
 func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error {
-	if !slices.Contains(s.System.Encryption.Config.RecoveryKeys, key) {
+	if !slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is not enrolled")
 	}
 
-	if len(s.System.Encryption.Config.RecoveryKeys) == 1 {
+	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 1 {
 		return errors.New("cannot remove only existing recovery key")
 	}
 
@@ -96,8 +98,8 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 		}
 	}
 
-	existingKeys := s.System.Encryption.Config.RecoveryKeys
-	s.System.Encryption.Config.RecoveryKeys = []string{}
+	existingKeys := s.System.Security.Config.EncryptionRecoveryKeys
+	s.System.Security.Config.EncryptionRecoveryKeys = []string{}
 
 	// Re-add remaining keys.
 	for _, existingKey := range existingKeys {
@@ -112,6 +114,59 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 	}
 
 	return nil
+}
+
+// ListEncryptedVolumes returns a list of each encrypted volume and its status.
+func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVolume, error) {
+	ret := []api.SystemSecurityEncryptedVolume{}
+
+	// Get the LUKS partitions.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return ret, err
+	}
+
+	for volumeName, volumeDev := range luksVolumes {
+		// First, check if the volume is mapped, and therefore unlocked.
+		_, err := subprocess.RunCommandContext(ctx, "dmsetup", "info", volumeName)
+		if err != nil {
+			ret = append(ret, api.SystemSecurityEncryptedVolume{
+				Volume: volumeName,
+				State:  "locked",
+			})
+
+			continue
+		}
+
+		// Second, test if we can auto-unlock with the current TPM state.
+		// Ideally we wouldn't have to depend on cryptsetup, but systemd-cryptenroll (and friends) don't
+		// seem to have an equivalent of "--test-passphrase".
+		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
+		if err != nil {
+			// Do we have a PCR mismatch on the TPM? If so, assume we can unlock with the TPM upon reboot.
+			if secureboot.TPMStatus() == secureboot.TPMPCRMismatch {
+				ret = append(ret, api.SystemSecurityEncryptedVolume{
+					Volume: volumeName,
+					State:  "unlocked (TPM; PCR update pending)",
+				})
+			} else {
+				ret = append(ret, api.SystemSecurityEncryptedVolume{
+					Volume: volumeName,
+					State:  "unlocked (recovery passphrase)",
+				})
+			}
+
+			continue
+		}
+
+		// The volume auto-unlocked using the TPM.
+		ret = append(ret, api.SystemSecurityEncryptedVolume{
+			Volume: volumeName,
+			State:  "unlocked (TPM)",
+		})
+	}
+
+	return ret, nil
 }
 
 // SwapNeedsRecoveryKeySet checks if the swap partition has a recovery key set or not. This

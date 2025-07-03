@@ -12,6 +12,22 @@ import (
 // list of strings representing the upgraded state.
 type UpgradeFuncs []func([]string) ([]string, error)
 
+// upgrades is a list of upgrade functions to process old states.
+var upgrades = UpgradeFuncs{
+	// V1: struct System.Encryption renamed to System.Security, along with renaming of a couple of fields.
+	func(lines []string) ([]string, error) {
+		for i, line := range lines {
+			if strings.HasPrefix(line, "System.Encryption.") {
+				lines[i] = strings.Replace(lines[i], "System.Encryption.", "System.Security.", 1)
+				lines[i] = strings.Replace(lines[i], "System.Security.Config.RecoveryKeys", "System.Security.Config.EncryptionRecoveryKeys", 1)
+				lines[i] = strings.Replace(lines[i], "System.Security.State.RecoveryKeysRetrieved", "System.Security.State.EncryptionRecoveryKeysRetrieved", 1)
+			}
+		}
+
+		return lines, nil
+	},
+}
+
 // Decode reconstitutes a given state. Optionally, if provided, a list of upgrade functions will be
 // applied before decoding the state.
 func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
@@ -24,14 +40,24 @@ func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 			return err
 		}
 
+		// Record our starting version.
+		s.StateVersion = version
+
+		// If no custom upgrade functions are supplied, use the default list.
+		if upgradeFuncs == nil {
+			upgradeFuncs = upgrades
+		}
+
 		// Apply any needed upgrade functions to the input.
 		for i := version; i < len(upgradeFuncs); i++ {
-			lines, err = upgradeFuncs[i](lines)
-			if err != nil {
-				return err
-			}
+			if upgradeFuncs[i] != nil {
+				lines, err = upgradeFuncs[i](lines)
+				if err != nil {
+					return err
+				}
 
-			s.StateVersion = i + 1
+				s.StateVersion = i + 1
+			}
 		}
 	}
 

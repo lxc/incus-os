@@ -26,10 +26,14 @@ import (
 	"github.com/smallstep/pkcs7"
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // NOTE -- It's assumed that PCR7 is the only one we care about in this code.
+
+// TPMPCRMismatch holds the string returned by TPMStatus() if there's a PCR mismatch between the TPM and our computed value.
+var TPMPCRMismatch = "pending PCR7 update"
 
 // HandleSecureBootKeyChange will apply the changes necessary when the Secure Boot
 // signing key used for the UKIs is changed:
@@ -207,6 +211,81 @@ func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	return nil
 }
 
+// ForceUpdatePCRBindings takes the current system's PCR state and UKI signing key and force-overrides
+// the current LUKS TPM bindings with these values. This is DANGEROUS and only intended to be used in
+// a recovery-type situation, such as when the system had to be booted with a recovery passphrase.
+//
+// Immediately after a successful reset, the system will be rebooted.
+func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string, luksPassword string) error {
+	// First, make sure Secure Boot is enabled so we can have some confidence in the current running system.
+	sbEnabled, err := Enabled()
+	if err != nil {
+		return err
+	} else if !sbEnabled {
+		return errors.New("refusing to reset TPM encryption bindings because Secure Boot is disabled")
+	}
+
+	// Second, refuse to do anything if the TPM can unlock all LUKS volumes.
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+
+	atLeastOneVolumeNeedsFixing := false
+
+	for volumeName, volumeDev := range luksVolumes {
+		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
+		if err != nil {
+			atLeastOneVolumeNeedsFixing = true
+
+			break
+		}
+	}
+
+	if !atLeastOneVolumeNeedsFixing {
+		return errors.New("refusing to reset TPM encryption bindings because current state can unlock all volumes")
+	}
+
+	// WARNING: here be dragons as we're going to be blindly trusting inputs that in theory could be attacker-controlled.
+
+	// Get the current PCR7 value directly from the TPM. Don't bother replaying the event log and computing the value,
+	// since it should be the same.
+	pcr7, err := readPCR7()
+	if err != nil {
+		return err
+	}
+
+	// Extract the signing certificate from the UKI we're running from.
+	ukiCert, err := getPublicKeyFromUKI(fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", osName, osVersion))
+	if err != nil {
+		return err
+	}
+
+	// Write the UKI's cert to where systemd will pick it up.
+	err = os.WriteFile("/run/systemd/tpm2-pcr-public-key.pem", ukiCert, 0o600)
+	if err != nil {
+		return err
+	}
+
+	// Finally, we're ready to update the TPM bindings for each LUKS volume.
+	pcr7String := hex.EncodeToString(pcr7)
+
+	for _, volume := range luksVolumes {
+		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+pcr7String, volume)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Once complete, immediately reboot the system which should then auto-unlock.
+	_, err = subprocess.RunCommandContext(ctx, "systemctl", "reboot")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetCertificatesFromVar returns a list of certificates currently in a given EFI variable.
 func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	val, err := readEFIVariable(varName)
@@ -221,6 +300,69 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	certs, _, err := parsedVal.SignatureData()
 
 	return certs, err
+}
+
+// ListCertificates returns a list of all Secure Boot certificates present on the system.
+func ListCertificates() []api.SystemSecuritySecureBootCertificate {
+	ret := []api.SystemSecuritySecureBootCertificate{}
+
+	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
+		certs, err := GetCertificatesFromVar(varName)
+		if err != nil {
+			continue
+		}
+
+		for _, cert := range certs {
+			rawFp := sha256.Sum256(cert.Raw)
+			ret = append(ret, api.SystemSecuritySecureBootCertificate{
+				Type:        varName,
+				Fingerprint: hex.EncodeToString(rawFp[:]),
+				Subject:     cert.Subject.String(),
+				Issuer:      cert.Issuer.String(),
+			})
+		}
+	}
+
+	return ret
+}
+
+// Enabled checks if Secure Boot is currently enabled.
+func Enabled() (bool, error) {
+	state, err := readEFIVariable("SecureBoot")
+	if err != nil {
+		return false, err
+	}
+
+	return state[0] == 1, nil
+}
+
+// TPMStatus returns basic information about the status of the TPM.
+func TPMStatus() string {
+	eventLog, err := readTMPEventLog()
+	if err != nil {
+		return err.Error()
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err.Error()
+	}
+
+	computedPCR, err := computeNewPCR7Value(eventLog)
+	if err != nil {
+		return err.Error()
+	}
+
+	actualPCR, err := readPCR7()
+	if err != nil {
+		return err.Error()
+	}
+
+	if !bytes.Equal(computedPCR, actualPCR) {
+		return TPMPCRMismatch
+	}
+
+	return "ok"
 }
 
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
@@ -381,22 +523,7 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	}
 
 	// Get the current PCR7 value from the TPM.
-	pcr7File, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/7")
-	if err != nil {
-		return err
-	}
-	defer pcr7File.Close()
-
-	actualPCR7Buf := make([]byte, 64)
-
-	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
-	if err != nil {
-		return err
-	} else if numBytes != 64 {
-		return fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/7", numBytes)
-	}
-
-	actualPCR7, err := hex.DecodeString(string(actualPCR7Buf))
+	actualPCR7, err := readPCR7()
 	if err != nil {
 		return err
 	}
@@ -406,6 +533,26 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	}
 
 	return nil
+}
+
+// readPCR7 returns the current PCR7 value from the TPM.
+func readPCR7() ([]byte, error) {
+	pcr7File, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/7")
+	if err != nil {
+		return nil, err
+	}
+	defer pcr7File.Close()
+
+	actualPCR7Buf := make([]byte, 64)
+
+	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
+	if err != nil {
+		return nil, err
+	} else if numBytes != 64 {
+		return nil, fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/7", numBytes)
+	}
+
+	return hex.DecodeString(string(actualPCR7Buf))
 }
 
 // computeNewPCR7Value will compute the future PCR7 value after the KEK, db, and/or dbx EFI variables are updated.

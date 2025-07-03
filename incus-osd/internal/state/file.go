@@ -55,6 +55,15 @@ func convertLegacyJSON(ctx context.Context, path string, s *State) error {
 		return err
 	}
 
+	// Temporary logic to tweak the json input after struct changes.
+	//
+	// This should be removed by the end of August, 2025.
+	bodyStr := string(body)
+	bodyStr = strings.Replace(bodyStr, `{"encryption":`, `{"security":`, 1)
+	bodyStr = strings.Replace(bodyStr, `"recovery_keys":`, `"encryption_recovery_keys":`, 1)
+	bodyStr = strings.Replace(bodyStr, `"recovery_keys_retrieved":`, `"encryption_recovery_keys_retrieved":`, 1)
+	body = []byte(bodyStr)
+
 	err = json.Unmarshal(body, s)
 	if err != nil {
 		return err

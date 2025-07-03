@@ -238,7 +238,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
-	if len(s.System.Encryption.Config.RecoveryKeys) == 0 {
+	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
 		slog.Info("Auto-generating encryption recovery key, this may take a few seconds")
 
 		err := systemd.GenerateRecoveryKey(ctx, s)
@@ -257,7 +257,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	if needsSwapKey {
 		slog.Info("Setting encryption recovery key for swap partition, this may take a few seconds")
 
-		err := systemd.SwapSetRecoveryKey(ctx, s.System.Encryption.Config.RecoveryKeys[0])
+		err := systemd.SwapSetRecoveryKey(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0])
 		if err != nil {
 			return err
 		}
@@ -681,7 +681,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		slog.Info("Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
-		err = systemd.ApplySystemUpdate(ctx, s.System.Encryption.Config.RecoveryKeys[0], update.Version(), isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save(ctx)
