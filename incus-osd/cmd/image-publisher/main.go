@@ -14,6 +14,8 @@ import (
 
 	ghapi "github.com/google/go-github/v72/github"
 	"github.com/lxc/incus/v6/shared/subprocess"
+
+	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )
 
 func main() {
@@ -110,14 +112,14 @@ func do(ctx context.Context) error {
 	}
 
 	// Prepare the update.json.
-	metaUpdate := update{
+	metaUpdate := apiupdate.Update{
 		Format: "1.0",
 
 		Channel:     updateChannel,
-		Files:       []updateFile{},
+		Files:       []apiupdate.UpdateFile{},
 		Origin:      updateOrigin,
 		PublishedAt: time.Now(),
-		Severity:    updateSeverity,
+		Severity:    apiupdate.UpdateSeverity(updateSeverity),
 		Version:     releaseName,
 	}
 
@@ -127,35 +129,35 @@ func do(ctx context.Context) error {
 
 		// Check if file should be imported.
 		var (
-			assetComponent string
-			assetType      string
+			assetComponent apiupdate.UpdateFileComponent
+			assetType      apiupdate.UpdateFileType
 		)
 
 		switch {
 		case assetName == "debug.raw.gz":
-			assetComponent = updateFileComponentDebug
-			assetType = updateFileTypeApplication
+			assetComponent = apiupdate.UpdateFileComponentDebug
+			assetType = apiupdate.UpdateFileTypeApplication
 		case assetName == "incus.raw.gz":
-			assetComponent = updateFileComponentIncus
-			assetType = updateFileTypeApplication
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeApplication
 		case strings.HasSuffix(assetName, ".efi.gz"):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeUpdateEFI
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeUpdateEFI
 		case strings.HasSuffix(assetName, ".img.gz"):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeImageRaw
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeImageRaw
 		case strings.HasSuffix(assetName, ".iso.gz"):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeImageISO
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeImageISO
 		case strings.Contains(assetName, ".usr-x86-64-verity."):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeUpdateUsrVerity
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeUpdateUsrVerity
 		case strings.Contains(assetName, ".usr-x86-64-verity-sig."):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeUpdateUsrVeritySignature
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeUpdateUsrVeritySignature
 		case strings.Contains(assetName, ".usr-x86-64."):
-			assetComponent = updateFileComponentOS
-			assetType = updateFileTypeUpdateUsr
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeUpdateUsr
 		default:
 			continue
 		}
@@ -166,7 +168,7 @@ func do(ctx context.Context) error {
 			return err
 		}
 
-		metaUpdate.Files = append(metaUpdate.Files, updateFile{
+		metaUpdate.Files = append(metaUpdate.Files, apiupdate.UpdateFile{
 			Architecture: "x86_64",
 			Component:    assetComponent,
 			Filename:     assetName,
@@ -197,9 +199,9 @@ func do(ctx context.Context) error {
 	}
 
 	// Write the index metadata.
-	metaIndex := index{
+	metaIndex := apiupdate.Index{
 		Format:  "1.0",
-		Updates: []updateFull{{update: metaUpdate, URL: "/" + metaUpdate.Version}},
+		Updates: []apiupdate.UpdateFull{{Update: metaUpdate, URL: "/" + metaUpdate.Version}},
 	}
 
 	wr, err = os.Create(filepath.Join(targetPath, "index.json")) //nolint:gosec
