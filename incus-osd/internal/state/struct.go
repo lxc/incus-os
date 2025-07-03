@@ -3,6 +3,7 @@ package state
 import (
 	"net"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -99,11 +100,17 @@ func (s *State) ManagementAddress() net.IP {
 		return nil
 	}
 
-	var ipv4Address net.IP
-
-	var ipv6Address net.IP
+	var (
+		ipv4Address net.IP
+		ipv6Address net.IP
+	)
 
 	for _, iface := range s.System.Network.State.Interfaces {
+		// Skip if missing management role.
+		if !slices.Contains(iface.Roles, "management") {
+			continue
+		}
+
 		for _, address := range iface.Addresses {
 			addrIP := net.ParseIP(address)
 			if addrIP == nil {
