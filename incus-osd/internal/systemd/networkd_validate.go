@@ -248,7 +248,7 @@ func validateRoles(roles []string) error {
 
 	for _, role := range roles {
 		// Confirm role is valid.
-		if !slices.Contains([]string{"management", "cluster", "instances", "storage"}, role) {
+		if !slices.Contains([]string{api.SystemNetworkInterfaceRoleManagement, api.SystemNetworkInterfaceRoleCluster, api.SystemNetworkInterfaceRoleInstances, api.SystemNetworkInterfaceRoleStorage}, role) {
 			return fmt.Errorf("role %q is unsupported", role)
 		}
 

@@ -107,7 +107,7 @@ func (s *State) ManagementAddress() net.IP {
 
 	for _, iface := range s.System.Network.State.Interfaces {
 		// Skip if missing management role.
-		if !slices.Contains(iface.Roles, "management") {
+		if !slices.Contains(iface.Roles, api.SystemNetworkInterfaceRoleManagement) {
 			continue
 		}
 

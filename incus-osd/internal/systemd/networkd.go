@@ -195,20 +195,20 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	}
 
 	// Ensure required roles exist.
-	if !slices.Contains(rolesFound, "management") || !slices.Contains(rolesFound, "cluster") {
+	if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleManagement) || !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleCluster) {
 		for iName, i := range n.State.Interfaces {
 			iState := i
 
-			if !slices.Contains(rolesFound, "management") && iState.State == "routable" {
+			if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleManagement) && iState.State == "routable" {
 				if iState.Roles == nil {
 					iState.Roles = []string{}
 				}
 
-				iState.Roles = append(iState.Roles, "management")
+				iState.Roles = append(iState.Roles, api.SystemNetworkInterfaceRoleManagement)
 			}
 
-			if !slices.Contains(rolesFound, "cluster") && slices.Contains(iState.Roles, "management") {
-				iState.Roles = append(iState.Roles, "cluster")
+			if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleCluster) && slices.Contains(iState.Roles, api.SystemNetworkInterfaceRoleManagement) {
+				iState.Roles = append(iState.Roles, api.SystemNetworkInterfaceRoleCluster)
 			}
 
 			n.State.Interfaces[iName] = iState
