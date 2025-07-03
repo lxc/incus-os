@@ -4,6 +4,20 @@ import (
 	"slices"
 )
 
+const (
+	// SystemNetworkInterfaceRoleManagement represents the "management" role.
+	SystemNetworkInterfaceRoleManagement = "management"
+
+	// SystemNetworkInterfaceRoleCluster represents the "cluster" role.
+	SystemNetworkInterfaceRoleCluster = "cluster"
+
+	// SystemNetworkInterfaceRoleInstances represents the "instances" role.
+	SystemNetworkInterfaceRoleInstances = "instances"
+
+	// SystemNetworkInterfaceRoleStorage represents the "storage" role.
+	SystemNetworkInterfaceRoleStorage = "storage"
+)
+
 // SystemNetwork defines a struct to hold the three types of supported network configuration.
 type SystemNetwork struct {
 	Config *SystemNetworkConfig `json:"config" yaml:"config"`
