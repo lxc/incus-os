@@ -65,7 +65,7 @@ vlans:
       - to: 0.0.0.0/0
         via: dhcp4
     roles:
-      - ovn-uplink
+      - cluster
 `
 
 var networkdConfig2 = `
@@ -176,7 +176,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "0.0.0.0/0", cfg.VLANs[0].Routes[0].To)
 		require.Equal(t, "dhcp4", cfg.VLANs[0].Routes[0].Via)
 		require.Len(t, cfg.VLANs[0].Roles, 1)
-		require.Equal(t, "ovn-uplink", cfg.VLANs[0].Roles[0])
+		require.Equal(t, "cluster", cfg.VLANs[0].Roles[0])
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
 		content, err := yaml.Marshal(&cfg)
