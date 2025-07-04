@@ -260,14 +260,14 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 
 	localMAC := ""
 	if len(localMACRegex.FindStringSubmatch(output)) == 2 {
-		localMAC = localMACRegex.FindStringSubmatch(output)[1]
+		localMAC = strings.Fields(localMACRegex.FindStringSubmatch(output)[1])[0]
 	}
 
 	remoteMACRegex := regexp.MustCompile(`Permanent Hardware Address: (.+)`)
 
 	remoteMAC := ""
 	if len(remoteMACRegex.FindStringSubmatch(output)) == 2 {
-		remoteMAC = remoteMACRegex.FindStringSubmatch(output)[1]
+		remoteMAC = strings.Fields(remoteMACRegex.FindStringSubmatch(output)[1])[0]
 	}
 
 	speedRegex := regexp.MustCompile(`Speed: (.+)`)
