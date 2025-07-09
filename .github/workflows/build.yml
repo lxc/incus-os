@@ -54,6 +54,19 @@ jobs:
         run: |
           pipx install git+https://github.com/systemd/mkosi.git@v25.3
 
+      - name: Load the signing keys
+        run: |
+          echo "${{ secrets.SB_CERT }}" > mkosi.crt
+          chmod 644 mkosi.crt
+
+          echo "${{ secrets.SB_KEY }}" > mkosi.key
+          chmod 600 mkosi.key
+
+          mkdir -p certs
+          cd certs
+          echo "${{ secrets.SB_EFI }}" | tar zx -
+          cd ..
+
       - name: Build the images
         run: |
           export PATH="${PATH}:/root/.local/bin"
@@ -64,11 +77,6 @@ jobs:
           echo ${{ github.ref_name }}
           EOF
           ) > mkosi.version
-
-          echo "${{ secrets.SB_CERT }}" > mkosi.crt
-          chmod 644 mkosi.crt
-          echo "${{ secrets.SB_KEY }}" > mkosi.key
-          chmod 600 mkosi.key
 
           make build-iso
 
