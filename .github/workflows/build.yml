@@ -64,7 +64,7 @@ jobs:
 
           mkdir -p certs
           cd certs
-          echo "${{ secrets.SB_EFI }}" | base64 -d | tar zx -
+          echo "${{ secrets.SB_EFI }}" | base64 -d | tar zx
           cd ..
 
       - name: Build the images
