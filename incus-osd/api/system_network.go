@@ -126,6 +126,7 @@ func (n *SystemNetworkState) GetInterfaceNamesByRole(role string) []string {
 type SystemNetworkInterfaceState struct {
 	Type      string                                 `json:"type,omitempty"      yaml:"type,omitempty"`
 	Addresses []string                               `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	Hwaddr    string                                 `json:"hwaddr"              yaml:"hwaddr"`
 	Routes    []SystemNetworkRoute                   `json:"routes,omitempty"    yaml:"routes,omitempty"`
 	MTU       int                                    `json:"mtu,omitempty"       yaml:"mtu,omitempty"`
 	Speed     string                                 `json:"speed,omitempty"     yaml:"speed,omitempty"`
