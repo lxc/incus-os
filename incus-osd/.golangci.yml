@@ -56,8 +56,6 @@ linters:
           disabled: true
         - name: nested-structs
           disabled: true
-        - name: var-naming
-          disabled: true
 
     tagliatelle:
       case:
@@ -71,6 +69,8 @@ linters:
       - linters:
           - errcheck
         source: ^\s*defer\s+
+      - path: internal/util/
+        text: "avoid meaningless package names"
 
     paths:
       - third_party$
