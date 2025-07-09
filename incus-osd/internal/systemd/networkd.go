@@ -154,6 +154,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			return err
 		}
 
+		iState.Hwaddr = i.Hwaddr
 		iState.Roles = i.Roles
 		rolesFound = append(rolesFound, i.Roles...)
 		n.State.Interfaces[i.Name] = iState
@@ -177,6 +178,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			return err
 		}
 
+		bState.Hwaddr = b.Hwaddr
 		bState.Roles = b.Roles
 		rolesFound = append(rolesFound, b.Roles...)
 		n.State.Interfaces[b.Name] = bState
@@ -187,6 +189,11 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		vState, err := getInterfaceState(ctx, "vlan", v.Name, nil)
 		if err != nil {
 			return err
+		}
+
+		parent, ok := n.State.Interfaces[v.Name]
+		if ok {
+			vState.Hwaddr = parent.Hwaddr
 		}
 
 		vState.Roles = v.Roles
