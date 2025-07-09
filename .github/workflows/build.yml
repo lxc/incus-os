@@ -93,10 +93,8 @@ jobs:
             gzip -9 "${i}"
           done
 
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+      - name: Upload binaries as artifacts
+        uses: actions/upload-artifact@v4
         with:
-          file: upload/*
-          overwrite: true
-          file_glob: true
-          release_name: ${{ github.ref_name }}
+          name: Image
+          path: upload/
