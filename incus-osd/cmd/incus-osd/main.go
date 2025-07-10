@@ -226,7 +226,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	mode := "unsafe"
 
 	for _, key := range keys {
-		if key.Fingerprint == "087a9632734ad5a6c860cdff7887437a4239d9c3" {
+		if key.Fingerprint == "6cdc880c5df31b18176ddaa3528394aa03791f91" {
 			mode = "production"
 		}
 
