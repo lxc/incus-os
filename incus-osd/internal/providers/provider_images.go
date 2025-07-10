@@ -199,7 +199,7 @@ func (p *images) checkRelease(ctx context.Context) error {
 		return err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := p.tryRequest(req)
 	if err != nil {
 		return err
 	}
@@ -264,6 +264,23 @@ func (p *images) checkRelease(ctx context.Context) error {
 	p.releaseAssets = latestUpdateFiles
 
 	return nil
+}
+
+func (*images) tryRequest(req *http.Request) (*http.Response, error) {
+	var err error
+
+	for range 5 {
+		var resp *http.Response
+
+		resp, err = http.DefaultClient.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return nil, err
 }
 
 func (*images) downloadAsset(ctx context.Context, assetURL string, target string, progressFunc func(float64)) error {
