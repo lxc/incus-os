@@ -2,11 +2,17 @@
 package main
 
 import (
+	"archive/zip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,16 +41,6 @@ func do(ctx context.Context) error {
 	targetPath := os.Args[1]
 
 	// Config (optional).
-	ghOrganization := os.Getenv("GH_ORGANIZATION")
-	if ghOrganization == "" {
-		ghOrganization = "lxc"
-	}
-
-	ghRepository := os.Getenv("GH_REPOSITORY")
-	if ghRepository == "" {
-		ghRepository = "incus-os"
-	}
-
 	updateChannel := os.Getenv("UPDATE_CHANNEL")
 	if updateChannel == "" {
 		updateChannel = "daily"
@@ -75,28 +71,24 @@ func do(ctx context.Context) error {
 		return nil
 	}
 
-	// Setup client.
-	gh := github{
-		organization: ghOrganization,
-		repository:   ghRepository,
-		client:       ghapi.NewClient(nil),
-	}
-
-	if os.Getenv("GH_TOKEN") != "" {
-		gh.client = gh.client.WithAuthToken(os.Getenv("GH_TOKEN"))
-	}
-
-	// Get the latest tag and file list.
-	release, _, err := gh.client.Repositories.GetLatestRelease(ctx, ghOrganization, ghRepository)
+	// Get the latest image info.
+	releaseName, releaseURL, err := getLatestRelease(ctx)
 	if err != nil {
 		return err
 	}
 
-	releaseName := release.GetName()
+	slog.Info("Found latest image", "version", releaseName)
 
-	releaseAssets, _, err := gh.client.Repositories.ListReleaseAssets(ctx, ghOrganization, ghRepository, release.GetID(), nil)
-	if err != nil {
-		return err
+	// Prepare the update.json.
+	metaUpdate := apiupdate.Update{
+		Format: "1.0",
+
+		Channel:     updateChannel,
+		Files:       []apiupdate.UpdateFile{},
+		Origin:      updateOrigin,
+		PublishedAt: time.Now(),
+		Severity:    apiupdate.UpdateSeverity(updateSeverity),
+		Version:     releaseName,
 	}
 
 	// Create the release folder.
@@ -111,21 +103,54 @@ func do(ctx context.Context) error {
 		return err
 	}
 
-	// Prepare the update.json.
-	metaUpdate := apiupdate.Update{
-		Format: "1.0",
-
-		Channel:     updateChannel,
-		Files:       []apiupdate.UpdateFile{},
-		Origin:      updateOrigin,
-		PublishedAt: time.Now(),
-		Severity:    apiupdate.UpdateSeverity(updateSeverity),
-		Version:     releaseName,
+	// Get the image file.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releaseURL.String(), nil)
+	if err != nil {
+		return err
 	}
 
-	// Download the files.
-	for _, asset := range releaseAssets {
-		assetName := asset.GetName()
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad response from server: %d", resp.StatusCode)
+	}
+
+	tempImage, err := os.CreateTemp("", "")
+	if err != nil {
+		return err
+	}
+
+	defer func() { _ = os.Remove(tempImage.Name()) }()
+
+	var size int64
+
+	for {
+		n, err := io.CopyN(tempImage, resp.Body, 4*1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		size += n
+	}
+
+	slog.Info("Downloaded the image", "size", size)
+
+	// Parse the image file.
+	zr, err := zip.OpenReader(tempImage.Name())
+	if err != nil {
+		return err
+	}
+
+	for _, f := range zr.File {
+		assetName := f.Name
 
 		// Check if file should be imported.
 		var (
@@ -162,12 +187,13 @@ func do(ctx context.Context) error {
 			continue
 		}
 
-		// Download the file.
-		assetHash, assetSize, err := gh.downloadAsset(ctx, asset.GetID(), filepath.Join(targetPath, releaseName, assetName))
+		// Extract the file.
+		assetHash, assetSize, err := extractFile(f, filepath.Join(targetPath, releaseName, assetName)) //nolint:gosec
 		if err != nil {
 			return err
 		}
 
+		// Add to the index.
 		metaUpdate.Files = append(metaUpdate.Files, apiupdate.UpdateFile{
 			Architecture: "x86_64",
 			Component:    assetComponent,
@@ -177,7 +203,7 @@ func do(ctx context.Context) error {
 			Type:         assetType,
 		})
 
-		slog.Info("Downloaded", "name", assetName, "hash", assetHash, "size", assetSize)
+		slog.Info("Extracted", "name", assetName, "hash", assetHash, "size", assetSize)
 	}
 
 	// Write the update metadata.
@@ -222,4 +248,124 @@ func do(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func extractFile(f *zip.File, target string) (string, int64, error) {
+	// Open the file.
+	rc, err := f.Open()
+	if err != nil {
+		return "", 0, err
+	}
+
+	defer rc.Close()
+
+	// Create the target path.
+	// #nosec G304
+	fd, err := os.Create(target)
+	if err != nil {
+		return "", 0, err
+	}
+
+	defer fd.Close()
+
+	// Hashing logic.
+	hash256 := sha256.New()
+
+	// Target writer.
+	wr := io.MultiWriter(fd, hash256)
+
+	// Read from the decompressor in chunks to avoid excessive memory consumption.
+	var size int64
+
+	for {
+		n, err := io.CopyN(wr, rc, 4*1024*1024)
+		size += n
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return "", 0, err
+		}
+	}
+
+	return hex.EncodeToString(hash256.Sum(nil)), size, nil
+}
+
+func getLatestRelease(ctx context.Context) (string, *url.URL, error) {
+	// Config (optional).
+	ghOrganization := os.Getenv("GH_ORGANIZATION")
+	if ghOrganization == "" {
+		ghOrganization = "lxc"
+	}
+
+	ghRepository := os.Getenv("GH_REPOSITORY")
+	if ghRepository == "" {
+		ghRepository = "incus-os"
+	}
+
+	// Setup client.
+	client := ghapi.NewClient(nil)
+
+	if os.Getenv("GH_TOKEN") != "" {
+		client = client.WithAuthToken(os.Getenv("GH_TOKEN"))
+	}
+
+	// Get the latest build.
+	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(ctx, ghOrganization, ghRepository, &ghapi.ListWorkflowRunsOptions{
+		Event:               "push",
+		Status:              "completed",
+		ExcludePullRequests: true,
+	})
+	if err != nil {
+		return "", nil, err
+	}
+
+	var latestRun *ghapi.WorkflowRun
+
+	for _, run := range runs.WorkflowRuns {
+		if *run.Repository.FullName != ghOrganization+"/"+ghRepository {
+			continue
+		}
+
+		if *run.Name != "Build" {
+			continue
+		}
+
+		latestRun = run
+
+		break
+	}
+
+	if latestRun == nil {
+		return "", nil, errors.New("couldn't find any matching run")
+	}
+
+	releaseName := *latestRun.HeadBranch
+
+	// Get the image file.
+	artifacts, _, err := client.Actions.ListWorkflowRunArtifacts(ctx, ghOrganization, ghRepository, *latestRun.ID, nil)
+	if err != nil {
+		return "", nil, err
+	}
+
+	var imageArtifact *ghapi.Artifact
+
+	for _, artifact := range artifacts.Artifacts {
+		if *artifact.Name != "Image" {
+			continue
+		}
+
+		imageArtifact = artifact
+
+		break
+	}
+
+	u, _, err := client.Actions.DownloadArtifact(ctx, ghOrganization, ghRepository, *imageArtifact.ID, 10)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return releaseName, u, nil
 }
