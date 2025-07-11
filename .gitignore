@@ -11,6 +11,7 @@ mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/incus-osd
 
 incus-osd/flasher-tool
+incus-osd/image-customizer
 incus-osd/image-publisher
 incus-osd/incus-osd
 mkosi.packages/initrd-tmpfs-root*

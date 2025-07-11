@@ -50,6 +50,7 @@ require (
 	github.com/rootless-containers/proto/go-proto v0.0.0-20230421021042-4cd87ebadd67 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vbatts/go-mtree v0.5.4 // indirect
 	github.com/zitadel/logging v0.6.2 // indirect
