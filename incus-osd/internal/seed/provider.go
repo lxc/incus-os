@@ -3,20 +3,13 @@ package seed
 import (
 	"context"
 
-	"github.com/lxc/incus-os/incus-osd/api"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
-// ProviderSeed defines a struct to hold provider configuration.
-type ProviderSeed struct {
-	api.SystemProviderConfig `yaml:",inline"`
-
-	Version string `json:"version" yaml:"version"`
-}
-
 // GetProvider extracts the provider configuration from the seed data.
-func GetProvider(_ context.Context, partition string) (*ProviderSeed, error) {
+func GetProvider(_ context.Context, partition string) (*apiseed.Provider, error) {
 	// Get the install configuration.
-	var config ProviderSeed
+	var config apiseed.Provider
 
 	err := parseFileContents(partition, "provider", &config)
 	if err != nil {

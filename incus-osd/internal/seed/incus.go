@@ -3,22 +3,13 @@ package seed
 import (
 	"context"
 
-	incusapi "github.com/lxc/incus/v6/shared/api"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
-// IncusConfig is a wrapper around the Incus preseed.
-type IncusConfig struct {
-	Version string `json:"version" yaml:"version"`
-
-	ApplyDefaults bool `json:"apply_defaults" yaml:"apply_defaults"`
-
-	Preseed *incusapi.InitPreseed `json:"preseed" yaml:"preseed"`
-}
-
 // GetIncus extracts the Incus preseed from the seed data.
-func GetIncus(_ context.Context, partition string) (*IncusConfig, error) {
+func GetIncus(_ context.Context, partition string) (*apiseed.Incus, error) {
 	// Get the preseed.
-	var preseed IncusConfig
+	var preseed apiseed.Incus
 
 	err := parseFileContents(partition, "incus", &preseed)
 	if err != nil {

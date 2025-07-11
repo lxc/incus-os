@@ -10,20 +10,14 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
-
-// NetworkSeed defines a struct to hold network configuration.
-type NetworkSeed struct {
-	api.SystemNetworkConfig `yaml:",inline"`
-
-	Version string `json:"version" yaml:"version"`
-}
 
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
 func GetNetwork(ctx context.Context, partition string) (*api.SystemNetworkConfig, error) {
 	// Get the network configuration.
-	var config NetworkSeed
+	var config apiseed.Network
 
 	err := parseFileContents(partition, "network", &config)
 	if err != nil {
