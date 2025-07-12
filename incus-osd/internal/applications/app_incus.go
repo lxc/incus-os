@@ -7,6 +7,7 @@ import (
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
 
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -64,7 +65,7 @@ func (a *incus) Initialize(ctx context.Context) error {
 
 	// If no seed, build one for auto-configuration.
 	if incusSeed == nil {
-		incusSeed = &seed.IncusConfig{
+		incusSeed = &apiseed.Incus{
 			ApplyDefaults: true,
 		}
 	}

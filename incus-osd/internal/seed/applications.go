@@ -2,23 +2,14 @@ package seed
 
 import (
 	"context"
+
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
-// Application represents an application.
-type Application struct {
-	Name string `json:"name" yaml:"name"`
-}
-
-// Applications represents a list of application.
-type Applications struct {
-	Applications []Application `json:"applications" yaml:"applications"`
-	Version      string        `json:"version"      yaml:"version"`
-}
-
 // GetApplications extracts the list of applications from the seed data.
-func GetApplications(_ context.Context, partition string) (*Applications, error) {
+func GetApplications(_ context.Context, partition string) (*apiseed.Applications, error) {
 	// Get applications list
-	var apps Applications
+	var apps apiseed.Applications
 
 	err := parseFileContents(partition, "applications", &apps)
 	if err != nil {

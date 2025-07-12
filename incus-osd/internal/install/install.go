@@ -17,6 +17,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
@@ -24,7 +25,7 @@ import (
 
 // Install holds information necessary to perform an installation.
 type Install struct {
-	config *seed.InstallSeed
+	config *apiseed.Install
 	tui    *tui.TUI
 }
 
@@ -346,7 +347,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 }
 
 // getTargetDevice determines the underlying device to install incus-osd on.
-func getTargetDevice(potentialTargets []blockdevices, seedTarget *seed.InstallSeedTarget) (string, error) {
+func getTargetDevice(potentialTargets []blockdevices, seedTarget *apiseed.InstallTarget) (string, error) {
 	// Ensure we found at least one potential install device. If no Target configuration was found,
 	// only proceed if exactly one device was found.
 	if len(potentialTargets) == 0 {

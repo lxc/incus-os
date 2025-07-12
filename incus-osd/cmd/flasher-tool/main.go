@@ -23,17 +23,18 @@ import (
 	"github.com/lxc/incus/v6/shared/revert"
 	"gopkg.in/yaml.v3"
 
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-var applicationsSeed *seed.Applications
+var applicationsSeed *apiseed.Applications
 
-var incusSeed *seed.IncusConfig
+var incusSeed *apiseed.Incus
 
-var installSeed *seed.InstallSeed
+var installSeed *apiseed.Install
 
-var networkSeed *seed.NetworkSeed
+var networkSeed *apiseed.Network
 
 func main() {
 	var err error
@@ -130,7 +131,7 @@ func mainMenu(asker ask.Asker, imageFilename string) error {
 		menuOptions = append(menuOptions, "Configure network seed")
 		menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 
-		if applicationsSeed != nil && slices.ContainsFunc(applicationsSeed.Applications, func(a seed.Application) bool {
+		if applicationsSeed != nil && slices.ContainsFunc(applicationsSeed.Applications, func(a apiseed.Application) bool {
 			return a.Name == "incus"
 		}) {
 			menuOptions = append(menuOptions, "Configure Incus seed")
@@ -225,14 +226,14 @@ func toggleInstallRunningMode(asker ask.Asker, imageFilename string) error {
 		return err
 	}
 
-	var target *seed.InstallSeedTarget
+	var target *apiseed.InstallTarget
 	if targetID != "" {
-		target = &seed.InstallSeedTarget{
+		target = &apiseed.InstallTarget{
 			ID: targetID,
 		}
 	}
 
-	installSeed = &seed.InstallSeed{
+	installSeed = &apiseed.Install{
 		ForceInstall: forceInstall,
 		ForceReboot:  forceReboot,
 		Target:       target,
@@ -247,10 +248,10 @@ func selectApplications(asker ask.Asker) error {
 		return err
 	}
 
-	applicationsSeed = &seed.Applications{}
+	applicationsSeed = &apiseed.Applications{}
 
 	if installIncus {
-		applicationsSeed.Applications = append(applicationsSeed.Applications, seed.Application{
+		applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
 			Name: "incus",
 		})
 	}
@@ -278,7 +279,7 @@ func configureNetworkSeed() error {
 		return nil
 	}
 
-	var newSeed seed.NetworkSeed
+	var newSeed apiseed.Network
 
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
@@ -327,7 +328,7 @@ func configureIncusSeed() error {
 		return nil
 	}
 
-	var newSeed seed.IncusConfig
+	var newSeed apiseed.Incus
 
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
