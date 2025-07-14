@@ -23,7 +23,15 @@ fi
 mkdir -p certs/mnt/
 LOOP=$(losetup --show -f -P "$1")
 mount "${LOOP}p1" certs/mnt/
+
+# Push the new enrollment keys.
 rm certs/mnt/loader/keys/auto/*
 cp certs/efi/*.auth certs/mnt/loader/keys/auto/
+
+# Push the keys as DER.
+rm certs/mnt/mkosi.der || true
+mkdir -p certs/mnt/keys/
+cp certs/efi/*.der certs/mnt/keys/ || true
+
 umount certs/mnt/
 losetup -d "${LOOP}"
