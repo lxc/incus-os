@@ -179,6 +179,7 @@ func mainMenu(asker ask.Asker, imageFilename string) error {
 			}
 		case "Write image and exit":
 			return writeImage(asker, imageFilename)
+		default:
 		}
 	}
 }

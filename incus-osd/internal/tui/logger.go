@@ -58,6 +58,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 		levelColor = "[yellow]"
 	case slog.LevelError:
 		levelColor = "[red]"
+	default:
 	}
 
 	_, err = buf.WriteString(levelColor + r.Level.String() + "[white] ")

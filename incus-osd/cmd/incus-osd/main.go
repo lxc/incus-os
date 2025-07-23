@@ -415,6 +415,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			_ = systemd.SystemPowerOff(ctx)
 		case "reboot":
 			_ = systemd.SystemReboot(ctx)
+		default:
 		}
 
 		os.Exit(0) //nolint:revive

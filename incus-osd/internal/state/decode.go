@@ -150,6 +150,7 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 			}
 
 			field = field.Index(index)
+		default:
 		}
 
 		// Advance down one level into the state struct.

@@ -219,6 +219,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		fileName = "image.iso.gz"
 	case imageTypeRaw:
 		fileName = "image.img.gz"
+	default:
 	}
 
 	// Check if we have compression in-transit.
