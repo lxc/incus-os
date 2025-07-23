@@ -58,7 +58,7 @@ func main() {
 	}
 }
 
-func do(_ context.Context) error {
+func do(ctx context.Context) error {
 	// Arguments.
 	if len(os.Args) != 2 {
 		return errors.New("missing image path")
@@ -78,7 +78,9 @@ func do(_ context.Context) error {
 	}
 
 	// Start REST server.
-	listener, err := net.Listen("tcp", ":8080") //nolint:gosec
+	lc := &net.ListenConfig{}
+
+	listener, err := lc.Listen(ctx, "tcp", ":8080")
 	if err != nil {
 		return err
 	}
@@ -217,6 +219,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		fileName = "image.iso.gz"
 	case imageTypeRaw:
 		fileName = "image.img.gz"
+	default:
 	}
 
 	// Check if we have compression in-transit.

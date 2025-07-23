@@ -39,18 +39,20 @@ var networkSeed *apiseed.Network
 func main() {
 	var err error
 
+	ctx := context.Background()
+
 	asker := ask.NewAsker(bufio.NewReader(os.Stdin))
 
-	slog.Info("IncusOS flasher tool")
+	slog.InfoContext(ctx, "IncusOS flasher tool")
 
 	// Determine what image we should modify.
 	imageFilename := os.Getenv("INCUSOS_IMAGE")
 	if imageFilename == "" {
-		slog.Info("Fetching latest release from GitHub")
+		slog.InfoContext(ctx, "Fetching latest release from GitHub")
 
-		imageFilename, err = downloadCurrentIncusOSRelease(asker)
+		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 	}
@@ -58,27 +60,27 @@ func main() {
 	seedTarFilename := os.Getenv("INCUSOS_SEED_TAR")
 	if seedTarFilename == "" {
 		// Customize the image.
-		slog.Info("Ready to begin customizing image '" + imageFilename + "'")
+		slog.InfoContext(ctx, "Ready to begin customizing image '"+imageFilename+"'")
 
-		err = mainMenu(asker, imageFilename)
+		err = mainMenu(ctx, asker, imageFilename)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 	} else {
 		// Inject the provided seed data.
-		slog.Info("Injecting user-provided seed data")
+		slog.InfoContext(ctx, "Injecting user-provided seed data")
 
 		// #nosec G304
 		seedFD, err := os.Open(seedTarFilename)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 
 		s, err := seedFD.Stat()
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 
@@ -86,30 +88,30 @@ func main() {
 
 		numBytes, err := seedFD.Read(buf)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 
 		if int64(numBytes) != s.Size() {
-			slog.Error(fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), seedTarFilename))
+			slog.ErrorContext(ctx, fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), seedTarFilename))
 		}
 
 		err = injectSeedIntoImage(imageFilename, buf)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.ErrorContext(ctx, err.Error())
 			os.Exit(1)
 		}
 	}
 
-	slog.Info("Done!")
+	slog.InfoContext(ctx, "Done!")
 }
 
-func mainMenu(asker ask.Asker, imageFilename string) error {
+func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error {
 	isIMG := strings.HasSuffix(imageFilename, ".img")
 
 	// If configuring an ISO, jump right into install configuration options.
 	if !isIMG {
-		err := toggleInstallRunningMode(asker, imageFilename)
+		err := toggleInstallRunningMode(ctx, asker, imageFilename)
 		if err != nil {
 			return err
 		}
@@ -158,7 +160,7 @@ func mainMenu(asker ask.Asker, imageFilename string) error {
 
 		switch menuOptions[selectionInt-1] {
 		case "Toggle default boot mode to install or run":
-			err := toggleInstallRunningMode(asker, imageFilename)
+			err := toggleInstallRunningMode(ctx, asker, imageFilename)
 			if err != nil {
 				return err
 			}
@@ -168,22 +170,23 @@ func mainMenu(asker ask.Asker, imageFilename string) error {
 				return err
 			}
 		case "Configure network seed":
-			err := configureNetworkSeed()
+			err := configureNetworkSeed(ctx)
 			if err != nil {
 				return err
 			}
 		case "Configure Incus seed":
-			err := configureIncusSeed()
+			err := configureIncusSeed(ctx)
 			if err != nil {
 				return err
 			}
 		case "Write image and exit":
 			return writeImage(asker, imageFilename)
+		default:
 		}
 	}
 }
 
-func toggleInstallRunningMode(asker ask.Asker, imageFilename string) error {
+func toggleInstallRunningMode(ctx context.Context, asker ask.Asker, imageFilename string) error {
 	if strings.HasSuffix(imageFilename, ".img") {
 		defaultInstall, err := asker.AskBool("Default to install mode? [Y/n] ", "y")
 		if err != nil {
@@ -192,23 +195,23 @@ func toggleInstallRunningMode(asker ask.Asker, imageFilename string) error {
 
 		if !defaultInstall {
 			// Expand the .img to 50GiB.
-			slog.Info("Truncating image size to 50GiB")
+			slog.InfoContext(ctx, "Truncating image size to 50GiB")
 
 			err := os.Truncate(imageFilename, 50*1024*1024*1024)
 			if err != nil {
 				return err
 			}
 
-			slog.Info("Will default to running IncusOS from boot media")
+			slog.InfoContext(ctx, "Will default to running IncusOS from boot media")
 
 			installSeed = nil
 
 			return nil
 		}
 
-		slog.Info("Will default to installing IncusOS from boot media")
+		slog.InfoContext(ctx, "Will default to installing IncusOS from boot media")
 	} else {
-		slog.Info("Configuring default install options")
+		slog.InfoContext(ctx, "Configuring default install options")
 	}
 
 	targetID, err := asker.AskString("[Optional] Device ID to select install target device: ", "", func(_ string) error { return nil })
@@ -259,7 +262,7 @@ func selectApplications(asker ask.Asker) error {
 	return nil
 }
 
-func configureNetworkSeed() error {
+func configureNetworkSeed(ctx context.Context) error {
 	var err error
 
 	existingContents := []byte("# Provide network seed in yaml format")
@@ -272,9 +275,9 @@ func configureNetworkSeed() error {
 	}
 
 	// Launch an editor to allow user to provide a network seed.
-	newContents, err := textEditor(existingContents)
+	newContents, err := textEditor(ctx, existingContents)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		return nil
 	}
@@ -283,21 +286,21 @@ func configureNetworkSeed() error {
 
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		return nil
 	}
 
 	// Validate the network seed.
 	if seed.NetworkConfigHasEmptyDevices(newSeed.SystemNetworkConfig) {
-		slog.Error("provided network seed has no interfaces, bonds, or vlans defined")
+		slog.ErrorContext(ctx, "provided network seed has no interfaces, bonds, or vlans defined")
 
 		return nil
 	}
 
 	err = systemd.ValidateNetworkConfiguration(&newSeed.SystemNetworkConfig, false)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		return nil
 	}
@@ -308,7 +311,7 @@ func configureNetworkSeed() error {
 	return nil
 }
 
-func configureIncusSeed() error {
+func configureIncusSeed(ctx context.Context) error {
 	var err error
 
 	existingContents := []byte("# Provide Incus seed in yaml format")
@@ -321,9 +324,9 @@ func configureIncusSeed() error {
 	}
 
 	// Launch an editor to allow user to provide an Incus seed.
-	newContents, err := textEditor(existingContents)
+	newContents, err := textEditor(ctx, existingContents)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		return nil
 	}
@@ -332,7 +335,7 @@ func configureIncusSeed() error {
 
 	err = yaml.Unmarshal(newContents, &newSeed)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		return nil
 	}
@@ -464,8 +467,7 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 	return nil
 }
 
-func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
-	ctx := context.Background()
+func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string, error) {
 	gh := ghapi.NewClient(nil)
 
 	var err error
@@ -510,14 +512,14 @@ func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
 	// Check if the latest image already exists locally.
 	_, err = os.Stat(filename)
 	if err == nil {
-		slog.Info("Latest image already exists, skipping download")
+		slog.InfoContext(ctx, "Latest image already exists, skipping download")
 
 		return filename, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", err
 	}
 
-	slog.Info("Downloading and decompressing image '" + filename + "' from GitHub")
+	slog.InfoContext(ctx, "Downloading and decompressing image '"+filename+"' from GitHub")
 
 	// Download and decompress the image.
 	rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, "lxc", "incus-os", assetID, http.DefaultClient)
@@ -561,7 +563,7 @@ func downloadCurrentIncusOSRelease(asker ask.Asker) (string, error) {
 
 // Spawn the editor with a temporary YAML file for editing configs.
 // Stolen from incus/cmd/incus/utils.go.
-func textEditor(inContent []byte) ([]byte, error) {
+func textEditor(ctx context.Context, inContent []byte) ([]byte, error) {
 	var f *os.File
 
 	var err error
@@ -629,7 +631,7 @@ func textEditor(inContent []byte) ([]byte, error) {
 
 	cmdParts := strings.Fields(editor)
 	// #nosec G204
-	cmd := exec.Command(cmdParts[0], append(cmdParts[1:], path)...)
+	cmd := exec.CommandContext(ctx, cmdParts[0], append(cmdParts[1:], path)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -45,6 +45,7 @@ func GetCurrentRelease(_ context.Context) (string, string, error) { //nolint:rev
 			name = strings.Trim(fields[1], "\"")
 		case "IMAGE_VERSION":
 			version = strings.Trim(fields[1], "\"")
+		default:
 		}
 	}
 

@@ -104,7 +104,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 
 		err = p.RefreshRegister(ctx)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
-			slog.Warn("Failed to refresh provider registration", "err", err)
+			slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
 		}
 	}
 
@@ -610,15 +610,16 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 }
 
 // waitForDNS waits up to a provided timeout for the system to be able to resolve DNS records.
-func waitForDNS(_ context.Context, timeout time.Duration) error {
+func waitForDNS(ctx context.Context, timeout time.Duration) error {
 	endTime := time.Now().Add(timeout)
+	resolver := net.Resolver{}
 
 	for {
 		if time.Now().After(endTime) {
 			return errors.New("timed out waiting for DNS to respond")
 		}
 
-		ips, err := net.LookupIP("linuxcontainers.org")
+		ips, err := resolver.LookupIPAddr(ctx, "linuxcontainers.org")
 		if err == nil && len(ips) > 0 {
 			return nil
 		}

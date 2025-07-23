@@ -89,6 +89,8 @@ func parseFileContents(partition string, filename string, target any) error {
 			}
 
 			return nil
+
+		default:
 		}
 	}
 }

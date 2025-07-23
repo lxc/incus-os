@@ -77,7 +77,7 @@ func do(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("Found latest image", "version", releaseName)
+	slog.InfoContext(ctx, "Found latest image", "version", releaseName)
 
 	// Prepare the update.json.
 	metaUpdate := apiupdate.Update{
@@ -95,7 +95,7 @@ func do(ctx context.Context) error {
 	err = os.Mkdir(filepath.Join(targetPath, releaseName), 0o755)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
-			slog.Info("Latest release already imported")
+			slog.InfoContext(ctx, "Latest release already imported")
 
 			return nil
 		}
@@ -141,7 +141,7 @@ func do(ctx context.Context) error {
 		size += n
 	}
 
-	slog.Info("Downloaded the image", "size", size)
+	slog.InfoContext(ctx, "Downloaded the image", "size", size)
 
 	// Parse the image file.
 	zr, err := zip.OpenReader(tempImage.Name())
@@ -203,7 +203,7 @@ func do(ctx context.Context) error {
 			Type:         assetType,
 		})
 
-		slog.Info("Extracted", "name", assetName, "hash", assetHash, "size", assetSize)
+		slog.InfoContext(ctx, "Extracted", "name", assetName, "hash", assetHash, "size", assetSize)
 	}
 
 	// Write the update metadata.

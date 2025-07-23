@@ -46,6 +46,8 @@ func Load(ctx context.Context, s *state.State, name string, config map[string]st
 			config: config,
 			state:  s,
 		}
+
+	default:
 	}
 
 	err := p.load(ctx)
