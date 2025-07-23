@@ -78,7 +78,9 @@ func do(_ context.Context) error {
 	}
 
 	// Start REST server.
-	listener, err := net.Listen("tcp", ":8080") //nolint:gosec
+	lc := &net.ListenConfig{}
+
+	listener, err := lc.Listen(ctx, "tcp", ":8080")
 	if err != nil {
 		return err
 	}

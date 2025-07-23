@@ -35,11 +35,12 @@ func NewServer(_ context.Context, s *state.State, socketPath string) (*Server, e
 }
 
 // Serve starts the REST API server.
-func (s *Server) Serve(_ context.Context) error {
+func (s *Server) Serve(ctx context.Context) error {
 	// Setup listener.
 	_ = os.Remove(s.socketPath)
+	lc := &net.ListenConfig{}
 
-	listener, err := net.Listen("unix", s.socketPath)
+	listener, err := lc.Listen(ctx, "unix", s.socketPath)
 	if err != nil {
 		return err
 	}
