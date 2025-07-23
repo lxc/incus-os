@@ -129,7 +129,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 // DoInstall performs the necessary steps for installing incus-osd to a local disk.
 func (i *Install) DoInstall(ctx context.Context, osName string) error {
 	modal := i.tui.AddModal(osName + " Install")
-	slog.Info("Starting install of " + osName + " to local disk")
+	slog.InfoContext(ctx, "Starting install of "+osName+" to local disk")
 	modal.Update("Starting install of " + osName + " to local disk.")
 
 	sourceDevice, sourceIsReadonly, err := getSourceDevice(ctx)
@@ -153,7 +153,7 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 		return err
 	}
 
-	slog.Info("Installing "+osName, "source", sourceDevice, "target", targetDevice)
+	slog.InfoContext(ctx, "Installing "+osName, "source", sourceDevice, "target", targetDevice)
 	modal.Update(fmt.Sprintf("Installing "+osName+" from %s to %s.", sourceDevice, targetDevice))
 
 	err = i.performInstall(ctx, modal, sourceDevice, targetDevice, sourceIsReadonly)
@@ -163,8 +163,8 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 		return err
 	}
 
-	slog.Info(osName + " was successfully installed")
-	slog.Info("Please remove the install media to complete the installation")
+	slog.InfoContext(ctx, osName+" was successfully installed")
+	slog.InfoContext(ctx, "Please remove the install media to complete the installation")
 	modal.Update(osName + " was successfully installed.\nPlease remove the install media to complete the installation.")
 
 	return i.rebootUponDeviceRemoval(ctx, sourceDevice)

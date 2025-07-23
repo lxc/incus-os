@@ -58,7 +58,7 @@ func main() {
 	}
 }
 
-func do(_ context.Context) error {
+func do(ctx context.Context) error {
 	// Arguments.
 	if len(os.Args) != 2 {
 		return errors.New("missing image path")

@@ -105,7 +105,7 @@ func main() {
 	// Run the daemon.
 	err = run(ctx, s, tuiApp)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		// Sleep for a second to allow output buffers to flush.
 		time.Sleep(1 * time.Second)
@@ -120,7 +120,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	if err != nil {
 		modal := t.AddModal(s.OS.Name)
 		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
-		slog.Error(err.Error())
+		slog.ErrorContext(ctx, err.Error())
 
 		// If we fail the system requirement check, we'll enter a startup loop with the systemd service
 		// constantly trying to restart the daemon. Rather than doing that, just sleep here for an hour
@@ -153,7 +153,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Done with all initialization.
-	slog.Info("System is ready", "release", s.OS.RunningRelease)
+	slog.InfoContext(ctx, "System is ready", "release", s.OS.RunningRelease)
 
 	return server.Serve(ctx)
 }
@@ -164,7 +164,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	modal := t.AddModal("System shutdown")
 
-	slog.Info("System is shutting down", "release", s.OS.RunningRelease)
+	slog.InfoContext(ctx, "System is shutting down", "release", s.OS.RunningRelease)
 	modal.Update("System is shutting down")
 
 	// Run application shutdown actions.
@@ -176,7 +176,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		// Stop the application.
-		slog.Info("Stopping application", "name", appName, "version", appInfo.Version)
+		slog.InfoContext(ctx, "Stopping application", "name", appName, "version", appInfo.Version)
 
 		err = app.Stop(ctx, appInfo.Version)
 		if err != nil {
@@ -195,7 +195,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 			continue
 		}
 
-		slog.Info("Stopping service", "name", srvName)
+		slog.InfoContext(ctx, "Stopping service", "name", srvName)
 
 		err = srv.Stop(ctx)
 		if err != nil {
@@ -211,7 +211,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	defer func() { _ = s.Save(ctx) }()
 
 	// Check kernel keyring.
-	slog.Debug("Getting trusted system keys")
+	slog.DebugContext(ctx, "Getting trusted system keys")
 
 	keys, err := keyring.GetKeys(ctx, keyring.PlatformKeyring)
 	if err != nil {
@@ -234,12 +234,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			mode = "dev"
 		}
 
-		slog.Debug("Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
+		slog.DebugContext(ctx, "Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
 	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
 	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
-		slog.Info("Auto-generating encryption recovery key, this may take a few seconds")
+		slog.InfoContext(ctx, "Auto-generating encryption recovery key, this may take a few seconds")
 
 		err := systemd.GenerateRecoveryKey(ctx, s)
 		if err != nil {
@@ -255,7 +255,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	if needsSwapKey {
-		slog.Info("Setting encryption recovery key for swap partition, this may take a few seconds")
+		slog.InfoContext(ctx, "Setting encryption recovery key for swap partition, this may take a few seconds")
 
 		err := systemd.SwapSetRecoveryKey(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0])
 		if err != nil {
@@ -263,11 +263,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	slog.Info("System is starting up", "mode", mode, "release", s.OS.RunningRelease)
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "release", s.OS.RunningRelease)
 
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
-		slog.Warn("Booted from backup " + s.OS.Name + " image version " + s.OS.RunningRelease)
+		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
 	}
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
@@ -279,7 +279,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Perform network configuration.
-	slog.Info("Bringing up the network")
+	slog.InfoContext(ctx, "Bringing up the network")
 
 	err = systemd.ApplyNetworkConfiguration(ctx, s, 30*time.Second)
 	if err != nil {
@@ -327,7 +327,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	updateChecker(ctx, s, t, p, true, false)
 
 	// Ensure  the "local" ZFS pool is available.
-	slog.Info("Bringing up the local storage")
+	slog.InfoContext(ctx, "Bringing up the local storage")
 
 	err = zfs.ImportOrCreateLocalPool(ctx)
 	if err != nil {
@@ -345,7 +345,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			continue
 		}
 
-		slog.Info("Starting service", "name", srvName)
+		slog.InfoContext(ctx, "Starting service", "name", srvName)
 
 		err = srv.Start(ctx)
 		if err != nil {
@@ -374,7 +374,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		if err == nil {
-			slog.Info("Server registered with the provider")
+			slog.InfoContext(ctx, "Server registered with the provider")
 
 			s.System.Provider.State.Registered = true
 			_ = s.Save(ctx)
@@ -407,7 +407,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 		err := shutdown(ctx, s, t)
 		if err != nil {
-			slog.Error("Failed shutdown sequence", "err", err)
+			slog.ErrorContext(ctx, "Failed shutdown sequence", "err", err)
 		}
 
 		switch action {
@@ -434,7 +434,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	}
 
 	// Start the application.
-	slog.Info("Starting application", "name", appName, "version", appInfo.Version)
+	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.Version)
 
 	err = app.Start(ctx, appInfo.Version)
 	if err != nil {
@@ -443,7 +443,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 
 	// Run initialization if needed.
 	if !appInfo.Initialized {
-		slog.Info("Initializing application", "name", appName, "version", appInfo.Version)
+		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.Version)
 
 		err = app.Initialize(ctx)
 		if err != nil {
@@ -461,7 +461,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	var modal *tui.Modal
 
 	showModalError := func(msg string, err error) {
-		slog.Error(msg, "err", err.Error(), "provider", p.Type())
+		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 
 		if modal == nil {
 			modal = t.AddModal(s.OS.Name + " Update")
@@ -480,7 +480,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if isUserRequested {
 			err := p.ClearCache(ctx)
 			if err != nil {
-				slog.Error("Failed to clear provider cache", "err", err.Error())
+				slog.ErrorContext(ctx, "Failed to clear provider cache", "err", err.Error())
 
 				break
 			}
@@ -505,7 +505,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Assume first start of the daemon.
 			apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
 			if err != nil && !seed.IsMissing(err) {
-				slog.Error("Failed to get application list", "err", err.Error())
+				slog.ErrorContext(ctx, "Failed to get application list", "err", err.Error())
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -571,7 +571,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		// Apply the system extensions.
 		if len(appsUpdated) > 0 {
-			slog.Debug("Refreshing system extensions")
+			slog.DebugContext(ctx, "Refreshing system extensions")
 
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
@@ -598,7 +598,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Start/reload the application.
 			if !isStartupCheck {
 				if app.IsRunning(ctx) {
-					slog.Info("Reloading application", "name", appName, "version", appVersion)
+					slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
 
 					err := app.Update(ctx, appVersion)
 					if err != nil {
@@ -625,10 +625,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 }
 
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
-	slog.Debug("Checking for OS updates")
+	slog.DebugContext(ctx, "Checking for OS updates")
 
 	if s.RebootRequired {
-		slog.Debug("A reboot of the system is required to finalize a pending update")
+		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 
 		return "", nil
 	}
@@ -636,7 +636,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	update, err := p.GetOSUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Debug("OS update provider doesn't currently have any update")
+			slog.DebugContext(ctx, "OS update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -646,7 +646,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 	// If we're running from the backup image don't attempt to re-update to a broken version.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
-		slog.Warn("Latest " + s.OS.Name + " image version " + s.OS.NextRelease + " has been identified as problematic, skipping update")
+		slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
 
 		return "", nil
 	}
@@ -661,7 +661,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		// Download the update into place.
 		modal := t.AddModal(s.OS.Name + " Update")
 
-		slog.Info("Downloading OS update", "release", update.Version())
+		slog.InfoContext(ctx, "Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 
 		err := update.Download(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
@@ -679,7 +679,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		_ = s.Save(ctx)
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
-		slog.Info("Applying OS update", "release", update.Version())
+		slog.InfoContext(ctx, "Applying OS update", "release", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
 		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), isStartupCheck)
@@ -694,19 +694,19 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 		return update.Version(), nil
 	} else if isStartupCheck {
-		slog.Debug("System is already running latest OS release", "release", s.OS.RunningRelease)
+		slog.DebugContext(ctx, "System is already running latest OS release", "release", s.OS.RunningRelease)
 	}
 
 	return "", nil
 }
 
 func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
-	slog.Debug("Checking for application updates")
+	slog.DebugContext(ctx, "Checking for application updates")
 
 	app, err := p.GetApplication(ctx, appName)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Debug("Application update provider doesn't currently have any update")
+			slog.DebugContext(ctx, "Application update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -722,7 +722,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		// Download the application.
 		modal := t.AddModal(s.OS.Name + " Update")
-		slog.Info("Downloading application", "application", app.Name(), "release", app.Version())
+		slog.InfoContext(ctx, "Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
 
 		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
@@ -741,17 +741,17 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		return app.Version(), nil
 	} else if isStartupCheck {
-		slog.Debug("System is already running latest application release", "application", app.Name(), "release", app.Version())
+		slog.DebugContext(ctx, "System is already running latest application release", "application", app.Name(), "release", app.Version())
 	}
 
 	return "", nil
 }
 
 func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
-	slog.Debug("Checking for Secure Boot key updates")
+	slog.DebugContext(ctx, "Checking for Secure Boot key updates")
 
 	if s.RebootRequired {
-		slog.Debug("A reboot of the system is required to finalize a pending update")
+		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 
 		return nil
 	}
@@ -759,7 +759,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 	update, err := p.GetSecureBootCertUpdate(ctx, s.OS.Name)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.Debug("Secure Boot key update provider doesn't currently have any update")
+			slog.DebugContext(ctx, "Secure Boot key update provider doesn't currently have any update")
 
 			return nil
 		}
@@ -817,7 +817,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 		}
 	}
 
-	slog.Debug("System Secure Boot keys are up to date")
+	slog.DebugContext(ctx, "System Secure Boot keys are up to date")
 
 	// Update state and remove the cached download.
 	s.SecureBoot.Version = update.Version()
@@ -865,19 +865,19 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 			modal := t.AddModal(s.OS.Name + " EFI Variable Update")
 
 			// Apply the key update.
-			slog.Info("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
+			slog.InfoContext(ctx, "Appending certificate SHA256:"+updateFingerprint+" to EFI variable "+certType)
 			modal.Update("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
 
 			err = secureboot.AppendEFIVarUpdate(ctx, filepath.Join(updatesDir, certFile.Name()), certType)
 			if err != nil {
 				if certType != "KEK" {
-					slog.Error(err.Error())
+					slog.ErrorContext(ctx, err.Error())
 					modal.Update("[red]ERROR:[white] " + err.Error())
 
 					return err
 				}
 
-				slog.Warn("Failed to automatically apply KEK update, likely because a custom PK is configured")
+				slog.WarnContext(ctx, "Failed to automatically apply KEK update, likely because a custom PK is configured")
 
 				continue
 			}
@@ -885,7 +885,7 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 			s.RebootRequired = true
 
 			if isStartupCheck {
-				slog.Info("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+				slog.InfoContext(ctx, "Successfully updated EFI variable. Automatically rebooting system in five seconds.")
 				modal.Update("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
 
 				time.Sleep(5 * time.Second)
@@ -894,7 +894,7 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
-				slog.Info("Successfully updated EFI variable. A reboot is required to finalize the update.")
+				slog.InfoContext(ctx, "Successfully updated EFI variable. A reboot is required to finalize the update.")
 				modal.Update("Successfully updated EFI variable. A reboot is required to finalize the update.")
 			}
 

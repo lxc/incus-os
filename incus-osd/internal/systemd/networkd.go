@@ -104,7 +104,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 
 		err = p.RefreshRegister(ctx)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
-			slog.Warn("Failed to refresh provider registration", "err", err)
+			slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
 		}
 	}
 

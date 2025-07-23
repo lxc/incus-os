@@ -72,7 +72,7 @@ func (n *USBIP) Start(ctx context.Context) error {
 		// Attempt to connect.
 		_, err := subprocess.RunCommandContext(ctx, "usbip", "attach", "-r", target.Address, "-b", target.BusID)
 		if err != nil {
-			slog.Warn("Unable to attach USBIP device", "address", target.Address, "busid", target.BusID, "err", err)
+			slog.WarnContext(ctx, "Unable to attach USBIP device", "address", target.Address, "busid", target.BusID, "err", err)
 		}
 	}
 
