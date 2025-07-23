@@ -630,7 +630,7 @@ func textEditor(inContent []byte) ([]byte, error) {
 
 	cmdParts := strings.Fields(editor)
 	// #nosec G204
-	cmd := exec.Command(cmdParts[0], append(cmdParts[1:], path)...)
+	cmd := exec.CommandContext(context.Background(), cmdParts[0], append(cmdParts[1:], path)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
