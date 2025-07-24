@@ -660,6 +660,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
 		// Download the update into place.
 		modal := t.AddModal(s.OS.Name + " Update")
+		defer modal.Done()
 
 		slog.InfoContext(ctx, "Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
@@ -689,8 +690,6 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 			return "", err
 		}
-
-		modal.Done()
 
 		return update.Version(), nil
 	} else if isStartupCheck {
@@ -722,6 +721,8 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		// Download the application.
 		modal := t.AddModal(s.OS.Name + " Update")
+		defer modal.Done()
+
 		slog.InfoContext(ctx, "Downloading application", "application", app.Name(), "release", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
 
@@ -729,8 +730,6 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		if err != nil {
 			return "", err
 		}
-
-		modal.Done()
 
 		// Record newly installed application and save state to disk.
 		newAppInfo := s.Applications[app.Name()]
