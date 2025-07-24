@@ -5,25 +5,23 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
 
-	ghapi "github.com/google/go-github/v72/github"
 	"github.com/lxc/incus/v6/shared/ask"
 	"github.com/lxc/incus/v6/shared/revert"
 	"gopkg.in/yaml.v3"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -48,7 +46,7 @@ func main() {
 	// Determine what image we should modify.
 	imageFilename := os.Getenv("INCUSOS_IMAGE")
 	if imageFilename == "" {
-		slog.InfoContext(ctx, "Fetching latest release from GitHub")
+		slog.InfoContext(ctx, "Fetching latest release from the Linux Containers CDN")
 
 		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker)
 		if err != nil {
@@ -468,9 +466,10 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 }
 
 func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string, error) {
-	gh := ghapi.NewClient(nil)
-
-	var err error
+	provider, err := providers.Load(ctx, nil, "images", nil)
+	if err != nil {
+		return "", err
+	}
 
 	imageFormat := os.Getenv("INCUSOS_IMAGE_FORMAT")
 
@@ -482,83 +481,15 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string
 	}
 
 	// Get the latest release.
-	release, _, err := gh.Repositories.GetLatestRelease(ctx, "lxc", "incus-os")
+	release, err := provider.GetOSUpdate(ctx, "IncusOS")
 	if err != nil {
 		return "", err
 	}
 
-	// Get assets from the latest release.
-	assets, _, err := gh.Repositories.ListReleaseAssets(ctx, "lxc", "incus-os", release.GetID(), nil)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the asset ID for the image.
-	var filename string
-
-	var assetID int64
-
-	for _, a := range assets {
-		if strings.HasSuffix(*a.BrowserDownloadURL, "."+imageFormat+".gz") {
-			filename = strings.TrimSuffix(*a.Name, ".gz")
-			assetID = *a.ID
-		}
-	}
-
-	if assetID == 0 {
-		return "", fmt.Errorf("failed to get IncusOS %s asset ID for release '%s'", imageFormat, release.GetName())
-	}
-
-	// Check if the latest image already exists locally.
-	_, err = os.Stat(filename)
-	if err == nil {
-		slog.InfoContext(ctx, "Latest image already exists, skipping download")
-
-		return filename, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", err
-	}
-
-	slog.InfoContext(ctx, "Downloading and decompressing image '"+filename+"' from GitHub")
+	slog.InfoContext(ctx, "Downloading and decompressing IncusOS image ("+imageFormat+") version "+release.Version()+" from Linux Containers CDN")
 
 	// Download and decompress the image.
-	rc, _, err := gh.Repositories.DownloadReleaseAsset(ctx, "lxc", "incus-os", assetID, http.DefaultClient)
-	if err != nil {
-		return "", err
-	}
-
-	defer rc.Close()
-
-	// Setup a gzip reader to decompress during streaming.
-	body, err := gzip.NewReader(rc)
-	if err != nil {
-		return "", err
-	}
-
-	defer body.Close()
-
-	// Create the target path.
-	// #nosec G304
-	fd, err := os.Create(filename)
-	if err != nil {
-		return "", err
-	}
-
-	defer fd.Close()
-
-	// Read from the decompressor in chunks to avoid excessive memory consumption.
-	for {
-		_, err = io.CopyN(fd, body, 4*1024*1024)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return "", err
-		}
-	}
-
-	return filename, nil
+	return release.DownloadImage(ctx, imageFormat, "IncusOS", ".", nil)
 }
 
 // Spawn the editor with a temporary YAML file for editing configs.
