@@ -32,6 +32,7 @@ type Install struct {
 type blockdevices struct {
 	KName string `json:"kname"`
 	ID    string `json:"id-link"` //nolint:tagliatelle
+	Size  int    `json:"size"`
 }
 
 type lsblkOutput struct {
@@ -83,7 +84,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
 
-		_, err = getTargetDevice(targets, config.Target)
+		targetDevice, targetDeviceSize, err := getTargetDevice(targets, config.Target)
 		if err != nil {
 			devices := []string{}
 			for _, t := range targets {
@@ -91,6 +92,11 @@ func CheckSystemRequirements(ctx context.Context) error {
 			}
 
 			return errors.New(err.Error() + " (detected devices: " + strings.Join(devices, ", ") + ")")
+		}
+
+		// Verify the target device is at least 50GiB.
+		if targetDeviceSize < 50*1024*1024*1024 {
+			return fmt.Errorf("target device '%s' is too small (%0.2fGiB), must be at least 50GiB", targetDevice, float64(targetDeviceSize)/(1024.0*1024.0*1024.0))
 		}
 	}
 
@@ -146,7 +152,7 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 		return err
 	}
 
-	targetDevice, err := getTargetDevice(targets, i.config.Target)
+	targetDevice, _, err := getTargetDevice(targets, i.config.Target)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
@@ -286,7 +292,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 	// Get NVME drives first.
 	nvmeTargets := lsblkOutput{}
 
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -301,7 +307,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 	// Get SCSI drives second.
 	scsiTargets := lsblkOutput{}
 
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -316,7 +322,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 	// Get virtual drives last.
 	virtualTargets := lsblkOutput{}
 
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnp", "-e", "1,2", "-o", "KNAME,ID_LINK")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
 		return []blockdevices{}, err
 	}
@@ -346,28 +352,28 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 	return filtered, nil
 }
 
-// getTargetDevice determines the underlying device to install incus-osd on.
-func getTargetDevice(potentialTargets []blockdevices, seedTarget *apiseed.InstallTarget) (string, error) {
+// getTargetDevice determines the underlying device and its size in bytes to install incus-osd on.
+func getTargetDevice(potentialTargets []blockdevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
 	// Ensure we found at least one potential install device. If no Target configuration was found,
 	// only proceed if exactly one device was found.
 	if len(potentialTargets) == 0 {
-		return "", errors.New("no potential install devices found")
+		return "", -1, errors.New("no potential install devices found")
 	} else if seedTarget == nil && len(potentialTargets) != 1 {
-		return "", errors.New("no target configuration provided, and didn't find exactly one install device")
+		return "", -1, errors.New("no target configuration provided, and didn't find exactly one install device")
 	}
 
 	// Loop through all disks, selecting the first one that matches the Target configuration.
 	for _, device := range potentialTargets {
 		if seedTarget == nil || strings.Contains(device.ID, seedTarget.ID) {
-			return device.KName, nil
+			return device.KName, device.Size, nil
 		}
 	}
 
 	if seedTarget == nil {
-		return "", errors.New("unable to determine target device")
+		return "", -1, errors.New("unable to determine target device")
 	}
 
-	return "", errors.New("no target device matched '" + seedTarget.ID + "'")
+	return "", -1, errors.New("no target device matched '" + seedTarget.ID + "'")
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
