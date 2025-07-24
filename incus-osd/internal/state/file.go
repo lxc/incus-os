@@ -7,11 +7,15 @@ import (
 	"strings"
 )
 
+var currentStateVersion = 1
+
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
 func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 	s := State{
 		path: path,
+
+		StateVersion: currentStateVersion,
 
 		Applications: map[string]Application{},
 	}
