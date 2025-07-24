@@ -338,6 +338,11 @@ func (o *localOSUpdate) DownloadUpdate(ctx context.Context, osName string, targe
 	return nil
 }
 
+func (*localOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ string, _ func(float64)) (string, error) {
+	// No reason to support fetching a full install image from the local (development) provider.
+	return "", errors.New("downloading full image not supported by local provider")
+}
+
 // Secure Boot key updates from the Local provider.
 type localSecureBootCertUpdate struct {
 	provider *local
