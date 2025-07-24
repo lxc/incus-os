@@ -19,6 +19,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
+var ttyDevs = []string{"/dev/console", "/dev/tty1", "/dev/ttyS0"}
+
 // TUI represents a terminal user interface.
 type TUI struct {
 	app      *tview.Application
@@ -41,7 +43,7 @@ func NewTUI(s *state.State) (*TUI, error) {
 	}
 
 	// Attempt to open the system's consoles.
-	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/ttyS0")
+	ttys, err := newTtyMultiplexer(ttyDevs...)
 	if err != nil {
 		return ret, err
 	}
@@ -139,8 +141,10 @@ func (t *TUI) Run() error {
 			// also written to the console. Once a minute forcefully clear the
 			// entire console prior to drawing the TUI.
 			if i%12 == 1 {
-				// Send "ESC c" sequence to console.
-				_ = os.WriteFile("/dev/console", []byte{0x1B, 0x63}, 0o600)
+				// Send "ESC c" sequence to each console device.
+				for _, dev := range ttyDevs {
+					_ = os.WriteFile(dev, []byte{0x1B, 0x63}, 0o600)
+				}
 			}
 
 			t.redrawScreen()
