@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -555,15 +556,15 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(target)
+	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(target, 0o700)
+	err = os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -588,7 +589,7 @@ func (o *operationsCenterOSUpdate) Download(ctx context.Context, osName string, 
 		}
 
 		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
