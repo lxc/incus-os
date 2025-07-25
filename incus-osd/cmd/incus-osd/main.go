@@ -665,7 +665,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		slog.InfoContext(ctx, "Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 
-		err := update.Download(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
+		err := update.DownloadUpdate(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}

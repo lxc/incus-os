@@ -19,7 +19,8 @@ type OSUpdate interface {
 	Version() string
 	IsNewerThan(otherVersion string) bool
 
-	Download(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error
+	DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error
+	DownloadImage(ctx context.Context, imageType string, osName string, targetPath string, progressFunc func(float64)) (string, error)
 }
 
 // SecureBootCertUpdate represents a Secure Boot UEFI certificate update (typically a db or dbx addition).

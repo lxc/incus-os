@@ -298,15 +298,15 @@ func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
+func (o *localOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
 	// Clear the path.
-	err := os.RemoveAll(target)
+	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(target, 0o700)
+	err = os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -329,13 +329,18 @@ func (o *localOSUpdate) Download(ctx context.Context, osName string, target stri
 		}
 
 		// Download the actual update.
-		err = o.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
+		err = o.provider.copyAsset(ctx, filepath.Base(asset), targetPath, progressFunc)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (*localOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ string, _ func(float64)) (string, error) {
+	// No reason to support fetching a full install image from the local (development) provider.
+	return "", errors.New("downloading full image not supported by local provider")
 }
 
 // Secure Boot key updates from the Local provider.

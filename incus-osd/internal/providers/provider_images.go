@@ -406,15 +406,15 @@ func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *imagesOSUpdate) Download(ctx context.Context, osName string, target string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(target)
+	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(target, 0o700)
+	err = os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -439,13 +439,48 @@ func (o *imagesOSUpdate) Download(ctx context.Context, osName string, target str
 		}
 
 		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, osName string, targetPath string, progressFunc func(float64)) (string, error) {
+	// Create the target path.
+	err := os.MkdirAll(targetPath, 0o700)
+	if err != nil {
+		return "", err
+	}
+
+	for _, asset := range o.assets {
+		fileName := filepath.Base(asset)
+
+		// Only select OS files.
+		if !strings.HasPrefix(fileName, osName+"_") {
+			continue
+		}
+
+		// Parse the file names.
+		fields := strings.SplitN(fileName, ".", 2)
+		if len(fields) != 2 {
+			continue
+		}
+
+		// Continue if not the full image we're looking for.
+		if fields[1] != imageType+".gz" {
+			continue
+		}
+
+		// Download the image.
+		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+
+		return strings.TrimSuffix(fileName, ".gz"), err
+	}
+
+	return "", fmt.Errorf("failed to download image type '%s' for %s release %s", imageType, osName, o.version)
 }
 
 // Secure Boot key updates from the GitHub provider.
