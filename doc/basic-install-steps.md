@@ -90,15 +90,47 @@ You can do so with the following command. Make sure to store the key someplace
 safe!
 
 ```
-$ incus query IncusOS:/os/1.0/system/encryption
+$ incus query IncusOS:/os/1.0/system/security
 {
         "config": {
-                "recovery_keys": [
-                        "rteeevbi-iivlfbuc-cuhlldlh-kgbtllru-bhtrulvf-vivlbcgi-dcfuitut-hctjfrvc"
+                "encryption_recovery_keys": [
+                        "fkrjjenn-tbtjbjgh-jtvvchjr-ctienevu-crknfkvi-vjlvblhl-kbneribu-htjtldch"
                 ]
         },
         "state": {
-                "recovery_keys_retrieved": true
+                "encrypted_volumes": [
+                        {
+                                "state": "unlocked (TPM)",
+                                "volume": "root"
+                        },
+                        {
+                                "state": "unlocked (TPM)",
+                                "volume": "swap"
+                        }
+                ],
+                "encryption_recovery_keys_retrieved": true,
+                "secure_boot_certificates": [
+                        {
+                                "fingerprint": "26dce4dbb3de2d72bd16ae91a85cfeda84535317d3ee77e0d4b2d65e714cf111",
+                                "issuer": "CN=Incus OS - Secure Boot E1,O=Linux Containers",
+                                "subject": "CN=Incus OS - Secure Boot PK R1,O=Linux Containers",
+                                "type": "PK"
+                        },
+                        {
+                                "fingerprint": "9a42866f496834bde7e1b26a862b1e1b6dea7b78b91a948aecfc4e6ef79ea6c1",
+                                "issuer": "CN=Incus OS - Secure Boot E1,O=Linux Containers",
+                                "subject": "CN=Incus OS - Secure Boot KEK R1,O=Linux Containers",
+                                "type": "KEK"
+                        },
+                        {
+                                "fingerprint": "21b6f423cf80fe6c436dfea0683460312f276debe2a14285bfdc22da2d00fc20",
+                                "issuer": "CN=Incus OS - Secure Boot E1,O=Linux Containers",
+                                "subject": "CN=Incus OS - Secure Boot 2025 R1,O=Linux Containers",
+                                "type": "db"
+                        }
+                ],
+                "secure_boot_enabled": true,
+                "tpm_status": "ok"
         }
 }
 ```

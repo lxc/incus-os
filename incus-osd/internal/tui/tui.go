@@ -19,6 +19,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
+var ttyDevs = []string{"/dev/console", "/dev/tty1", "/dev/ttyS0"}
+
 // TUI represents a terminal user interface.
 type TUI struct {
 	app      *tview.Application
@@ -41,7 +43,7 @@ func NewTUI(s *state.State) (*TUI, error) {
 	}
 
 	// Attempt to open the system's consoles.
-	ttys, err := newTtyMultiplexer("/dev/console", "/dev/tty1", "/dev/ttyS0")
+	ttys, err := newTtyMultiplexer(ttyDevs...)
 	if err != nil {
 		return ret, err
 	}
@@ -102,6 +104,8 @@ func (t *TUI) Run() error {
 		for i := 0; ; i++ {
 			t.modalMutex.Lock()
 
+			numPriorModals := len(t.modalMessages)
+
 			// Remove any deleted modals.
 			t.modalMessages = slices.DeleteFunc(t.modalMessages, func(m *Modal) bool {
 				return m.isDone
@@ -114,8 +118,11 @@ func (t *TUI) Run() error {
 				modalIndex := i % numModals
 				t.renderModal(fmt.Sprintf("[%d/%d] %s", modalIndex+1, numModals, t.modalMessages[modalIndex].title), t.modalMessages[modalIndex].message, t.modalMessages[modalIndex].progress)
 			case numModals == 1:
-				// No point in re-drawing anything when there's just one modal. Any updates to it
-				// will have already been drawn in `quickDraw()`.
+				// No point in re-drawing anything when there's only one modal and no modals were removed.
+				// Any updates to the modal will have already been drawn in `quickDraw()`.
+				if numPriorModals > 1 {
+					t.renderModal(t.modalMessages[0].title, t.modalMessages[0].message, t.modalMessages[0].progress)
+				}
 			default:
 				// No modal to display.
 				t.pages.RemovePage("modal")
@@ -134,8 +141,10 @@ func (t *TUI) Run() error {
 			// also written to the console. Once a minute forcefully clear the
 			// entire console prior to drawing the TUI.
 			if i%12 == 1 {
-				// Send "ESC c" sequence to console.
-				_ = os.WriteFile("/dev/console", []byte{0x1B, 0x63}, 0o600)
+				// Send "ESC c" sequence to each console device.
+				for _, dev := range ttyDevs {
+					_ = os.WriteFile(dev, []byte{0x1B, 0x63}, 0o600)
+				}
 			}
 
 			t.redrawScreen()
