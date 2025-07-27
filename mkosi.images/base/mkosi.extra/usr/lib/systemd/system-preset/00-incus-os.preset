@@ -10,6 +10,10 @@ disable lvmlocks.service
 disable sanlock.service
 disable wdmd.service
 
+# Multipath
+disable multipathd.service
+disable multipathd.socket
+
 # OVN
 disable openvswitch-switch.service
 disable ovs-record-hostname.service
