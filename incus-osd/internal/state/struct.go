@@ -49,11 +49,12 @@ type State struct {
 	OS OS `json:"os"`
 
 	Services struct {
-		ISCSI api.ServiceISCSI `json:"iscsi"`
-		LVM   api.ServiceLVM   `json:"lvm"`
-		NVME  api.ServiceNVME  `json:"nvme"`
-		OVN   api.ServiceOVN   `json:"ovn"`
-		USBIP api.ServiceUSBIP `json:"usbip"`
+		ISCSI     api.ServiceISCSI     `json:"iscsi"`
+		LVM       api.ServiceLVM       `json:"lvm"`
+		Multipath api.ServiceMultipath `json:"multipath"`
+		NVME      api.ServiceNVME      `json:"nvme"`
+		OVN       api.ServiceOVN       `json:"ovn"`
+		USBIP     api.ServiceUSBIP     `json:"usbip"`
 	} `json:"services"`
 
 	System struct {

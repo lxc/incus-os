@@ -10,6 +10,10 @@ disable lvmlocks.service
 disable sanlock.service
 disable wdmd.service
 
+# Multipath
+disable multipathd.service
+disable multipathd.socket
+
 # OVN
 disable openvswitch-switch.service
 disable ovs-record-hostname.service
@@ -19,6 +23,7 @@ disable dpkg-db-backup.timer
 disable systemd-journald-audit.socket
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
+disable systemd-timesyncd.service
 disable uuidd.socket
 
 # TPM (state is pre-calculated)
