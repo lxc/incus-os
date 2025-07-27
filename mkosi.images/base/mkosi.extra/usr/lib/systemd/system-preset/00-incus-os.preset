@@ -19,6 +19,7 @@ disable dpkg-db-backup.timer
 disable systemd-journald-audit.socket
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.timer
+disable systemd-timesyncd.service
 disable uuidd.socket
 
 # TPM (state is pre-calculated)
