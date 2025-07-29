@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // BlockDevices stores specific fields for each device reported by `lsblk`.
@@ -18,11 +21,16 @@ type BlockDevices struct {
 	KName string `json:"kname"`
 	ID    string `json:"id-link"` //nolint:tagliatelle
 	Size  int    `json:"size"`
+	RM    bool   `json:"rm"`
 }
 
 // LsblkOutput stores the output of running `lsblk -J ...`.
 type LsblkOutput struct {
 	BlockDevices []BlockDevices `json:"blockdevices"`
+}
+
+type zpoolStatusRaw struct {
+	Pools map[string]json.RawMessage `json:"pools"`
 }
 
 type zpoolStatusPartialParse struct {
@@ -43,6 +51,20 @@ type zpoolStatusPartialParse struct {
 			Name string `json:"name"`
 		} `json:"l2cache"`
 	} `json:"pools"`
+}
+
+type smartOutput struct {
+	Device struct {
+		Type string `json:"type"`
+	} `json:"device"`
+	ModelFamily  string                     `json:"model_family"`
+	ModelName    string                     `json:"model_name"`
+	SCSIVendor   string                     `json:"scsi_vendor"`
+	SCSIProduct  string                     `json:"scsi_product"`
+	SerialNumber string                     `json:"serial_number"`
+	WWN          *api.SystemStorageDriveWWN `json:"wwn"`
+	SMARTSupport json.RawMessage            `json:"smart_support"`
+	SMARTStatus  json.RawMessage            `json:"smart_status"`
 }
 
 // GetUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
@@ -177,6 +199,154 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (map[string]
 
 	for vdevName := range zpoolJSON.Pools[zpoolName].L2Cache {
 		ret["cache"] = append(ret["cache"], "/dev/disk/by-id/"+vdevName)
+	}
+
+	return ret, nil
+}
+
+// GetStorageInfo returns current SMART data for each drive and the status of each local zpool.
+func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
+	ret := api.SystemStorage{}
+
+	// Get the status of the zpool(s).
+	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-j")
+	if err != nil {
+		return ret, err
+	}
+
+	zpools := zpoolStatusRaw{}
+
+	err = json.Unmarshal([]byte(zpoolOutput), &zpools)
+	if err != nil {
+		return ret, err
+	}
+
+	ret.State.Zpools = zpools.Pools
+
+	// Populate the Config.Pools struct.
+	for zpoolName := range zpools.Pools {
+		members, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+		if err != nil {
+			return ret, err
+		}
+
+		devices := []string{}
+
+		for _, dev := range members["devices"] {
+			actualDev, err := IDSymlinkToDevice(dev)
+			if err != nil {
+				return ret, err
+			}
+
+			devices = append(devices, actualDev)
+		}
+
+		logs := []string{}
+
+		for _, dev := range members["log"] {
+			actualDev, err := IDSymlinkToDevice(dev)
+			if err != nil {
+				return ret, err
+			}
+
+			logs = append(logs, actualDev)
+		}
+
+		caches := []string{}
+
+		for _, dev := range members["cache"] {
+			actualDev, err := IDSymlinkToDevice(dev)
+			if err != nil {
+				return ret, err
+			}
+
+			caches = append(caches, actualDev)
+		}
+
+		ret.Config.Pools = append(ret.Config.Pools, api.SystemStoragePool{
+			Name:    zpoolName,
+			Type:    "TODO",
+			Devices: devices,
+			Log:     logs,
+			Cache:   caches,
+		})
+	}
+
+	// Get a list of all local drives.
+	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2", "-o", "KNAME,SIZE,RM")
+	if err != nil {
+		return ret, err
+	}
+
+	drives := LsblkOutput{}
+
+	err = json.Unmarshal([]byte(output), &drives)
+	if err != nil {
+		return ret, err
+	}
+
+	// Get SMART data and populate struct for each drive.
+	for _, drive := range drives.BlockDevices {
+		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
+		output, _ := subprocess.RunCommandContext(ctx, "smartctl", "-aj", drive.KName)
+
+		smart := smartOutput{}
+
+		err = json.Unmarshal([]byte(output), &smart)
+		if err != nil {
+			return ret, err
+		}
+
+		// If model_family or model_name are empty, try to populate values by looking at SCSI fields.
+		modelFamily := smart.ModelFamily
+		if modelFamily == "" {
+			modelFamily = smart.SCSIVendor
+		}
+
+		modelName := smart.ModelName
+		if modelName == "" {
+			modelName = smart.SCSIProduct
+		}
+
+		// Check if the drive belongs to a zpool.
+		driveByID, err := DeviceToID(ctx, drive.KName)
+		if err != nil {
+			return ret, err
+		}
+
+		driveZpool := ""
+
+	OUTER_LOOP:
+		for zpoolName := range zpools.Pools {
+			members, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+			if err != nil {
+				return ret, err
+			}
+
+			// Check normal devices, log devices, and cache devices.
+			for _, member := range members {
+				if slices.Contains(member, driveByID) {
+					driveZpool = zpoolName
+
+					break OUTER_LOOP
+				}
+			}
+		}
+
+		ret.State.Drives = append(ret.State.Drives, api.SystemStorageDrive{
+			ID:              drive.KName,
+			ModelFamily:     modelFamily,
+			ModelName:       modelName,
+			SerialNumber:    smart.SerialNumber,
+			Bus:             smart.Device.Type,
+			CapacityInBytes: drive.Size,
+			Removable:       drive.RM,
+			WWN:             smart.WWN,
+			SMARTSupport:    smart.SMARTSupport,
+			SMARTStatus:     smart.SMARTStatus,
+			Zpool:           driveZpool,
+		})
 	}
 
 	return ret, nil
