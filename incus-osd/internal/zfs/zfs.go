@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -263,4 +264,32 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 	}
 
 	return nil
+}
+
+// GetZpoolEncryptionKeys returns a map of base64-encoded encryption keys for all local zpools.
+func GetZpoolEncryptionKeys() (map[string]string, error) {
+	ret := make(map[string]string)
+
+	files, err := os.ReadDir("/var/lib/incus-os/")
+	if err != nil {
+		return ret, err
+	}
+
+	for _, file := range files {
+		filename := file.Name()
+
+		if strings.HasPrefix(filename, "zpool.") && strings.HasSuffix(filename, ".key") {
+			// #nosec G304
+			contents, err := os.ReadFile(filepath.Join("/var/lib/incus-os/", filename))
+			if err != nil {
+				return ret, err
+			}
+
+			zpool := strings.TrimPrefix(strings.TrimSuffix(filename, ".key"), "zpool.")
+
+			ret[zpool] = base64.StdEncoding.EncodeToString(contents)
+		}
+	}
+
+	return ret, nil
 }
