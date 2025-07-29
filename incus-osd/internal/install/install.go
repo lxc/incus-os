@@ -19,6 +19,7 @@ import (
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
@@ -27,16 +28,6 @@ import (
 type Install struct {
 	config *apiseed.Install
 	tui    *tui.TUI
-}
-
-type blockdevices struct {
-	KName string `json:"kname"`
-	ID    string `json:"id-link"` //nolint:tagliatelle
-	Size  int    `json:"size"`
-}
-
-type lsblkOutput struct {
-	Blockdevices []blockdevices `json:"blockdevices"`
 }
 
 var cdromDevice = "/dev/sr0"
@@ -286,56 +277,56 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 }
 
 // getAllTargets returns a list of all potential install target devices.
-func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, error) {
-	ret := []blockdevices{}
+func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDevices, error) {
+	ret := []storage.BlockDevices{}
 
 	// Get NVME drives first.
-	nvmeTargets := lsblkOutput{}
+	nvmeTargets := storage.LsblkOutput{}
 
 	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &nvmeTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, nvmeTargets.Blockdevices...)
+	ret = append(ret, nvmeTargets.BlockDevices...)
 
 	// Get SCSI drives second.
-	scsiTargets := lsblkOutput{}
+	scsiTargets := storage.LsblkOutput{}
 
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &scsiTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, scsiTargets.Blockdevices...)
+	ret = append(ret, scsiTargets.BlockDevices...)
 
 	// Get virtual drives last.
-	virtualTargets := lsblkOutput{}
+	virtualTargets := storage.LsblkOutput{}
 
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &virtualTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, virtualTargets.Blockdevices...)
+	ret = append(ret, virtualTargets.BlockDevices...)
 
 	// Filter out devices that are known to not be valid targets.
-	filtered := make([]blockdevices, 0, len(ret))
+	filtered := make([]storage.BlockDevices, 0, len(ret))
 	for _, entry := range ret {
 		if entry.KName == sourceDevice || entry.KName == cdromDevice {
 			continue
@@ -353,7 +344,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 }
 
 // getTargetDevice determines the underlying device and its size in bytes to install incus-osd on.
-func getTargetDevice(potentialTargets []blockdevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
+func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
 	// Ensure we found at least one potential install device. If no Target configuration was found,
 	// only proceed if exactly one device was found.
 	if len(potentialTargets) == 0 {
