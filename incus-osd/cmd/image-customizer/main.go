@@ -183,7 +183,11 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 
 func apiImage(w http.ResponseWriter, r *http.Request) {
 	// Confirm HTTP method.
-	if r.Method != http.MethodGet {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		return
+	} else if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
 
 		_ = response.NotImplemented(nil).Render(w)
@@ -267,7 +271,6 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 
 	// Setup compressor.
