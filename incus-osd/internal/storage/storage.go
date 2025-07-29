@@ -21,6 +21,7 @@ type BlockDevices struct {
 	KName string `json:"kname"`
 	ID    string `json:"id-link"` //nolint:tagliatelle
 	Size  int    `json:"size"`
+	RM    bool   `json:"rm"`
 }
 
 // LsblkOutput stores the output of running `lsblk -J ...`.
@@ -49,6 +50,29 @@ type zpoolStatusPartialParse struct {
 			State string `json:"state"`
 		} `json:"l2cache"`
 	} `json:"pools"`
+}
+
+type smartOutput struct {
+	Device struct {
+		Type string `json:"type"`
+	} `json:"device"`
+	ModelFamily  string `json:"model_family"`
+	ModelName    string `json:"model_name"`
+	SCSIVendor   string `json:"scsi_vendor"`
+	SCSIProduct  string `json:"scsi_product"`
+	SerialNumber string `json:"serial_number"`
+	WWN          struct {
+		NAA int `json:"naa"`
+		OUI int `json:"oui"`
+		ID  int `json:"id"`
+	} `json:"wwn"`
+	SMARTSupport struct {
+		Available bool `json:"available"`
+		Enabled   bool `json:"enabled"`
+	} `json:"smart_support"`
+	SMARTStatus struct {
+		Passed bool `json:"passed"`
+	} `json:"smart_status"`
 }
 
 // GetUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
@@ -288,4 +312,121 @@ func resolveAndSortDevices(devs []string) ([]string, error) {
 	slices.Sort(devs)
 
 	return devs, nil
+}
+
+// GetStorageInfo returns current SMART data for each drive and the status of each local zpool.
+func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
+	ret := api.SystemStorage{}
+
+	type zpoolStatusRaw struct {
+		Pools map[string]json.RawMessage `json:"pools"`
+	}
+
+	// Get the status of the zpool(s).
+	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-j")
+	if err != nil {
+		return ret, err
+	}
+
+	zpools := zpoolStatusRaw{}
+
+	err = json.Unmarshal([]byte(zpoolOutput), &zpools)
+	if err != nil {
+		return ret, err
+	}
+
+	// Populate the Config.State struct.
+	for zpoolName := range zpools.Pools {
+		poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+		if err != nil {
+			return ret, err
+		}
+
+		ret.State.Pools = append(ret.State.Pools, poolConfig)
+	}
+
+	// Get a list of all local drives.
+	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2", "-o", "KNAME,SIZE,RM")
+	if err != nil {
+		return ret, err
+	}
+
+	drives := LsblkOutput{}
+
+	err = json.Unmarshal([]byte(output), &drives)
+	if err != nil {
+		return ret, err
+	}
+
+	// Get SMART data and populate struct for each drive.
+	for _, drive := range drives.BlockDevices {
+		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
+		output, _ := subprocess.RunCommandContext(ctx, "smartctl", "-aj", drive.KName)
+
+		smart := smartOutput{}
+
+		err = json.Unmarshal([]byte(output), &smart)
+		if err != nil {
+			return ret, err
+		}
+
+		// If model_family or model_name are empty, try to populate values by looking at SCSI fields.
+		modelFamily := smart.ModelFamily
+		if modelFamily == "" {
+			modelFamily = smart.SCSIVendor
+		}
+
+		modelName := smart.ModelName
+		if modelName == "" {
+			modelName = smart.SCSIProduct
+		}
+
+		// Check if the drive belongs to a zpool.
+		driveZpool := ""
+
+		for zpoolName := range zpools.Pools {
+			poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+			if err != nil {
+				return ret, err
+			}
+
+			if slices.Contains(poolConfig.Devices, drive.KName) || slices.Contains(poolConfig.Log, drive.KName) || slices.Contains(poolConfig.Cache, drive.KName) ||
+				slices.Contains(poolConfig.DevicesDegraded, drive.KName) || slices.Contains(poolConfig.LogDegraded, drive.KName) || slices.Contains(poolConfig.CacheDegraded, drive.KName) {
+				driveZpool = zpoolName
+
+				break
+			}
+		}
+
+		// Populate SMART info if available.
+		smartStatus := new(api.SystemStorageDriveSMART)
+		if smart.SMARTSupport.Available {
+			smartStatus.Enabled = smart.SMARTSupport.Enabled
+			smartStatus.Passed = smart.SMARTStatus.Passed
+		} else {
+			smartStatus = nil
+		}
+
+		// Build a hex WWN string.
+		wwnString := ""
+		if smart.WWN.NAA != 0 && smart.WWN.OUI != 0 && smart.WWN.ID != 0 {
+			wwnString = fmt.Sprintf("0x%x", (smart.WWN.NAA<<60)+(smart.WWN.OUI<<36)+smart.WWN.ID)
+		}
+
+		ret.State.Drives = append(ret.State.Drives, api.SystemStorageDrive{
+			ID:              drive.KName,
+			ModelFamily:     modelFamily,
+			ModelName:       modelName,
+			SerialNumber:    smart.SerialNumber,
+			Bus:             smart.Device.Type,
+			CapacityInBytes: drive.Size,
+			Removable:       drive.RM,
+			WWN:             wwnString,
+			SMART:           smartStatus,
+			MemberPool:      driveZpool,
+		})
+	}
+
+	return ret, nil
 }
