@@ -233,6 +233,70 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 	return nil
 }
 
+// UpdateZpool updates the devices used for an existing zpool.
+func UpdateZpool(ctx context.Context, zpool api.SystemStoragePool) error {
+	/*
+	// Attach new devices.
+	for _, dev := range zpool.DevicesToAttach {
+		actualDev, err := storage.DeviceToID(ctx, dev)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", zpool.ZpoolName, zpool.DeviceName, actualDev)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Offline devices.
+	for _, dev := range zpool.DevicesToOffline {
+		actualDev, err := storage.DeviceToID(ctx, dev)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "offline", zpool.ZpoolName, actualDev)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Online devices.
+	for _, dev := range zpool.DevicesToOnline {
+		actualDev, err := storage.DeviceToID(ctx, dev)
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "online", zpool.ZpoolName, actualDev)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply device replacements.
+	for _, dev := range zpool.DevicesToReplace {
+		actualDevA, err := storage.DeviceToID(ctx, dev[0])
+		if err != nil {
+			return err
+		}
+
+		actualDevB, err := storage.DeviceToID(ctx, dev[1])
+		if err != nil {
+			return err
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "replace", zpool.ZpoolName, actualDevA, actualDevB)
+		if err != nil {
+			return err
+		}
+	}
+	*/
+
+	return nil
+}
+
 // GetZpoolEncryptionKeys returns a map of base64-encoded encryption keys for all local zpools.
 func GetZpoolEncryptionKeys() (map[string]string, error) {
 	ret := make(map[string]string)
