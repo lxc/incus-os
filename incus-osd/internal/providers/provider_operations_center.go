@@ -5,7 +5,9 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +22,7 @@ import (
 	incusclient "github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
+	incustls "github.com/lxc/incus/v6/shared/tls"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
@@ -31,8 +34,9 @@ type operationsCenter struct {
 
 	client *http.Client
 
-	serverURL   string
-	serverToken string
+	serverCertificate string
+	serverURL         string
+	serverToken       string
 
 	releaseLastCheck time.Time
 	releaseVersion   string
@@ -245,6 +249,7 @@ func (p *operationsCenter) load(_ context.Context) error {
 	p.client = &http.Client{}
 
 	// Set up the configuration.
+	p.serverCertificate = p.config["server_certificate"]
 	p.serverURL = p.config["server_url"]
 	p.serverToken = p.config["server_token"]
 
@@ -257,10 +262,41 @@ func (p *operationsCenter) load(_ context.Context) error {
 		return errors.New("no operations center token provided")
 	}
 
+	// Prepare the TLS config.
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS13,
+	}
+
+	// Setup the server for self-signed certirficates.
+	if p.serverCertificate != "" {
+		// Parse the provided certificate.
+		certBlock, _ := pem.Decode([]byte(p.serverCertificate))
+		if certBlock == nil {
+			return errors.New("invalid remote certificate")
+		}
+
+		serverCert, err := x509.ParseCertificate(certBlock.Bytes)
+		if err != nil {
+			return fmt.Errorf("invalid remote certificate: %w", err)
+		}
+
+		// Add the certificate to the TLS config.
+		incustls.TLSConfigWithTrustedCert(tlsConfig, serverCert)
+	}
+
+	// Set the client certificate (if present).
+	err := p.configureClientCertificate(tlsConfig)
+	if err != nil {
+		return fmt.Errorf("failed to set client certificate: %w", err)
+	}
+
+	// Configure the HTTP client with our TLS config.
+	p.client.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+
 	return nil
 }
 
-func (p *operationsCenter) configureTLS() error {
+func (*operationsCenter) configureClientCertificate(tlsConfig *tls.Config) error {
 	// Load the certificate.
 	tlsClientCert, err := os.ReadFile("/var/lib/incus/server.crt")
 	if err != nil {
@@ -280,11 +316,7 @@ func (p *operationsCenter) configureTLS() error {
 		return err
 	}
 
-	// Create the TLS config.
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS13,
-	}
-
+	// Set the client certificate in the config.
 	clientCert, err := tls.X509KeyPair(tlsClientCert, tlsClientKey)
 	if err != nil {
 		return err
@@ -292,24 +324,10 @@ func (p *operationsCenter) configureTLS() error {
 
 	tlsConfig.Certificates = []tls.Certificate{clientCert}
 
-	tr := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	p.client.Transport = tr
-
 	return nil
 }
 
 func (p *operationsCenter) apiRequest(ctx context.Context, method string, path string, data io.Reader) (*api.Response, error) {
-	// Attempt to configure TLS on the client if needed.
-	if p.client.Transport == nil {
-		err := p.configureTLS()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, method, p.serverURL+path, data)
 	if err != nil {
