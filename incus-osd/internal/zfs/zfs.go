@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -260,6 +261,204 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+// UpdateZpool updates the devices used for an existing zpool.
+func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
+	// Check if the zpool exists.
+	if !PoolExists(ctx, newConfig.Name) {
+		return errors.New("zpool '" + newConfig.Name + "' doesn't exist")
+	}
+
+	// Don't allow modification of the "local" zpool.
+	if newConfig.Name == "local" {
+		return errors.New("cannot update special zpool 'local'")
+	}
+
+	// Get the existing zpool config.
+	currentConfig, err := storage.GetZpoolMembers(ctx, newConfig.Name)
+	if err != nil {
+		return err
+	}
+
+	// Verify the update contains at least as many device entries as exist in the current config.
+	if len(newConfig.Devices) < len(currentConfig.Devices) {
+		return fmt.Errorf("only %d devices provided in update, expected at least %d", len(newConfig.Devices), len(currentConfig.Devices))
+	}
+
+	if len(newConfig.Log) < len(currentConfig.Log) {
+		return fmt.Errorf("only %d log devices provided in update, expected at least %d", len(newConfig.Log), len(currentConfig.Log))
+	}
+
+	if len(newConfig.Cache) < len(currentConfig.Cache) {
+		return fmt.Errorf("only %d cache devices provided in update, expected at least %d", len(newConfig.Cache), len(currentConfig.Cache))
+	}
+
+	vdevName := ""
+
+	switch newConfig.Type {
+	case "zfs-raid0":
+	case "zfs-raid1", "zfs-raid10":
+		vdevName = "mirror"
+	case "zfs-raidz1":
+		vdevName = "raidz1-0"
+	case "zfs-raidz2":
+		vdevName = "raidz2-0"
+	case "zfs-raidz3":
+		vdevName = "raidz3-0"
+	default:
+		return errors.New("unsupported pool type " + newConfig.Type)
+	}
+
+	// Apply updates.
+	err = updateZpoolHelper(ctx, newConfig.Name, vdevName, currentConfig.Devices, newConfig.Devices)
+	if err != nil {
+		return err
+	}
+
+	err = updateZpoolHelper(ctx, newConfig.Name, "log", currentConfig.Log, newConfig.Log)
+	if err != nil {
+		return err
+	}
+
+	err = updateZpoolHelper(ctx, newConfig.Name, "cache", currentConfig.Cache, newConfig.Cache)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, currentDevices []string, newDevices []string) error {
+	// Compare the two lists of devices and apply updates as needed.
+	for idx := range currentDevices {
+		if newDevices[idx] == "" { //nolint:nestif
+			// The update contains an empty string for this device -> remove from the pool.
+			actualDev, err := storage.DeviceToID(ctx, currentDevices[idx])
+			if err != nil {
+				return err
+			}
+
+			zpoolCmd := "remove"
+
+			if vdevName == "mirror" || strings.HasPrefix(vdevName, "raidz") {
+				zpoolCmd = "offline"
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "zpool", zpoolCmd, zpoolName, actualDev)
+			if err != nil {
+				return err
+			}
+
+			if zpoolCmd == "remove" {
+				_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", actualDev)
+				if err != nil {
+					return err
+				}
+			}
+		} else if newDevices[idx] != currentDevices[idx] {
+			// The update contains a different device -> replace the existing device in the pool.
+			actualDevOld, err := storage.DeviceToID(ctx, currentDevices[idx])
+			if err != nil {
+				return err
+			}
+
+			actualDevNew, err := storage.DeviceToID(ctx, newDevices[idx])
+			if err != nil {
+				return err
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "zpool", "replace", zpoolName, actualDevOld, actualDevNew)
+			if err != nil {
+				return err
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", actualDevOld)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Add any additional new devices.
+	if vdevName == "mirror" { //nolint:nestif
+		if len(newDevices)-len(currentDevices) == 1 {
+			// Bit of an edge case where a single "new" device might be an offlined member of the mirror. As such, it's still part
+			// of the pool, so try to bring it back online.
+			actualDev, err := storage.DeviceToID(ctx, newDevices[len(currentDevices)])
+			if err != nil {
+				return err
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "zpool", "online", zpoolName, actualDev)
+			if err != nil {
+				// If we couldn't online the device, then it's brand new, but ZFS requires at least two devices when adding a new mirror.
+				return errors.New("adding to a mirror requires at least two devices")
+			}
+		} else if len(currentDevices) < len(newDevices) {
+			args := []string{"add", zpoolName, "mirror"}
+
+			for _, dev := range newDevices[len(currentDevices):] {
+				actualDev, err := storage.DeviceToID(ctx, dev)
+				if err != nil {
+					return err
+				}
+
+				args = append(args, actualDev)
+			}
+
+			_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		for idx := len(currentDevices); idx < len(newDevices); idx++ {
+			args := []string{}
+
+			if vdevName == "" || vdevName == "log" || vdevName == "cache" {
+				args = append(args, "add")
+			} else {
+				args = append(args, "attach")
+
+				// Expanding a vdev triggers a scrub/expand, during which time we can't add an additional device.
+				// Rather than a somewhat cryptic error, return a nicer message.
+				if len(newDevices)-len(currentDevices) > 1 {
+					return errors.New("expanding a pool by more than one device at a time isn't supported, due to necessary array resync")
+				}
+			}
+
+			args = append(args, zpoolName)
+
+			if vdevName != "" {
+				args = append(args, vdevName)
+			}
+
+			actualDev, err := storage.DeviceToID(ctx, newDevices[idx])
+			if err != nil {
+				return err
+			}
+
+			args = append(args, actualDev)
+
+			_, err = subprocess.RunCommandContext(ctx, "zpool", args...)
+			if err != nil {
+				if !strings.Contains(err.Error(), actualDev+"-part1 is part of active pool '"+zpoolName+"'") || !strings.HasPrefix(vdevName, "raidz") {
+					return err
+				}
+
+				// Bit of an edge case where the "new" device might be an offlined member of the raidz. As such, it's still part
+				// of the pool, so try to bring it back online.
+				_, newErr := subprocess.RunCommandContext(ctx, "zpool", "online", zpoolName, actualDev)
+				if newErr != nil {
+					// Return the original error, so we don't confuse the user with a failed "online" command.
+					return err
+				}
+			}
 		}
 	}
 
