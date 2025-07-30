@@ -25,6 +25,11 @@ function download() {
             install["force_reboot"] = true
         }
 
+        if (document.getElementById("imageInstallTarget").value == "") {
+            install["target"] = {}
+            install["target"]["id"] = document.getElementById("imageInstallTarget").value
+        }
+
         req["seeds"]["install"] = install
     }
 
