@@ -5,9 +5,11 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"embed"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -24,6 +26,9 @@ import (
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
+
+//go:embed html
+var staticFiles embed.FS
 
 const (
 	imageTypeISO = "iso"
@@ -85,6 +90,12 @@ func do(ctx context.Context) error {
 		return err
 	}
 
+	// Server the embedded pages.
+	fsUI, err := fs.Sub(fs.FS(staticFiles), "html")
+	if err != nil {
+		return err
+	}
+
 	// Setup routing.
 	router := http.NewServeMux()
 
@@ -92,6 +103,7 @@ func do(ctx context.Context) error {
 	router.HandleFunc("/1.0", apiRoot10)
 	router.HandleFunc("/1.0/images", apiImages)
 	router.HandleFunc("/1.0/images/{uuid}", apiImage)
+	router.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(fsUI))))
 
 	// Setup server.
 	server := &http.Server{
@@ -111,6 +123,11 @@ func apiRoot(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 
 		return
+	}
+
+	if strings.Contains(r.Header.Get("User-Agent"), "Gecko") {
+		// Redirect to UI.
+		http.Redirect(w, r, "/ui/", http.StatusMovedPermanently)
 	}
 
 	if r.URL.Path != "/" {
@@ -135,8 +152,15 @@ func apiRoot10(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiImages(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers.
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	// Confirm HTTP method.
-	if r.Method != http.MethodPost {
+	if r.Method == http.MethodOptions {
+		return
+	} else if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.NotImplemented(nil).Render(w)
 
@@ -182,10 +206,13 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiImage(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers.
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	// Confirm HTTP method.
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
 		return
 	} else if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
