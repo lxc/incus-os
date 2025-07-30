@@ -1,0 +1,10 @@
+# Use link_priority to deterministically create by-partlabel links, preferring CDROM, then USB stick, then local hard drive.
+
+# Hard drive
+ENV{ID_PART_ENTRY_SCHEME}=="gpt", ENV{ID_PART_ENTRY_NAME}=="?*", SYMLINK+="disk/by-partlabel/$env{ID_PART_ENTRY_NAME}", OPTIONS="link_priority=100"
+
+# USB stick
+ENV{ID_BUS}=="usb", ENV{ID_PART_ENTRY_SCHEME}=="gpt", ENV{ID_PART_ENTRY_NAME}=="?*", SYMLINK+="disk/by-partlabel/$env{ID_PART_ENTRY_NAME}", OPTIONS="link_priority=200"
+
+# CDROM
+ENV{DM_NAME}=="sr[0-9]p[0-9]", ENV{ID_PART_ENTRY_SCHEME}=="gpt", ENV{ID_PART_ENTRY_NAME}=="?*", SYMLINK+="disk/by-partlabel/$env{ID_PART_ENTRY_NAME}", OPTIONS="link_priority=300"
