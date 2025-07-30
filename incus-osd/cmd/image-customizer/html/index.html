@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="/ui/img/favicon.ico">
+        <title>Incus OS downloader</title>
+
+        <!-- Bootstrap core CSS -->
+        <link href="/ui/css/bootstrap.min.css" rel="stylesheet">
+        <link href="/ui/css/local.css" rel="stylesheet">
+    </head>
+
+    <body>
+        <div class="container w-75">
+            <script src="/ui/js/local.js" type="text/javascript"></script>
+
+            <h1>IncusOS image downloader <span class="badge bg-secondary">Beta</span></h1>
+
+            <div class="alert alert-warning" role="alert">
+                IncusOS is under active development and doesn't yet have
+                a fixed release schedule with automatic security updates.<br>
+
+                We currently do not recommend using IncusOS in
+                production environments.
+            </div>
+
+            <div class="card">
+                <h5 class="card-header">Hardware requirements</h5>
+                <div class="card-body">
+                    <p class="card-text w-75">
+                        IncusOS is designed to provide an extremely secure
+                        environment in which to run Incus.<br>
+                        It requires a lot of modern system features and
+                        will not function properly on older unsupported systems.
+                    </p>
+
+                    <ul>
+                        <li>Modern x86_64 system (5 years old at most)</li>
+                        <li>Support for UEFI with SecureBoot</li>
+                        <li>TPM 2.0 security module</li>
+                        <li>At least 50GiB of storage</li>
+                        <li>At least one wired network port</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <h5 class="card-header">Generate your installation image</h5>
+                <div class="card-body">
+                    <p class="card-text w-75">
+                        IncusOS doesn't feature a traditional installer.
+                        Instead you can choose to either directly run it
+                        from the media it's written to, or have it
+                        automatically install itself onto an internal
+                        drive on first boot.
+                    </p>
+
+                    <p class="card-text w-75">
+                        The installed system is only reachable through
+                        Incus, there is no local shell access or remote
+                        access through SSH.
+                        The customization tool below allows you to
+                        configure IncusOS's behavior, including what
+                        Incus client will be allowed to control the system.
+                    </p>
+
+                    <form class="w-75">
+                        <div>
+                            <h3>Image type</h3>
+                            <div class="mb-3">
+                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeISO" checked>
+                                <label class="form-check-label" for="imageTypeISO">ISO - Read-only, primarily used for server installation through virtual media)</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeUSB">
+                                <label class="form-check-label" for="imageTypeUSB">USB - Writable and can be used either for installation or for running the system directly</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3>Image usage</h3>
+                            <div class="mb-3">
+                                <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageInstallation" checked>
+                                <label class="form-check-label" for="imageUsageInstallation">Installation - Install IncusOS on a boot disk</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageOperation">
+                                <label class="form-check-label" for="imageUsageOperation">Operation - Run IncusOS directly from the media</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3>Installation target</h3>
+                            <div class="mb-3">
+                                <input class="form-check-input" type="checkbox" value="" id="imageForceInstall">
+                                <label class="form-check-label" for="imageForceInstall">Wipe the target drive</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <input class="form-check-input" type="checkbox" value="" id="imageForceReboot">
+                                <label class="form-check-label" for="imageForceInstall">Automatically reboot after installation</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="imageInstallTarget">Drive identifier (as seen in /dev/disk/by-id), can be a partial string but must match exactly one drive.<br>If empty, IncusOS will auto-install so long as only one drive is present.</label>
+                                <input type="text" class="form-control" id="imageInstallTarget" placeholder="nvme-eui.123456789">
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3>Incus configuration</h3>
+
+                            <div class="mb-3">
+                                <input class="form-check-input" type="checkbox" value="" id="incusDefaults" checked>
+                                <label class="form-check-label" for="incusDefaults">Apply default Incus configuration</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="incusClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
+                                <textarea class="form-control" id="incusClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                    <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
