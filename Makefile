@@ -89,7 +89,7 @@ test:
 		-c limits.memory=8GiB \
 		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
-	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/IncusOS_boot_media.img boot.priority=10 readonly=false
+	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/IncusOS_boot_media.img io.bus=usb boot.priority=10 readonly=false
 
 	# Wait for installation to complete
 	incus start test-incus-os --console
