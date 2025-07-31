@@ -8,6 +8,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +42,14 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 
 		// Get TPM status.
 		s.state.System.Security.State.TPMStatus = secureboot.TPMStatus()
+
+		// Get zpool encryption keys.
+		s.state.System.Security.State.PoolRecoveryKeys, err = zfs.GetZpoolEncryptionKeys()
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
 
 		// Return the current system security state.
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
