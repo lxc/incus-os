@@ -268,7 +268,7 @@ func (t *TUI) redrawScreen() {
 		}
 
 		if !t.state.System.Security.State.EncryptionRecoveryKeysRetrieved {
-			t.frame.AddText("WARNING: Encryption recovery key has not been retrieved yet!", false, tview.AlignLeft, tcell.ColorRed)
+			t.frame.AddText("WARNING: Encryption recovery and/or zpool encryption keys have not yet been retrieved!", false, tview.AlignLeft, tcell.ColorRed)
 		}
 	}
 

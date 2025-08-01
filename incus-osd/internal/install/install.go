@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,6 +18,7 @@ import (
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
@@ -27,16 +27,6 @@ import (
 type Install struct {
 	config *apiseed.Install
 	tui    *tui.TUI
-}
-
-type blockdevices struct {
-	KName string `json:"kname"`
-	ID    string `json:"id-link"` //nolint:tagliatelle
-	Size  int    `json:"size"`
-}
-
-type lsblkOutput struct {
-	Blockdevices []blockdevices `json:"blockdevices"`
 }
 
 var cdromDevice = "/dev/sr0"
@@ -185,78 +175,12 @@ func runningFromCDROM() bool {
 		return false
 	}
 
-	underlyingDevice, err := getUnderlyingDevice()
+	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
 		return false
 	}
 
 	return underlyingDevice == "/dev/sr0"
-}
-
-// getUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
-func getUnderlyingDevice() (string, error) {
-	// Determine the device we're running from.
-	s := unix.Stat_t{}
-
-	err := unix.Stat("/usr/local/bin/incus-osd", &s)
-	if err != nil {
-		return "", err
-	}
-
-	major := unix.Major(s.Dev)
-	minor := unix.Minor(s.Dev)
-	rootDev := fmt.Sprintf("%d:%d\n", major, minor)
-
-	// Get a list of all the block devices.
-	entries, err := os.ReadDir("/sys/class/block")
-	if err != nil {
-		return "", err
-	}
-
-	// Iterate through each of the block devices until we find the one for /usr.
-	for _, entry := range entries {
-		entryPath := filepath.Join("/sys/class/block", entry.Name())
-
-		dev, err := os.ReadFile(filepath.Join(entryPath, "dev")) //nolint:gosec
-		if err != nil {
-			continue
-		}
-
-		// We've found the mapped device.
-		if string(dev) == rootDev {
-			// Get the underlying device.
-			members, err := os.ReadDir(filepath.Join(entryPath, "slaves"))
-			if err != nil {
-				return "", err
-			}
-
-			// Read the symlink for the underlying device.
-			path, err := os.Readlink(filepath.Join(entryPath, "slaves", members[0].Name()))
-			if err != nil {
-				return "", err
-			}
-
-			// We're running from a USB stick.
-			if strings.HasPrefix(path, "../../../") {
-				// Drop the last element of the path (the partition), then get the base of the resulting path (the actual device).
-				parentDir, _ := filepath.Split(path)
-
-				return filepath.Join("/dev/", filepath.Base(parentDir)), nil
-			}
-
-			// We're running from a CDROM; need to do one more level of indirection to get the actual device.
-			entryPath = filepath.Join("/sys/class/block", filepath.Base(path))
-
-			members, err = os.ReadDir(filepath.Join(entryPath, "slaves"))
-			if err != nil {
-				return "", err
-			}
-
-			return filepath.Join("/dev/", members[0].Name()), nil
-		}
-	}
-
-	return "", errors.New("unable to determine underlying device")
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
@@ -277,7 +201,7 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 
 	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
 
-	underlyingDevice, err := getUnderlyingDevice()
+	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
 		return "", isReadonlyInstallFS, err
 	}
@@ -286,56 +210,56 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 }
 
 // getAllTargets returns a list of all potential install target devices.
-func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, error) {
-	ret := []blockdevices{}
+func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDevices, error) {
+	ret := []storage.BlockDevices{}
 
 	// Get NVME drives first.
-	nvmeTargets := lsblkOutput{}
+	nvmeTargets := storage.LsblkOutput{}
 
 	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &nvmeTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, nvmeTargets.Blockdevices...)
+	ret = append(ret, nvmeTargets.BlockDevices...)
 
 	// Get SCSI drives second.
-	scsiTargets := lsblkOutput{}
+	scsiTargets := storage.LsblkOutput{}
 
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &scsiTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, scsiTargets.Blockdevices...)
+	ret = append(ret, scsiTargets.BlockDevices...)
 
 	// Get virtual drives last.
-	virtualTargets := lsblkOutput{}
+	virtualTargets := storage.LsblkOutput{}
 
 	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
 	err = json.Unmarshal([]byte(output), &virtualTargets)
 	if err != nil {
-		return []blockdevices{}, err
+		return []storage.BlockDevices{}, err
 	}
 
-	ret = append(ret, virtualTargets.Blockdevices...)
+	ret = append(ret, virtualTargets.BlockDevices...)
 
 	// Filter out devices that are known to not be valid targets.
-	filtered := make([]blockdevices, 0, len(ret))
+	filtered := make([]storage.BlockDevices, 0, len(ret))
 	for _, entry := range ret {
 		if entry.KName == sourceDevice || entry.KName == cdromDevice {
 			continue
@@ -353,7 +277,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]blockdevices, er
 }
 
 // getTargetDevice determines the underlying device and its size in bytes to install incus-osd on.
-func getTargetDevice(potentialTargets []blockdevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
+func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
 	// Ensure we found at least one potential install device. If no Target configuration was found,
 	// only proceed if exactly one device was found.
 	if len(potentialTargets) == 0 {
