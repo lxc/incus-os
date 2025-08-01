@@ -1,12 +1,14 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 )
 
@@ -86,4 +88,32 @@ func GetUnderlyingDevice() (string, error) {
 	}
 
 	return "", errors.New("unable to determine underlying device")
+}
+
+// DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.
+func DeviceToID(ctx context.Context, device string) (string, error) {
+	output, err := subprocess.RunCommandContext(ctx, "udevadm", "info", "-q", "symlink", device)
+	if err != nil {
+		return "", err
+	}
+
+	for _, dev := range strings.Split(output, " ") {
+		if strings.HasPrefix(dev, "disk/by-id/") {
+			dev = strings.TrimSuffix(dev, "\n")
+
+			return "/dev/" + dev, nil
+		}
+	}
+
+	return "", errors.New("unable to determine device ID for " + device)
+}
+
+// IDSymlinkToDevice takes a device symlink like /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root and resolves to symlink to the actual device, for example /dev/sda.
+func IDSymlinkToDevice(id string) (string, error) {
+	dst, err := os.Readlink(id)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(filepath.Dir(id), dst), nil
 }
