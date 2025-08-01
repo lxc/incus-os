@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -22,6 +23,26 @@ type BlockDevices struct {
 // LsblkOutput stores the output of running `lsblk -J ...`.
 type LsblkOutput struct {
 	BlockDevices []BlockDevices `json:"blockdevices"`
+}
+
+type zpoolStatusPartialParse struct {
+	Pools map[string]struct {
+		Vdevs map[string]struct {
+			Vdevs map[string]struct {
+				VdevType string `json:"vdev_type"`
+				Path     string `json:"path"`
+				Vdevs    map[string]struct {
+					Path string `json:"path"`
+				} `json:"vdevs,omitempty"`
+			} `json:"vdevs"`
+		} `json:"vdevs"`
+		Logs map[string]struct {
+			Name string `json:"name"`
+		} `json:"logs"`
+		L2Cache map[string]struct {
+			Name string `json:"name"`
+		} `json:"l2cache"`
+	} `json:"pools"`
 }
 
 // GetUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
@@ -116,4 +137,47 @@ func IDSymlinkToDevice(id string) (string, error) {
 	}
 
 	return filepath.Join(filepath.Dir(id), dst), nil
+}
+
+// GetZpoolMembers returns all members of a given ZFS pool, organized by normal devices,
+// log devices, and cache devices.. Logically it makes more sense for this to be in the
+// zfs package, but that would cause an import loop.
+func GetZpoolMembers(ctx context.Context, zpoolName string) (map[string][]string, error) {
+	output, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName, "-j")
+	if err != nil {
+		return nil, err
+	}
+
+	return getZpoolMembersHelper([]byte(output), zpoolName)
+}
+
+func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (map[string][]string, error) {
+	zpoolJSON := zpoolStatusPartialParse{}
+
+	err := json.Unmarshal(rawJSONContent, &zpoolJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make(map[string][]string)
+
+	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
+		if vdev.VdevType == "disk" {
+			ret["devices"] = append(ret["devices"], "/dev/disk/by-id/"+vdevName)
+		} else {
+			for memberVdevName := range vdev.Vdevs {
+				ret["devices"] = append(ret["devices"], "/dev/disk/by-id/"+memberVdevName)
+			}
+		}
+	}
+
+	for vdevName := range zpoolJSON.Pools[zpoolName].Logs {
+		ret["log"] = append(ret["log"], "/dev/disk/by-id/"+vdevName)
+	}
+
+	for vdevName := range zpoolJSON.Pools[zpoolName].L2Cache {
+		ret["cache"] = append(ret["cache"], "/dev/disk/by-id/"+vdevName)
+	}
+
+	return ret, nil
 }
