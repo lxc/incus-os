@@ -103,10 +103,14 @@ func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 			continue
 		}
 
+		// Auto-generated interfaces set RequiredForOnline to "no", and we rely
+		// on the DNS check after interface configuration to indicate when there's
+		// good network connectivity.
 		ret.Interfaces = append(ret.Interfaces, api.SystemNetworkInterface{
-			Name:      i.Name,
-			Hwaddr:    i.HardwareAddr.String(),
-			Addresses: []string{"dhcp4", "slaac"},
+			Name:              i.Name,
+			Hwaddr:            i.HardwareAddr.String(),
+			Addresses:         []string{"dhcp4", "slaac"},
+			RequiredForOnline: "no",
 		})
 	}
 
