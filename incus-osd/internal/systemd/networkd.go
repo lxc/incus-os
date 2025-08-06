@@ -117,6 +117,32 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 		return errors.New("no network configuration provided")
 	}
 
+	// Check that all interface/bond/vlan names are unique.
+	names := []string{}
+	for _, iface := range networkCfg.Interfaces {
+		if slices.Contains(names, iface.Name) {
+			return errors.New("duplicate interface/bond/vlan name: " + iface.Name)
+		}
+
+		names = append(names, iface.Name)
+	}
+
+	for _, bond := range networkCfg.Bonds {
+		if slices.Contains(names, bond.Name) {
+			return errors.New("duplicate interface/bond/vlan name: " + bond.Name)
+		}
+
+		names = append(names, bond.Name)
+	}
+
+	for _, vlan := range networkCfg.VLANs {
+		if slices.Contains(names, vlan.Name) {
+			return errors.New("duplicate interface/bond/vlan name: " + vlan.Name)
+		}
+
+		names = append(names, vlan.Name)
+	}
+
 	err := validateInterfaces(networkCfg.Interfaces, networkCfg.VLANs, requireValidMAC)
 	if err != nil {
 		return err

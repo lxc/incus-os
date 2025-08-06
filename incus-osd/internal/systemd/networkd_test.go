@@ -137,6 +137,68 @@ vlans:
     - "management"
 `
 
+var badNetworkdConfig1 = `
+interfaces:
+  - name: myreallylongname
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+`
+
+var badNetworkdConfig2 = `
+interfaces:
+  - name: _reserved
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+`
+
+var badNetworkdConfig3 = `
+interfaces:
+  - name: iface
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+  - name: iface
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+`
+
+func TestBadNetworkConfig(t *testing.T) {
+	t.Parallel()
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Unmarshal([]byte(badNetworkdConfig1), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg, false)
+		require.EqualError(t, err, "interface 0 name cannot be longer than 13 characters")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Unmarshal([]byte(badNetworkdConfig2), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg, false)
+		require.EqualError(t, err, "interface 0 name cannot begin with an underscore")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Unmarshal([]byte(badNetworkdConfig3), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg, false)
+		require.EqualError(t, err, "duplicate interface/bond/vlan name: iface")
+	}
+}
+
 func TestNetworkConfigMarshalling(t *testing.T) {
 	t.Parallel()
 
