@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/rivo/tview"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 var ttyDevs = []string{"/dev/console", "/dev/tty1", "/dev/ttyS0"}
@@ -286,7 +285,6 @@ func (t *TUI) getIPAddresses() []string {
 		return []string{}
 	}
 
-	ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
 	ret := []string{}
 
 	appendIPs := func(name string) {
@@ -296,26 +294,10 @@ func (t *TUI) getIPAddresses() []string {
 			return
 		}
 
-		output, err := subprocess.RunCommandContext(context.Background(), "ip", "address", "show", name)
-		if err != nil {
-			ret = append(ret, name+"("+err.Error()+")")
-
-			return
+		addrs, err := systemd.GetIPAddresses(context.Background(), name)
+		if err == nil {
+			ret = append(ret, name+"("+strings.Join(addrs, ", ")+")")
 		}
-
-		addrs := []string{}
-		matches := ipAddressRegex.FindAllStringSubmatch(output, -1)
-
-		for _, addr := range matches {
-			// Don't show link-local addresses.
-			if strings.HasPrefix(addr[1], "169.254.") || strings.HasPrefix(addr[1], "fe80:") {
-				continue
-			}
-
-			addrs = append(addrs, addr[1])
-		}
-
-		ret = append(ret, name+"("+strings.Join(addrs, ", ")+")")
 	}
 
 	for _, i := range t.state.System.Network.Config.Interfaces {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -198,6 +199,14 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 func validateName(name string) error {
 	if name == "" {
 		return errors.New("has no name")
+	}
+
+	if strings.HasPrefix(name, "_") {
+		return errors.New("name cannot begin with an underscore")
+	}
+
+	if len(name) > 13 {
+		return errors.New("name cannot be longer than 13 characters")
 	}
 
 	return nil
