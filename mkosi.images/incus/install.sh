@@ -14,7 +14,6 @@ Types: deb
 URIs: https://pkgs.zabbly.com/incus/stable
 Suites: trixie
 Components: main
-Architectures: amd64
 Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF

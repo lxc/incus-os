@@ -607,12 +607,20 @@ func copyPartitionDefinition(ctx context.Context, src string, tgt string, partit
 		partitionHexCode = "EF00"
 	case "Linux filesystem":
 		partitionHexCode = "8300"
+
 	case "Linux x86-64 /usr verity signature":
 		partitionHexCode = "8385"
 	case "Linux x86-64 /usr verity":
 		partitionHexCode = "8319"
 	case "Linux x86-64 /usr":
 		partitionHexCode = "8314"
+
+	case "Linux ARM64 /usr verity signature":
+		partitionHexCode = "8375"
+	case "Linux ARM64 /usr verity":
+		partitionHexCode = "831b"
+	case "Linux ARM64 /usr":
+		partitionHexCode = "8316"
 	default:
 		return fmt.Errorf("unrecognized partition type '%s'", partitionType)
 	}
