@@ -60,10 +60,10 @@ func CheckSystemRequirements(ctx context.Context) error {
 		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
 	}
 
-	// Check if a TPM device is present.
-	_, err = os.Stat("/dev/tpm0")
+	// Check if a TPM device is present and working.
+	_, err = subprocess.RunCommandContext(ctx, "tpm2_selftest")
 	if err != nil {
-		return errors.New("no TPM device found")
+		return errors.New("no working TPM device found")
 	}
 
 	// Perform install-specific checks.
