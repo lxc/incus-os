@@ -263,7 +263,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 	routes := []api.SystemNetworkRoute{}
 	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
 
-	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", iface)
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
@@ -277,7 +277,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 
 	// Get various details from networkctl. It would be better to use the json output
 	// option, but that doesn't include everything we're interested in.
-	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
+	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", iface)
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
@@ -388,30 +388,11 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 	}, nil
 }
 
-// When dealing with a bridge, we can't just get its IP address or route. So,
-// determine the "main" member corresponding to the physical NIC and return that
-// device name instead. If the device isn't a bridge, or for some reason there's
-// no physical NIC, return the original name unmodified.
-func resolveBridge(iface string) string {
-	members, err := os.ReadDir("/sys/class/net/" + iface + "/brif")
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return iface
-	}
-
-	for _, member := range members {
-		if strings.HasPrefix(member.Name(), "_p") {
-			return strings.Replace(member.Name(), "_p", "_i", 1)
-		}
-	}
-
-	return iface
-}
-
 // GetIPAddresses returns any non-link-local address for an interface.
 func GetIPAddresses(ctx context.Context, iface string) ([]string, error) {
 	ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
 
-	output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", iface)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +414,7 @@ func GetIPAddresses(ctx context.Context, iface string) ([]string, error) {
 
 // getLLDPInfo returns current LLDP information for the interface's underlying physical device.
 func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPState, error) {
-	output, err := subprocess.RunCommandContext(ctx, "networkctl", "lldp", "--json=short", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "networkctl", "lldp", "--json=short", iface)
 	if err != nil {
 		return nil, err
 	}
@@ -584,7 +565,7 @@ func waitForUdevInterfaceRename(ctx context.Context, timeout time.Duration) erro
 // bonds, and vlans to configure their IP address(es) and come online.
 func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
 	isOnline := func(name string) (bool, bool) {
-		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", resolveBridge(name))
+		output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", name)
 		if err != nil {
 			return false, true
 		}
@@ -842,22 +823,10 @@ func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdC
 		cfgString := fmt.Sprintf(`[Match]
 Name=_i%s
 
-[Link]
-%s
-
-[DHCP]
-ClientIdentifier=mac
-RouteMetric=100
-UseMTU=true
-
 [Network]
-%s`, strippedHwaddr, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
-
-		cfgString += processAddresses(i.Addresses)
-
-		if len(i.Routes) > 0 {
-			cfgString += processRoutes(i.Routes)
-		}
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+`, strippedHwaddr)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-_i%s.network", strippedHwaddr),
@@ -900,10 +869,22 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
+[Link]
+%s
+
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
-LinkLocalAddressing=no
-ConfigureWithoutCarrier=yes
-`, i.Name)
+%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+
+		cfgString += processAddresses(i.Addresses)
+
+		if len(i.Routes) > 0 {
+			cfgString += processRoutes(i.Routes)
+		}
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-%s.network", i.Name),
@@ -924,22 +905,10 @@ ConfigureWithoutCarrier=yes
 		cfgString := fmt.Sprintf(`[Match]
 Name=_i%s
 
-[Link]
-%s
-
-[DHCP]
-ClientIdentifier=mac
-RouteMetric=100
-UseMTU=true
-
 [Network]
-%s`, strippedHwaddr, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
-
-		cfgString += processAddresses(b.Addresses)
-
-		if len(b.Routes) > 0 {
-			cfgString += processRoutes(b.Routes)
-		}
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+`, strippedHwaddr)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-_i%s.network", strippedHwaddr),
@@ -982,10 +951,22 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
+[Link]
+%s
+
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
 [Network]
-LinkLocalAddressing=no
-ConfigureWithoutCarrier=yes
-`, b.Name)
+%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+
+		cfgString += processAddresses(b.Addresses)
+
+		if len(b.Routes) > 0 {
+			cfgString += processRoutes(b.Routes)
+		}
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-%s.network", b.Name),
