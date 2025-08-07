@@ -329,7 +329,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Ensure  the "local" ZFS pool is available.
 	slog.InfoContext(ctx, "Bringing up the local storage")
 
-	err = zfs.ImportOrCreateLocalPool(ctx)
+	err = zfs.ImportOrCreateLocalPool(ctx, s)
 	if err != nil {
 		return err
 	}
