@@ -77,17 +77,33 @@ type smartOutput struct {
 
 // GetUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
 func GetUnderlyingDevice() (string, error) {
-	// Determine the device we're running from.
-	s := unix.Stat_t{}
+	// We need to find a file that's on a device mapper device and not on overlayfs.
+	var rootDev string
 
-	err := unix.Stat("/usr/local/bin/incus-osd", &s)
-	if err != nil {
-		return "", err
+	for _, filePath := range []string{"/usr/local/bin/incus-osd", "/etc/passwd"} {
+		// Determine the device we're running from.
+		s := unix.Stat_t{}
+
+		// Check the backing device for the file.
+		err := unix.Stat(filePath, &s)
+		if err != nil {
+			continue
+		}
+
+		major := unix.Major(s.Dev)
+		minor := unix.Minor(s.Dev)
+
+		// We want to see device mapper.
+		if major != 252 {
+			continue
+		}
+
+		rootDev = fmt.Sprintf("%d:%d\n", major, minor)
 	}
 
-	major := unix.Major(s.Dev)
-	minor := unix.Minor(s.Dev)
-	rootDev := fmt.Sprintf("%d:%d\n", major, minor)
+	if rootDev == "" {
+		return "", errors.New("couldn't find a file on device mapper")
+	}
 
 	// Get a list of all the block devices.
 	entries, err := os.ReadDir("/sys/class/block")
