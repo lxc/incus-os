@@ -45,35 +45,35 @@ func main() {
 
 	// Check privileges.
 	if os.Getuid() != 0 {
-		_, _ = fmt.Fprint(os.Stderr, "incus-osd must be run as root")
+		tui.EarlyError("incus-osd must be run as root")
 		os.Exit(1)
 	}
 
 	// Create runtime path if missing.
 	err := os.Mkdir(runPath, 0o700)
 	if err != nil && !os.IsExist(err) {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		tui.EarlyError(err.Error())
 		os.Exit(1)
 	}
 
 	// Create storage path if missing.
 	err = os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		tui.EarlyError(err.Error())
 		os.Exit(1)
 	}
 
 	// Get persistent state.
 	s, err := state.LoadOrCreate(ctx, filepath.Join(varPath, "state.txt"))
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		tui.EarlyError("unable to load state file: " + err.Error())
 		os.Exit(1)
 	}
 
 	// Get the OS name and version from /lib/os-release.
 	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		tui.EarlyError("unable to get OS name and release: " + err.Error())
 		os.Exit(1)
 	}
 
@@ -86,14 +86,14 @@ func main() {
 	// Get and start the console TUI.
 	tuiApp, err := tui.NewTUI(s)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		tui.EarlyError(err.Error())
 		os.Exit(1)
 	}
 
 	go func() {
 		err := tuiApp.Run()
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			tui.EarlyError(err.Error())
 			os.Exit(1)
 		}
 	}()
