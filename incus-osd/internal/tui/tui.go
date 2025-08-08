@@ -348,3 +348,35 @@ func wrapFooterText(label string, text string, maxLineLength int) []string {
 
 	return ret
 }
+
+// EarlyError renders a basic startup error to the console.
+func EarlyError(msg string) {
+	// Send error to stderr first.
+	_, _ = fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+
+	// Attempt to open the system's consoles.
+	ttys, err := newTtyMultiplexer(ttyDevs...)
+	if err != nil {
+		return
+	}
+
+	// Construct a screen that is bound to the system console.
+	screen, err := tcell.NewTerminfoScreenFromTty(ttys)
+	if err != nil {
+		return
+	}
+
+	// Set up a simple textview.
+	textView := tview.NewTextView()
+	textView.SetBorder(true)
+	textView.SetTitle(" !! IncusOS critical startup error !! ")
+	textView.SetText(msg)
+
+	// Render the error.
+	go func() {
+		_ = tview.NewApplication().SetScreen(screen).SetRoot(textView, true).Run()
+	}()
+
+	// Give the error a chance to render.
+	time.Sleep(1 * time.Second)
+}
