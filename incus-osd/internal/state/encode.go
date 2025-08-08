@@ -81,7 +81,7 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 			}
 		}
 	case reflect.String:
-		_, err := fmt.Fprintf(b, "%s: %s\n", strings.Join(keyPrefix, "."), v.String())
+		_, err := fmt.Fprintf(b, "%s: %s\n", strings.Join(keyPrefix, "."), strings.ReplaceAll(v.String(), "\n", "\\n"))
 		if err != nil {
 			return err
 		}
