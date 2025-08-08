@@ -21,13 +21,8 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Mark that the keys have been retrieved via the API.
 		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
 
-		// Get the state of each encrypted volume.
-		s.state.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(r.Context())
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
-
-			return
-		}
+		// s.state.System.Security.State.EncryptedVolumes is pre-cached, because
+		// getting the state of the LUKS volumes can be slow.
 
 		// Get Secure Boot state (we always expect this to be true).
 		s.state.System.Security.State.SecureBootEnabled, err = secureboot.Enabled()

@@ -278,6 +278,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
+	// Record the state of auto-unlocked LUKS devices. With some TPMs this can be slow, so cache the
+	// result at startup rather than needing to determine it each time a request arrives via the API.
+	s.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Perform network configuration.
 	slog.InfoContext(ctx, "Bringing up the network")
 
@@ -684,6 +691,17 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
 		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), isStartupCheck)
+		if err != nil {
+			s.OS.NextRelease = priorNextRelease
+			_ = s.Save(ctx)
+
+			return "", err
+		}
+
+		// Record the state of auto-unlocked LUKS devices. With some TPMs this can be slow, so cache the
+		// result after applying an OS update rather than needing to determine it each time a request
+		// arrives via the API.
+		s.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(ctx)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save(ctx)
