@@ -105,8 +105,10 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 		return err
 	}
 
-	// Wait 10s to allow time for the system to reboot.
-	time.Sleep(10 * time.Second)
+	if reboot {
+		// Wait 10s to allow time for the system to reboot.
+		time.Sleep(10 * time.Second)
+	}
 
 	return nil
 }
