@@ -222,7 +222,7 @@ func setValue(v reflect.Value, value string) error {
 
 		v.SetInt(iVal)
 	case reflect.String:
-		v.SetString(value)
+		v.SetString(strings.ReplaceAll(value, "\\n", "\n"))
 	case reflect.Uint:
 		uVal, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
