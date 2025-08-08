@@ -77,7 +77,7 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	for _, file := range updateFiles {
 		if strings.HasSuffix(file.Name(), "_"+version+".efi") {
 			newUKIFile = filepath.Join(SystemUpdatesPath, file.Name())
-		} else if strings.Contains(file.Name(), "_"+version+".usr-x86-64.") {
+		} else if strings.Contains(file.Name(), "_"+version+".usr-x86-64.") || strings.Contains(file.Name(), "_"+version+".usr-arm64.") {
 			newUsrImageFile = filepath.Join(SystemUpdatesPath, file.Name())
 		}
 	}

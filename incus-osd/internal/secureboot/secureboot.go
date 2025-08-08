@@ -902,6 +902,12 @@ func getArchEFIFiles() (map[string]string, error) {
 		ret["bootEFI"] = "/boot/EFI/BOOT/BOOTX64.EFI"
 
 		return ret, nil
+	case "arm64":
+		ret["stub"] = "lib/systemd/boot/efi/systemd-bootaa64.efi.signed"
+		ret["systemdEFI"] = "/boot/EFI/systemd/systemd-bootaa64.efi"
+		ret["bootEFI"] = "/boot/EFI/BOOT/BOOTAA64.EFI"
+
+		return ret, nil
 	default:
 		return ret, fmt.Errorf("architecture %s isn't currently supported", runtime.GOARCH)
 	}

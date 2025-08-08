@@ -8,7 +8,7 @@ import (
 )
 
 // GetLUKSVolumePartitions returns the underlying partitions that hold the root and swap LUKS volumes.
-// We can't just rely on /dev/disk/by-partlabel/root-x86-64, because as soon as an overlay is applied
+// We can't just rely on /dev/disk/by-partlabel/root-ARCH, because as soon as an overlay is applied
 // that symlink is repointed to the newly mapped loop device.
 func GetLUKSVolumePartitions() (map[string]string, error) {
 	// /dev/disk/by-partlabel/swap should always point to the correct underlying device.
