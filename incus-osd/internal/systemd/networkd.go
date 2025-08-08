@@ -390,21 +390,15 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 
 // When dealing with a bridge, we can't just get its IP address or route. So,
 // determine the "main" member corresponding to the physical NIC and return that
-// device name instead. If the device isn't a bridge, or for some reason there's
-// no physical NIC, return the original name unmodified.
+// device name instead. If the device isn't a bridge, return the original name
+// unmodified.
 func resolveBridge(iface string) string {
-	members, err := os.ReadDir("/sys/class/net/" + iface + "/brif")
+	_, err := os.ReadDir("/sys/class/net/" + iface + "/brif")
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		return iface
 	}
 
-	for _, member := range members {
-		if strings.HasPrefix(member.Name(), "_p") {
-			return strings.Replace(member.Name(), "_p", "_i", 1)
-		}
-	}
-
-	return iface
+	return "_v" + iface
 }
 
 // GetIPAddresses returns any non-link-local address for an interface.
@@ -740,16 +734,16 @@ VLANFiltering=true
 		// veth.
 		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("10-_i%s.netdev", strippedHwaddr),
+			Name: fmt.Sprintf("10-_v%s.netdev", i.Name),
 			Contents: fmt.Sprintf(`[NetDev]
-Name=_i%s
+Name=_v%s
 Kind=veth
 MACAddress=%s
 %s
 
 [Peer]
-Name=_v%s
-`, strippedHwaddr, i.Hwaddr, mtuString, i.Name),
+Name=_i%s
+`, i.Name, i.Hwaddr, mtuString, strippedHwaddr),
 		})
 	}
 
@@ -794,16 +788,16 @@ VLANFiltering=true
 
 		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
-			Name: fmt.Sprintf("11-_i%s.netdev", strippedHwaddr),
+			Name: fmt.Sprintf("11-_v%s.netdev", b.Name),
 			Contents: fmt.Sprintf(`[NetDev]
-Name=_i%s
+Name=_v%s
 Kind=veth
 MACAddress=%s
 %s
 
 [Peer]
-Name=_v%s
-`, strippedHwaddr, bondMacAddr, mtuString, b.Name),
+Name=_i%s
+`, b.Name, bondMacAddr, mtuString, strippedHwaddr),
 		})
 	}
 
@@ -838,9 +832,8 @@ func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdC
 	// Create networks for each interface and its bridge.
 	for _, i := range networkCfg.Interfaces {
 		// User side of veth device.
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		cfgString := fmt.Sprintf(`[Match]
-Name=_i%s
+Name=_v%s
 
 [Link]
 %s
@@ -851,7 +844,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, strippedHwaddr, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -860,22 +853,23 @@ UseMTU=true
 		}
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("20-_i%s.network", strippedHwaddr),
+			Name:     fmt.Sprintf("20-_v%s.network", i.Name),
 			Contents: cfgString,
 		})
 
 		// Bridge side of veth device.
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		cfgString = fmt.Sprintf(`[Match]
-Name=_v%s
+Name=_i%s
 
 [Network]
 Bridge=%s
-`, i.Name, i.Name)
+`, strippedHwaddr, i.Name)
 
 		cfgString += generateBridgeVLANContents(i.Name, i.VLAN, i.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("20-_v%s.network", i.Name),
+			Name:     fmt.Sprintf("20-_i%s.network", strippedHwaddr),
 			Contents: cfgString,
 		})
 
@@ -913,16 +907,9 @@ ConfigureWithoutCarrier=yes
 
 	// Create networks for each bond, its member(s), and its bridge.
 	for _, b := range networkCfg.Bonds {
-		bondMacAddr := b.Hwaddr
-		if bondMacAddr == "" {
-			bondMacAddr = b.Members[0]
-		}
-
-		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
-
 		// User side of veth device.
 		cfgString := fmt.Sprintf(`[Match]
-Name=_i%s
+Name=_v%s
 
 [Link]
 %s
@@ -933,7 +920,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, strippedHwaddr, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -942,22 +929,29 @@ UseMTU=true
 		}
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("21-_i%s.network", strippedHwaddr),
+			Name:     fmt.Sprintf("21-_v%s.network", b.Name),
 			Contents: cfgString,
 		})
 
 		// Bridge side of veth device.
+		bondMacAddr := b.Hwaddr
+		if bondMacAddr == "" {
+			bondMacAddr = b.Members[0]
+		}
+
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(bondMacAddr, ":", ""))
+
 		cfgString = fmt.Sprintf(`[Match]
-Name=_v%s
+Name=_i%s
 
 [Network]
 Bridge=%s
-`, b.Name, b.Name)
+`, strippedHwaddr, b.Name)
 
 		cfgString += generateBridgeVLANContents(b.Name, b.VLAN, b.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
-			Name:     fmt.Sprintf("21-_v%s.network", b.Name),
+			Name:     fmt.Sprintf("21-_i%s.network", strippedHwaddr),
 			Contents: cfgString,
 		})
 
