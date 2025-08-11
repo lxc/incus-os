@@ -244,6 +244,11 @@ func (t *TUI) redrawScreen() {
 	t.frame.Clear()
 
 	// Display header.
+	hostname, err := os.Hostname()
+	if err == nil {
+		t.frame.AddText(hostname, true, tview.AlignLeft, tcell.ColorWhite)
+	}
+
 	t.frame.AddText(t.state.OS.Name+" "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
 	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
 
