@@ -636,8 +636,6 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 	if s.RebootRequired {
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
-
-		return "", nil
 	}
 
 	update, err := p.GetOSUpdate(ctx, s.OS.Name)
