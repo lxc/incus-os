@@ -40,6 +40,8 @@ var (
 	runPath = "/run/incus-os/"
 )
 
+var updateModal *tui.Modal
+
 func main() {
 	ctx := context.Background()
 
@@ -465,16 +467,14 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 }
 
 func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) {
-	var modal *tui.Modal
-
 	showModalError := func(msg string, err error) {
 		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 
-		if modal == nil {
-			modal = t.AddModal(s.OS.Name + " Update")
+		if updateModal == nil {
+			updateModal = t.AddModal(s.OS.Name + " Update")
 		}
 
-		modal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
+		updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
 	}
 
 	for {
@@ -551,11 +551,11 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		if newInstalledOSVersion != "" {
-			if modal == nil {
-				modal = t.AddModal(s.OS.Name + " Update")
+			if updateModal == nil {
+				updateModal = t.AddModal(s.OS.Name + " Update")
 			}
 
-			modal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
+			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
 
 			s.RebootRequired = true
 		}
