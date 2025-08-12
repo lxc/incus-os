@@ -201,7 +201,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 		err = srv.Stop(ctx)
 		if err != nil {
-			return err
+			slog.ErrorContext(ctx, "Failed stopping service", "name", srvName, "err", err)
 		}
 	}
 
@@ -358,7 +358,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 		err = srv.Start(ctx)
 		if err != nil {
-			return err
+			slog.ErrorContext(ctx, "Failed starting service", "name", srvName, "err", err)
 		}
 	}
 
