@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -453,4 +454,32 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 	}
 
 	return ret, nil
+}
+
+// IsRemoteDevice determines if a given device is remote (NVMEoTCP, FC, etc).
+func IsRemoteDevice(deviceName string) (bool, error) {
+	device := filepath.Base(deviceName)
+
+	// SATA.
+	if strings.HasPrefix(device, "sd") {
+		return false, nil
+	}
+
+	// NVME.
+	if strings.HasPrefix(device, "nvme") {
+		re := regexp.MustCompile(`n\d+$`)
+		nvmeDevice := re.ReplaceAllString(device, "")
+
+		// Read the symlink for this nvme device.
+		link, err := os.Readlink("/sys/class/block/" + device + "/device/" + nvmeDevice)
+		if err != nil {
+			return false, err
+		}
+
+		// If the symlink contains "/pci", it's local, otherwise it's remote.
+		return !strings.Contains(link, "/pci"), nil
+	}
+
+	// Default to saying the device is local.
+	return false, nil
 }
