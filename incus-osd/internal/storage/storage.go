@@ -396,6 +396,12 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			return ret, err
 		}
 
+		// Determine if this is a remote device (NVMEoTCP, FC, etc).
+		isRemote, err := IsRemoteDevice(drive.KName)
+		if err != nil {
+			return ret, err
+		}
+
 		// If model_family or model_name are empty, try to populate values by looking at SCSI fields.
 		modelFamily := smart.ModelFamily
 		if modelFamily == "" {
@@ -447,6 +453,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
 			Removable:       drive.RM,
+			Remote:          isRemote,
 			WWN:             wwnString,
 			SMART:           smartStatus,
 			MemberPool:      driveZpool,
