@@ -530,9 +530,9 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-_iaabbccddee01.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee01\n\n[Network]\nBridge=management\n", cfgs[1].Contents)
 	require.Equal(t, "20-_paabbccddee01.network", cfgs[2].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=management\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=management\n[Link]\nMTUBytes=9000\n", cfgs[2].Contents)
 	require.Equal(t, "20-management.network", cfgs[3].Name)
-	require.Equal(t, "[Match]\nName=management\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n", cfgs[3].Contents)
+	require.Equal(t, "[Match]\nName=management\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n[Link]\nMTUBytes=9000\n", cfgs[3].Contents)
 
 	// Test third config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}

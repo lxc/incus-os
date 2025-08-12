@@ -219,10 +219,18 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 		if vdev.VdevType == "disk" {
 			zpoolType = "zfs-raid0"
 
+			// For installs before the storage API was implemented, the "local" ZFS pool was created using
+			// partition labels, rather than partition/disk IDs. If vdevName is "local-data", then tweak
+			// the parentDir.
+			parentDir := "/dev/disk/by-id/"
+			if vdevName == "local-data" {
+				parentDir = "/dev/disk/by-partlabel/"
+			}
+
 			if vdev.State == "ONLINE" {
-				zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+vdevName)
+				zpoolDevices["devices"] = append(zpoolDevices["devices"], parentDir+vdevName)
 			} else {
-				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], "/dev/disk/by-id/"+vdevName)
+				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], parentDir+vdevName)
 			}
 		} else {
 			switch vdevName {
@@ -363,7 +371,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 	// Get a list of all local drives.
 	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2", "-o", "KNAME,SIZE,RM")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7", "-o", "KNAME,SIZE,RM")
 	if err != nil {
 		return ret, err
 	}
