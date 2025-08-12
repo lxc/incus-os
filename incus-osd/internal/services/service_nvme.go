@@ -170,12 +170,16 @@ func (n *NVME) Start(ctx context.Context) error {
 		return err
 	}
 
+	// Wait up to 30s for all targets to be contacted.
+	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	for _, target := range n.state.Services.NVME.Config.Targets {
 		// Attempt to connect to the target (wait up to 5s).
 		//
 		// This isn't fatal as some controllers may be temporarily offline.
 		for range 10 {
-			_, err = subprocess.RunCommandContext(ctx, "nvme", "discover", "--transport", target.Transport, "--traddr", target.Address, "--trsvcid", strconv.Itoa(target.Port))
+			_, err = subprocess.RunCommandContext(ctxTimeout, "nvme", "discover", "--transport", target.Transport, "--traddr", target.Address, "--trsvcid", strconv.Itoa(target.Port))
 			if err == nil {
 				break
 			}
@@ -189,8 +193,12 @@ func (n *NVME) Start(ctx context.Context) error {
 		}
 	}
 
+	// Wait up to 30s for all targets to be connected.
+	ctxTimeout, cancel = context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	// Connect all NVME devices.
-	_, err = subprocess.RunCommandContext(ctx, "nvme", "connect-all")
+	_, err = subprocess.RunCommandContext(ctxTimeout, "nvme", "connect-all")
 	if err != nil {
 		return err
 	}
