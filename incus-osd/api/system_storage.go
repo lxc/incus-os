@@ -40,6 +40,7 @@ type SystemStorageDrive struct {
 	Bus             string                   `json:"bus"                   yaml:"bus"`
 	CapacityInBytes int                      `json:"capacity_in_bytes"     yaml:"capacity_in_bytes"`
 	Removable       bool                     `json:"removable"             yaml:"removable"`
+	Remote          bool                     `json:"remote"                yaml:"remote"`
 	WWN             string                   `json:"wwn,omitempty"         yaml:"wwn,omitempty"`
 	SMART           *SystemStorageDriveSMART `json:"smart,omitempty"       yaml:"smart,omitempty"`
 	MemberPool      string                   `json:"member_pool,omitempty" yaml:"member_pool,omitempty"`

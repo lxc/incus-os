@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -395,6 +396,12 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			return ret, err
 		}
 
+		// Determine if this is a remote device (NVMEoTCP, FC, etc).
+		isRemote, err := IsRemoteDevice(drive.KName)
+		if err != nil {
+			return ret, err
+		}
+
 		// If model_family or model_name are empty, try to populate values by looking at SCSI fields.
 		modelFamily := smart.ModelFamily
 		if modelFamily == "" {
@@ -446,6 +453,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
 			Removable:       drive.RM,
+			Remote:          isRemote,
 			WWN:             wwnString,
 			SMART:           smartStatus,
 			MemberPool:      driveZpool,
@@ -453,4 +461,32 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 	}
 
 	return ret, nil
+}
+
+// IsRemoteDevice determines if a given device is remote (NVMEoTCP, FC, etc).
+func IsRemoteDevice(deviceName string) (bool, error) {
+	device := filepath.Base(deviceName)
+
+	// SATA.
+	if strings.HasPrefix(device, "sd") {
+		return false, nil
+	}
+
+	// NVME.
+	if strings.HasPrefix(device, "nvme") {
+		re := regexp.MustCompile(`n\d+$`)
+		nvmeDevice := re.ReplaceAllString(device, "")
+
+		// Read the symlink for this nvme device.
+		link, err := os.Readlink("/sys/class/block/" + device + "/device/" + nvmeDevice)
+		if err != nil {
+			return false, err
+		}
+
+		// If the symlink contains "/pci", it's local, otherwise it's remote.
+		return !strings.Contains(link, "/pci"), nil
+	}
+
+	// Default to saying the device is local.
+	return false, nil
 }
