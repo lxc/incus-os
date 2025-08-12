@@ -371,7 +371,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 	// Get a list of all local drives.
 	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2", "-o", "KNAME,SIZE,RM")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7", "-o", "KNAME,SIZE,RM")
 	if err != nil {
 		return ret, err
 	}
