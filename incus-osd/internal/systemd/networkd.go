@@ -885,6 +885,10 @@ Bridge=%s
 
 		cfgString += generateBridgeVLANContents(i.Name, i.VLAN, i.VLANTags, networkCfg.VLANs)
 
+		if i.MTU != 0 {
+			cfgString += fmt.Sprintf("[Link]\nMTUBytes=%d\n", i.MTU)
+		}
+
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-_p%s.network", strippedHwaddr),
 			Contents: cfgString,
@@ -898,6 +902,10 @@ Name=%s
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 `, i.Name)
+
+		if i.MTU != 0 {
+			cfgString += fmt.Sprintf("[Link]\nMTUBytes=%d\n", i.MTU)
+		}
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-%s.network", i.Name),
