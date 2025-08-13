@@ -19,6 +19,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/proxy"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -43,8 +44,8 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
-	// Set proxy environment variables, or clear existing ones if none are defined.
-	err = UpdateEnvironment(networkCfg.Proxy)
+	// Configure and startup the local proxy daemon.
+	err = proxy.StartLocalProxy(ctx, networkCfg.Proxy)
 	if err != nil {
 		return err
 	}
