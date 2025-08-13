@@ -616,6 +616,11 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 			return err
 		}
 
+		// Update progress every 24MiB.
+		if count%6 == 0 {
+			modal.UpdateProgress(float64(count*blockSize) / float64(partitionSize))
+		}
+
 		count++
 
 		// Break out of copy loop early, if possible.
@@ -623,6 +628,9 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 			break
 		}
 	}
+
+	// Hide the progress bar.
+	modal.UpdateProgress(0.0)
 
 	return nil
 }
