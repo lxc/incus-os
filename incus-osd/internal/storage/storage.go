@@ -384,6 +384,11 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 		return ret, err
 	}
 
+	bootDevice, err := GetUnderlyingDevice()
+	if err != nil {
+		return ret, err
+	}
+
 	// Get SMART data and populate struct for each drive.
 	for _, drive := range drives.BlockDevices {
 		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
@@ -452,6 +457,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			SerialNumber:    smart.SerialNumber,
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
+			Boot:            drive.KName == bootDevice,
 			Removable:       drive.RM,
 			Remote:          isRemote,
 			WWN:             wwnString,

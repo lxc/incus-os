@@ -39,6 +39,7 @@ type SystemStorageDrive struct {
 	SerialNumber    string                   `json:"serial_number"         yaml:"serial_number"`
 	Bus             string                   `json:"bus"                   yaml:"bus"`
 	CapacityInBytes int                      `json:"capacity_in_bytes"     yaml:"capacity_in_bytes"`
+	Boot            bool                     `json:"boot"                  yaml:"boot"`
 	Removable       bool                     `json:"removable"             yaml:"removable"`
 	Remote          bool                     `json:"remote"                yaml:"remote"`
 	WWN             string                   `json:"wwn,omitempty"         yaml:"wwn,omitempty"`
