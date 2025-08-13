@@ -7,8 +7,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
-// ValidNames contains the list of all valid services.
-var ValidNames = []string{"iscsi", "lvm", "nvme", "multipath", "ovn", "usbip"}
+// Supported contains the list of all valid services.
+// The list is sorted in recommended startup order to handle service dependencies.
+var Supported = []string{"iscsi", "nvme", "multipath", "lvm", "ovn", "usbip"}
 
 // Load returns a handler for the given system service.
 func Load(ctx context.Context, s *state.State, name string) (Service, error) {

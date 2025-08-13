@@ -19,8 +19,11 @@ func (*Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the list of services.
+	names := slices.Clone(services.Supported)
+	slices.Sort(names)
+
 	urls := []string{}
-	for _, service := range services.ValidNames {
+	for _, service := range names {
 		urls = append(urls, "/1.0/services/"+service)
 	}
 
@@ -33,7 +36,7 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
 	// Check if the service is valid.
-	if !slices.Contains(services.ValidNames, name) {
+	if !slices.Contains(services.Supported, name) {
 		_ = response.NotFound(nil).Render(w)
 
 		return
