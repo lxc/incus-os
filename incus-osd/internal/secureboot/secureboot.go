@@ -825,6 +825,8 @@ func efiVariableToFilename(variableName string) (string, error) {
 		return "/sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
 	case "DeployedMode":
 		return "/sys/firmware/efi/efivars/DeployedMode-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
+	case "AuditMode":
+		return "/sys/firmware/efi/efivars/AuditMode-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
 	case "PK":
 		return "/sys/firmware/efi/efivars/PK-8be4df61-93ca-11d2-aa0d-00e098032b8c", nil
 	case "KEK":
