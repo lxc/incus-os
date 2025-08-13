@@ -57,6 +57,10 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 
 		iter := v.MapRange()
 		for iter.Next() {
+			if strings.Contains(iter.Key().String(), ".") {
+				return fmt.Errorf("map key '%s' cannot contain dots", iter.Key())
+			}
+
 			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%s]", keyBase, iter.Key())
 
 			err := encodeHelper(b, keyPrefix, iter.Value())
