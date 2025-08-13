@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -21,6 +22,82 @@ var upgrades = UpgradeFuncs{
 				lines[i] = strings.Replace(lines[i], "System.Encryption.", "System.Security.", 1)
 				lines[i] = strings.Replace(lines[i], "System.Security.Config.RecoveryKeys", "System.Security.Config.EncryptionRecoveryKeys", 1)
 				lines[i] = strings.Replace(lines[i], "System.Security.State.RecoveryKeysRetrieved", "System.Security.State.EncryptionRecoveryKeysRetrieved", 1)
+			}
+		}
+
+		return lines, nil
+	},
+	// V2: struct Network.Proxy expended to support switch to using kpx for proxying.
+	func(lines []string) ([]string, error) {
+		currentRuleIndex := 0
+
+		for i, line := range lines {
+			if strings.HasPrefix(line, "System.Network.Config.Proxy.HTTPProxy") || strings.HasPrefix(line, "System.Network.Config.Proxy.HTTPSProxy") {
+				parts := strings.SplitN(line, ": ", 2)
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("malformed line '%s'", line)
+				}
+
+				// Bit of a hack: if parts[1] doesn't begin with http, add it for url.Parse() to work correctly.
+				proxyHost := parts[1]
+				if !strings.HasPrefix(proxyHost, "http") {
+					proxyHost = "http://" + proxyHost
+				}
+
+				parsedProxy, err := url.Parse(proxyHost)
+				if err != nil {
+					return nil, err
+				}
+
+				mapKey := strings.ReplaceAll(parsedProxy.Hostname(), ".", "_")
+				newHost := parsedProxy.Hostname()
+				newAuth := "anonymous"
+
+				if parsedProxy.Port() != "" {
+					mapKey += "_" + parsedProxy.Port()
+					newHost += ":" + parsedProxy.Port()
+				}
+
+				if parsedProxy.User != nil {
+					newAuth = "basic"
+				}
+
+				lines[i] = fmt.Sprintf(`System.Network.Config.Proxy.Servers[%s].Host: %s
+System.Network.Config.Proxy.Servers[%s].Auth: %s
+`, mapKey, newHost, mapKey, newAuth)
+
+				if parsedProxy.User != nil {
+					userPassword, _ := parsedProxy.User.Password()
+					lines[i] += fmt.Sprintf(`System.Network.Config.Proxy.Servers[%s].Username: %s
+System.Network.Config.Proxy.Servers[%s].Password: %s
+`, mapKey, parsedProxy.User.Username(), mapKey, userPassword)
+				}
+
+				proxyRulePrefix := "http://"
+				if strings.HasPrefix(line, "System.Network.Config.Proxy.HTTPSProxy") {
+					proxyRulePrefix = "https://"
+				}
+
+				lines[i] += fmt.Sprintf(`System.Network.Config.Proxy.Rules[%d].Destination: %s*
+System.Network.Config.Proxy.Rules[%d].Target: %s
+`, currentRuleIndex, proxyRulePrefix, currentRuleIndex, mapKey)
+
+				currentRuleIndex++
+			}
+
+			if strings.HasPrefix(line, "System.Network.Config.Proxy.NoProxy") {
+				parts := strings.SplitN(line, ": ", 2)
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("malformed line '%s'", line)
+				}
+
+				newValue := strings.ReplaceAll(parts[1], ",", "|")
+
+				lines[i] = fmt.Sprintf(`System.Network.Config.Proxy.Rules[%d].Destination: %s
+System.Network.Config.Proxy.Rules[%d].Target: direct
+`, currentRuleIndex, newValue, currentRuleIndex)
+
+				currentRuleIndex++
 			}
 		}
 
@@ -56,6 +133,11 @@ func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 					return err
 				}
 
+				// An upgrade may generate more than one new line of content, so we join
+				// then resplit the lines after each upgrade function runs.
+				lines = strings.Split(strings.Join(lines, "\n"), "\n")
+
+				// Increment the state's version number.
 				s.StateVersion = i + 1
 			}
 		}
