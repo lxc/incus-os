@@ -1,0 +1,8 @@
+[Unit]
+Description=kpx proxy daemon
+
+[Service]
+User=nobody
+Group=nogroup
+ExecStart=/usr/local/bin/kpx -c /etc/kpx.yaml
+Restart=on-failure

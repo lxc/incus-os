@@ -1,7 +1,6 @@
 package state_test
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -9,8 +8,6 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
-
-var goldJSON = `{"secure_boot":{"version":"","fully_applied":false},"applications":{"incus":{"initialized":true,"version":"202506241635"}},"os":{"name":"IncusOS","running_release":"202506241635","next_release":"202506241635"},"services":{"iscsi":{"state":{"initiator_name":""},"config":{"enabled":false,"targets":null}},"lvm":{"state":{},"config":{"enabled":false,"system_id":0}},"multipath":{"config":{"enabled":false,"wwns":null},"state":{"devices":null}},"nvme":{"state":{"host_id":"","host_nqn":""},"config":{"enabled":false,"targets":null}},"ovn":{"state":{},"config":{"enabled":false,"ic_chassis":false,"database":"","tls_client_certificate":"","tls_client_key":"","tls_ca_certificate":"","tunnel_address":"","tunnel_protocol":""}},"usbip":{"state":{},"config":{"targets":null}}},"system":{"security":{"config":{"encryption_recovery_keys":["ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb"]},"state":{"encrypted_volumes":[],"encryption_recovery_keys_retrieved":true,"secure_boot_certificates":[],"secure_boot_enabled":false,"tpm_status":"","pool_recovery_keys":{}}},"network":{"config":{"interfaces":[{"name":"enp5s0","addresses":["dhcp4","slaac"],"hwaddr":"10:66:6a:7c:8c:b0","lldp":false}]},"state":{"interfaces":{"enp5s0":{"type":"interface","hwaddr":"10:66:6a:7c:8c:b0","addresses":["10.234.136.156"],"routes":[{"to":"default","via":"10.234.136.1"}],"mtu":1500,"speed":"10Gbps","state":"routable","stats":{"rx_bytes":944,"tx_bytes":751,"rx_errors":0,"tx_errors":0}}}}},"provider":{"config":{"name":"local","config":{"multiline_value":"first\nsecond\nthird"}},"state":{"registered":false}}}}`
 
 var goldEncodingV0 = `#Version: 0
 Applications[incus].Initialized: true
@@ -20,6 +17,9 @@ OS.RunningRelease: 202506241635
 OS.NextRelease: 202506241635
 System.Encryption.Config.RecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
 System.Encryption.State.RecoveryKeysRetrieved: true
+System.Network.Config.Proxy.HTTPProxy: anonymous-proxy.example.org:1234
+System.Network.Config.Proxy.HTTPSProxy: user:pass@proxy.example.net:8080
+System.Network.Config.Proxy.NoProxy: *.example.org,*.example.net
 System.Network.Config.Interfaces[0].Name: enp5s0
 System.Network.Config.Interfaces[0].Addresses[0]: dhcp4
 System.Network.Config.Interfaces[0].Addresses[1]: slaac
@@ -36,6 +36,9 @@ OS.RunningRelease: 202506241635
 OS.NextRelease: 202506241635
 System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
 System.Security.State.EncryptionRecoveryKeysRetrieved: true
+System.Network.Config.Proxy.HTTPProxy: anonymous-proxy.example.org:1234
+System.Network.Config.Proxy.HTTPSProxy: user:pass@proxy.example.net:8080
+System.Network.Config.Proxy.NoProxy: *.example.org,*.example.net
 System.Network.Config.Interfaces[0].Name: enp5s0
 System.Network.Config.Interfaces[0].Addresses[0]: dhcp4
 System.Network.Config.Interfaces[0].Addresses[1]: slaac
@@ -44,60 +47,53 @@ System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
 `
 
-// Test basic json decoding/encoding of state.
-func TestJsonEncoding(t *testing.T) {
-	t.Parallel()
-
-	var s state.State
-
-	err := json.Unmarshal([]byte(goldJSON), &s)
-	require.NoError(t, err)
-
-	content, err := json.Marshal(s)
-	require.NoError(t, err)
-
-	require.JSONEq(t, goldJSON, string(content))
-}
+var goldEncodingV2 = `#Version: 2
+Applications[incus].Initialized: true
+Applications[incus].Version: 202506241635
+OS.Name: IncusOS
+OS.RunningRelease: 202506241635
+OS.NextRelease: 202506241635
+System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
+System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Host: anonymous-proxy.example.org:1234
+System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Auth: anonymous
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Host: proxy.example.net:8080
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Auth: basic
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Username: user
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Password: pass
+System.Network.Config.Proxy.Rules[0].Destination: http://*
+System.Network.Config.Proxy.Rules[0].Target: anonymous-proxy_example_org_1234
+System.Network.Config.Proxy.Rules[1].Destination: https://*
+System.Network.Config.Proxy.Rules[1].Target: proxy_example_net_8080
+System.Network.Config.Proxy.Rules[2].Destination: *.example.org|*.example.net
+System.Network.Config.Proxy.Rules[2].Target: direct
+System.Network.Config.Interfaces[0].Name: enp5s0
+System.Network.Config.Interfaces[0].Addresses[0]: dhcp4
+System.Network.Config.Interfaces[0].Addresses[1]: slaac
+System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
+System.Provider.Config.Name: local
+System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
+`
 
 // Test basic custom decoding/encoding of state.
 func TestCustomEncoding(t *testing.T) {
 	t.Parallel()
 
-	var s state.State
+	// Test upgrading each known old state version.
+	for _, goldVersion := range []string{goldEncodingV0, goldEncodingV1} {
+		var s state.State
 
-	err := state.Decode([]byte(goldEncodingV0), nil, &s)
-	require.NoError(t, err)
+		err := state.Decode([]byte(goldVersion), nil, &s)
+		require.NoError(t, err)
 
-	content, err := state.Encode(&s)
-	require.NoError(t, err)
+		content, err := state.Encode(&s)
+		require.NoError(t, err)
 
-	require.Equal(t, goldEncodingV1, string(content))
-	require.Equal(t, 1, s.StateVersion)
+		require.Equal(t, goldEncodingV2, string(content))
+		require.Equal(t, 2, s.StateVersion)
 
-	require.Equal(t, 2, strings.Count(s.System.Provider.Config.Config["multiline_value"], "\n"))
-}
-
-// Test that we can correctly read in the json format and produce the expected custom encoding.
-func TestEncodingSwitch(t *testing.T) {
-	t.Parallel()
-
-	var js state.State
-
-	err := json.Unmarshal([]byte(goldJSON), &js)
-	require.NoError(t, err)
-
-	content, err := state.Encode(&js)
-	require.NoError(t, err)
-
-	var cs1, cs2 state.State
-
-	err = state.Decode(content, nil, &cs1)
-	require.NoError(t, err)
-
-	err = state.Decode([]byte(goldEncodingV1), nil, &cs2)
-	require.NoError(t, err)
-
-	require.Equal(t, cs1, cs2)
+		require.Equal(t, 2, strings.Count(s.System.Provider.Config.Config["multiline_value"], "\n"))
+	}
 }
 
 // Test simple upgrade functions when reading in state.
@@ -105,6 +101,7 @@ func TestUpgradeFuncs(t *testing.T) {
 	t.Parallel()
 
 	funcs := state.UpgradeFuncs{
+		nil,
 		nil,
 		func(lines []string) ([]string, error) {
 			for i, line := range lines {
@@ -128,10 +125,10 @@ func TestUpgradeFuncs(t *testing.T) {
 
 	var s state.State
 
-	err := state.Decode([]byte(goldEncodingV1), funcs, &s)
+	err := state.Decode([]byte(goldEncodingV2), funcs, &s)
 	require.NoError(t, err)
 
-	require.Equal(t, 3, s.StateVersion)
+	require.Equal(t, 4, s.StateVersion)
 	require.Equal(t, "My Test OS", s.OS.Name)
 	require.Equal(t, "dhcp4", s.System.Network.Config.Interfaces[0].Addresses[0])
 	require.Equal(t, "dhcp6", s.System.Network.Config.Interfaces[0].Addresses[1])

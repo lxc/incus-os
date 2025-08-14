@@ -101,7 +101,10 @@ ntp:
     - pool.ntp.example.org
     - 10.10.10.10
 proxy:
-  https_proxy: https://proxy.example.org
+  servers:
+    example:
+      host: https://proxy.example.org
+      auth: anonymous
 interfaces:
   - name: eth0
     addresses:
@@ -299,7 +302,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Len(t, cfg.NTP.Timeservers, 2)
 		require.Equal(t, "pool.ntp.example.org", cfg.NTP.Timeservers[0])
 		require.Equal(t, "10.10.10.10", cfg.NTP.Timeservers[1])
-		require.Equal(t, "https://proxy.example.org", cfg.Proxy.HTTPSProxy)
+		require.Len(t, cfg.Proxy.Servers, 1)
+		require.Equal(t, "https://proxy.example.org", cfg.Proxy.Servers["example"].Host)
+		require.Equal(t, "anonymous", cfg.Proxy.Servers["example"].Auth)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
 		content, err := yaml.Marshal(&cfg)

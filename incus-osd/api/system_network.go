@@ -99,9 +99,24 @@ type SystemNetworkNTP struct {
 
 // SystemNetworkProxy defines proxy configuration.
 type SystemNetworkProxy struct {
-	HTTPProxy  string `json:"http_proxy"  yaml:"http_proxy"`
-	HTTPSProxy string `json:"https_proxy" yaml:"https_proxy"`
-	NoProxy    string `json:"no_proxy"    yaml:"no_proxy"`
+	Servers map[string]SystemNetworkProxyServer `json:"servers,omitempty" yaml:"servers,omitempty"`
+	Rules   []SystemNetworkProxyRule            `json:"rules,omitempty"   yaml:"rules,omitempty"`
+}
+
+// SystemNetworkProxyServer defines a proxy server configuration.
+type SystemNetworkProxyServer struct {
+	Host     string `json:"host"               yaml:"host"`
+	UseTLS   bool   `json:"use_tls"            yaml:"use_tls"`
+	Auth     string `json:"auth"               yaml:"auth"`
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty"`
+	Realm    string `json:"realm,omitempty"    yaml:"realm,omitempty"`
+}
+
+// SystemNetworkProxyRule defines a proxy rule.
+type SystemNetworkProxyRule struct {
+	Destination string `json:"destination" yaml:"destination"`
+	Target      string `json:"target"      yaml:"target"`
 }
 
 // SystemNetworkState holds information about the current network state.
