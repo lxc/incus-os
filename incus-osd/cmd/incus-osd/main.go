@@ -142,14 +142,21 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return inst.DoInstall(ctx, s.OS.Name)
 	}
 
-	// Run startup tasks.
-	err = startup(ctx, s, t)
+	// Start the API.
+	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
 	if err != nil {
 		return err
 	}
 
-	// Start the API.
-	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
+	chErr := make(chan error, 1)
+
+	go func() {
+		err := server.Serve(ctx)
+		chErr <- err
+	}()
+
+	// Run startup tasks.
+	err = startup(ctx, s, t)
 	if err != nil {
 		return err
 	}
@@ -157,7 +164,8 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Done with all initialization.
 	slog.InfoContext(ctx, "System is ready", "release", s.OS.RunningRelease)
 
-	return server.Serve(ctx)
+	// Wait for the API to go down.
+	return <-chErr
 }
 
 func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
