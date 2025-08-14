@@ -52,6 +52,22 @@ endif
 
 	(cd app-build/migration-manager/ui && YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build)
 
+.PHONY: operations-center
+operations-center:
+	mkdir -p app-build/
+
+	$(eval OPERATIONS_CENTER_VERSION := main)
+ifeq (,$(wildcard app-build/operations-center/))
+	git clone https://github.com/FuturFusion/operations-center.git app-build/operations-center/ -b "${OPERATIONS_CENTER_VERSION}"
+else
+	(cd app-build/operations-center && git reset --hard && git pull)
+endif
+
+	(cd app-build/operations-center && go build -o ./operations-centerd ./cmd/operations-centerd)
+	strip app-build/operations-center/operations-centerd
+
+	(cd app-build/operations-center/ui && YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build)
+
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -82,7 +98,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool kpx initrd-deb-package migration-manager
+build: incus-osd flasher-tool kpx initrd-deb-package migration-manager operations-center
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -100,6 +116,11 @@ endif
 	cp app-build/migration-manager/migration-managerd mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	cp app-build/migration-manager/migration-manager-worker mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
 	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/ui/
+
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
+	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build

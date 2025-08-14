@@ -14,6 +14,7 @@ mkosi.images/base/mkosi.extra/usr/local/bin/
 mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
 mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/
 
 incus-osd/flasher-tool
 incus-osd/image-customizer
