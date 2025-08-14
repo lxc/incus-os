@@ -15,7 +15,7 @@ type UpdateFull struct {
 type Update struct {
 	Format string `json:"format"`
 
-	Channel     string         `json:"channel"`
+	Channels    []string       `json:"channel"`
 	Files       []UpdateFile   `json:"files"`
 	Origin      string         `json:"origin"`
 	PublishedAt time.Time      `json:"published_at"`
