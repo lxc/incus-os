@@ -83,7 +83,7 @@ func do(ctx context.Context) error {
 	metaUpdate := apiupdate.Update{
 		Format: "1.0",
 
-		Channel:     updateChannel,
+		Channels:    []string{updateChannel},
 		Files:       []apiupdate.UpdateFile{},
 		Origin:      updateOrigin,
 		PublishedAt: time.Now(),
