@@ -255,7 +255,7 @@ func (p *images) checkRelease(ctx context.Context) error {
 			continue
 		}
 
-		latestUpdateFiles = append(latestUpdateFiles, p.serverURL+latestUpdate.URL+"/"+file.Filename)
+		latestUpdateFiles = append(latestUpdateFiles, p.serverURL+"/"+latestUpdate.URL+"/"+file.Filename)
 	}
 
 	// Record the release.
