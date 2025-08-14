@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -55,15 +56,19 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 	case reflect.Map:
 		keyBase := keyPrefix[len(keyPrefix)-1]
 
-		iter := v.MapRange()
-		for iter.Next() {
-			if strings.Contains(iter.Key().String(), ".") {
-				return fmt.Errorf("map key '%s' cannot contain dots", iter.Key())
+		mapKeys := v.MapKeys()
+		slices.SortFunc(mapKeys, func(a reflect.Value, b reflect.Value) int {
+			return strings.Compare(a.String(), b.String())
+		})
+
+		for _, mapKey := range mapKeys {
+			if strings.Contains(mapKey.String(), ".") {
+				return fmt.Errorf("map key '%s' cannot contain dots", mapKey)
 			}
 
-			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%s]", keyBase, iter.Key())
+			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%s]", keyBase, mapKey)
 
-			err := encodeHelper(b, keyPrefix, iter.Value())
+			err := encodeHelper(b, keyPrefix, v.MapIndex(mapKey))
 			if err != nil {
 				return err
 			}
