@@ -24,8 +24,10 @@ kpx:
 ifeq (,$(wildcard incus-osd/kpx/))
 	git clone https://github.com/momiji/kpx incus-osd/kpx/ --depth 1 -b "v${KPX_VERSION}"
 else
-	(cd incus-osd/kpx && git fetch --depth 1 origin "v${KPX_VERSION}":refs/tags/"v${KPX_VERSION}" && git checkout "v${KPX_VERSION}")
+	(cd incus-osd/kpx && git reset --hard && git fetch --depth 1 origin "v${KPX_VERSION}":refs/tags/"v${KPX_VERSION}" && git checkout "v${KPX_VERSION}")
 endif
+
+	(cd incus-osd/kpx && patch -p1 < ../../patches/kpx-0001-Enable-IPv6-support.patch)
 
 	(cd incus-osd/kpx/cli && go build -o kpx -ldflags="-s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}")
 	strip incus-osd/kpx/cli/kpx
