@@ -34,6 +34,24 @@ endif
 	(cd app-build/kpx/cli && go build -o kpx -ldflags="-s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}")
 	strip app-build/kpx/cli/kpx
 
+.PHONY: migration-manager
+migration-manager:
+	mkdir -p app-build/
+
+	$(eval MIGRATION_MANAGER_VERSION := main)
+ifeq (,$(wildcard app-build/migration-manager/))
+	git clone https://github.com/FuturFusion/migration-manager.git app-build/migration-manager/ -b "${MIGRATION_MANAGER_VERSION}"
+else
+	(cd app-build/migration-manager && git reset --hard && git pull)
+endif
+
+	(cd app-build/migration-manager && go build -o ./migration-managerd ./cmd/migration-managerd)
+	strip app-build/migration-manager/migration-managerd
+	(cd app-build/migration-manager && go build -o ./migration-manager-worker ./cmd/migration-manager-worker)
+	strip app-build/migration-manager/migration-manager-worker
+
+	(cd app-build/migration-manager/ui && YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build)
+
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -64,7 +82,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool kpx initrd-deb-package
+build: incus-osd flasher-tool kpx initrd-deb-package migration-manager
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -76,6 +94,13 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp app-build/kpx/cli/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+
+	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/ui/
+	cp app-build/migration-manager/migration-managerd mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+	cp app-build/migration-manager/migration-manager-worker mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
+	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/ui/
+
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output

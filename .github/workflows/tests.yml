@@ -98,9 +98,12 @@ jobs:
             debian-archive-keyring \
             devscripts \
             efitools \
+            libnbd-dev \
             make \
+            pkgconf \
             pipx \
-            qemu-utils
+            qemu-utils \
+            yarnpkg
 
       - name: Setup Incus
         run: |
