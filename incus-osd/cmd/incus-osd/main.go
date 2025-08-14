@@ -541,28 +541,6 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
-		// Check for the latest OS update.
-		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
-		if err != nil {
-			showModalError("Failed to check for OS updates", err)
-
-			if isStartupCheck || isUserRequested {
-				break
-			}
-
-			continue
-		}
-
-		if newInstalledOSVersion != "" {
-			if updateModal == nil {
-				updateModal = t.AddModal(s.OS.Name + " Update")
-			}
-
-			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
-
-			s.RebootRequired = true
-		}
-
 		// Check for application updates.
 		appsUpdated := map[string]string{}
 
@@ -593,6 +571,28 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 				continue
 			}
+		}
+
+		// Check for the latest OS update.
+		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
+		if err != nil {
+			showModalError("Failed to check for OS updates", err)
+
+			if isStartupCheck || isUserRequested {
+				break
+			}
+
+			continue
+		}
+
+		if newInstalledOSVersion != "" {
+			if updateModal == nil {
+				updateModal = t.AddModal(s.OS.Name + " Update")
+			}
+
+			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
+
+			s.RebootRequired = true
 		}
 
 		// Notify the applications that they need to update/restart.
