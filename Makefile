@@ -1,5 +1,7 @@
 GO ?= go
 
+include app-versions.conf
+
 .PHONY: default
 default: build
 
@@ -22,7 +24,6 @@ flasher-tool:
 kpx:
 	mkdir -p app-build/
 
-	$(eval KPX_VERSION := 1.11.0)
 ifeq (,$(wildcard app-build/kpx/))
 	git clone https://github.com/momiji/kpx app-build/kpx/ --depth 1 -b "v${KPX_VERSION}"
 else
@@ -38,7 +39,6 @@ endif
 migration-manager:
 	mkdir -p app-build/
 
-	$(eval MIGRATION_MANAGER_VERSION := main)
 ifeq (,$(wildcard app-build/migration-manager/))
 	git clone https://github.com/FuturFusion/migration-manager.git app-build/migration-manager/ -b "${MIGRATION_MANAGER_VERSION}"
 else
@@ -56,7 +56,6 @@ endif
 operations-center:
 	mkdir -p app-build/
 
-	$(eval OPERATIONS_CENTER_VERSION := main)
 ifeq (,$(wildcard app-build/operations-center/))
 	git clone https://github.com/FuturFusion/operations-center.git app-build/operations-center/ -b "${OPERATIONS_CENTER_VERSION}"
 else
