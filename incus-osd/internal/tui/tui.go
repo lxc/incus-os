@@ -18,7 +18,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-var ttyDevs = []string{"/dev/console", "/dev/tty1", "/dev/ttyS0"}
+var ttyDevs = []string{"/dev/console", "/dev/tty1"}
 
 // TUI represents a terminal user interface.
 type TUI struct {
@@ -39,6 +39,12 @@ type TUI struct {
 func NewTUI(s *state.State) (*TUI, error) {
 	ret := &TUI{
 		state: s,
+	}
+
+	// If we're running in an Incus VM, additionally use /dev/ttyS0.
+	_, err := os.Stat("/dev/virtio-ports/org.linuxcontainers.incus")
+	if err == nil {
+		ttyDevs = append(ttyDevs, "/dev/ttyS0")
 	}
 
 	// Attempt to open the system's consoles.
