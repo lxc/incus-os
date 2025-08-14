@@ -90,9 +90,7 @@ jobs:
           mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
           mv mkosi.output/IncusOS_${{ github.ref_name }}.iso upload/IncusOS_${{ github.ref_name }}.iso
           mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64.* upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity.* upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity-sig.* upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-*.raw upload/
 
       - name: Compress the files
         run: |
