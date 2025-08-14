@@ -384,6 +384,11 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 		return ret, err
 	}
 
+	bootDevice, err := GetUnderlyingDevice()
+	if err != nil {
+		return ret, err
+	}
+
 	// Get SMART data and populate struct for each drive.
 	for _, drive := range drives.BlockDevices {
 		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
@@ -452,6 +457,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			SerialNumber:    smart.SerialNumber,
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
+			Boot:            drive.KName == bootDevice,
 			Removable:       drive.RM,
 			Remote:          isRemote,
 			WWN:             wwnString,
@@ -477,10 +483,19 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 		re := regexp.MustCompile(`n\d+$`)
 		nvmeDevice := re.ReplaceAllString(device, "")
 
-		// Read the symlink for this nvme device.
+		// Attempt to read the specific symlink for the underlying device. This may not exist
+		// on some systems, and if so we'll fallback to directly considering the device's symlink.
 		link, err := os.Readlink("/sys/class/block/" + device + "/device/" + nvmeDevice)
 		if err != nil {
-			return false, err
+			if !errors.Is(err, os.ErrNotExist) {
+				return false, err
+			}
+
+			// Try the actual device symlink.
+			link, err = os.Readlink("/sys/class/block/" + device)
+			if err != nil {
+				return false, err
+			}
 		}
 
 		// If the symlink contains "/pci", it's local, otherwise it's remote.
