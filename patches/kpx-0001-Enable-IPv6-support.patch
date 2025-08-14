@@ -1,0 +1,179 @@
+From 2813c930e1cacf4c6b72ad76b38027eb92e56d72 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?St=C3=A9phane=20Graber?= <stgraber@stgraber.org>
+Date: Thu, 14 Aug 2025 01:50:10 -0400
+Subject: [PATCH] Enable IPv6 support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Stéphane Graber <stgraber@stgraber.org>
+---
+ conn_test.go |  8 ++++----
+ kerberos.go  |  2 +-
+ process.go   | 26 +++++++++++++-------------
+ proxy.go     |  2 +-
+ 4 files changed, 19 insertions(+), 19 deletions(-)
+
+diff --git a/conn_test.go b/conn_test.go
+index 36bbd98..f3d481d 100644
+--- a/conn_test.go
++++ b/conn_test.go
+@@ -12,7 +12,7 @@ import (
+ func TestClosedConnFailsOnWrite(t *testing.T) {
+ 	hp := "127.0.0.1:12345"
+ 	// create a fake server on random port
+-	l, err := net.Listen("tcp4", hp)
++	l, err := net.Listen("tcp", hp)
+ 	if err != nil {
+ 		t.Fatalf("error listen: %v", err)
+ 	}
+@@ -24,7 +24,7 @@ func TestClosedConnFailsOnWrite(t *testing.T) {
+ 	}()
+ 	// create a connection to this random port
+ 	dialer := new(net.Dialer)
+-	c, err := dialer.Dial("tcp4", hp)
++	c, err := dialer.Dial("tcp", hp)
+ 	if err != nil {
+ 		t.Fatalf("error dial: %v", err)
+ 	}
+@@ -66,7 +66,7 @@ func TestClosedConnFailsOnWrite(t *testing.T) {
+ func TestLostConnection(t *testing.T) {
+ 	hp := "127.0.0.1:12345"
+ 	// create a fake server on random port
+-	l, err := net.Listen("tcp4", hp)
++	l, err := net.Listen("tcp", hp)
+ 	if err != nil {
+ 		t.Fatalf("error listen: %v", err)
+ 	}
+@@ -78,7 +78,7 @@ func TestLostConnection(t *testing.T) {
+ 	}()
+ 	// create a connection to this random port
+ 	dialer := new(net.Dialer)
+-	c, err := dialer.Dial("tcp4", hp)
++	c, err := dialer.Dial("tcp", hp)
+ 	if err != nil {
+ 		t.Fatalf("error dial: %v", err)
+ 	}
+diff --git a/kerberos.go b/kerberos.go
+index ae51dda..b313996 100644
+--- a/kerberos.go
++++ b/kerberos.go
+@@ -104,7 +104,7 @@ func (k *Kerberos) explodeKdcs(realmKdcs []string) []string {
+ func (k *Kerberos) testConn(hostPort string) bool {
+ 	dialer := new(net.Dialer)
+ 	dialer.Timeout = time.Duration(k.config.conf.ConnectTimeout) * time.Second
+-	checkConn, err := dialer.Dial("tcp4", hostPort)
++	checkConn, err := dialer.Dial("tcp", hostPort)
+ 	if err != nil {
+ 		return false
+ 	}
+diff --git a/process.go b/process.go
+index 6255705..a29e47e 100644
+--- a/process.go
++++ b/process.go
+@@ -221,13 +221,13 @@ func (p *Process) processChannel(clientChannel, proxyChannel *ProxyRequest) *Pro
+ 			case ProxyKerberos, ProxyBasic, ProxyAnonymous:
+ 				if firstProxy.Ssl {
+ 					tlsConfig := tls.Config{}
+-					conn, err = tls.DialWithDialer(dialer, "tcp4", firstHostPort, &tlsConfig)
++					conn, err = tls.DialWithDialer(dialer, "tcp", firstHostPort, &tlsConfig)
+ 				} else if clientChannel.header.isConnect || clientChannel.header.directToConnect {
+-					conn, err = dialer.Dial("tcp4", firstHostPort)
++					conn, err = dialer.Dial("tcp", firstHostPort)
+ 				} else {
+ 					// may reuse a http connection from pool
+ 					var reused bool
+-					reused, pooledConnInfo, err = p.proxy.newPooledConn(dialer, "tcp4", firstHostPort, clientChannel.header.host, authorizationContext, p.reqId)
++					reused, pooledConnInfo, err = p.proxy.newPooledConn(dialer, "tcp", firstHostPort, clientChannel.header.host, authorizationContext, p.reqId)
+ 					conn = pooledConnInfo.conn
+ 					if reused && *firstProxy.Type == ProxyKerberos {
+ 						// reused connection is already authenticated
+@@ -248,7 +248,7 @@ func (p *Process) processChannel(clientChannel, proxyChannel *ProxyRequest) *Pro
+ 					}
+ 				}
+ 				var socks netproxy.Dialer
+-				socks, err = netproxy.SOCKS5("tcp4", firstHostPort, authz, dialer)
++				socks, err = netproxy.SOCKS5("tcp", firstHostPort, authz, dialer)
+ 				if err == nil {
+ 					hostPort := clientChannel.header.hostPort
+ 					h, p := splitHostPort(hostPort, "", "", false)
+@@ -256,7 +256,7 @@ func (p *Process) processChannel(clientChannel, proxyChannel *ProxyRequest) *Pro
+ 						h2, p2 := splitHostPort(*rule.Dns, h, p, false)
+ 						hostPort = h2 + ":" + p2
+ 					}
+-					conn, err = socks.Dial("tcp4", hostPort)
++					conn, err = socks.Dial("tcp", hostPort)
+ 				}
+ 			case ProxyDirect:
+ 				simulateConnect = clientChannel.header.isConnect
+@@ -268,12 +268,12 @@ func (p *Process) processChannel(clientChannel, proxyChannel *ProxyRequest) *Pro
+ 				}
+ 				if firstProxy.Ssl {
+ 					tlsConfig := tls.Config{}
+-					conn, err = tls.DialWithDialer(dialer, "tcp4", hostPort, &tlsConfig)
++					conn, err = tls.DialWithDialer(dialer, "tcp", hostPort, &tlsConfig)
+ 				} else if clientChannel.header.isConnect || clientChannel.header.directToConnect {
+-					conn, err = dialer.Dial("tcp4", hostPort)
++					conn, err = dialer.Dial("tcp", hostPort)
+ 				} else {
+ 					// may reuse a http connection from pool
+-					_, pooledConnInfo, err = p.proxy.newPooledConn(dialer, "tcp4", hostPort, clientChannel.header.host, authorizationContext, p.reqId)
++					_, pooledConnInfo, err = p.proxy.newPooledConn(dialer, "tcp", hostPort, clientChannel.header.host, authorizationContext, p.reqId)
+ 					conn = pooledConnInfo.conn
+ 				}
+ 			}
+@@ -795,7 +795,7 @@ func (p *Process) findFirstProxy(rule *ConfRule, proxies []*ConfProxy) (*ConfPro
+ 				// try to connect to host
+ 				dialer := new(net.Dialer)
+ 				dialer.Timeout = time.Duration(p.config.conf.ConnectTimeout) * time.Second
+-				checkConn, err := dialer.Dial("tcp4", hostPort)
++				checkConn, err := dialer.Dial("tcp", hostPort)
+ 				if err != nil {
+ 					// on failure, try next host
+ 					if debug {
+@@ -1044,7 +1044,7 @@ func (p *Process) processSocks(request *socks5.Request) {
+ 				}
+ 			}
+ 			var socks netproxy.Dialer
+-			socks, err = netproxy.SOCKS5("tcp4", firstHostPort, authz, dialer)
++			socks, err = netproxy.SOCKS5("tcp", firstHostPort, authz, dialer)
+ 			if err == nil {
+ 				hostPort := requestHostPort
+ 				h, p := splitHostPort(hostPort, "", "", false)
+@@ -1052,7 +1052,7 @@ func (p *Process) processSocks(request *socks5.Request) {
+ 					h2, p2 := splitHostPort(*rule.Dns, h, p, false)
+ 					hostPort = h2 + ":" + p2
+ 				}
+-				conn, err = socks.Dial("tcp4", hostPort)
++				conn, err = socks.Dial("tcp", hostPort)
+ 			}
+ 		case ProxyDirect:
+ 			hostPort := requestHostPort
+@@ -1063,9 +1063,9 @@ func (p *Process) processSocks(request *socks5.Request) {
+ 			}
+ 			if firstProxy.Ssl {
+ 				tlsConfig := tls.Config{}
+-				conn, err = tls.DialWithDialer(dialer, "tcp4", hostPort, &tlsConfig)
++				conn, err = tls.DialWithDialer(dialer, "tcp", hostPort, &tlsConfig)
+ 			} else {
+-				conn, err = dialer.Dial("tcp4", hostPort)
++				conn, err = dialer.Dial("tcp", hostPort)
+ 			}
+ 		}
+ 		// if err == nil and pi>0 or pj>0, update last usage
+diff --git a/proxy.go b/proxy.go
+index bbf27b4..e130140 100644
+--- a/proxy.go
++++ b/proxy.go
+@@ -268,7 +268,7 @@ func (p *Proxy) run() error {
+ 
+ 	// start http server
+ 	if config.conf.Port != 0 {
+-		ln, err := net.Listen("tcp4", fmt.Sprint(config.conf.Bind, ":", config.conf.Port))
++		ln, err := net.Listen("tcp", fmt.Sprint(config.conf.Bind, ":", config.conf.Port))
+ 		if err != nil {
+ 			return stacktrace.Propagate(err, "unable to listen on %s:%d", config.conf.Bind, config.conf.Port)
+ 		}
+-- 
+2.47.2
+
