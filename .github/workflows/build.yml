@@ -12,13 +12,17 @@ jobs:
     name: Image build
     strategy:
       fail-fast: false
+      matrix:
+        arch:
+          - amd64
+          - arm64
     timeout-minutes: 45
     runs-on:
       - self-hosted
       - cpu-4
       - mem-4G
       - disk-100G
-      - arch-amd64
+      - arch-${{ matrix.arch }}
       - image-debian-12
     steps:
       - name: Checkout
@@ -90,9 +94,7 @@ jobs:
           mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
           mv mkosi.output/IncusOS_${{ github.ref_name }}.iso upload/IncusOS_${{ github.ref_name }}.iso
           mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64.* upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity.* upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-x86-64-verity-sig.* upload/
+          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-*.raw upload/
 
       - name: Compress the files
         run: |
@@ -104,5 +106,5 @@ jobs:
       - name: Upload binaries as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Image
+          name: image-${{ matrix.arch }}
           path: upload/
