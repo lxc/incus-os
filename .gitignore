@@ -11,6 +11,9 @@ app-build/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/
+mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
+mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 
 incus-osd/flasher-tool
 incus-osd/image-customizer
