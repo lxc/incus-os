@@ -13,6 +13,8 @@ func Load(_ context.Context, name string) (Application, error) {
 		app = &incus{}
 	case "migration-manager":
 		app = &migrationManager{}
+	case "operations-center":
+		app = &operationsCenter{}
 	default:
 		app = &common{}
 	}
