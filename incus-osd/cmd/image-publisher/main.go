@@ -39,6 +39,10 @@ func do(ctx context.Context) error {
 	}
 
 	targetPath := os.Args[1]
+	err := os.MkdirAll(targetPath, 0755)
+	if err != nil {
+		return err
+	}
 
 	// Config (optional).
 	updateChannel := os.Getenv("UPDATE_CHANNEL")
