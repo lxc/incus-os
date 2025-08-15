@@ -1,5 +1,7 @@
 GO ?= go
 
+include app-versions.conf
+
 .PHONY: default
 default: build
 
@@ -20,17 +22,50 @@ flasher-tool:
 
 .PHONY: kpx
 kpx:
-	$(eval KPX_VERSION := 1.11.0)
-ifeq (,$(wildcard incus-osd/kpx/))
-	git clone https://github.com/momiji/kpx incus-osd/kpx/ --depth 1 -b "v${KPX_VERSION}"
+	mkdir -p app-build/
+
+ifeq (,$(wildcard app-build/kpx/))
+	git clone https://github.com/momiji/kpx app-build/kpx/ --depth 1 -b "v${KPX_VERSION}"
 else
-	(cd incus-osd/kpx && git reset --hard && git fetch --depth 1 origin "v${KPX_VERSION}":refs/tags/"v${KPX_VERSION}" && git checkout "v${KPX_VERSION}")
+	(cd app-build/kpx && git reset --hard && git fetch --depth 1 origin "v${KPX_VERSION}":refs/tags/"v${KPX_VERSION}" && git checkout "v${KPX_VERSION}")
 endif
 
-	(cd incus-osd/kpx && patch -p1 < ../../patches/kpx-0001-Enable-IPv6-support.patch)
+	(cd app-build/kpx && patch -p1 < ../../patches/kpx-0001-Enable-IPv6-support.patch)
 
-	(cd incus-osd/kpx/cli && go build -o kpx -ldflags="-s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}")
-	strip incus-osd/kpx/cli/kpx
+	(cd app-build/kpx/cli && go build -o kpx -ldflags="-s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}")
+	strip app-build/kpx/cli/kpx
+
+.PHONY: migration-manager
+migration-manager:
+	mkdir -p app-build/
+
+ifeq (,$(wildcard app-build/migration-manager/))
+	git clone https://github.com/FuturFusion/migration-manager.git app-build/migration-manager/ -b "${MIGRATION_MANAGER_VERSION}"
+else
+	(cd app-build/migration-manager && git reset --hard && git pull)
+endif
+
+	(cd app-build/migration-manager && go build -o ./migration-managerd ./cmd/migration-managerd)
+	strip app-build/migration-manager/migration-managerd
+	(cd app-build/migration-manager && go build -o ./migration-manager-worker ./cmd/migration-manager-worker)
+	strip app-build/migration-manager/migration-manager-worker
+
+	(cd app-build/migration-manager/ui && yarnpkg install && yarnpkg build)
+
+.PHONY: operations-center
+operations-center:
+	mkdir -p app-build/
+
+ifeq (,$(wildcard app-build/operations-center/))
+	git clone https://github.com/FuturFusion/operations-center.git app-build/operations-center/ -b "${OPERATIONS_CENTER_VERSION}"
+else
+	(cd app-build/operations-center && git reset --hard && git pull)
+endif
+
+	(cd app-build/operations-center && go build -o ./operations-centerd ./cmd/operations-centerd)
+	strip app-build/operations-center/operations-centerd
+
+	(cd app-build/operations-center/ui && yarnpkg install && yarnpkg build)
 
 .PHONY: initrd-deb-package
 initrd-deb-package:
@@ -62,7 +97,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool kpx initrd-deb-package
+build: incus-osd flasher-tool kpx initrd-deb-package migration-manager operations-center
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -73,7 +108,19 @@ endif
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
-	cp incus-osd/kpx/cli/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+	cp app-build/kpx/cli/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+
+	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/ui/
+	cp app-build/migration-manager/migration-managerd mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+	cp app-build/migration-manager/migration-manager-worker mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
+	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/ui/
+
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
+	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
+
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
