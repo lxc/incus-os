@@ -1,4 +1,3 @@
-// Package main is used for the image publisher.
 package main
 
 import (
@@ -19,27 +18,44 @@ import (
 	"time"
 
 	ghapi "github.com/google/go-github/v72/github"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v6/shared/osarch"
+	"github.com/spf13/cobra"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )
 
-func main() {
-	err := do(context.TODO())
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+type cmdSync struct {
+	global *cmdGlobal
 }
 
-func do(ctx context.Context) error {
-	// Arguments.
-	if len(os.Args) != 2 {
-		return errors.New("missing target path")
+func (c *cmdSync) command() *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Use = "sync <path>"
+	cmd.Short = "Imports new images and cleans up the tree"
+	cmd.Long = formatSection("Description",
+		`Imports new images and cleans up the tree
+
+This will connect to Github to retrieve any new image that's missing
+locally, then import them into the default channel (typically "testing")
+and then cleans up any extra image based on retention policy.
+`)
+	cmd.RunE = c.run
+
+	return cmd
+}
+
+func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
+	ctx := context.TODO()
+
+	// Quick checks.
+	exit, err := c.global.CheckArgs(cmd, args, 1, 1)
+	if exit {
+		return err
 	}
 
-	targetPath := os.Args[1]
-	err := os.MkdirAll(targetPath, 0755)
+	targetPath := args[0]
+
+	err = os.MkdirAll(targetPath, 0o755)
 	if err != nil {
 		return err
 	}
@@ -47,7 +63,7 @@ func do(ctx context.Context) error {
 	// Config (optional).
 	updateChannel := os.Getenv("UPDATE_CHANNEL")
 	if updateChannel == "" {
-		updateChannel = "daily"
+		updateChannel = "testing"
 	}
 
 	updateOrigin := os.Getenv("UPDATE_ORIGIN")
@@ -60,23 +76,8 @@ func do(ctx context.Context) error {
 		updateSeverity = "none"
 	}
 
-	// Setup signer.
-	sign := func(src string, dst string) error {
-		if os.Getenv("SIG_KEY") == "" || os.Getenv("SIG_CERTIFICATE") == "" || os.Getenv("SIG_CHAIN") == "" {
-			return nil
-		}
-
-		// Generate an SMIME signature.
-		_, err := subprocess.RunCommandContext(ctx, "openssl", "smime", "-text", "-sign", "-signer", os.Getenv("SIG_CERTIFICATE"), "-inkey", os.Getenv("SIG_KEY"), "-in", src, "-out", dst, "-certfile", os.Getenv("SIG_CHAIN"))
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
 	// Get the latest image info.
-	releaseName, releaseURL, err := getLatestRelease(ctx)
+	releaseName, releaseURLs, err := getLatestRelease(ctx)
 	if err != nil {
 		return err
 	}
@@ -107,25 +108,80 @@ func do(ctx context.Context) error {
 		return err
 	}
 
-	// Get the image file.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releaseURL.String(), nil)
+	// Get the image files.
+	for imageArch, imageURL := range releaseURLs {
+		// Convert the architecture name.
+		archID, err := osarch.ArchitectureID(imageArch)
+		if err != nil {
+			return err
+		}
+
+		archName, err := osarch.ArchitectureName(archID)
+		if err != nil {
+			return err
+		}
+
+		// Download the image.
+		targetPath := filepath.Join(targetPath, releaseName)
+
+		files, err := c.downloadImage(ctx, archName, imageURL, targetPath)
+		if err != nil {
+			return err
+		}
+
+		metaUpdate.Files = append(metaUpdate.Files, files...)
+	}
+
+	// Write the update metadata.
+	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json")) //nolint:gosec
 	if err != nil {
 		return err
+	}
+
+	defer func() { _ = wr.Close() }()
+
+	err = json.NewEncoder(wr).Encode(metaUpdate)
+	if err != nil {
+		return err
+	}
+
+	err = sign(ctx, filepath.Join(targetPath, releaseName, "update.json"), filepath.Join(targetPath, releaseName, "update.sjson"))
+	if err != nil {
+		return err
+	}
+
+	// Re-generate the index.
+	err = generateIndex(ctx, args[0])
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *url.URL, targetPath string) ([]apiupdate.UpdateFile, error) {
+	files := []apiupdate.UpdateFile{}
+
+	slog.InfoContext(ctx, "Downloading image", "arch", archName)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releaseURL.String(), nil)
+	if err != nil {
+		return nil, err
 	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response from server: %d", resp.StatusCode)
+		return nil, fmt.Errorf("bad response from server: %d", resp.StatusCode)
 	}
 
 	tempImage, err := os.CreateTemp("", "")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer func() { _ = os.Remove(tempImage.Name()) }()
@@ -139,18 +195,16 @@ func do(ctx context.Context) error {
 				break
 			}
 
-			return err
+			return nil, err
 		}
 
 		size += n
 	}
 
-	slog.InfoContext(ctx, "Downloaded the image", "size", size)
-
 	// Parse the image file.
 	zr, err := zip.OpenReader(tempImage.Name())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, f := range zr.File {
@@ -178,80 +232,45 @@ func do(ctx context.Context) error {
 		case strings.HasSuffix(assetName, ".iso.gz"):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeImageISO
-		case strings.Contains(assetName, ".usr-x86-64-verity."):
+		case strings.Contains(assetName, ".usr-x86-64-verity."), strings.Contains(assetName, ".usr-arm64-verity."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsrVerity
-		case strings.Contains(assetName, ".usr-x86-64-verity-sig."):
+		case strings.Contains(assetName, ".usr-x86-64-verity-sig."), strings.Contains(assetName, ".usr-arm64-verity-sig."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsrVeritySignature
-		case strings.Contains(assetName, ".usr-x86-64."):
+		case strings.Contains(assetName, ".usr-x86-64."), strings.Contains(assetName, ".usr-arm64."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsr
 		default:
 			continue
 		}
 
-		// Extract the file.
-		assetHash, assetSize, err := extractFile(f, filepath.Join(targetPath, releaseName, assetName)) //nolint:gosec
+		// Create the per-architecture path.
+		err = os.MkdirAll(filepath.Join(targetPath, archName), 0o755)
 		if err != nil {
-			return err
+			return nil, err
+		}
+
+		// Extract the file.
+		slog.InfoContext(ctx, "Extracting", "name", assetName, "arch", archName)
+
+		assetHash, assetSize, err := extractFile(f, filepath.Join(targetPath, archName, assetName)) //nolint:gosec
+		if err != nil {
+			return nil, err
 		}
 
 		// Add to the index.
-		metaUpdate.Files = append(metaUpdate.Files, apiupdate.UpdateFile{
-			Architecture: "x86_64",
+		files = append(files, apiupdate.UpdateFile{
+			Architecture: apiupdate.UpdateFileArchitecture(archName),
 			Component:    assetComponent,
-			Filename:     assetName,
+			Filename:     filepath.Join(archName, assetName), //nolint:gosec
 			Sha256:       assetHash,
 			Size:         assetSize,
 			Type:         assetType,
 		})
-
-		slog.InfoContext(ctx, "Extracted", "name", assetName, "hash", assetHash, "size", assetSize)
 	}
 
-	// Write the update metadata.
-	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json")) //nolint:gosec
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = wr.Close() }()
-
-	err = json.NewEncoder(wr).Encode(metaUpdate)
-	if err != nil {
-		return err
-	}
-
-	err = sign(filepath.Join(targetPath, releaseName, "update.json"), filepath.Join(targetPath, releaseName, "update.sjson"))
-	if err != nil {
-		return err
-	}
-
-	// Write the index metadata.
-	metaIndex := apiupdate.Index{
-		Format:  "1.0",
-		Updates: []apiupdate.UpdateFull{{Update: metaUpdate, URL: "/" + metaUpdate.Version}},
-	}
-
-	wr, err = os.Create(filepath.Join(targetPath, "index.json")) //nolint:gosec
-	if err != nil {
-		return err
-	}
-
-	defer func() { _ = wr.Close() }()
-
-	err = json.NewEncoder(wr).Encode(metaIndex)
-	if err != nil {
-		return err
-	}
-
-	err = sign(filepath.Join(targetPath, "index.json"), filepath.Join(targetPath, "index.sjson"))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return files, nil
 }
 
 func extractFile(f *zip.File, target string) (string, int64, error) {
@@ -297,7 +316,7 @@ func extractFile(f *zip.File, target string) (string, int64, error) {
 	return hex.EncodeToString(hash256.Sum(nil)), size, nil
 }
 
-func getLatestRelease(ctx context.Context) (string, *url.URL, error) {
+func getLatestRelease(ctx context.Context) (string, map[string]*url.URL, error) {
 	// Config (optional).
 	ghOrganization := os.Getenv("GH_ORGANIZATION")
 	if ghOrganization == "" {
@@ -354,22 +373,30 @@ func getLatestRelease(ctx context.Context) (string, *url.URL, error) {
 		return "", nil, err
 	}
 
-	var imageArtifact *ghapi.Artifact
+	images := map[string]*url.URL{}
 
 	for _, artifact := range artifacts.Artifacts {
-		if *artifact.Name != "Image" {
+		if !strings.HasPrefix(*artifact.Name, "image-") {
 			continue
 		}
 
-		imageArtifact = artifact
+		fields := strings.SplitN(*artifact.Name, "-", 2)
+		if len(fields) != 2 {
+			continue
+		}
 
-		break
+		_, ok := images[fields[1]]
+		if ok {
+			continue
+		}
+
+		u, _, err := client.Actions.DownloadArtifact(ctx, ghOrganization, ghRepository, *artifact.ID, 10)
+		if err != nil {
+			return "", nil, err
+		}
+
+		images[fields[1]] = u
 	}
 
-	u, _, err := client.Actions.DownloadArtifact(ctx, ghOrganization, ghRepository, *imageArtifact.ID, 10)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return releaseName, u, nil
+	return releaseName, images, nil
 }
