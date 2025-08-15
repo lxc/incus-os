@@ -75,6 +75,7 @@ func generateIndex(ctx context.Context, targetPath string) error {
 
 		return 1
 	})
+	slices.Reverse(metaIndex.Updates)
 
 	wr, err := os.Create(filepath.Join(targetPath, "index.json")) //nolint:gosec
 	if err != nil {
