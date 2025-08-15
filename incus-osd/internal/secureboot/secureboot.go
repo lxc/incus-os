@@ -575,10 +575,10 @@ func computeNewPCR7Value(eventLog []tcg.Event) ([]byte, error) {
 					return nil, err
 				}
 			case tcg.EFIVariableAuthority:
-				// Variable authority is the certificate used to sign EFI binaries (systemd-boot and the IncusOS image).
-				// We expect the same certificate to be used for both; If there's a mis-match between the observed
-				// certificate used for the systemd-boot EFI stub and the one in the event log, we are about to boot
-				// with a new Secure Boot signing key. Fetch the expected new certificate from the EFI db variable
+				// Variable authority is a certificate used to sign EFI binaries (typically systemd-boot and the IncusOS
+				// image, but also potentially third-party EFI drivers). We expect the IncusOS certificate used to sign
+				// the systemd-boot EFI stub to match what's in the TPM event log. If there's a mis-match, we are about
+				// to boot with a new Secure Boot signing key. Fetch the expected new certificate from the EFI db variable
 				// and use it for PCR7 computation.
 				buf, err := computeExpectedVariableAuthority(e.Data)
 				if err != nil {
@@ -649,17 +649,28 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	binaryCert, err := extractCertificateFromPE(efiFiles["bootEFI"])
+	existingCert, err := extractCertificateFromPE(efiFiles["bootEFI"])
 	if err != nil {
 		return nil, err
 	}
 
 	// If the certificates match, no need for further updates.
-	if va.Certs[0].Equal(binaryCert) {
+	if va.Certs[0].Equal(existingCert) {
 		return rawBuf, nil
 	}
 
-	// There was a mismatch. Try to get the expected certificate from the db.
+	// Use the first four "words" of the existing certificate's Subject field to determine if the variable
+	// authority certificate we're considering is third-party or not. We can't rely on a simple whitelist of
+	// either "our" expected certificates or third-party certificates.
+	existingCertPrefix := strings.Join(strings.Split(existingCert.Subject.String(), " ")[:4], " ")
+
+	// If this is a third-party certificate, there's nothing for us to do.
+	if !strings.HasPrefix(va.Certs[0].Subject.String(), existingCertPrefix) {
+		return rawBuf, nil
+	}
+
+	// There was a mismatch between the EFI stub's certificate and the certificate in the event log.
+	// Try to get the expected certificate from the db.
 	certs, err := GetCertificatesFromVar("db")
 	if err != nil {
 		return nil, err
@@ -667,10 +678,10 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 
 	// Find the matching certificate.
 	index := slices.IndexFunc(certs, func(c x509.Certificate) bool {
-		return c.Equal(binaryCert)
+		return c.Equal(existingCert)
 	})
 	if index < 0 {
-		return nil, fmt.Errorf("failed to find matching certificate '%s' used by systemd-boot stub in EFI db variable", binaryCert.Subject.String())
+		return nil, fmt.Errorf("failed to find matching certificate '%s' used by systemd-boot stub in EFI db variable", existingCert.Subject.String())
 	}
 
 	// Update the variable's contents with the expected certificate value.
