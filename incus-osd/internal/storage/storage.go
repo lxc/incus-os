@@ -473,9 +473,15 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 func IsRemoteDevice(deviceName string) (bool, error) {
 	device := filepath.Base(deviceName)
 
-	// SATA.
+	// SATA or FC.
 	if strings.HasPrefix(device, "sd") {
-		return false, nil
+		link, err := os.Readlink("/sys/class/block/" + device)
+		if err != nil {
+			return false, err
+		}
+
+		// If the symlink contains "/rport-", it's a remote FC device, otherwise it's local.
+		return strings.Contains(link, "/rport-"), nil
 	}
 
 	// NVME.
@@ -500,6 +506,11 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 
 		// If the symlink contains "/pci", it's local, otherwise it's remote.
 		return !strings.Contains(link, "/pci"), nil
+	}
+
+	// QEMU drive.
+	if strings.HasPrefix(device, "vd") {
+		return false, nil
 	}
 
 	// Default to saying the device is local.
