@@ -38,6 +38,10 @@ func main() {
 	promoteCmd := cmdPromote{global: &globalCmd}
 	app.AddCommand(promoteCmd.command())
 
+	// prune sub-command.
+	pruneCmd := cmdPrune{global: &globalCmd}
+	app.AddCommand(pruneCmd.command())
+
 	// sync sub-command.
 	syncCmd := cmdSync{global: &globalCmd}
 	app.AddCommand(syncCmd.command())
