@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"github.com/timpalpant/gzran"
 	"gopkg.in/yaml.v3"
 
+	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
@@ -67,19 +69,6 @@ func do(ctx context.Context) error {
 	// Arguments.
 	if len(os.Args) != 2 {
 		return errors.New("missing image path")
-	}
-
-	// Check that image files exist.
-	imagePath := os.Args[1]
-
-	_, err := os.Stat(filepath.Join(imagePath, "image.iso.gz"))
-	if err != nil {
-		return fmt.Errorf("couldn't find 'image.iso.gz': %w", err)
-	}
-
-	_, err = os.Stat(filepath.Join(imagePath, "image.img.gz"))
-	if err != nil {
-		return fmt.Errorf("couldn't find 'image.img.gz': %w", err)
 	}
 
 	// Start REST server.
@@ -242,22 +231,66 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine source image name.
-	var fileName string
+	// Determine source image type.
+	var fileType string
 
 	switch req.Type {
 	case imageTypeISO:
-		fileName = "image.iso.gz"
+		fileType = "image-iso"
 	case imageTypeRaw:
-		fileName = "image.img.gz"
+		fileType = "image-raw"
 	default:
+		_ = response.BadRequest(nil).Render(w)
+
+		return
+	}
+
+	// Find latest image.
+	var metaIndex apiupdate.Index
+
+	metaFile, err := os.Open(filepath.Join(os.Args[1], "index.json"))
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	defer func() { _ = metaFile.Close() }()
+
+	err = json.NewDecoder(metaFile).Decode(&metaIndex)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	var imageFilePath string
+
+	for _, update := range metaIndex.Updates {
+		if !slices.Contains(update.Channels, "stable") {
+			continue
+		}
+
+		for _, fileEntry := range update.Files {
+			if fileEntry.Architecture == "x86_64" && string(fileEntry.Type) == fileType {
+				imageFilePath = filepath.Join(os.Args[1], update.Version, fileEntry.Filename)
+
+				break
+			}
+		}
+	}
+
+	if imageFilePath == "" {
+		_ = response.InternalError(errors.New("couldn't find matching image")).Render(w)
+
+		return
 	}
 
 	// Check if we have compression in-transit.
 	compress := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 
 	// Open the image file.
-	imageFile, err := os.Open(filepath.Join(os.Args[1], fileName)) //nolint:gosec
+	imageFile, err := os.Open(imageFilePath) //nolint:gosec
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.InternalError(err).Render(w)
@@ -277,15 +310,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Track down image file.
-	fileTarget, err := os.Readlink(filepath.Join(os.Args[1], fileName))
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	fileName = filepath.Base(fileTarget)
+	fileName := filepath.Base(imageFilePath)
 
 	// Serve the image.
 	if compress {
