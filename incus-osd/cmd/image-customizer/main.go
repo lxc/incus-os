@@ -231,15 +231,18 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine source image name.
-	var fileName string
+	// Determine source image type.
+	var fileType string
 
 	switch req.Type {
 	case imageTypeISO:
-		fileName = "image.iso.gz"
+		fileType = "image-iso"
 	case imageTypeRaw:
-		fileName = "image.img.gz"
+		fileType = "image-raw"
 	default:
+		_ = response.BadRequest(nil).Render(w)
+
+		return
 	}
 
 	// Find latest image.
@@ -261,13 +264,33 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latest := metaIndex.Updates[0].Version
+	var imageFilePath string
+
+	for _, update := range metaIndex.Updates {
+		if !slices.Contains(update.Channels, "stable") {
+			continue
+		}
+
+		for _, fileEntry := range update.Files {
+			if fileEntry.Architecture == "x86_64" && string(fileEntry.Type) == fileType {
+				imageFilePath = filepath.Join(os.Args[1], update.Version, fileEntry.Filename)
+
+				break
+			}
+		}
+	}
+
+	if imageFilePath == "" {
+		_ = response.InternalError(errors.New("couldn't find matching image")).Render(w)
+
+		return
+	}
 
 	// Check if we have compression in-transit.
 	compress := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 
 	// Open the image file.
-	imageFile, err := os.Open(filepath.Join(os.Args[1], latest, fileName)) //nolint:gosec
+	imageFile, err := os.Open(imageFilePath) //nolint:gosec
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.InternalError(err).Render(w)
@@ -287,15 +310,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Track down image file.
-	fileTarget, err := os.Readlink(filepath.Join(os.Args[1], fileName))
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	fileName = filepath.Base(fileTarget)
+	fileName := filepath.Base(imageFilePath)
 
 	// Serve the image.
 	if compress {
