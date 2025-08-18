@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -288,8 +289,18 @@ func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apisee
 
 	// Loop through all disks, selecting the first one that matches the Target configuration.
 	for _, device := range potentialTargets {
+		// First, check for a simple substring match.
 		if seedTarget == nil || strings.Contains(device.ID, seedTarget.ID) {
 			return device.KName, device.Size, nil
+		}
+
+		// Second, check if the specified target ID and current device are both symlinks to the same underlying device.
+		seedDeviceLink, err := os.Readlink(filepath.Join("/dev/disk/by-id", seedTarget.ID))
+		if err == nil {
+			potentialDeviceLink, err := os.Readlink(filepath.Join("/dev/disk/by-id", device.ID))
+			if err == nil && seedDeviceLink == potentialDeviceLink {
+				return device.KName, device.Size, nil
+			}
 		}
 	}
 
