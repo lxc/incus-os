@@ -49,6 +49,17 @@ type kpxRule struct {
 // StartLocalProxy starts a local kpx proxy with a configuration based off of the
 // contents from the provided SystemNetworkProxy struct.
 func StartLocalProxy(ctx context.Context, proxyConfig *api.SystemNetworkProxy) error {
+	// If no proxy is configured, ensure kpx isn't running and that no proxy
+	// environment variables are set.
+	if proxyConfig == nil {
+		_ = os.Unsetenv("http_proxy")
+		_ = os.Unsetenv("https_proxy")
+		_ = os.Remove("/etc/environment")
+		_, _ = subprocess.RunCommandContext(ctx, "systemctl", "stop", "kpx.service")
+
+		return nil
+	}
+
 	// Remove any existing /etc/environment file.
 	err := os.Remove("/etc/environment")
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -84,9 +95,8 @@ func StartLocalProxy(ctx context.Context, proxyConfig *api.SystemNetworkProxy) e
 
 // GenerateKPXConfig takes a network config struct and generates the kpx yaml configuration.
 func GenerateKPXConfig(proxyConfig *api.SystemNetworkProxy) ([]byte, error) {
-	// If no proxy configuration exists, generate an empty one.
 	if proxyConfig == nil {
-		proxyConfig = new(api.SystemNetworkProxy)
+		return nil, errors.New("proxyConfig cannot be nil")
 	}
 
 	// If no proxy rules are defined, ensure there's a default one in the generated config.
