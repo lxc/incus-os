@@ -68,6 +68,19 @@ endif
 
 	(cd app-build/operations-center/ui && YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build)
 
+.PHONY: openfga
+openfga:
+	mkdir -p app-build/
+
+ifeq (,$(wildcard app-build/openfga/))
+	git clone https://github.com/openfga/openfga.git app-build/openfga/ --depth 1 -b "v${OPENFGA_VERSION}"
+else
+	(cd app-build/openfga && git reset --hard && git fetch --depth 1 origin "v${OPENFGA_VERSION}":refs/tags/"v${OPENFGA_VERSION}" && git checkout "v${OPENFGA_VERSION}")
+endif
+
+	(cd app-build/openfga && go build -o ./openfga ./cmd/openfga)
+	strip app-build/openfga/openfga
+
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -98,7 +111,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool kpx initrd-deb-package migration-manager operations-center
+build: incus-osd flasher-tool kpx initrd-deb-package migration-manager operations-center openfga
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -121,6 +134,9 @@ endif
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
 	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/lib/operations-center/ui/
+
+	mkdir -p mkosi.images/openfga/mkosi.extra/usr/local/bin/
+	cp app-build/openfga/openfga mkosi.images/openfga/mkosi.extra/usr/local/bin/
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build

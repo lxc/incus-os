@@ -15,6 +15,8 @@ func Load(_ context.Context, name string) (Application, error) {
 		app = &migrationManager{}
 	case "operations-center":
 		app = &operationsCenter{}
+	case "openfga":
+		app = &openfga{}
 	default:
 		app = &common{}
 	}

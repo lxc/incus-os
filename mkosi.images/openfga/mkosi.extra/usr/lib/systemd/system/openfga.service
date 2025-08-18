@@ -1,0 +1,10 @@
+[Unit]
+Description=OpenFGA
+Documentation=https://github.com/openfga/openfga
+
+[Service]
+ExecStartPre=mkdir -p /var/lib/openfga/
+ExecStartPre=/usr/local/bin/openfga migrate --datastore-engine=sqlite --datastore-uri=file:///var/lib/openfga/openfga.sqlite
+ExecStart=/usr/local/bin/openfga run --playground-enabled=false --datastore-engine=sqlite --datastore-uri=file:///var/lib/openfga/openfga.sqlite
+KillMode=process
+Restart=on-failure
