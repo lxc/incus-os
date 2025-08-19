@@ -38,8 +38,8 @@ func (*operationsCenter) Update(ctx context.Context, _ string) error {
 	return systemd.RestartUnit(ctx, "operations-center.service")
 }
 
-// Initialize runs first time initialization.
-func (*operationsCenter) Initialize(ctx context.Context) error {
+// InitializePreStart runs first time initialization before the application starts.
+func (*operationsCenter) InitializePreStart(ctx context.Context) error {
 	// Get the preseed from the seed partition.
 	ocSeed, err := seed.GetOperationsCenter(ctx, seed.SeedPartitionPath)
 	if err != nil && !seed.IsMissing(err) {
@@ -110,6 +110,11 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	return os.WriteFile("/var/lib/operations-center/config.yml", contents, 0o644)
+}
+
+// InitializePostStart runs first time initialization after the application starts.
+func (*operationsCenter) InitializePostStart(_ context.Context) error {
+	return nil
 }
 
 // IsRunning reports if the application is currently running.
