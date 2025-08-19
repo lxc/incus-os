@@ -6,8 +6,13 @@ import (
 
 type common struct{}
 
-// Initialize runs first time initialization.
-func (*common) Initialize(_ context.Context) error {
+// InitializePreStart runs first time initialization before the application starts.
+func (*common) InitializePreStart(_ context.Context) error {
+	return nil
+}
+
+// InitializePostStart runs first time initialization after the application starts.
+func (*common) InitializePostStart(_ context.Context) error {
 	return nil
 }
 

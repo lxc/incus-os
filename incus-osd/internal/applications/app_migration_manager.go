@@ -38,8 +38,8 @@ func (*migrationManager) Update(ctx context.Context, _ string) error {
 	return systemd.RestartUnit(ctx, "migration-manager.service")
 }
 
-// Initialize runs first time initialization.
-func (*migrationManager) Initialize(ctx context.Context) error {
+// InitializePreStart runs first time initialization before the application starts.
+func (*migrationManager) InitializePreStart(ctx context.Context) error {
 	// Get the preseed from the seed partition.
 	mmSeed, err := seed.GetMigrationManager(ctx, seed.SeedPartitionPath)
 	if err != nil && !seed.IsMissing(err) {
@@ -85,6 +85,11 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	}
 
 	return os.WriteFile("/var/lib/migration-manager/config.yml", contents, 0o644)
+}
+
+// InitializePostStart runs first time initialization after the application starts.
+func (*migrationManager) InitializePostStart(_ context.Context) error {
+	return nil
 }
 
 // IsRunning reports if the application is currently running.

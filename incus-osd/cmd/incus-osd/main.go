@@ -486,6 +486,16 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 		return err
 	}
 
+	// Run pre-start initialization if needed.
+	if !appInfo.State.Initialized {
+		slog.InfoContext(ctx, "Initializing application (pre-start)", "name", appName, "version", appInfo.State.Version)
+
+		err = app.InitializePreStart(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Start the application.
 	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
 
@@ -494,11 +504,11 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 		return err
 	}
 
-	// Run initialization if needed.
+	// Run post-start initialization if needed.
 	if !appInfo.State.Initialized {
-		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.State.Version)
+		slog.InfoContext(ctx, "Initializing application (post-start)", "name", appName, "version", appInfo.State.Version)
 
-		err = app.Initialize(ctx)
+		err = app.InitializePostStart(ctx)
 		if err != nil {
 			return err
 		}

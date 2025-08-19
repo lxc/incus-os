@@ -32,8 +32,13 @@ func (*openfga) Update(ctx context.Context, _ string) error {
 	return systemd.RestartUnit(ctx, "openfga.service")
 }
 
-// Initialize runs first time initialization.
-func (*openfga) Initialize(_ context.Context) error {
+// InitializePreStart runs first time initialization before the application starts.
+func (*openfga) InitializePreStart(_ context.Context) error {
+	return nil
+}
+
+// InitializePostStart runs first time initialization after the application starts.
+func (*openfga) InitializePostStart(_ context.Context) error {
 	return nil
 }
 

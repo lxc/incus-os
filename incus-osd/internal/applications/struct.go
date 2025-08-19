@@ -8,7 +8,8 @@ import (
 type Application interface {
 	Start(ctx context.Context, version string) error
 	Stop(ctx context.Context, version string) error
-	Initialize(ctx context.Context) error
+	InitializePreStart(ctx context.Context) error
+	InitializePostStart(ctx context.Context) error
 	Update(ctx context.Context, version string) error
 	IsRunning(ctx context.Context) bool
 }
