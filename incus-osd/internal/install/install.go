@@ -10,10 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/lxc/incus/v6/shared/osarch"
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
@@ -313,6 +315,16 @@ func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apisee
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
 func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
+	// Get architecture name.
+	archName, err := osarch.ArchitectureGetLocal()
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains([]string{"x86_64", "aarch64"}, archName) {
+		return fmt.Errorf("unsupported architecture %q", archName)
+	}
+
 	// Check if the target device already has a partition table.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
@@ -406,19 +418,40 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	// at first boot time. This is because systemd-repart likes to place the small /usr-verity sig
 	// partition prior to the ESP partition.
 	if numPartitionsToCopy == 5 {
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8385", "-c", "6:_empty", targetDevice)
-		if err != nil {
-			return err
-		}
+		switch archName {
+		case "aarch64":
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8375", "-c", "6:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
 
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "7::+100MiB", "-t", "7:8319", "-c", "7:_empty", targetDevice)
-		if err != nil {
-			return err
-		}
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "7::+100MiB", "-t", "7:831B", "-c", "7:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
 
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "8::+1GiB", "-t", "8:8314", "-c", "8:_empty", targetDevice)
-		if err != nil {
-			return err
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "8::+1GiB", "-t", "8:8316", "-c", "8:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
+
+		case "x86_64":
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "6::+16KiB", "-t", "6:8385", "-c", "6:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "7::+100MiB", "-t", "7:8319", "-c", "7:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
+
+			_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "8::+1GiB", "-t", "8:8314", "-c", "8:_empty", targetDevice)
+			if err != nil {
+				return err
+			}
+
+		default:
 		}
 	}
 
