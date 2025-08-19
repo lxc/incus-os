@@ -43,7 +43,7 @@ if [ "$(uname -m)" = "x86_64" ]; then
 elif [ "$(uname -m)" = "aarch64" ]; then
     sgdisk -n 3::+16KiB -u "3:$PART3GUID" -t 3:C23CE4FF-44BD-4B00-B2D4-B41B3419E02A -c "3:$PART3NAME" "$DSTLOOPDEV"
     sgdisk -n 4::+100MiB -u "4:$PART4GUID" -t 4:6E11A4E7-FBCA-4DED-B9E9-E1A512BB664E -c "4:$PART4NAME" "$DSTLOOPDEV"
-    sgdisk -n 5::+1024MiB -u "5:$PART5GUID" -t 5:B1623FFD-1A31-49BE-F347-D22BF83B0E6E -c "5:$PART5NAME" "$DSTLOOPDEV"
+    sgdisk -n 5::+1024MiB -u "5:$PART5GUID" -t 5:B0E01050-EE5F-4390-949A-9101B17104E9 -c "5:$PART5NAME" "$DSTLOOPDEV"
 else
     echo "Unsupported architecture: $(uname -m)"
     exit 1
