@@ -382,9 +382,9 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	// API structs.
 	type update struct {
-		Channel string `json:"channel"`
-		UUID    string `json:"uuid"`
-		Version string `json:"version"`
+		Channels []string `json:"channels"`
+		UUID     string   `json:"uuid"`
+		Version  string   `json:"version"`
 	}
 
 	type updateFile struct {
