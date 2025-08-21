@@ -23,7 +23,7 @@ jobs:
       - mem-4G
       - disk-100G
       - arch-${{ matrix.arch }}
-      - image-debian-12
+      - image-debian-13
     steps:
       - name: Checkout
         uses: actions/checkout@v4

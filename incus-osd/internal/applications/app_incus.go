@@ -51,12 +51,23 @@ func (*incus) Update(ctx context.Context, _ string) error {
 		return err
 	}
 
+	// Reload the systemd daemon to pickup any service definition changes.
+	err = systemd.ReloadDaemon(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Restart the main unit.
 	return systemd.RestartUnit(ctx, "incus.service")
 }
 
-// Initialize runs first time initialization.
-func (a *incus) Initialize(ctx context.Context) error {
+// InitializePreStart runs first time initialization before the application starts.
+func (*incus) InitializePreStart(_ context.Context) error {
+	return nil
+}
+
+// InitializePostStart runs first time initialization after the application starts.
+func (a *incus) InitializePostStart(ctx context.Context) error {
 	// Get the preseed from the seed partition.
 	incusSeed, err := seed.GetIncus(ctx, seed.SeedPartitionPath)
 	if err != nil && !seed.IsMissing(err) {

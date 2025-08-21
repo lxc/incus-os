@@ -10,6 +10,7 @@ require (
 	github.com/lxc/incus/v6 v6.15.1-0.20250812234917-796c5a31a2db
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
 	github.com/smallstep/pkcs7 v0.2.1
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	golang.org/x/sys v0.34.0
@@ -55,7 +56,6 @@ require (
 	github.com/rootless-containers/proto/go-proto v0.0.0-20230421021042-4cd87ebadd67 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vbatts/go-mtree v0.5.4 // indirect
