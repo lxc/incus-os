@@ -263,7 +263,7 @@ func (t *TUI) redrawScreen() {
 		// Get list of applications from state.
 		applications := []string{}
 		for app, info := range t.state.Applications {
-			applications = append(applications, app+"("+info.Version+")")
+			applications = append(applications, app+"("+info.State.Version+")")
 		}
 
 		slices.Sort(applications)
