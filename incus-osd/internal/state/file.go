@@ -3,9 +3,11 @@ package state
 import (
 	"context"
 	"os"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-var currentStateVersion = 2
+var currentStateVersion = 3
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
@@ -15,7 +17,7 @@ func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 
 		StateVersion: currentStateVersion,
 
-		Applications: map[string]Application{},
+		Applications: map[string]api.Application{},
 	}
 
 	body, err := os.ReadFile(s.path)
