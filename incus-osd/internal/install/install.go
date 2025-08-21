@@ -60,7 +60,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 	}
 
 	// Perform install-specific checks.
-	if ShouldPerformInstall() {
+	if ShouldPerformInstall() { //nolint:nestif
 		// Check that we have either been told what target device to use, or that we can automatically figure it out.
 		source, _, err := getSourceDevice(ctx)
 		if err != nil {
@@ -75,6 +75,21 @@ func CheckSystemRequirements(ctx context.Context) error {
 		config, err := seed.GetInstall(seed.SeedPartitionPath)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return errors.New("unable to get seed config: " + err.Error())
+		}
+
+		// Sanity check: if we're not running from a CDROM, ensure that the seed partition in use exists on the source
+		// device. If not, there are at least two IncusOS drives present, the installed system and an install media.
+		// This will result in a weird environment, so raise an error telling the user to remove the install device.
+		if !runningFromCDROM() {
+			seedLink, err := os.Readlink(seed.SeedPartitionPath)
+			if err != nil {
+				return err
+			}
+
+			seedPartition := filepath.Join("/dev/disk/by-partlabel", seedLink)
+			if !strings.HasPrefix(seedPartition, source) {
+				return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
+			}
 		}
 
 		targetDevice, targetDeviceSize, err := getTargetDevice(targets, config.Target)
