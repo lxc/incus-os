@@ -18,31 +18,36 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 )
 
-// ImportOrCreateLocalPool imports and loads the encryption key for the "local" ZFS pool if the it
-// exists, otherwise will create an encrypted ZFS pool "local" in the partition labeled "local-data".
-func ImportOrCreateLocalPool(ctx context.Context, s *state.State) error {
-	// Check if the "local" ZFS pool exists.
-	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "local")
-	if err == nil || strings.Contains(err.Error(), "cannot import 'local': a pool with that name already exists") {
-		// Pool is available, now load the encryption key and we're done.
-		_, err := subprocess.RunCommandContext(ctx, "zfs", "load-key", "local")
-		if err != nil && !strings.Contains(err.Error(), "Key load error: Key already loaded for 'local'.") {
-			return err
-		}
+// LoadPools will import and load encryption keys for any ZFS pools on the local system.
+// If the "local" pool doesn't exist, it will also be created as an encrypted ZFS pool in
+// the partition labeled "local-data".
+func LoadPools(ctx context.Context, s *state.State) error {
+	// Import and load encryption keys for any local ZFS pools.
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "-a")
+	if err != nil {
+		return err
+	}
 
-		return nil
-	} else if strings.Contains(err.Error(), "cannot import 'local': no such pool available") {
-		// Need to create the "local" ZFS pool.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", "-a")
+	if err != nil {
+		return err
+	}
+
+	// Create the "local" ZFS pool if it doesn't exist.
+	if !PoolExists(ctx, "local") {
 		zpool := api.SystemStoragePool{
 			Name:    "local",
 			Type:    "zfs-raid0",
 			Devices: []string{"/dev/disk/by-partlabel/local-data"},
 		}
 
-		return CreateZpool(ctx, zpool, s)
+		err := CreateZpool(ctx, zpool, s)
+		if err != nil {
+			return err
+		}
 	}
 
-	return err
+	return nil
 }
 
 // PoolExists checks if a given ZFS pool exists.

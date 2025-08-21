@@ -346,10 +346,10 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Perform an initial blocking check for updates before proceeding.
 	updateChecker(ctx, s, t, p, true, false)
 
-	// Ensure  the "local" ZFS pool is available.
+	// Ensure any local ZFS pools are available.
 	slog.InfoContext(ctx, "Bringing up the local storage")
 
-	err = zfs.ImportOrCreateLocalPool(ctx, s)
+	err = zfs.LoadPools(ctx, s)
 	if err != nil {
 		return err
 	}
