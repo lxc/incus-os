@@ -186,9 +186,9 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		// Stop the application.
-		slog.InfoContext(ctx, "Stopping application", "name", appName, "version", appInfo.Version)
+		slog.InfoContext(ctx, "Stopping application", "name", appName, "version", appInfo.State.Version)
 
-		err = app.Stop(ctx, appInfo.Version)
+		err = app.Stop(ctx, appInfo.State.Version)
 		if err != nil {
 			return err
 		}
@@ -454,23 +454,23 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	}
 
 	// Start the application.
-	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.Version)
+	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
 
-	err = app.Start(ctx, appInfo.Version)
+	err = app.Start(ctx, appInfo.State.Version)
 	if err != nil {
 		return err
 	}
 
 	// Run initialization if needed.
-	if !appInfo.Initialized {
-		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.Version)
+	if !appInfo.State.Initialized {
+		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.State.Version)
 
 		err = app.Initialize(ctx)
 		if err != nil {
 			return err
 		}
 
-		appInfo.Initialized = true
+		appInfo.State.Initialized = true
 		s.Applications[appName] = appInfo
 	}
 
@@ -741,9 +741,9 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 	}
 
 	// Apply the update.
-	if app.Version() != s.Applications[app.Name()].Version {
-		if s.Applications[app.Name()].Version != "" && !app.IsNewerThan(s.Applications[app.Name()].Version) {
-			return "", errors.New("local application " + app.Name() + " version (" + s.Applications[app.Name()].Version + ") is newer than available update (" + app.Version() + "); skipping")
+	if app.Version() != s.Applications[app.Name()].State.Version {
+		if s.Applications[app.Name()].State.Version != "" && !app.IsNewerThan(s.Applications[app.Name()].State.Version) {
+			return "", errors.New("local application " + app.Name() + " version (" + s.Applications[app.Name()].State.Version + ") is newer than available update (" + app.Version() + "); skipping")
 		}
 
 		// Download the application.
@@ -760,7 +760,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		// Record newly installed application and save state to disk.
 		newAppInfo := s.Applications[app.Name()]
-		newAppInfo.Version = app.Version()
+		newAppInfo.State.Version = app.Version()
 
 		s.Applications[app.Name()] = newAppInfo
 		_ = s.Save(ctx)

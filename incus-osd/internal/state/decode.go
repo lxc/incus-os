@@ -103,6 +103,17 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V3: Applications have fields moved under State struct.
+	func(lines []string) ([]string, error) {
+		for i, line := range lines {
+			if strings.HasPrefix(line, "Applications[") {
+				lines[i] = strings.Replace(lines[i], ".Initialized: ", ".State.Initialized: ", 1)
+				lines[i] = strings.Replace(lines[i], ".Version: ", ".State.Version: ", 1)
+			}
+		}
+
+		return lines, nil
+	},
 }
 
 // Decode reconstitutes a given state. Optionally, if provided, a list of upgrade functions will be

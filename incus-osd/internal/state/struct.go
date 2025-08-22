@@ -15,12 +15,6 @@ type SecureBoot struct {
 	FullyApplied bool   `json:"fully_applied"`
 }
 
-// Application represents an installed application (system extension).
-type Application struct {
-	Initialized bool   `json:"initialized"`
-	Version     string `json:"version"`
-}
-
 // OS represents the current OS image state.
 type OS struct {
 	Name           string `json:"name"`
@@ -44,7 +38,7 @@ type State struct {
 
 	SecureBoot SecureBoot `json:"secure_boot"`
 
-	Applications map[string]Application `json:"applications"`
+	Applications map[string]api.Application `json:"applications"`
 
 	OS OS `json:"os"`
 
