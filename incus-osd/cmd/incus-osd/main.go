@@ -30,6 +30,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
@@ -140,6 +141,37 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		return inst.DoInstall(ctx, s.OS.Name)
+	}
+
+	// Check if we have enough free disk space.
+	freeSpace, err := storage.GetFreeSpaceInGiB("/")
+	if err != nil {
+		return err
+	}
+
+	if freeSpace < 1.0 {
+		slog.ErrorContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in /, attempting emergency disk cleanup", freeSpace))
+
+		// Clear old journal entries.
+		_, err = subprocess.RunCommandContext(ctx, "journalctl", "--vacuum-files=1")
+		if err != nil {
+			return err
+		}
+
+		// Clear anything in /var/cache/.
+		cacheEntries, err := os.ReadDir("/var/cache/")
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range cacheEntries {
+			err := os.RemoveAll(filepath.Join("/var/cache", entry.Name()))
+			if err != nil {
+				return err
+			}
+		}
+	} else if freeSpace < 5.0 {
+		slog.WarnContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in /", freeSpace))
 	}
 
 	// Start the API.

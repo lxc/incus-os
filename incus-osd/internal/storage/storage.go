@@ -158,6 +158,18 @@ func GetUnderlyingDevice() (string, error) {
 	return "", errors.New("unable to determine underlying device")
 }
 
+// GetFreeSpaceInGiB returns the amount of free space in GiB for the underlying filesystem of the given path.
+func GetFreeSpaceInGiB(path string) (float64, error) {
+	var s unix.Statfs_t
+
+	err := unix.Statfs(path, &s)
+	if err != nil {
+		return 0.0, err
+	}
+
+	return float64(s.Bsize*int64(s.Bfree)) / 1024.0 / 1024.0 / 1024.0, nil //nolint:gosec
+}
+
 // DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.
 func DeviceToID(ctx context.Context, device string) (string, error) {
 	if device == "" {
