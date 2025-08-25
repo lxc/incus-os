@@ -21,20 +21,6 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
-const lxcUpdateCA = `-----BEGIN CERTIFICATE-----
-MIIBxTCCAWugAwIBAgIUKFh7jSFs4OIymJR60kMDizaaUu0wCgYIKoZIzj0EAwMw
-ODEbMBkGA1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBD
-b250YWluZXJzMB4XDTI1MDYyNjA4MTA1NFoXDTQ1MDYyMTA4MTA1NFowODEbMBkG
-A1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBDb250YWlu
-ZXJzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkuL+o9TxVlcmn7rQjSQUPtVW
-YhISgnMOWIMbg4sh0hWh5LJeH7mPA41I80TAR84O+rcnj/AtFG+O2dZgTK47UaNT
-MFEwHQYDVR0OBBYEFERR7s37UYWIfjdauwuftLTUULcaMB8GA1UdIwQYMBaAFERR
-7s37UYWIfjdauwuftLTUULcaMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwMD
-SAAwRQIhAId625vznH0/C9E/gLLRz5S95x3mZmqIHOQBFHRf2mLyAiB2kMK4Idcn
-dzfuFuN/tMIqY355bBYk3m6/UAIK5Pum/Q==
------END CERTIFICATE-----
-`
-
 // The images provider.
 type images struct {
 	config map[string]string
@@ -175,7 +161,7 @@ func (p *images) load(_ context.Context) error {
 	// Basic validation.
 	if p.serverURL == "" {
 		p.serverURL = "https://images.linuxcontainers.org/os"
-		p.updateCA = lxcUpdateCA
+		p.updateCA = LXCUpdateCA
 	}
 
 	return nil
