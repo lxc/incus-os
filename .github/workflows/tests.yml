@@ -152,7 +152,7 @@ jobs:
           incus file push --quiet mkosi.output/debug.raw test-incus-os/root/updates/
           incus file push --quiet mkosi.output/incus.raw test-incus-os/root/updates/
 
-          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
           sleep 3m
 
@@ -170,7 +170,7 @@ jobs:
       - name: Test EFI db and dbx updates
         run: |
           incus file push certs/efi/updates/*.auth test-incus-os/root/updates/
-          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
           sleep 30s
 
@@ -190,7 +190,7 @@ jobs:
           incus file push --quiet mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
           incus file push --quiet mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 
-          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
           sleep 3m
 

@@ -37,8 +37,6 @@ func (s *Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 		close(s.state.TriggerShutdown)
 	case "reboot":
 		close(s.state.TriggerReboot)
-	case "update":
-		s.state.TriggerUpdate <- true
 	case "reset_encryption_bindings":
 		err := secureboot.ForceUpdatePCRBindings(r.Context(), s.state.OS.Name, s.state.OS.RunningRelease, s.state.System.Security.Config.EncryptionRecoveryKeys[0])
 		if err != nil {
