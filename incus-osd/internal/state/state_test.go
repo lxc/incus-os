@@ -34,8 +34,6 @@ Applications[incus].Version: 202506241635
 OS.Name: IncusOS
 OS.RunningRelease: 202506241635
 OS.NextRelease: 202506241635
-System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
-System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Network.Config.Proxy.HTTPProxy: anonymous-proxy.example.org:1234
 System.Network.Config.Proxy.HTTPSProxy: user:pass@proxy.example.net:8080
 System.Network.Config.Proxy.NoProxy: *.example.org,*.example.net
@@ -45,6 +43,8 @@ System.Network.Config.Interfaces[0].Addresses[1]: slaac
 System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
+System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 `
 
 var goldEncodingV2 = `#Version: 2
@@ -53,8 +53,6 @@ Applications[incus].Version: 202506241635
 OS.Name: IncusOS
 OS.RunningRelease: 202506241635
 OS.NextRelease: 202506241635
-System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
-System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Host: anonymous-proxy.example.org:1234
 System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Auth: anonymous
 System.Network.Config.Proxy.Servers[proxy_example_net_8080].Host: proxy.example.net:8080
@@ -73,6 +71,8 @@ System.Network.Config.Interfaces[0].Addresses[1]: slaac
 System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
+System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 `
 
 var goldEncodingV3 = `#Version: 3
@@ -81,8 +81,6 @@ Applications[incus].State.Version: 202506241635
 OS.Name: IncusOS
 OS.RunningRelease: 202506241635
 OS.NextRelease: 202506241635
-System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
-System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Host: anonymous-proxy.example.org:1234
 System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Auth: anonymous
 System.Network.Config.Proxy.Servers[proxy_example_net_8080].Host: proxy.example.net:8080
@@ -101,6 +99,8 @@ System.Network.Config.Interfaces[0].Addresses[1]: slaac
 System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
+System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 `
 
 // Test basic custom decoding/encoding of state.
