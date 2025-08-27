@@ -92,6 +92,9 @@ func main() {
 		s.System.Update.Config.UpdateFrequency = 6 * time.Hour
 	}
 
+	// Clear the reboot flag on startup.
+	s.System.Update.State.NeedsReboot = false
+
 	// Get and start the console TUI.
 	tuiApp, err := tui.NewTUI(s)
 	if err != nil {
@@ -699,7 +702,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			s.System.Update.State.UpdateStatus = s.OS.Name + " has been updated to version " + newInstalledOSVersion
 			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
 
-			s.RebootRequired = true
+			s.System.Update.State.NeedsReboot = true
 		} else {
 			s.System.Update.State.UpdateStatus = "Update check completed"
 		}
@@ -714,7 +717,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
 	slog.DebugContext(ctx, "Checking for OS updates")
 
-	if s.RebootRequired {
+	if s.System.Update.State.NeedsReboot {
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 	}
 
@@ -730,7 +733,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 	}
 
 	// If we're running from the backup image don't attempt to re-update to a broken version.
-	if !s.RebootRequired && s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
+	if !s.System.Update.State.NeedsReboot && s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
 		slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
 
 		return "", nil
@@ -845,7 +848,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
 	slog.DebugContext(ctx, "Checking for Secure Boot key updates")
 
-	if s.RebootRequired {
+	if s.System.Update.State.NeedsReboot {
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 
 		return nil
@@ -907,7 +910,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 
 		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
 		// for the user to restart the system before going any further.
-		if s.RebootRequired {
+		if s.System.Update.State.NeedsReboot {
 			return nil
 		}
 	}
@@ -977,7 +980,7 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 				continue
 			}
 
-			s.RebootRequired = true
+			s.System.Update.State.NeedsReboot = true
 
 			if isStartupCheck {
 				slog.InfoContext(ctx, "Successfully updated EFI variable. Automatically rebooting system in five seconds.")

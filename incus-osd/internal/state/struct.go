@@ -29,7 +29,6 @@ type State struct {
 	StateVersion int `json:"-"`
 
 	ShouldPerformInstall bool `json:"-"`
-	RebootRequired       bool `json:"-"`
 
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
