@@ -25,6 +25,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -297,6 +298,14 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
+	}
+
+	// Check for and run recovery logic if present.
+	err = recovery.CheckRunRecovery(ctx, s)
+	if err != nil {
+		// If recovery fails, don't return the error, since that will likely put us into a restart loop,
+		// resulting in a soft-brick of the server until the recovery media is removed.
+		slog.ErrorContext(ctx, "Recovery failed: "+err.Error())
 	}
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
