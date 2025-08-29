@@ -164,7 +164,7 @@ test-applications:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
 .PHONY: test-update
 test-update:
@@ -177,7 +177,7 @@ test-update:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 
-	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
 .PHONY: test-update-sb-keys
 test-update-sb-keys:
@@ -188,7 +188,7 @@ test-update-sb-keys:
 	cd certs/efi/updates/ && tar czf IncusOS_SecureBootKeys_${RELEASE}.tar.gz *.auth
 	incus file push certs/efi/updates/*.tar.gz test-incus-os/root/updates/
 
-	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system -X PUT -d '{"action": "update"}'
+	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update -X POST
 
 .PHONY: update-gomod
 update-gomod:

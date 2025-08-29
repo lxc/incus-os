@@ -29,7 +29,6 @@ type State struct {
 	StateVersion int `json:"-"`
 
 	ShouldPerformInstall bool `json:"-"`
-	RebootRequired       bool `json:"-"`
 
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
@@ -52,9 +51,10 @@ type State struct {
 	} `json:"services"`
 
 	System struct {
-		Security api.SystemSecurity `json:"security"`
 		Network  api.SystemNetwork  `json:"network"`
 		Provider api.SystemProvider `json:"provider"`
+		Security api.SystemSecurity `json:"security"`
+		Update   api.SystemUpdate   `json:"update"`
 	} `json:"system"`
 }
 
