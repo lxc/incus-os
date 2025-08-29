@@ -783,6 +783,12 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 			return "", err
 		}
 
+		// Verify the application is signed with a trusted key in the kernel's keyring.
+		err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw"))
+		if err != nil {
+			return "", err
+		}
+
 		// Record newly installed application and save state to disk.
 		newAppInfo := s.Applications[app.Name()]
 		newAppInfo.State.Version = app.Version()
