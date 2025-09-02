@@ -91,3 +91,51 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 
 	_ = s.state.Save(r.Context())
 }
+
+func (*Server) apiSystemStorageWipe(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodPost:
+		// Wipe the specified drive.
+		if r.ContentLength <= 0 {
+			_ = response.BadRequest(errors.New("no drive specified")).Render(w)
+
+			return
+		}
+
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		wipeStruct := api.SystemStorageWipe{}
+
+		err = json.Unmarshal(b, &wipeStruct)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		if wipeStruct.ID == "" {
+			_ = response.BadRequest(errors.New("no drive specified")).Render(w)
+
+			return
+		}
+
+		err = storage.WipeDrive(r.Context(), wipeStruct.ID)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
+		// If none of the supported methods, return NotImplemented.
+		_ = response.NotImplemented(nil).Render(w)
+	}
+}

@@ -52,3 +52,8 @@ type SystemStorageDriveSMART struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 	Passed  bool `json:"passed"  yaml:"passed"`
 }
+
+// SystemStorageWipe defines a struct with information about what drive to wipe.
+type SystemStorageWipe struct {
+	ID string `json:"id" yaml:"id"`
+}
