@@ -71,6 +71,12 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		return errors.New("zpool '" + zpool.Name + "' already exists")
 	}
 
+	// Check if an encryption key already exists.
+	_, err := os.Stat(keyfilePath)
+	if err == nil {
+		return errors.New("encryption key for '" + zpool.Name + "' already exists")
+	}
+
 	// Verify we are given a supported type.
 	if !slices.Contains([]string{"zfs-raid0", "zfs-raid1", "zfs-raid10", "zfs-raidz1", "zfs-raidz2", "zfs-raidz3"}, zpool.Type) {
 		return errors.New("unsupported pool type " + zpool.Type)
