@@ -36,6 +36,8 @@ var cdromDevice = "/dev/sr0"
 
 var cdromMappedDevice = "/dev/mapper/sr0"
 
+var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
+
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
 func CheckSystemRequirements(ctx context.Context) error {
 	// Check if Secure Boot is enabled.
@@ -279,12 +281,17 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	// Filter out devices that are known to not be valid targets.
 	filtered := make([]storage.BlockDevices, 0, len(ret))
 	for _, entry := range ret {
-		if entry.KName == sourceDevice || entry.KName == cdromDevice {
+		if entry.KName == sourceDevice {
 			continue
 		}
 
 		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
 			// Virtual BMC devices on DELL servers.
+			continue
+		}
+
+		if cdromRegex.MatchString(entry.KName) {
+			// Ignore all CDROM devices.
 			continue
 		}
 
