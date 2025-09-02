@@ -734,7 +734,9 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 // getPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme devices have partitions named "pN", while traditional disk partitions are just "N".
 func getPartitionPrefix(device string) string {
-	if strings.Contains(device, "/nvme") || strings.Contains(device, "mapper/sr0") {
+	cdromMatched, _ := regexp.MatchString(`/mapper/sr\d+`, device)
+
+	if strings.Contains(device, "/nvme") || cdromMatched {
 		return "p"
 	}
 
