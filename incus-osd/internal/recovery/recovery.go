@@ -98,7 +98,7 @@ func runHotfix(ctx context.Context, mountDir string) error {
 
 	defer os.Remove(rootCA.Name())
 
-	_, err = fmt.Fprintf(rootCA, providers.LXCUpdateCA)
+	_, err = fmt.Fprintf(rootCA, "%s", providers.LXCUpdateCA)
 	if err != nil {
 		return err
 	}

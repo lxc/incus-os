@@ -201,7 +201,7 @@ func (p *images) checkRelease(ctx context.Context) error {
 		return err
 	}
 
-	_, err = fmt.Fprintf(rootCA, p.updateCA)
+	_, err = fmt.Fprintf(rootCA, "%s", p.updateCA)
 	if err != nil {
 		return err
 	}
