@@ -36,6 +36,8 @@ var cdromDevice = "/dev/sr0"
 
 var cdromMappedDevice = "/dev/mapper/sr0"
 
+var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
+
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
 func CheckSystemRequirements(ctx context.Context) error {
 	// Check if Secure Boot is enabled.
@@ -186,19 +188,23 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 
 // runningFromCDROM returns true we're running from a CDROM, which should only happen during an install.
 func runningFromCDROM() bool {
-	s := unix.Stat_t{}
-
-	err := unix.Stat(cdromDevice, &s)
-	if err != nil {
-		return false
-	}
-
 	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
 		return false
 	}
 
-	return underlyingDevice == "/dev/sr0"
+	if !cdromRegex.MatchString(underlyingDevice) {
+		// Not running from a CDROM.
+		return false
+	}
+
+	// Most of the time we'll be running from /dev/sr0; if not, update variables as needed.
+	if underlyingDevice != cdromDevice {
+		cdromDevice = underlyingDevice
+		cdromMappedDevice = "/dev/mapper/sr" + cdromRegex.FindStringSubmatch(underlyingDevice)[1]
+	}
+
+	return true
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
@@ -279,12 +285,17 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	// Filter out devices that are known to not be valid targets.
 	filtered := make([]storage.BlockDevices, 0, len(ret))
 	for _, entry := range ret {
-		if entry.KName == sourceDevice || entry.KName == cdromDevice {
+		if entry.KName == sourceDevice {
 			continue
 		}
 
 		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
 			// Virtual BMC devices on DELL servers.
+			continue
+		}
+
+		if cdromRegex.MatchString(entry.KName) {
+			// Ignore all CDROM devices.
 			continue
 		}
 
@@ -727,7 +738,9 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 // getPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme devices have partitions named "pN", while traditional disk partitions are just "N".
 func getPartitionPrefix(device string) string {
-	if strings.Contains(device, "/nvme") || strings.Contains(device, "mapper/sr0") {
+	cdromMatched, _ := regexp.MatchString(`/mapper/sr\d+`, device)
+
+	if strings.Contains(device, "/nvme") || cdromMatched {
 		return "p"
 	}
 
