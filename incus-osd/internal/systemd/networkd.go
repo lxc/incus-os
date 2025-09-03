@@ -90,6 +90,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
+	// Wait up to 30 seconds for NTP synchronization, but don't fail if it doesn't happen.
+	err = waitForSystemdTimesyncd(ctx, 30*time.Second)
+	if err != nil {
+		slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
+	}
+
 	// Refresh the state struct.
 	err = UpdateNetworkState(ctx, &s.System.Network)
 	if err != nil {
@@ -661,6 +667,26 @@ func waitForDNS(ctx context.Context, timeout time.Duration) error {
 
 		ips, err := resolver.LookupIPAddr(ctx, "linuxcontainers.org")
 		if err == nil && len(ips) > 0 {
+			return nil
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// waitForSystemdTimesyncd waits up to a provided timeout for systemd-timesyncd to
+// perform an initial NTP synchronization.
+func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
+	endTime := time.Now().Add(timeout)
+
+	for {
+		if time.Now().After(endTime) {
+			return errors.New("timed out waiting for NTP synchronization")
+		}
+
+		// Check if systemd-timesyncd has performed its initial synchronization.
+		_, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "systemd-timesyncd", "-g", "Initial clock synchronization")
+		if err == nil {
 			return nil
 		}
 
