@@ -3,23 +3,57 @@ Incus OS is still in early alpha development. The instructions below are
 there to help try it out, mostly for testing purposes as new features get
 added.
 
+## System Requirements
+
+Incus OS is designed to provide an extremely secure environment in which to
+run Incus. It requires a lot of modern system features and will not function
+properly on older unsupported systems.
+
+The installed system is only reachable through Incus; there is no local shell
+access or remote access through SSH. You will need to provide a trusted Incus
+client certificate when preparing your install media so you can connect to
+the system post install.
+
+Minimum system requirements:
+
+  * Modern x86_64 or arm64 system (5 years old at most)
+  * Support for UEFI with SecureBoot
+  * TPM 2.0 security module
+  * At least 50GiB of storage
+  * At least one wired network port
+
 ## Installation
-ISO and raw images are available from the [Incus OS Releases](https://github.com/lxc/incus-os/releases)
-page on GitHub.
+ISO and raw images are distributed via the [Linux Containers CDN](https://images.linuxcontainers.org/os/).
 
-Before booting the installation image, an [install seed](install-seed.md)
-must first be injected. A [flasher tool](flasher-tool.md) is provided to help
-automate this process in a user-friendly manner, and can be downloaded from
-each GitHub release.
+There are two more user-friendly methods to get an Incus OS install image: a
+web-based customization tool and a command line flasher tool.
 
-After configuring the Incus OS image with the flasher tool, you can then boot
-and Incus OS will automatically install itself. Upon reboot, Incus OS will
-then run and will by default check for updates every six hours.
+Incus OS doesn't feature a traditional installer, and relies on an [install seed](install-seed.md)
+to provide configuration details and defaults during install. This install
+seed can be manually crafted, or you can use either of the two utilities
+described below to automate the process.
+
+After configuring your Incus OS image, you can then boot and Incus OS will
+automatically install itself. Upon reboot, Incus OS will automatically start
+up and will by default check for updates every six hours.
 
 If the raw image is written to a sufficiently large writable medium (at least
 50GiB), such as a USB stick or hard drive, without any install seed Incus OS
 will automatically resize on first boot and start running directly from that
 media.
+
+### Incus OS Customizer
+
+The web-based [Incus OS Customizer](https://incusos-customizer.linuxcontainers.org/ui/)
+is the most user-friendly way to get an Incus OS install image. The webpage
+will let you make a few simple selections, then directly download an install
+image that's ready for immediate use.
+
+### Flasher tool
+
+A [flasher tool](flasher-tool.md) is provided for more advanced users who need
+to perform more customizations of the install seed than the web-based customizer
+supports. The flasher can be built by running `go build ./cmd/flasher-tool/`.
 
 ## Building locally
 You can build Incus OS locally. Only users specifically interested in the
@@ -56,15 +90,18 @@ To test the update process, build a new image and update to it with:
     make
     make test-update
 
-### Using the GitHub releases
-A script is available to test Incus OS using the publicly published releases.
+### Using official releases
+A script is available to test Incus OS using the public releases. It depends on
+the flasher tool being available to automate the download of the latest Incus OS
+release.
 
 Creating a new Incus OS VM can be done with:
 
     ./scripts/spawn-image VMNAME
 
-This will retrieve the most recent image from Github and create a VM. It will
-also automatically load the relevant packages (`incus` and `debug`).
+This will retrieve the most recent image from the Linux Containers CDN and
+create a VM. It will also automatically load the relevant packages (currently
+just `incus`).
 
 The VM will automatically check for updates every 6 hours with the OS updates
 applying on reboot.

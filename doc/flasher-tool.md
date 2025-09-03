@@ -4,9 +4,7 @@ is a user-friendly way to provide install configuration for Incus OS.
 
 ## Usage
 
-Either build locally, or download from the [Incus OS Releases](https://github.com/lxc/incus-os/releases)
-page.
-
+    go build ./cmd/flasher-tool/
     ./flasher-tool
     
 You will first be prompted for the image format you want to use, either iso
@@ -16,7 +14,7 @@ want to boot from a USB stick you should choose the img format.
 The flasher tool will then connect to the Linux Containers CDN and download the
 latest release.
 
-After downloading, you will be presented with an interactive menu you can use to
+Once downloaded, you will be presented with an interactive menu you can use to
 customize the install options.
 
 After writing the image and exiting, you can then install Incus OS from the

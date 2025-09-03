@@ -1,6 +1,7 @@
 # Introduction
 Incus OS is a minimal immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
 It's based on [Debian](https://www.debian.org) trixie and built using [mkosi](https://github.com/systemd/mkosi).
+Incus OS can be installed on modern amd64 (x86_64) and arm64 systems.
 
 This aims at providing a very fast, safe and reliable way to run an Incus server.
 
@@ -34,8 +35,7 @@ important caveats:
   
   * Currently all development and testing of Incus OS is done through Incus
   VMs. While it should be possible to run Incus OS on physical hardware or
-  other virtualization solutions (ie, Proxmox), support will be limited to
-  non-existent.
+  other virtualization solutions (ie, Proxmox), support will be limited.
   
   * Incus OS is intentionally opinionated and requires modern hardware to
   enable its various security features. Incus OS will never be installable

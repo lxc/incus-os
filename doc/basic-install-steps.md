@@ -1,6 +1,6 @@
 # Basic install steps
-This provides a brief, high-level overview of how one might install a stand-
-alone Incus OS server, add its Incus as a remote, and retrieve the encryption
+This provides a brief, high-level overview of how one might install a stand-alone
+Incus OS server, add its Incus as a remote, and retrieve the encryption
 recovery key.
 
 ## Install configuration
@@ -8,9 +8,12 @@ First, generate an Incus client certificate/key pair if needed:
 
     incus remote generate-certificate
 
-Using the [flasher tool](flasher-tool.md), enable the Incus application and
-then provide this basic Incus preseed configuration, substituting your local
-client certificate (`~/.config/incus/client.crt`):
+Using the web-based [Incus OS Customizer](https://incusos-customizer.linuxcontainers.org/ui/),
+provide your client certificate and download the resulting installation image.
+
+Alternatively, using the [flasher tool](flasher-tool.md), enable the Incus
+application and then provide this basic Incus preseed configuration, substituting
+your local client certificate (`~/.config/incus/client.crt`):
 
 ```
 apply_defaults: true
@@ -34,7 +37,7 @@ preseed:
             -----END CERTIFICATE-----
 ```
 
-Write out the image and perform the Incus OS installation.
+Once you have your Incus OS install media, install it on your selected system.
 
 ## Add remote Incus OS
 
@@ -109,6 +112,9 @@ $ incus query IncusOS:/os/1.0/system/security
                         }
                 ],
                 "encryption_recovery_keys_retrieved": true,
+                "pool_recovery_keys": {
+                        "local": "F7zrtdHEaivKqofZbVFs2EeANyK77DbLi6Z8sqYVhr0="
+                },
                 "secure_boot_certificates": [
                         {
                                 "fingerprint": "26dce4dbb3de2d72bd16ae91a85cfeda84535317d3ee77e0d4b2d65e714cf111",
