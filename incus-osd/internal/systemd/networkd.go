@@ -71,13 +71,6 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 		return err
 	}
 
-	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
-	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = RestartUnit(ctx, "systemd-timesyncd")
-	if err != nil {
-		return err
-	}
-
 	// Wait for the network to apply.
 	err = waitForNetworkOnline(ctx, networkCfg, timeout)
 	if err != nil {
@@ -86,6 +79,13 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 
 	// Wait for DNS to be functional.
 	err = waitForDNS(ctx, timeout)
+	if err != nil {
+		return err
+	}
+
+	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+	// the service is disabled by default and only started once we have performed the network (re)configuration.
+	err = RestartUnit(ctx, "systemd-timesyncd")
 	if err != nil {
 		return err
 	}
