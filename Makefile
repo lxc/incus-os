@@ -194,5 +194,5 @@ test-update-sb-keys:
 update-gomod:
 	cd incus-osd && go get -t -v -u ./...
 	cd incus-osd && go get github.com/go-jose/go-jose/v4@v4.0.5
-	cd incus-osd && go mod tidy --go=1.23.7
+	cd incus-osd && go mod tidy --go=1.24.4
 	cd incus-osd && go get toolchain@none
