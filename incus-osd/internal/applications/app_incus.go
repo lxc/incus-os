@@ -51,6 +51,12 @@ func (*incus) Update(ctx context.Context, _ string) error {
 		return err
 	}
 
+	// Reload the systemd daemon to pickup any service definition changes.
+	err = systemd.ReloadDaemon(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Restart the main unit.
 	return systemd.RestartUnit(ctx, "incus.service")
 }
