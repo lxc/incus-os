@@ -40,7 +40,6 @@ type SystemNetworkConfig struct {
 type SystemNetworkInterface struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
-	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
 	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
@@ -55,7 +54,6 @@ type SystemNetworkBond struct {
 	Name              string               `json:"name"                          yaml:"name"`
 	Mode              string               `json:"mode"                          yaml:"mode"`
 	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
-	VLAN              int                  `json:"vlan,omitempty"                yaml:"vlan,omitempty"`
 	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
 	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`

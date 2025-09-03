@@ -35,7 +35,6 @@ bonds:
   - name: management
     mode: 802.3ad
     mtu: 9000
-    vlan: 1234
     vlan_tags:
       - 100
     addresses:
@@ -120,7 +119,6 @@ bonds:
    hwaddr: "aa:bb:cc:dd:ee:e1"
    lldp: true
    mtu: 9000
-   vlan: 10
    members:
     - "aa:bb:cc:dd:ee:e1"
     - "aa:bb:cc:dd:ee:e2"

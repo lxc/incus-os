@@ -10,7 +10,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.SystemNetworkVLAN, requireValidMAC bool) error {
+func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC bool) error {
 	for index, iface := range interfaces {
 		err := validateName(iface.Name)
 		if err != nil {
@@ -25,13 +25,6 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.Sys
 		err = validateRoles(iface.Roles)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
-		}
-
-		if iface.VLAN != 0 {
-			err := validateVLAN(iface.VLAN, vlans)
-			if err != nil {
-				return fmt.Errorf("interface %d %s", index, err.Error())
-			}
 		}
 
 		for addressIndex, address := range iface.Addresses {
@@ -67,7 +60,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, vlans []api.Sys
 	return nil
 }
 
-func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN, requireValidMAC bool) error {
+func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 	for index, bond := range bonds {
 		err := validateName(bond.Name)
 		if err != nil {
@@ -87,13 +80,6 @@ func validateBonds(bonds []api.SystemNetworkBond, vlans []api.SystemNetworkVLAN,
 		err = validateRoles(bond.Roles)
 		if err != nil {
 			return fmt.Errorf("bond %d %s", index, err.Error())
-		}
-
-		if bond.VLAN != 0 {
-			err := validateVLAN(bond.VLAN, vlans)
-			if err != nil {
-				return fmt.Errorf("bond %d %s", index, err.Error())
-			}
 		}
 
 		for addressIndex, address := range bond.Addresses {
@@ -275,24 +261,6 @@ func validateRoles(roles []string) error {
 func validateMTU(mtu int) error {
 	if mtu < 0 || mtu > 9000 {
 		return errors.New("MTU out of range")
-	}
-
-	return nil
-}
-
-func validateVLAN(vlan int, vlans []api.SystemNetworkVLAN) error {
-	foundVLAN := false
-
-	for _, v := range vlans {
-		if v.ID == vlan {
-			foundVLAN = true
-
-			break
-		}
-	}
-
-	if !foundVLAN {
-		return fmt.Errorf("no vlan %d defined", vlan)
 	}
 
 	return nil
