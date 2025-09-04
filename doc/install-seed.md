@@ -38,7 +38,7 @@ running.
 The structure is defined in [api/seed/applications.go](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/applications.go):
 
   * `Applications`: Holds an array of applications to install. Currently the
-  only supported application is "incus".
+  only supported application are "incus" and "operations-center".
 
 ### `incus.{json,yml,yaml}`
 This file provides preseed information for Incus.
@@ -58,6 +58,12 @@ boots. If not specified, Incus OS will attempt automatic DHCP/SLAAC
 configuration on each network interface.
 
 The structure used is the [network API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
+
+### `operations-center.{json,yml,yaml}`
+This file provides preseed information for Operations Center.
+
+The structure is defined in [api/seed/operations_center.go](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/operations_center.go)
+and references Operations Center's [`system` API](https://github.com/FuturFusion/operations-center/blob/main/shared/api/system.go).
 
 ### `provider.{json,yml,yaml}`
 This file provides preseed information to configure a given provider, which is used

@@ -1,8 +1,9 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.24.0
+go 1.24.7
 
 require (
+	github.com/FuturFusion/operations-center v0.0.0-20250911165554-7c9380da30f9
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v72 v72.0.0
