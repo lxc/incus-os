@@ -1,0 +1,8 @@
+[Unit]
+Description=Operations Center
+Documentation=https://github.com/FuturFusion/operations-center
+
+[Service]
+ExecStart=/usr/local/bin/operations-centerd
+KillMode=process
+Restart=on-failure

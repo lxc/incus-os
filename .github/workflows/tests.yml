@@ -100,7 +100,8 @@ jobs:
             efitools \
             make \
             pipx \
-            qemu-utils
+            qemu-utils \
+            yarnpkg
 
       - name: Setup Incus
         run: |
