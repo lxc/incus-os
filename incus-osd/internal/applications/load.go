@@ -11,6 +11,8 @@ func Load(_ context.Context, name string) (Application, error) {
 	switch name {
 	case "incus":
 		app = &incus{}
+	case "operations-center":
+		app = &operationsCenter{}
 	default:
 		app = &common{}
 	}
