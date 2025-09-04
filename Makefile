@@ -18,20 +18,6 @@ flasher-tool:
 	(cd incus-osd && go build ./cmd/flasher-tool)
 	strip incus-osd/flasher-tool
 
-.PHONY: kpx
-kpx:
-	$(eval KPX_VERSION := 1.11.0)
-ifeq (,$(wildcard incus-osd/kpx/))
-	git clone https://github.com/momiji/kpx incus-osd/kpx/ --depth 1 -b "v${KPX_VERSION}"
-else
-	(cd incus-osd/kpx && git reset --hard && git fetch --depth 1 origin "v${KPX_VERSION}":refs/tags/"v${KPX_VERSION}" && git checkout "v${KPX_VERSION}")
-endif
-
-	(cd incus-osd/kpx && patch -p1 < ../../patches/kpx-0001-Enable-IPv6-support.patch)
-
-	(cd incus-osd/kpx/cli && go build -o kpx -ldflags="-s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}")
-	strip incus-osd/kpx/cli/kpx
-
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -62,7 +48,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool kpx initrd-deb-package
+build: incus-osd flasher-tool initrd-deb-package
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -71,9 +57,13 @@ endif
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
+
+	cd app-build/ && ./build-applications.sh
+
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
-	cp incus-osd/kpx/cli/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+	cp app-build/kpx/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
