@@ -64,6 +64,14 @@ endif
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp app-build/kpx/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
 
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/share/operations-center/ui/
+	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
+	cp app-build/opentofu/tofu mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/share/operations-center/ui/
+	cp -r app-build/terraform-provider-incus/lxc/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
+
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output

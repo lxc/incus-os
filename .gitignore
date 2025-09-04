@@ -9,6 +9,7 @@ certs/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/
+mkosi.images/operations-center/mkosi.extra/
 
 app-build/
 
