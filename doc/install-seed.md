@@ -1,8 +1,9 @@
 # Install Seed
 Incus OS depends on an "install seed" to automate the installation process. Most
-users should use the [flasher tool](flasher-tool.md) which provides a simple way
-to configure the install seed without requiring detailed understanding of the
-technical details below.
+users should either use the web-based [Incus OS Customizer](https://incusos-customizer.linuxcontainers.org/ui/)
+or the [flasher tool](flasher-tool.md) which provide a simple way to configure
+the install seed without requiring detailed understanding of the technical details
+below.
 
 ## Format and location
 The install seed is a simple tar archive consisting of one or more json/yaml
@@ -18,7 +19,7 @@ The following configuration files are currently recognized:
 The presence of this file, even if empty, will trigger Incus OS to start the
 installation process.
 
-The structure is defined in [internal/seed/install.go](https://github.com/lxc/incus-os/blob/main/incus-osd/internal/seed/install.go):
+The structure is defined in [api/seed/install.go](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/install.go):
 
   * `ForceInstall`: If true, will install to target device even if partitions
   already exist. WARNING: THIS CAN CAUSE DATA LOSS!
@@ -34,7 +35,7 @@ The structure is defined in [internal/seed/install.go](https://github.com/lxc/in
 This file defines what applications should be installed after Incus OS is up and
 running.
 
-The structure is defined in [internal/seed/applications.go](https://github.com/lxc/incus-os/blob/main/incus-osd/internal/seed/applications.go):
+The structure is defined in [api/seed/applications.go](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/applications.go):
 
   * `Applications`: Holds an array of applications to install. Currently the
   only supported application is "incus".
@@ -42,7 +43,7 @@ The structure is defined in [internal/seed/applications.go](https://github.com/l
 ### `incus.{json,yml,yaml}`
 This file provides preseed information for Incus.
 
-The structure is defined in [internal/seed/incus.go](https://github.com/lxc/incus-os/blob/main/incus-osd/internal/seed/incus.go)
+The structure is defined in [api/seed/incus.go](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/incus.go)
 and references Incus' [`InitPreseed` API](https://github.com/lxc/incus/blob/main/shared/api/init.go):
 
   * `ApplyDefaults`: If true, automatically apply a set of reasonable defaults
