@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -18,7 +19,56 @@ type LVM struct {
 }
 
 // Get returns the current service state.
-func (n *LVM) Get(_ context.Context) (any, error) {
+func (n *LVM) Get(ctx context.Context) (any, error) {
+	// Get PV state.
+	type pvsRaw struct {
+		Report []struct {
+			PV []api.ServiceLVMPV `json:"pv"`
+		} `json:"report"`
+	}
+
+	pvsOutput, err := subprocess.RunCommandContext(ctx, "pvs", "--reportformat", "json_std")
+	if err != nil {
+		return nil, err
+	}
+
+	pvs := pvsRaw{}
+
+	err = json.Unmarshal([]byte(pvsOutput), &pvs)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pvs.Report) > 0 {
+		n.state.Services.LVM.State.PVs = pvs.Report[0].PV
+	}
+
+	// Get VG state.
+	type vgsRaw struct {
+		Report []struct {
+			VG []api.ServiceLVMVG `json:"vg"`
+		} `json:"report"`
+		Log []api.ServiceLVMLog `json:"log"`
+	}
+
+	vgsOutput, err := subprocess.RunCommandContext(ctx, "vgs", "--reportformat", "json_std")
+	if err != nil {
+		return nil, err
+	}
+
+	vgs := vgsRaw{}
+
+	err = json.Unmarshal([]byte(vgsOutput), &vgs)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vgs.Report) > 0 {
+		n.state.Services.LVM.State.VGs = vgs.Report[0].VG
+	}
+
+	n.state.Services.LVM.State.Log = vgs.Log
+
 	return n.state.Services.LVM, nil
 }
 
