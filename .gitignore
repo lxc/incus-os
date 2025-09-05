@@ -27,3 +27,4 @@ mkosi.packages/initrd-tmpfs-root*
 .sphinx/.wordlist.dic
 .sphinx/_static/download/
 .sphinx/venv/
+doc/html/
