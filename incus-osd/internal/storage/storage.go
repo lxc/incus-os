@@ -528,3 +528,32 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 	// Default to saying the device is local.
 	return false, nil
 }
+
+// WipeDrive will forcefully run `blkdiscard` on the drive, unless it is the boot device,
+// a remote device, or currently a member of a storage pool.
+func WipeDrive(ctx context.Context, drive string) error {
+	// Get a list of all drives.
+	drives, err := GetStorageInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, d := range drives.State.Drives {
+		if d.ID == drive {
+			if d.Boot { //nolint:gocritic
+				return errors.New("cannot wipe boot drive")
+			} else if d.Remote {
+				return errors.New("cannot wipe remote drive")
+			} else if d.MemberPool != "" {
+				return errors.New("cannot wipe drive belonging to pool '" + d.MemberPool + "'")
+			}
+
+			// Wipe the drive.
+			_, err := subprocess.RunCommandContext(ctx, "blkdiscard", "-f", drive)
+
+			return err
+		}
+	}
+
+	return errors.New("drive '" + drive + "' doesn't exist")
+}
