@@ -19,3 +19,7 @@ incus-osd/kpx
 mkosi.packages/initrd-tmpfs-root*
 
 *.swp
+
+.sphinx/warnings.txt
+.sphinx/_static/download/
+.sphinx/venv/
