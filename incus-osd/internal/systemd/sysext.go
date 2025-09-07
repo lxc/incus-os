@@ -123,6 +123,11 @@ func VerifyExtensionCertificateFingerprint(ctx context.Context, extensionFile st
 				if key.Description == cert.Subject.Names[0].Value {
 					return nil
 				}
+
+				// In some cases, the kernel uses a combination of organization and common name.
+				if len(cert.Subject.Organization) > 0 && key.Description == cert.Subject.Organization[0]+": "+cert.Subject.CommonName {
+					return nil
+				}
 			}
 
 			return fmt.Errorf("sysext image '%s' is signed by a trusted Secure Boot certificate, but the certificate isn't present in the kernel's keyring (reboot needed?)", extensionFile)
