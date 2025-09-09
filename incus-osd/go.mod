@@ -3,6 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.24.7
 
 require (
+	github.com/FuturFusion/migration-manager v0.0.0-20250911022104-553f45a48ade
 	github.com/FuturFusion/operations-center v0.0.0-20250911165554-7c9380da30f9
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
