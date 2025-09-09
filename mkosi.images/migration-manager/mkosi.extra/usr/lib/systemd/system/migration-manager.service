@@ -1,0 +1,8 @@
+[Unit]
+Description=Migration Manager
+Documentation=https://github.com/FuturFusion/migration-manager
+
+[Service]
+ExecStart=/usr/local/bin/migration-managerd
+KillMode=process
+Restart=on-failure
