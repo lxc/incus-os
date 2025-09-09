@@ -714,6 +714,9 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 }
 
 func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
+	s.UpdateMutex.Lock()
+	defer s.UpdateMutex.Unlock()
+
 	slog.DebugContext(ctx, "Checking for OS updates")
 
 	if s.System.Update.State.NeedsReboot {
@@ -798,6 +801,9 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 }
 
 func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
+	s.UpdateMutex.Lock()
+	defer s.UpdateMutex.Unlock()
+
 	slog.DebugContext(ctx, "Checking for application updates")
 
 	app, err := p.GetApplication(ctx, appName)
@@ -851,6 +857,9 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 }
 
 func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
+	s.UpdateMutex.Lock()
+	defer s.UpdateMutex.Unlock()
+
 	slog.DebugContext(ctx, "Checking for Secure Boot key updates")
 
 	if s.System.Update.State.NeedsReboot {
