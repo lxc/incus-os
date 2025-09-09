@@ -5,6 +5,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -29,6 +30,8 @@ type State struct {
 	StateVersion int `json:"-"`
 
 	ShouldPerformInstall bool `json:"-"`
+
+	UpdateMutex sync.Mutex `json:"-"`
 
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
