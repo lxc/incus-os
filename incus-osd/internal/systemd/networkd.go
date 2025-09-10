@@ -893,7 +893,7 @@ Name=_i%s
 Bridge=%s
 `, strippedHwaddr, i.Name)
 
-		cfgString += generateBridgeVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
+		cfgString += generateVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-_i%s.network", strippedHwaddr),
@@ -910,7 +910,7 @@ EmitLLDP=%s
 Bridge=%s
 `, strippedHwaddr, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP), i.Name)
 
-		cfgString += generateBridgeVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
+		cfgString += generateVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
 
 		if i.MTU != 0 {
 			cfgString += fmt.Sprintf("[Link]\nMTUBytes=%d\n", i.MTU)
@@ -983,7 +983,7 @@ Name=_i%s
 Bridge=%s
 `, strippedHwaddr, b.Name)
 
-		cfgString += generateBridgeVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
+		cfgString += generateVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-_i%s.network", strippedHwaddr),
@@ -1000,7 +1000,7 @@ ConfigureWithoutCarrier=yes
 Bridge=%s
 `, b.Name, b.Name)
 
-		cfgString += generateBridgeVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
+		cfgString += generateVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-_b%s.network", b.Name),
@@ -1174,18 +1174,18 @@ func generateTimesyncContents(ntp api.SystemNetworkNTP) string {
 	return "[Time]\nFallbackNTP=" + strings.Join(ntp.Timeservers, " ") + "\n"
 }
 
-func generateBridgeVLANContents(bridgeName string, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) string {
-	parentVLAN := 0
+func generateVLANContents(devName string, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) string {
 	vlanTags := []int{}
 
 	// Add any additional VLAN tags.
 	vlanTags = append(vlanTags, additionalVLANTags...)
 
-	// Grab any relevant tags for this bridge from VLAN definitions.
+	// Grab any relevant tags for this device from VLAN definitions.
 	for _, vlan := range vlans {
-		if vlan.Parent == bridgeName {
-			parentVLAN = vlan.ID
+		if vlan.Parent == devName {
 			vlanTags = append(vlanTags, vlan.ID)
+
+			break
 		}
 	}
 
@@ -1196,12 +1196,6 @@ func generateBridgeVLANContents(bridgeName string, additionalVLANTags []int, vla
 	ret := ""
 
 	if len(vlanTags) > 0 {
-		if parentVLAN != 0 {
-			ret += "\n[BridgeVLAN]\n"
-			ret += fmt.Sprintf("PVID=%d\n", parentVLAN)
-			ret += fmt.Sprintf("EgressUntagged=%d\n", parentVLAN)
-		}
-
 		for _, tag := range vlanTags {
 			ret += "\n[BridgeVLAN]\n"
 			ret += fmt.Sprintf("VLAN=%d\n", tag)
