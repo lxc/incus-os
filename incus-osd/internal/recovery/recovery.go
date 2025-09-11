@@ -27,15 +27,22 @@ import (
 )
 
 // CheckRunRecovery checks if a partition labeled "RESCUE_DATA" is present. If so,
-// and if the filesystem is vfat or isofs, it will mount the partition and first
+// and if the filesystem is vfat or iso9660, it will mount the partition and first
 // run any hotfix.sh script, then apply any updates in the update/ folder. Both
 // the hotfix script and update metadata is verified to have been properly signed
 // by the expected certificate.
 func CheckRunRecovery(ctx context.Context, s *state.State) error {
+	device := "/dev/disk/by-partlabel/RESCUE_DATA"
+
 	// Check if a recovery partition exists.
-	_, err := os.Stat("/dev/disk/by-partlabel/RESCUE_DATA")
+	_, err := os.Stat(device)
 	if err != nil {
-		return nil
+		_, err := os.Stat("/dev/disk/by-label/RESCUE_DATA")
+		if err != nil {
+			return nil
+		}
+
+		device = "/dev/disk/by-label/RESCUE_DATA"
 	}
 
 	slog.InfoContext(ctx, "Recovery partition detected")
@@ -48,12 +55,12 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	defer os.RemoveAll(mountDir)
 
 	// Try to mount as vfat
-	err = unix.Mount("/dev/disk/by-partlabel/RESCUE_DATA", mountDir, "vfat", 0, "ro")
+	err = unix.Mount(device, mountDir, "vfat", 0, "ro")
 	if err != nil {
-		// Try to mount as isofs
-		err = unix.Mount("/dev/disk/by-partlabel/RESCUE_DATA", mountDir, "isofs", 0, "ro")
+		// Try to mount as iso9660
+		err = unix.Mount(device, mountDir, "iso9660", 0, "ro")
 		if err != nil {
-			return errors.New("unable to mount recovery partition as vfat or isofs")
+			return errors.New("unable to mount recovery partition as vfat or iso9660")
 		}
 	}
 	defer unix.Unmount(mountDir, 0)
@@ -71,7 +78,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		apps = append(apps, app)
 	}
 
-	err = applyUpdate(ctx, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
+	err = applyUpdate(ctx, s, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
 	if err != nil {
 		return err
 	}
@@ -137,7 +144,7 @@ func runHotfix(ctx context.Context, mountDir string) error {
 	return err
 }
 
-func applyUpdate(ctx context.Context, mountDir string, installedApplications []string, luksPassword string) error {
+func applyUpdate(ctx context.Context, s *state.State, mountDir string, installedApplications []string, luksPassword string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -239,7 +246,17 @@ func applyUpdate(ctx context.Context, mountDir string, installedApplications []s
 	// Apply the OS update.
 	slog.InfoContext(ctx, "Applying OS update(s)")
 
-	return systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, true)
+	err = systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, false)
+	if err != nil {
+		return err
+	}
+
+	// Record the newly installed OS version.
+	s.OS.NextRelease = update.Version
+	s.System.Update.State.NeedsReboot = true
+	_ = s.Save(ctx)
+
+	return nil
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {
