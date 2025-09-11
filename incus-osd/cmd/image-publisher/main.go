@@ -34,6 +34,10 @@ func main() {
 		Hidden: true,
 	})
 
+	// demote sub-command.
+	demoteCmd := cmdDemote{global: &globalCmd}
+	app.AddCommand(demoteCmd.command())
+
 	// promote sub-command.
 	promoteCmd := cmdPromote{global: &globalCmd}
 	app.AddCommand(promoteCmd.command())
