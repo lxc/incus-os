@@ -27,7 +27,7 @@ import (
 )
 
 // CheckRunRecovery checks if a partition labeled "RESCUE_DATA" is present. If so,
-// and if the filesystem is vfat or isofs, it will mount the partition and first
+// and if the filesystem is vfat or iso9660, it will mount the partition and first
 // run any hotfix.sh script, then apply any updates in the update/ folder. Both
 // the hotfix script and update metadata is verified to have been properly signed
 // by the expected certificate.
@@ -57,10 +57,10 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	// Try to mount as vfat
 	err = unix.Mount(device, mountDir, "vfat", 0, "ro")
 	if err != nil {
-		// Try to mount as isofs
-		err = unix.Mount(device, mountDir, "isofs", 0, "ro")
+		// Try to mount as iso9660
+		err = unix.Mount(device, mountDir, "iso9660", 0, "ro")
 		if err != nil {
-			return errors.New("unable to mount recovery partition as vfat or isofs")
+			return errors.New("unable to mount recovery partition as vfat or iso9660")
 		}
 	}
 	defer unix.Unmount(mountDir, 0)
