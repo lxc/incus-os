@@ -45,6 +45,7 @@ type State struct {
 	OS OS `json:"os"`
 
 	Services struct {
+		Ceph      api.ServiceCeph      `json:"ceph"`
 		ISCSI     api.ServiceISCSI     `json:"iscsi"`
 		LVM       api.ServiceLVM       `json:"lvm"`
 		Multipath api.ServiceMultipath `json:"multipath"`

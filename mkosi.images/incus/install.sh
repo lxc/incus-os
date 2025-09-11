@@ -20,6 +20,6 @@ EOF
 
 # Install the incus packages.
 apt-get update
-apt-get install incus incus-ui-canonical --yes
+apt-get install ceph-common incus incus-ui-canonical --yes
 
 exit 0
