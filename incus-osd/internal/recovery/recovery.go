@@ -32,10 +32,17 @@ import (
 // the hotfix script and update metadata is verified to have been properly signed
 // by the expected certificate.
 func CheckRunRecovery(ctx context.Context, s *state.State) error {
+	device := "/dev/disk/by-partlabel/RESCUE_DATA"
+
 	// Check if a recovery partition exists.
-	_, err := os.Stat("/dev/disk/by-partlabel/RESCUE_DATA")
+	_, err := os.Stat(device)
 	if err != nil {
-		return nil
+		_, err := os.Stat("/dev/disk/by-label/RESCUE_DATA")
+		if err != nil {
+			return nil
+		}
+
+		device = "/dev/disk/by-label/RESCUE_DATA"
 	}
 
 	slog.InfoContext(ctx, "Recovery partition detected")
@@ -48,10 +55,10 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	defer os.RemoveAll(mountDir)
 
 	// Try to mount as vfat
-	err = unix.Mount("/dev/disk/by-partlabel/RESCUE_DATA", mountDir, "vfat", 0, "ro")
+	err = unix.Mount(device, mountDir, "vfat", 0, "ro")
 	if err != nil {
 		// Try to mount as isofs
-		err = unix.Mount("/dev/disk/by-partlabel/RESCUE_DATA", mountDir, "isofs", 0, "ro")
+		err = unix.Mount(device, mountDir, "isofs", 0, "ro")
 		if err != nil {
 			return errors.New("unable to mount recovery partition as vfat or isofs")
 		}
