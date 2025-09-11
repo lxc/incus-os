@@ -239,7 +239,7 @@ func applyUpdate(ctx context.Context, mountDir string, installedApplications []s
 	// Apply the OS update.
 	slog.InfoContext(ctx, "Applying OS update(s)")
 
-	return systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, true)
+	return systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, false)
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {
