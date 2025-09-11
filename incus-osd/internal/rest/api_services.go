@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -22,9 +23,13 @@ func (*Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	names := slices.Clone(services.Supported)
 	slices.Sort(names)
 
+	endpoint, _ := url.JoinPath(getAPIRoot(r), "services")
+
 	urls := []string{}
+
 	for _, service := range names {
-		urls = append(urls, "/1.0/services/"+service)
+		serviceURL, _ := url.JoinPath(endpoint, service)
+		urls = append(urls, serviceURL)
 	}
 
 	_ = response.SyncResponse(true, urls).Render(w)

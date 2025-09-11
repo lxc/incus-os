@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
@@ -19,7 +20,9 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = response.SyncResponse(true, []string{"/1.0/debug/log"}).Render(w)
+	endpoint, _ := url.JoinPath(getAPIRoot(r), "debug/log")
+
+	_ = response.SyncResponse(true, []string{endpoint}).Render(w)
 }
 
 func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
