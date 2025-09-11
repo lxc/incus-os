@@ -9,13 +9,15 @@ import (
 
 // Supported contains the list of all valid services.
 // The list is sorted in recommended startup order to handle service dependencies.
-var Supported = []string{"iscsi", "nvme", "multipath", "lvm", "ovn", "usbip"}
+var Supported = []string{"ceph", "iscsi", "nvme", "multipath", "lvm", "ovn", "usbip"}
 
 // Load returns a handler for the given system service.
 func Load(ctx context.Context, s *state.State, name string) (Service, error) {
 	var srv Service
 
 	switch name {
+	case "ceph":
+		srv = &Ceph{state: s}
 	case "iscsi":
 		srv = &ISCSI{state: s}
 	case "lvm":
