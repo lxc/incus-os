@@ -141,6 +141,7 @@ proxies:
         type: kerberos
         realm: corp.example.net
         credential: corp-kerberos
+        spn: HTTP
     ipv6-proxy:
         host: fd42:3cfb:8972:3990:1266:6aff:fe35:ead9
         port: 8000
