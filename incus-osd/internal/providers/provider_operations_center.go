@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -290,8 +291,16 @@ func (p *operationsCenter) load(_ context.Context) error {
 		return fmt.Errorf("failed to set client certificate: %w", err)
 	}
 
+	// Disable the use of the system proxy.
+	proxy := func(_ *http.Request) (*url.URL, error) {
+		return nil, nil //nolint:nilnil
+	}
+
 	// Configure the HTTP client with our TLS config.
-	p.client.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+	p.client.Transport = &http.Transport{
+		Proxy:           proxy,
+		TLSClientConfig: tlsConfig,
+	}
 
 	return nil
 }
