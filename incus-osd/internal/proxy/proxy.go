@@ -34,6 +34,7 @@ type kpxProxy struct {
 	Type       string `yaml:"type"`
 	Realm      string `yaml:"realm,omitempty"`
 	Credential string `yaml:"credential,omitempty"`
+	SPN        string `yaml:"spn,omitempty"`
 }
 
 type kpxCredential struct {
@@ -171,21 +172,28 @@ func GenerateKPXConfig(proxyConfig *api.SystemNetworkProxy) ([]byte, error) {
 			credential = ""
 		}
 
-		cfg.Proxies[serverKey] = kpxProxy{
-			Host:       parsedHost.Hostname(),
-			Port:       serverPort,
-			SSL:        useTLS,
-			Type:       server.Auth,
-			Realm:      server.Realm,
-			Credential: credential,
+		proxy := kpxProxy{
+			Host: parsedHost.Hostname(),
+			Port: serverPort,
+			SSL:  useTLS,
+			Type: server.Auth,
+		}
+
+		if server.Auth == "kerberos" {
+			proxy.Realm = server.Realm
+			proxy.SPN = "HTTP"
 		}
 
 		if server.Auth != "anonymous" {
+			proxy.Credential = credential
+
 			cfg.Credentials[serverKey] = kpxCredential{
 				Login:    server.Username,
 				Password: server.Password,
 			}
 		}
+
+		cfg.Proxies[serverKey] = proxy
 	}
 
 	// Generate proxy rules.
