@@ -9,12 +9,14 @@ certs/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/
+mkosi.images/operations-center/mkosi.extra/
+
+app-build/
 
 incus-osd/flasher-tool
 incus-osd/image-customizer
 incus-osd/image-publisher
 incus-osd/incus-osd
-incus-osd/kpx
 
 mkosi.packages/initrd-tmpfs-root*
 
