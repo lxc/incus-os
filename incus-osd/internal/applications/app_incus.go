@@ -22,6 +22,12 @@ func (*incus) Start(ctx context.Context, _ string) error {
 		return err
 	}
 
+	// Refresh the sysctls.
+	err = systemd.RestartUnit(ctx, "systemd-sysctl.service")
+	if err != nil {
+		return err
+	}
+
 	// Start the units.
 	return systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 }
