@@ -2,6 +2,7 @@ package rest
 
 import (
 	"net/http"
+	"net/url"
 	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -25,9 +26,13 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 	slices.Sort(names)
 
+	endpoint, _ := url.JoinPath(getAPIRoot(r), "applications")
+
 	urls := []string{}
+
 	for _, application := range names {
-		urls = append(urls, "/1.0/applications/"+application)
+		appURL, _ := url.JoinPath(endpoint, application)
+		urls = append(urls, appURL)
 	}
 
 	_ = response.SyncResponse(true, urls).Render(w)

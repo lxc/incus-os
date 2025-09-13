@@ -2,9 +2,27 @@ package rest
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
+
+// If the request contains a X-IncusOS-Proxy header, prepend that to
+// the API root that's returned to the user.
+func getAPIRoot(r *http.Request) string {
+	if r == nil {
+		return "/1.0"
+	}
+
+	prefix := r.Header.Get("X-IncusOS-Proxy")
+	if prefix == "" {
+		prefix = "/"
+	}
+
+	ret, _ := url.JoinPath(prefix, "1.0")
+
+	return ret
+}
 
 func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -21,7 +39,7 @@ func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = response.SyncResponse(true, []string{"/1.0"}).Render(w)
+	_ = response.SyncResponse(true, []string{getAPIRoot(r)}).Render(w)
 }
 
 func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
