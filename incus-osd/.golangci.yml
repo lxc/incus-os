@@ -2,6 +2,7 @@ version: "2"
 linters:
   default: all
   disable:
+    - canonicalheader
     - cyclop # handled by revive
     - depguard
     - err113
