@@ -21,6 +21,7 @@ with open("applications.json", "r") as f:
 images = [
     ["base", ["incus-osd", "kpx", "tailscale"]],
     ["migration-manager", ["migration-manager"]],
+    ["openfga", ["openfga"]],
     ["operations-center", [
         "opentofu",
         "operations-center",
