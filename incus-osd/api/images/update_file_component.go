@@ -25,6 +25,9 @@ const (
 	// UpdateFileComponentMigrationManager represents a Migration Manager application update.
 	UpdateFileComponentMigrationManager UpdateFileComponent = "migration-manager"
 
+	// UpdateFileComponentOpenFGA represents an OpenFGA application update.
+	UpdateFileComponentOpenFGA UpdateFileComponent = "openfga"
+
 	// UpdateFileComponentOperationsCenter represents an Operations Center application update.
 	UpdateFileComponentOperationsCenter UpdateFileComponent = "operations-center"
 )
@@ -38,6 +41,7 @@ var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentIncusCeph:        {},
 	UpdateFileComponentIncusLinstor:     {},
 	UpdateFileComponentMigrationManager: {},
+	UpdateFileComponentOpenFGA:          {},
 	UpdateFileComponentOperationsCenter: {},
 }
 
