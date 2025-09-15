@@ -35,9 +35,12 @@ type zpoolStatusPartialParse struct {
 		State string `json:"state"`
 		Vdevs map[string]struct {
 			Vdevs map[string]struct {
-				VdevType string `json:"vdev_type"`
-				State    string `json:"state"`
-				Vdevs    map[string]struct {
+				VdevType   string `json:"vdev_type"`
+				State      string `json:"state"`
+				AllocSpace int    `json:"alloc_space"`
+				TotalSpace int    `json:"total_space"`
+				DefSpace   int    `json:"def_space"`
+				Vdevs      map[string]struct {
 					State string `json:"state"`
 				} `json:"vdevs,omitempty"`
 			} `json:"vdevs"`
@@ -209,7 +212,7 @@ func IDSymlinkToDevice(idSymlink string) (string, error) {
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
 // Logically it makes more sense for this to be in the zfs package, but that would cause an import loop.
 func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePool, error) {
-	output, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName, "-j")
+	output, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName, "-jp", "--json-int")
 	if err != nil {
 		return api.SystemStoragePool{}, err
 	}
@@ -226,6 +229,9 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 	}
 
 	zpoolType := ""
+	zpoolAllocSpace := 0
+	zpoolTotalSpace := 0
+	zpoolDefSpace := 0
 	zpoolDevices := make(map[string][]string)
 
 	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
@@ -273,6 +279,10 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 				}
 			}
 		}
+
+		zpoolAllocSpace += vdev.AllocSpace
+		zpoolTotalSpace += vdev.TotalSpace
+		zpoolDefSpace += vdev.DefSpace
 	}
 
 	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Logs {
@@ -323,15 +333,18 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 	}
 
 	return api.SystemStoragePool{
-		Name:            zpoolName,
-		State:           zpoolJSON.Pools[zpoolName].State,
-		Type:            zpoolType,
-		Devices:         zpoolDevices["devices"],
-		Log:             zpoolDevices["log"],
-		Cache:           zpoolDevices["cache"],
-		DevicesDegraded: zpoolDevices["devices_degraded"],
-		LogDegraded:     zpoolDevices["log_degraded"],
-		CacheDegraded:   zpoolDevices["cache_degraded"],
+		Name:                      zpoolName,
+		State:                     zpoolJSON.Pools[zpoolName].State,
+		Type:                      zpoolType,
+		Devices:                   zpoolDevices["devices"],
+		Log:                       zpoolDevices["log"],
+		Cache:                     zpoolDevices["cache"],
+		DevicesDegraded:           zpoolDevices["devices_degraded"],
+		LogDegraded:               zpoolDevices["log_degraded"],
+		CacheDegraded:             zpoolDevices["cache_degraded"],
+		RawPoolSizeInBytes:        zpoolTotalSpace,
+		UsablePoolSizeInBytes:     zpoolDefSpace,
+		PoolAllocatedSpaceInBytes: zpoolAllocSpace,
 	}, nil
 }
 
@@ -360,7 +373,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 	}
 
 	// Get the status of the zpool(s).
-	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-j")
+	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-jp", "--json-int")
 	if err != nil {
 		return ret, err
 	}
