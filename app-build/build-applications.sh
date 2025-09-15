@@ -4,6 +4,7 @@ set -e
 
 ### Versions ###
 INCUS_TERRAFORM_VERSION=0.5.0
+MIGRATION_MANAGER_VERSION=main
 KPX_VERSION=1.12.1
 OPENTOFU_VERSION=1.10.6
 OPERATIONS_CENTER_VERSION=main
@@ -50,6 +51,26 @@ fi
 
     go build -o kpx -ldflags="s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}" ./cli
     strip kpx
+    popd
+
+### Migration Manager ###
+if [ -d migration-manager ]; then
+    pushd migration-manager
+    git reset --hard && git pull
+    popd
+else
+    git clone https://github.com/FuturFusion/migration-manager.git migration-manager --depth 1 -b "${MIGRATION_MANAGER_VERSION}"
+fi
+
+    pushd migration-manager
+    go build -o migration-managerd ./cmd/migration-managerd
+    go build -o migration-manager-worker ./cmd/migration-manager-worker
+    strip migration-managerd migration-manager-worker
+
+    pushd ui
+    YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
+    popd
+
     popd
 
 ### opentofu ###
