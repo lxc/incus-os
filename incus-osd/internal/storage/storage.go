@@ -181,7 +181,11 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 		return "", err
 	}
 
-	for _, dev := range strings.Split(output, " ") {
+	// Sort the list of returned symlinks so we consistently return the same symlink.
+	candidates := strings.Split(output, " ")
+	slices.Sort(candidates)
+
+	for _, dev := range candidates {
 		if strings.HasPrefix(dev, "disk/by-id/") {
 			dev = strings.TrimSuffix(dev, "\n")
 
