@@ -131,6 +131,24 @@
             "usr/share/migration-manager/"
         ]
     },
+    "openfga": {
+        "version": "v1.11.2",
+        "repo": "https://github.com/openfga/openfga.git",
+        "build_targets": [
+            [
+                "./cmd/openfga"
+            ]
+        ],
+        "install_targets": [
+            [
+                "openfga",
+                "usr/local/bin/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/local/bin/openfga"
+        ]
+    },
     "opentofu": {
         "version": "v1.11.2",
         "repo": "https://github.com/opentofu/opentofu.git",

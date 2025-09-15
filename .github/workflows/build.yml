@@ -100,6 +100,7 @@ jobs:
           mv mkosi.output/incus-ceph.raw upload/
           mv mkosi.output/incus-linstor.raw upload/
           mv mkosi.output/migration-manager.raw upload/
+          mv mkosi.output/openfga.raw upload/
           mv mkosi.output/operations-center.raw upload/
 
           mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
