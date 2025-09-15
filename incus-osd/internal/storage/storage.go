@@ -181,7 +181,11 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 		return "", err
 	}
 
-	for _, dev := range strings.Split(output, " ") {
+	// Sort the list of returned symlinks so we consistently return the same symlink.
+	candidates := strings.Split(output, " ")
+	slices.Sort(candidates)
+
+	for _, dev := range candidates {
 		if strings.HasPrefix(dev, "disk/by-id/") {
 			dev = strings.TrimSuffix(dev, "\n")
 
@@ -190,20 +194,6 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 	}
 
 	return "", errors.New("unable to determine device ID for " + device)
-}
-
-// IDSymlinkToDevice takes a device symlink like /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root and resolves to symlink to the actual device, for example /dev/sda.
-func IDSymlinkToDevice(idSymlink string) (string, error) {
-	if idSymlink == "" {
-		return "", errors.New("empty string provided for ID symlink")
-	}
-
-	dst, err := os.Readlink(idSymlink)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(filepath.Dir(idSymlink), dst), nil
 }
 
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
@@ -291,36 +281,13 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 		}
 	}
 
-	// Sort each list of devices and convert back to nicer short path names.
-	zpoolDevices["devices"], err = resolveAndSortDevices(zpoolDevices["devices"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
-
-	zpoolDevices["log"], err = resolveAndSortDevices(zpoolDevices["log"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
-
-	zpoolDevices["cache"], err = resolveAndSortDevices(zpoolDevices["cache"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
-
-	zpoolDevices["devices_degraded"], err = resolveAndSortDevices(zpoolDevices["devices_degraded"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
-
-	zpoolDevices["log_degraded"], err = resolveAndSortDevices(zpoolDevices["log_degraded"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
-
-	zpoolDevices["cache_degraded"], err = resolveAndSortDevices(zpoolDevices["cache_degraded"])
-	if err != nil {
-		return api.SystemStoragePool{}, err
-	}
+	// Sort each list of devices to ensure consistent ordering of device names.
+	slices.Sort(zpoolDevices["devices"])
+	slices.Sort(zpoolDevices["log"])
+	slices.Sort(zpoolDevices["cache"])
+	slices.Sort(zpoolDevices["devices_degraded"])
+	slices.Sort(zpoolDevices["log_degraded"])
+	slices.Sort(zpoolDevices["cache_degraded"])
 
 	return api.SystemStoragePool{
 		Name:            zpoolName,
@@ -333,22 +300,6 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 		LogDegraded:     zpoolDevices["log_degraded"],
 		CacheDegraded:   zpoolDevices["cache_degraded"],
 	}, nil
-}
-
-func resolveAndSortDevices(devs []string) ([]string, error) {
-	for idx, dev := range devs {
-		actualDev, err := IDSymlinkToDevice(dev)
-		if err != nil {
-			return nil, err
-		}
-
-		devs[idx] = actualDev
-	}
-
-	// Ensure consistent ordering of device names.
-	slices.Sort(devs)
-
-	return devs, nil
 }
 
 // GetStorageInfo returns current SMART data for each drive and the status of each local zpool.
@@ -430,6 +381,23 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			modelName = smart.SCSIProduct
 		}
 
+		// Build a hex WWN string.
+		wwnString := ""
+		if smart.WWN.NAA != 0 && smart.WWN.OUI != 0 && smart.WWN.ID != 0 {
+			wwnString = fmt.Sprintf("0x%x", (smart.WWN.NAA<<60)+(smart.WWN.OUI<<36)+smart.WWN.ID)
+		}
+
+		// Resolve the device name to a more stable by-id symlink.
+		deviceID, err := DeviceToID(ctx, drive.KName)
+		if err != nil {
+			return ret, err
+		}
+
+		// If we have a WWN, prefer that over other potential by-id symlinks.
+		if wwnString != "" {
+			deviceID = "/dev/disk/by-id/wwn-" + wwnString
+		}
+
 		// Check if the drive belongs to a zpool.
 		driveZpool := ""
 
@@ -439,8 +407,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 				return ret, err
 			}
 
-			if slices.Contains(poolConfig.Devices, drive.KName) || slices.Contains(poolConfig.Log, drive.KName) || slices.Contains(poolConfig.Cache, drive.KName) ||
-				slices.Contains(poolConfig.DevicesDegraded, drive.KName) || slices.Contains(poolConfig.LogDegraded, drive.KName) || slices.Contains(poolConfig.CacheDegraded, drive.KName) {
+			if isMemberDrive(poolConfig.Devices, deviceID) || isMemberDrive(poolConfig.Log, deviceID) || isMemberDrive(poolConfig.Cache, deviceID) ||
+				isMemberDrive(poolConfig.DevicesDegraded, deviceID) || isMemberDrive(poolConfig.LogDegraded, deviceID) || isMemberDrive(poolConfig.CacheDegraded, deviceID) {
 				driveZpool = zpoolName
 
 				break
@@ -456,14 +424,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			smartStatus = nil
 		}
 
-		// Build a hex WWN string.
-		wwnString := ""
-		if smart.WWN.NAA != 0 && smart.WWN.OUI != 0 && smart.WWN.ID != 0 {
-			wwnString = fmt.Sprintf("0x%x", (smart.WWN.NAA<<60)+(smart.WWN.OUI<<36)+smart.WWN.ID)
-		}
-
 		ret.State.Drives = append(ret.State.Drives, api.SystemStorageDrive{
-			ID:              drive.KName,
+			ID:              deviceID,
 			ModelFamily:     modelFamily,
 			ModelName:       modelName,
 			SerialNumber:    smart.SerialNumber,
@@ -479,6 +441,34 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 	}
 
 	return ret, nil
+}
+
+// Helper function that checks if a given drive is a member of the provided list of drives.
+// Because multiple symlinks can point to the same underlying drive, we resolve the symlinks
+// before checking if the drive matches one of the drives in the provided list.
+func isMemberDrive(list []string, drive string) bool {
+	// Resolve drive's symlink.
+	deviceDst, err := os.Readlink(drive)
+	if err != nil {
+		return false
+	}
+
+	// Update the path we're checking for.
+	drive = filepath.Join(filepath.Dir(drive), deviceDst)
+
+	// Iterate through each of the drives in the list and see if it's the same as the one we're searching for.
+	for _, dev := range list {
+		devDst, err := os.Readlink(dev)
+		if err != nil {
+			continue
+		}
+
+		if filepath.Join(filepath.Dir(dev), devDst) == drive {
+			return true
+		}
+	}
+
+	return false
 }
 
 // IsRemoteDevice determines if a given device is remote (NVMEoTCP, FC, etc).
