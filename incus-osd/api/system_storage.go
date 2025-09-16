@@ -26,6 +26,7 @@ type SystemStoragePool struct {
 
 	// Read-only fields returned from the server with additional pool information.
 	State                     string   `json:"state"                         yaml:"state"`
+	EncryptionKeyStatus       string   `json:"encryption_key_status"         yaml:"encryption_key_status"`
 	DevicesDegraded           []string `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
 	CacheDegraded             []string `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
 	LogDegraded               []string `json:"log_degraded,omitempty"        yaml:"log_degraded,omitempty"`
