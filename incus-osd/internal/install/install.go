@@ -79,11 +79,15 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
 
-		// Sanity check: if we're not running from a CDROM, ensure that the seed partition in use exists on the source
-		// device. If not, there are at least two IncusOS drives present, the installed system and an install media.
-		// This will result in a weird environment, so raise an error telling the user to remove the install device.
+		// Sanity check: if we're not running from a CDROM, ensure that the default install media seed partition
+		// exists on the source device. If not, there are at least two IncusOS drives present, the installed system
+		// and an install media. This will result in a weird environment, so raise an error telling the user to
+		// remove the install device.
+		//
+		// This won't catch the case when an external user-provided seed partition is present, and we rely on the
+		// user properly removing their seed device post-install.
 		if !runningFromCDROM() {
-			seedLink, err := os.Readlink(seed.GetSeedPath())
+			seedLink, err := os.Readlink("/dev/disk/by-partlabel/seed-data")
 			if err != nil {
 				return err
 			}
