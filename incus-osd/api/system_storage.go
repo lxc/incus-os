@@ -61,3 +61,11 @@ type SystemStorageDriveSMART struct {
 type SystemStorageWipe struct {
 	ID string `json:"id" yaml:"id"`
 }
+
+// SystemStoragePoolKey defines a struct used to provide an encryption key when importing an existing pool.
+// Currently the only supported type is "zfs".
+type SystemStoragePoolKey struct {
+	Name          string `json:"name"           yaml:"name"`
+	Type          string `json:"type"           yaml:"type"`
+	EncryptionKey string `json:"encryption_key" yaml:"encryption_key"`
+}
