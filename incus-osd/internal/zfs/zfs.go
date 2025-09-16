@@ -47,7 +47,7 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	}
 
 	// Create the "local" ZFS pool if it doesn't exist.
-	if !PoolExists(ctx, "local") {
+	if !storage.PoolExists(ctx, "local") {
 		zpool := api.SystemStoragePool{
 			Name:    "local",
 			Type:    "zfs-raid0",
@@ -81,13 +81,6 @@ func getPoolsWithKnownKeys() ([]string, error) {
 	return ret, nil
 }
 
-// PoolExists checks if a given ZFS pool exists.
-func PoolExists(ctx context.Context, zpoolName string) bool {
-	_, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName)
-
-	return err == nil
-}
-
 // CreateZpool creates a new zpool.
 func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.State) error {
 	keyfilePath := "/var/lib/incus-os/zpool." + zpool.Name + ".key"
@@ -98,7 +91,7 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 	}
 
 	// Check if the zpool already exists.
-	if PoolExists(ctx, zpool.Name) {
+	if storage.PoolExists(ctx, zpool.Name) {
 		return errors.New("zpool '" + zpool.Name + "' already exists")
 	}
 
@@ -339,7 +332,7 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 // UpdateZpool updates the devices used for an existing zpool.
 func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	// Check if the zpool exists.
-	if !PoolExists(ctx, newConfig.Name) {
+	if !storage.PoolExists(ctx, newConfig.Name) {
 		return errors.New("zpool '" + newConfig.Name + "' doesn't exist")
 	}
 

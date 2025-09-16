@@ -59,7 +59,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPut {
 			// Create or update a pool.
 			for _, pool := range storageStruct.Config.Pools {
-				if !zfs.PoolExists(r.Context(), pool.Name) {
+				if !storage.PoolExists(r.Context(), pool.Name) {
 					err = zfs.CreateZpool(r.Context(), pool, s.state)
 				} else {
 					err = zfs.UpdateZpool(r.Context(), pool)
