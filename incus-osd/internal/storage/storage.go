@@ -207,6 +207,13 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 	return "", errors.New("unable to determine device ID for " + device)
 }
 
+// PoolExists checks if a given ZFS pool exists.
+func PoolExists(ctx context.Context, zpoolName string) bool {
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName)
+
+	return err == nil
+}
+
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
 // Logically it makes more sense for this to be in the zfs package, but that would cause an import loop.
 func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePool, error) {
