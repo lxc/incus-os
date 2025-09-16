@@ -12,6 +12,16 @@ partition of the install image. At runtime, Incus OS will attempt to read the
 install seed from the second partition and use any data present during the
 install process.
 
+Alternatively, a user-provided seed partition may be provided independent of
+the install image. The partition label must be `SEED_DATA` on either a USB
+drive formatted as vfat or an ISO image. Rather than reading a tar archive,
+the install logic will attempt to directly read the json/yaml configuration
+files from the mounted file system. Upon completion of the install, it is up
+to the user to disconnect their seed device from the machine, otherwise Incus
+OS will become confused when it starts up and detects that seed data is still
+present. (The install process wipes the seed data tar archive from the final
+install, but we cannot do this with a user-provided seed.)
+
 ## Seed contents
 The following configuration files are currently recognized:
 
