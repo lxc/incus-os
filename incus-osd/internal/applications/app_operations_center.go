@@ -49,7 +49,7 @@ func (*operationsCenter) Update(ctx context.Context, _ string) error {
 // Initialize runs first time initialization.
 func (*operationsCenter) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
-	ocSeed, err := seed.GetOperationsCenter(ctx, seed.SeedPartitionPath)
+	ocSeed, err := seed.GetOperationsCenter(ctx, seed.GetSeedPath())
 	if err != nil && !seed.IsMissing(err) {
 		return err
 	}
