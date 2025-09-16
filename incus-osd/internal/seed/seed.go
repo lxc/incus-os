@@ -7,7 +7,9 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 
+	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v3"
 )
 
@@ -39,8 +41,103 @@ func IsMissing(e error) bool {
 	return false
 }
 
-// parseFileContents searches for a given file in the seed partition and returns its contents as a byte array if found.
+// parseFileContents searches for a given file in the seed configuration and returns its contents as a byte array if found.
 func parseFileContents(partition string, filename string, target any) error {
+	// First, try to get seed data by mounting a user-provided seed.
+	err := parseFileContentsFromUserPartition(partition, filename, target)
+	if err == nil {
+		return nil
+	}
+
+	// Fallback to seed data from install media.
+	return parseFileContentsFromRawTar(partition, filename, target)
+}
+
+// parseFileContentsFromUserPartition searches for a given file in the user-provided seed partition and returns its contents as a byte array if found.
+func parseFileContentsFromUserPartition(partition string, filename string, target any) error {
+	// Mount the seed partition.
+	mountDir, err := os.MkdirTemp("", "incus-os-seed")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(mountDir)
+
+	// Try to mount as vfat.
+	err = unix.Mount(partition, mountDir, "vfat", 0, "ro")
+	if err != nil {
+		// Try to mount as iso9660.
+		err = unix.Mount(partition, mountDir, "iso9660", 0, "ro")
+		if err != nil {
+			return err
+		}
+	}
+	defer unix.Unmount(mountDir, 0)
+
+	files, err := os.ReadDir(mountDir)
+	if err != nil {
+		return err
+	}
+
+	// Search for the seed file.
+	for _, file := range files {
+		switch file.Name() {
+		case filename + ".json":
+			f, err := os.Open(filepath.Join(mountDir, filename+".json")) //nolint:gosec
+			if err != nil {
+				return err
+			}
+			defer f.Close() //nolint:revive
+
+			decoder := json.NewDecoder(f)
+
+			err = decoder.Decode(target)
+			if err != nil {
+				return err
+			}
+
+			return nil
+
+		case filename + ".yaml":
+			f, err := os.Open(filepath.Join(mountDir, filename+".yaml")) //nolint:gosec
+			if err != nil {
+				return err
+			}
+			defer f.Close() //nolint:revive
+
+			decoder := yaml.NewDecoder(f)
+
+			err = decoder.Decode(target)
+			if err != nil {
+				return err
+			}
+
+			return nil
+
+		case filename + ".yml":
+			f, err := os.Open(filepath.Join(mountDir, filename+".yml")) //nolint:gosec
+			if err != nil {
+				return err
+			}
+			defer f.Close() //nolint:revive
+
+			decoder := yaml.NewDecoder(f)
+
+			err = decoder.Decode(target)
+			if err != nil {
+				return err
+			}
+
+			return nil
+
+		default:
+		}
+	}
+
+	return errors.New("no seed data for " + filename + " found in user-provided seed partition")
+}
+
+// parseFileContentsFromRawTar searches for a given file in the seed partition on the install media and returns its contents as a byte array if found.
+func parseFileContentsFromRawTar(partition string, filename string, target any) error {
 	// Open the seed-data partition.
 	f, err := os.Open(partition) //nolint:gosec
 	if err != nil {
