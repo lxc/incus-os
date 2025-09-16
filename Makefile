@@ -77,6 +77,9 @@ endif
 	cp app-build/opentofu/tofu mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/share/operations-center/ui/
+	cp -r app-build/terraform-provider-null/hashicorp/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
+	cp -r app-build/terraform-provider-random/hashicorp/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
+	cp -r app-build/terraform-provider-time/hashicorp/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
 	cp -r app-build/terraform-provider-incus/lxc/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
