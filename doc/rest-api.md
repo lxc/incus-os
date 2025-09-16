@@ -72,7 +72,11 @@ are not backwards compatible.
     pools
     
     `PUT`: Create or update a local storage pool
+
+  * `/1.0/system/storage/import`
   
+    `POST`: Set the encryption key when importing an existing storage pool
+
   * `/1.0/system/storage/wipe`
   
     `POST`: Forcibly wipe all data from the specified drive

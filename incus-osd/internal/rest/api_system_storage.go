@@ -139,3 +139,51 @@ func (*Server) apiSystemStorageWipe(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 	}
 }
+
+func (*Server) apiSystemStorageImport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodPost:
+		// Add the specified encryption key for the manually imported pool.
+		if r.ContentLength <= 0 {
+			_ = response.BadRequest(errors.New("no pool configuration specified")).Render(w)
+
+			return
+		}
+
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		poolStruct := api.SystemStoragePoolKey{}
+
+		err = json.Unmarshal(b, &poolStruct)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		if poolStruct.Pool == "" || poolStruct.EncryptionKey == "" {
+			_ = response.BadRequest(errors.New("missing pool name and/or encryption key")).Render(w)
+
+			return
+		}
+
+		err = storage.SetEncryptionKey(r.Context(), poolStruct.Pool, poolStruct.EncryptionKey)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
+		// If none of the supported methods, return NotImplemented.
+		_ = response.NotImplemented(nil).Render(w)
+	}
+}
