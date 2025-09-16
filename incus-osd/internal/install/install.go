@@ -74,7 +74,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
-		config, err := seed.GetInstall(seed.SeedPartitionPath)
+		config, err := seed.GetInstall(seed.GetSeedPath())
 		if err != nil && !errors.Is(err, io.EOF) {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
@@ -83,7 +83,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 		// device. If not, there are at least two IncusOS drives present, the installed system and an install media.
 		// This will result in a weird environment, so raise an error telling the user to remove the install device.
 		if !runningFromCDROM() {
-			seedLink, err := os.Readlink(seed.SeedPartitionPath)
+			seedLink, err := os.Readlink(seed.GetSeedPath())
 			if err != nil {
 				return err
 			}
@@ -116,7 +116,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 // ShouldPerformInstall checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
 func ShouldPerformInstall() bool {
-	_, err := seed.GetInstall(seed.SeedPartitionPath)
+	_, err := seed.GetInstall(seed.GetSeedPath())
 
 	// If we have any empty install file, that should still trigger an install.
 	if errors.Is(err, io.EOF) {
@@ -134,7 +134,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 
 	var err error
 
-	ret.config, err = seed.GetInstall(seed.SeedPartitionPath)
+	ret.config, err = seed.GetInstall(seed.GetSeedPath())
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}

@@ -317,7 +317,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
-		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.SeedPartitionPath)
+		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.GetSeedPath())
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
@@ -356,7 +356,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		provider = s.System.Provider.Config.Name
 		providerConfig = s.System.Provider.Config.Config
 	} else {
-		providerSeed, err := seed.GetProvider(ctx, seed.SeedPartitionPath)
+		providerSeed, err := seed.GetProvider(ctx, seed.GetSeedPath())
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
@@ -582,7 +582,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		if len(s.Applications) == 0 && (isStartupCheck || isUserRequested) {
 			// Assume first start of the daemon.
-			apps, err := seed.GetApplications(ctx, seed.SeedPartitionPath)
+			apps, err := seed.GetApplications(ctx, seed.GetSeedPath())
 			if err != nil && !seed.IsMissing(err) {
 				s.System.Update.State.UpdateStatus = "Failed to get application list"
 				slog.ErrorContext(ctx, s.System.Update.State.UpdateStatus, "err", err.Error())
