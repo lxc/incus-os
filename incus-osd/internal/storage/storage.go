@@ -56,6 +56,14 @@ type zpoolStatusPartialParse struct {
 	} `json:"pools"`
 }
 
+type zfsGetPartialParse struct {
+	Datasets map[string]struct {
+		Properties map[string]struct {
+			Value string `json:"value"`
+		} `json:"properties"`
+	} `json:"datasets"`
+}
+
 type smartOutput struct {
 	Device struct {
 		Type string `json:"type"`
@@ -207,13 +215,26 @@ func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePo
 		return api.SystemStoragePool{}, err
 	}
 
-	return getZpoolMembersHelper([]byte(output), zpoolName)
+	return getZpoolMembersHelper(ctx, []byte(output), zpoolName)
 }
 
-func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) {
+func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) {
 	zpoolJSON := zpoolStatusPartialParse{}
 
 	err := json.Unmarshal(rawJSONContent, &zpoolJSON)
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	// Get the encryption key status.
+	zfsGetOutput, err := subprocess.RunCommandContext(ctx, "zfs", "get", "keystatus", zpoolName, "-j")
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zfsProperties := zfsGetPartialParse{}
+
+	err = json.Unmarshal([]byte(zfsGetOutput), &zfsProperties)
 	if err != nil {
 		return api.SystemStoragePool{}, err
 	}
@@ -302,6 +323,7 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 	return api.SystemStoragePool{
 		Name:                      zpoolName,
 		State:                     zpoolJSON.Pools[zpoolName].State,
+		EncryptionKeyStatus:       zfsProperties.Datasets[zpoolName].Properties["keystatus"].Value,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
@@ -338,7 +360,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 	// Populate the Config.State struct.
 	for zpoolName := range zpools.Pools {
-		poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+		poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 		if err != nil {
 			return ret, err
 		}
@@ -416,7 +438,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 		driveZpool := ""
 
 		for zpoolName := range zpools.Pools {
-			poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+			poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 			if err != nil {
 				return ret, err
 			}
