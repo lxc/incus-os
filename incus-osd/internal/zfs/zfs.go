@@ -18,19 +18,32 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 )
 
-// LoadPools will import and load encryption keys for any ZFS pools on the local system.
-// If the "local" pool doesn't exist, it will also be created as an encrypted ZFS pool in
-// the partition labeled "local-data".
+// LoadPools will import all ZFS pools on the local system and attempt to load their
+// corresponding encryption keys. If the "local" pool doesn't exist, it will also
+// be created as an encrypted ZFS pool in the partition labeled "local-data".
 func LoadPools(ctx context.Context, s *state.State) error {
-	// Import and load encryption keys for any local ZFS pools.
+	// Import all local ZFS pools.
 	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "-a")
 	if err != nil {
 		return err
 	}
 
-	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", "-a")
+	// Load any encryption keys we know about. Don't do a `zfs load-key -a`, since if
+	// someone needs to manually import an existing encrypted pool this will cause
+	// IncusOS to hang on boot because we won't have that encryption key stored locally yet.
+	pools, err := getPoolsWithKnownKeys()
 	if err != nil {
 		return err
+	}
+
+	for _, pool := range pools {
+		_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
+		if err != nil {
+			// If the pool's encryption key has already been loaded, don't return an error.
+			if !strings.Contains(err.Error(), "Key load error: Key already loaded for") {
+				return err
+			}
+		}
 	}
 
 	// Create the "local" ZFS pool if it doesn't exist.
@@ -48,6 +61,24 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	}
 
 	return nil
+}
+
+// Helper function to return a list of ZFS pools that have a corresponding known encryption key saved locally.
+func getPoolsWithKnownKeys() ([]string, error) {
+	files, err := os.ReadDir("/var/lib/incus-os/")
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []string{}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "zpool.") && strings.HasSuffix(file.Name(), ".key") {
+			ret = append(ret, strings.TrimPrefix(strings.TrimSuffix(file.Name(), ".key"), "zpool."))
+		}
+	}
+
+	return ret, nil
 }
 
 // PoolExists checks if a given ZFS pool exists.
