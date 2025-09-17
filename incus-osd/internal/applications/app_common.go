@@ -37,6 +37,11 @@ func (*common) IsRunning(_ context.Context) bool {
 	return true
 }
 
+// Uninstall uninstalls the application, and optionally removes any local user data.
+func (*common) Uninstall(_ context.Context, _ bool) error {
+	return nil
+}
+
 // Common helper to construct an HTTP client using the provided local Unix socket.
 func unixHTTPClient(socketPath string) (*http.Client, error) {
 	// Setup a Unix socket dialer

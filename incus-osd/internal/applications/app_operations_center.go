@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 
@@ -171,6 +172,42 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*operationsCenter) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "operations-center.service")
+}
+
+// Uninstall uninstalls the application, and optionally removes any local user data.
+func (o *operationsCenter) Uninstall(ctx context.Context, removeUserData bool) error {
+	// Stop the application.
+	err := o.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Remove the sysext image.
+	err = os.Remove("/var/lib/extensions/operations-center.raw")
+	if err != nil {
+		return err
+	}
+
+	// Refresh the system extensions.
+	err = systemd.RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Reload the systemd daemon.
+	err = systemd.ReloadDaemon(ctx)
+	if err != nil {
+		return err
+	}
+
+	if removeUserData {
+		err := os.RemoveAll("/var/lib/operations-center/")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Operations Center specific helper to interact with the REST API.

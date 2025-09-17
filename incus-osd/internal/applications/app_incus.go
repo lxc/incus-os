@@ -3,6 +3,7 @@ package applications
 import (
 	"context"
 	"fmt"
+	"os"
 
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
@@ -110,6 +111,48 @@ func (a *incus) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*incus) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "incus.service")
+}
+
+// Uninstall uninstalls the application, and optionally removes any local user data.
+func (a *incus) Uninstall(ctx context.Context, removeUserData bool) error {
+	// TODO: Stop all containers/VMs.
+
+	if removeUserData {
+		// TODO: Destroy any local data pools.
+	}
+
+	// Stop the application.
+	err := a.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Remove the sysext image.
+	err = os.Remove("/var/lib/extensions/incus.raw")
+	if err != nil {
+		return err
+	}
+
+	// Refresh the system extensions.
+	err = systemd.RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Reload the systemd daemon.
+	err = systemd.ReloadDaemon(ctx)
+	if err != nil {
+		return err
+	}
+
+	if removeUserData {
+		err := os.RemoveAll("/var/lib/incus/")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
