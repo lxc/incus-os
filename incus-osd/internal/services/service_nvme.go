@@ -18,6 +18,8 @@ import (
 
 // NVME represents the system NVME service.
 type NVME struct {
+	common
+
 	state *state.State
 }
 

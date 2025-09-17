@@ -17,6 +17,8 @@ import (
 
 // ISCSI represents the system ISCSI service.
 type ISCSI struct {
+	common
+
 	state *state.State
 }
 

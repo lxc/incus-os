@@ -13,6 +13,8 @@ import (
 
 // USBIP represents the system USBIP service.
 type USBIP struct {
+	common
+
 	state *state.State
 }
 
@@ -45,12 +47,6 @@ func (n *USBIP) Update(ctx context.Context, req any) error {
 		return err
 	}
 
-	return nil
-}
-
-// Stop stops the service.
-func (*USBIP) Stop(_ context.Context) error {
-	// No support for detaching, so stop is a no-op.
 	return nil
 }
 

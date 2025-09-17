@@ -15,6 +15,8 @@ import (
 
 // LVM represents the system LVM service.
 type LVM struct {
+	common
+
 	state *state.State
 }
 

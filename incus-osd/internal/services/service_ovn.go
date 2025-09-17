@@ -32,6 +32,8 @@ Restart=on-failure
 
 // OVN represents the system OVS/OVN service.
 type OVN struct {
+	common
+
 	state *state.State
 }
 

@@ -20,6 +20,8 @@ import (
 
 // Multipath represents the system Multipath service.
 type Multipath struct {
+	common
+
 	state *state.State
 }
 
