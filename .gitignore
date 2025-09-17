@@ -22,3 +22,9 @@ incus-osd/incus-osd
 mkosi.packages/initrd-tmpfs-root*
 
 *.swp
+
+.sphinx/warnings.txt
+.sphinx/.wordlist.dic
+.sphinx/_static/download/
+.sphinx/venv/
+doc/html/

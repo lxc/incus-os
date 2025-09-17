@@ -1,4 +1,5 @@
 GO ?= go
+SPHINXENV=.sphinx/venv/bin/activate
 
 .PHONY: default
 default: build
@@ -203,3 +204,36 @@ update-gomod:
 	cd incus-osd && go get -t -v -u ./...
 	cd incus-osd && go mod tidy --go=1.24.0
 	cd incus-osd && go get toolchain@none
+
+.PHONY: doc-setup
+doc-setup:
+	@echo "Setting up documentation build environment"
+	python3 -m venv .sphinx/venv
+	. $(SPHINXENV) ; pip install --upgrade -r .sphinx/requirements.txt
+	mkdir -p .sphinx/deps/ .sphinx/themes/
+	wget -N -P .sphinx/_static/download https://linuxcontainers.org/static/img/favicon.ico https://linuxcontainers.org/static/img/containers.png https://linuxcontainers.org/static/img/containers.small.png
+	rm -Rf doc/html
+
+.PHONY: doc
+doc: doc-setup doc-incremental
+
+.PHONY: doc-incremental
+doc-incremental:
+	@echo "Build the documentation"
+	. $(SPHINXENV) ; sphinx-build -c .sphinx/ -b dirhtml doc/ doc/html/ -w .sphinx/warnings.txt
+
+.PHONY: doc-serve
+doc-serve:
+	cd doc/html; python3 -m http.server 8001
+
+.PHONY: doc-spellcheck
+doc-spellcheck: doc
+	. $(SPHINXENV) ; python3 -m pyspelling -c .sphinx/.spellcheck.yaml
+
+.PHONY: doc-linkcheck
+doc-linkcheck: doc-setup
+	. $(SPHINXENV) ; sphinx-build -c .sphinx/ -b linkcheck doc/ doc/html/
+
+.PHONY: doc-lint
+doc-lint:
+	.sphinx/.markdownlint/doc-lint.sh

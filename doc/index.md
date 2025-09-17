@@ -105,3 +105,16 @@ just `incus`).
 
 The VM will automatically check for updates every 6 hours with the OS updates
 applying on reboot.
+
+```{toctree}
+:hidden:
+:titlesonly:
+
+self
+basic-install-steps
+flasher-tool
+secure-boot
+system-recovery
+install-seed
+rest-api
+```
