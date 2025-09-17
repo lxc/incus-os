@@ -34,11 +34,5 @@ func Load(ctx context.Context, s *state.State, name string) (Service, error) {
 		return nil, errors.New("unknown service")
 	}
 
-	// Initialize the service.
-	err := srv.init(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	return srv, nil
 }

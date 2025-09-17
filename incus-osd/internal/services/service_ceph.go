@@ -172,7 +172,3 @@ func (n *Ceph) ShouldStart() bool {
 func (*Ceph) Struct() any {
 	return &api.ServiceCeph{}
 }
-
-func (*Ceph) init(_ context.Context) error {
-	return nil
-}

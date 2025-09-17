@@ -88,7 +88,3 @@ func (n *USBIP) ShouldStart() bool {
 func (*USBIP) Struct() any {
 	return &api.ServiceUSBIP{}
 }
-
-func (*USBIP) init(_ context.Context) error {
-	return nil
-}

@@ -188,7 +188,3 @@ func (n *OVN) configure(ctx context.Context) error {
 
 	return nil
 }
-
-func (*OVN) init(_ context.Context) error {
-	return nil
-}

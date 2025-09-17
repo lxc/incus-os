@@ -195,7 +195,3 @@ local {
 
 	return nil
 }
-
-func (*LVM) init(_ context.Context) error {
-	return nil
-}

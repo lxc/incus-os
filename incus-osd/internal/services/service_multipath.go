@@ -245,7 +245,3 @@ func (n *Multipath) ShouldStart() bool {
 func (*Multipath) Struct() any {
 	return &api.ServiceMultipath{}
 }
-
-func (*Multipath) init(_ context.Context) error {
-	return nil
-}

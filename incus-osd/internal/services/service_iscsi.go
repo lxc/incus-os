@@ -209,7 +209,3 @@ func (n *ISCSI) ShouldStart() bool {
 func (*ISCSI) Struct() any {
 	return &api.ServiceISCSI{}
 }
-
-func (*ISCSI) init(_ context.Context) error {
-	return nil
-}

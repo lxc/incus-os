@@ -215,7 +215,3 @@ func (n *NVME) ShouldStart() bool {
 func (*NVME) Struct() any {
 	return &api.ServiceNVME{}
 }
-
-func (*NVME) init(_ context.Context) error {
-	return nil
-}
