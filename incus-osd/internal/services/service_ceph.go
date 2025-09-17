@@ -14,7 +14,7 @@ import (
 
 // Ceph represents the system Ceph service.
 type Ceph struct {
-	common
+	common //nolint:unused
 
 	state *state.State
 }
@@ -173,4 +173,12 @@ func (n *Ceph) ShouldStart() bool {
 // Struct returns the API struct for the Ceph service.
 func (*Ceph) Struct() any {
 	return &api.ServiceCeph{}
+}
+
+// Supported returns whether the system can use Ceph.
+func (n *Ceph) Supported() bool {
+	// Only the Incus application includes the binaries needed for Ceph.
+	_, ok := n.state.Applications["incus"]
+
+	return ok
 }
