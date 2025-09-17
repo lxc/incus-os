@@ -17,6 +17,8 @@ import (
 
 // ISCSI represents the system ISCSI service.
 type ISCSI struct {
+	common
+
 	state *state.State
 }
 
@@ -208,8 +210,4 @@ func (n *ISCSI) ShouldStart() bool {
 // Struct returns the API struct for the ISCSI service.
 func (*ISCSI) Struct() any {
 	return &api.ServiceISCSI{}
-}
-
-func (*ISCSI) init(_ context.Context) error {
-	return nil
 }

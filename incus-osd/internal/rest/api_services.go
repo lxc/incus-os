@@ -10,7 +10,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 )
 
-func (*Server) apiServices(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -20,7 +20,7 @@ func (*Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the list of services.
-	names := slices.Clone(services.Supported)
+	names := slices.Clone(services.Supported(s.state))
 	slices.Sort(names)
 
 	endpoint, _ := url.JoinPath(getAPIRoot(r), "services")
@@ -41,7 +41,7 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
 	// Check if the service is valid.
-	if !slices.Contains(services.Supported, name) {
+	if !slices.Contains(services.Supported(s.state), name) {
 		_ = response.NotFound(nil).Render(w)
 
 		return

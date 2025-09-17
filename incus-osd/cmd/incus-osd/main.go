@@ -235,7 +235,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Run services shutdown actions (reverse order from startup).
-	serviceNames := slices.Clone(services.Supported)
+	serviceNames := slices.Clone(services.Supported(s))
 	slices.Reverse(serviceNames)
 
 	for _, srvName := range serviceNames {
@@ -387,7 +387,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Run services startup actions.
-	for _, srvName := range services.Supported {
+	for _, srvName := range services.Supported(s) {
 		srv, err := services.Load(ctx, s, srvName)
 		if err != nil {
 			return err

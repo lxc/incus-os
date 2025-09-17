@@ -20,6 +20,8 @@ import (
 
 // Multipath represents the system Multipath service.
 type Multipath struct {
+	common
+
 	state *state.State
 }
 
@@ -244,8 +246,4 @@ func (n *Multipath) ShouldStart() bool {
 // Struct returns the API struct for the Multipath service.
 func (*Multipath) Struct() any {
 	return &api.ServiceMultipath{}
-}
-
-func (*Multipath) init(_ context.Context) error {
-	return nil
 }

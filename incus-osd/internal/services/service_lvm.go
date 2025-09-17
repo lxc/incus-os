@@ -15,6 +15,8 @@ import (
 
 // LVM represents the system LVM service.
 type LVM struct {
+	common
+
 	state *state.State
 }
 
@@ -193,9 +195,5 @@ local {
 		return err
 	}
 
-	return nil
-}
-
-func (*LVM) init(_ context.Context) error {
 	return nil
 }

@@ -18,6 +18,8 @@ import (
 
 // NVME represents the system NVME service.
 type NVME struct {
+	common
+
 	state *state.State
 }
 
@@ -214,8 +216,4 @@ func (n *NVME) ShouldStart() bool {
 // Struct returns the API struct for the NVME service.
 func (*NVME) Struct() any {
 	return &api.ServiceNVME{}
-}
-
-func (*NVME) init(_ context.Context) error {
-	return nil
 }

@@ -32,6 +32,8 @@ Restart=on-failure
 
 // OVN represents the system OVS/OVN service.
 type OVN struct {
+	common
+
 	state *state.State
 }
 
@@ -186,9 +188,5 @@ func (n *OVN) configure(ctx context.Context) error {
 		return err
 	}
 
-	return nil
-}
-
-func (*OVN) init(_ context.Context) error {
 	return nil
 }
