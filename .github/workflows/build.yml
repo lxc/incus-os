@@ -43,10 +43,13 @@ jobs:
             binutils \
             debian-archive-keyring \
             devscripts \
+            libnbd-dev \
             make \
             parted \
+            pkgconf \
             pipx \
-            qemu-utils
+            qemu-utils \
+            yarnpkg
 
       - name: Setup Incus
         run: |
