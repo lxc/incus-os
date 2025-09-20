@@ -9,3 +9,8 @@ type Application struct {
 
 	Config struct{} `json:"config" yaml:"config"`
 }
+
+// ApplicationDelete defines a struct with parameters used when uninstalling an application.
+type ApplicationDelete struct {
+	RemoveUserData bool `json:"remove_user_data" yaml:"remove_user_data"`
+}

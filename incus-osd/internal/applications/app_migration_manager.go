@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 
@@ -156,6 +157,42 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*migrationManager) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "migration-manager.service")
+}
+
+// Uninstall uninstalls the application, and optionally removes any local user data.
+func (m *migrationManager) Uninstall(ctx context.Context, removeUserData bool) error {
+	// Stop the application.
+	err := m.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Remove the sysext image.
+	err = os.Remove("/var/lib/extensions/migration-manager.raw")
+	if err != nil {
+		return err
+	}
+
+	// Refresh the system extensions.
+	err = systemd.RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Reload the systemd daemon.
+	err = systemd.ReloadDaemon(ctx)
+	if err != nil {
+		return err
+	}
+
+	if removeUserData {
+		err := os.RemoveAll("/var/lib/migration-manager/")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Migration Manager specific helper to interact with the REST API.
