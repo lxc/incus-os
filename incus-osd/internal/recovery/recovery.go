@@ -136,6 +136,11 @@ func runHotfix(ctx context.Context, mountDir string) error {
 		return err
 	}
 
+	err = scriptFile.Close()
+	if err != nil {
+		return err
+	}
+
 	slog.InfoContext(ctx, "Running hotfix script")
 
 	// Run the hotfix script.
