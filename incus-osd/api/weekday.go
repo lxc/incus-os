@@ -24,7 +24,7 @@ const (
 // It is assumed the value has already been checked to be a valid weekday, as no such
 // error checking is performed here.
 func (w Weekday) ToWeekday() time.Weekday {
-	switch w {
+	switch w { //nolint:exhaustive
 	case Sunday:
 		return time.Sunday
 	case Monday:
@@ -39,8 +39,6 @@ func (w Weekday) ToWeekday() time.Weekday {
 		return time.Friday
 	case Saturday:
 		return time.Saturday
-	case NONE:
-		return -1
 	default:
 		return -1
 	}
