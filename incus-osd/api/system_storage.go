@@ -26,6 +26,7 @@ type SystemStoragePool struct {
 
 	// Read-only fields returned from the server with additional pool information.
 	State                     string   `json:"state"                         yaml:"state"`
+	EncryptionKeyStatus       string   `json:"encryption_key_status"         yaml:"encryption_key_status"`
 	DevicesDegraded           []string `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
 	CacheDegraded             []string `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
 	LogDegraded               []string `json:"log_degraded,omitempty"        yaml:"log_degraded,omitempty"`
@@ -59,4 +60,12 @@ type SystemStorageDriveSMART struct {
 // SystemStorageWipe defines a struct with information about what drive to wipe.
 type SystemStorageWipe struct {
 	ID string `json:"id" yaml:"id"`
+}
+
+// SystemStoragePoolKey defines a struct used to provide an encryption key when importing an existing pool.
+// Currently the only supported type is "zfs".
+type SystemStoragePoolKey struct {
+	Name          string `json:"name"           yaml:"name"`
+	Type          string `json:"type"           yaml:"type"`
+	EncryptionKey string `json:"encryption_key" yaml:"encryption_key"`
 }

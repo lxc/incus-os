@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +55,14 @@ type zpoolStatusPartialParse struct {
 			State string `json:"state"`
 		} `json:"l2cache"`
 	} `json:"pools"`
+}
+
+type zfsGetPartialParse struct {
+	Datasets map[string]struct {
+		Properties map[string]struct {
+			Value string `json:"value"`
+		} `json:"properties"`
+	} `json:"datasets"`
 }
 
 type smartOutput struct {
@@ -199,6 +208,13 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 	return "", errors.New("unable to determine device ID for " + device)
 }
 
+// PoolExists checks if a given ZFS pool exists.
+func PoolExists(ctx context.Context, zpoolName string) bool {
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName)
+
+	return err == nil
+}
+
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
 // Logically it makes more sense for this to be in the zfs package, but that would cause an import loop.
 func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePool, error) {
@@ -207,13 +223,26 @@ func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePo
 		return api.SystemStoragePool{}, err
 	}
 
-	return getZpoolMembersHelper([]byte(output), zpoolName)
+	return getZpoolMembersHelper(ctx, []byte(output), zpoolName)
 }
 
-func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) {
+func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) {
 	zpoolJSON := zpoolStatusPartialParse{}
 
 	err := json.Unmarshal(rawJSONContent, &zpoolJSON)
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	// Get the encryption key status.
+	zfsGetOutput, err := subprocess.RunCommandContext(ctx, "zfs", "get", "keystatus", zpoolName, "-j")
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zfsProperties := zfsGetPartialParse{}
+
+	err = json.Unmarshal([]byte(zfsGetOutput), &zfsProperties)
 	if err != nil {
 		return api.SystemStoragePool{}, err
 	}
@@ -302,6 +331,7 @@ func getZpoolMembersHelper(rawJSONContent []byte, zpoolName string) (api.SystemS
 	return api.SystemStoragePool{
 		Name:                      zpoolName,
 		State:                     zpoolJSON.Pools[zpoolName].State,
+		EncryptionKeyStatus:       zfsProperties.Datasets[zpoolName].Properties["keystatus"].Value,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
@@ -338,7 +368,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 	// Populate the Config.State struct.
 	for zpoolName := range zpools.Pools {
-		poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+		poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 		if err != nil {
 			return ret, err
 		}
@@ -416,7 +446,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 		driveZpool := ""
 
 		for zpoolName := range zpools.Pools {
-			poolConfig, err := getZpoolMembersHelper([]byte(zpoolOutput), zpoolName)
+			poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 			if err != nil {
 				return ret, err
 			}
@@ -560,4 +590,46 @@ func WipeDrive(ctx context.Context, drive string) error {
 	}
 
 	return errors.New("drive '" + drive + "' doesn't exist")
+}
+
+// SetEncryptionKey will save a local copy of the provided encryption key for the associated pool.
+// If a local copy of the encryption key already exists, return an error and refuse to continue.
+func SetEncryptionKey(ctx context.Context, pool string, key string) error {
+	if !PoolExists(ctx, pool) {
+		return errors.New("pool '" + pool + "' doesn't exist")
+	}
+
+	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
+
+	// Check if the key already exists.
+	_, err := os.Stat(keyfilePath)
+	if err == nil {
+		return errors.New("encryption key for '" + pool + "' already exists")
+	}
+
+	// Decode into raw bytes.
+	rawKey, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return err
+	}
+
+	if len(rawKey) != 32 {
+		return fmt.Errorf("expected a 32 byte raw encryption key, got %d bytes", len(rawKey))
+	}
+
+	// Write the key file.
+	// #nosec G304
+	err = os.WriteFile(keyfilePath, rawKey, 0o0600)
+	if err != nil {
+		return err
+	}
+
+	// Load the pool's encryption key.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
+	if err != nil {
+		// Cleanup the invalid key.
+		_ = os.Remove(keyfilePath)
+	}
+
+	return err
 }
