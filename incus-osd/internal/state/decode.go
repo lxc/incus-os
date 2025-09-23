@@ -279,7 +279,7 @@ func setValue(v reflect.Value, value string) error {
 		}
 
 		v.SetFloat(fVal)
-	case reflect.Int:
+	case reflect.Int, reflect.Int64:
 		iVal, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return err
@@ -307,16 +307,9 @@ func setValue(v reflect.Value, value string) error {
 		}
 
 		v.SetInt(iVal)
-	case reflect.Int64:
-		iVal, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return err
-		}
-
-		v.SetInt(iVal)
 	case reflect.String:
 		v.SetString(strings.ReplaceAll(value, "\\n", "\n"))
-	case reflect.Uint:
+	case reflect.Uint, reflect.Uint64:
 		uVal, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return err
@@ -339,13 +332,6 @@ func setValue(v reflect.Value, value string) error {
 		v.SetUint(uVal)
 	case reflect.Uint32:
 		uVal, err := strconv.ParseUint(value, 10, 32)
-		if err != nil {
-			return err
-		}
-
-		v.SetUint(uVal)
-	case reflect.Uint64:
-		uVal, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return err
 		}
