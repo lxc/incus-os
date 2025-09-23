@@ -93,6 +93,8 @@ jobs:
 
           mv mkosi.output/debug.raw upload/
           mv mkosi.output/incus.raw upload/
+          mv mkosi.output/migration-manager.raw upload/
+          mv mkosi.output/operations-center.raw upload/
 
           mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
           mv mkosi.output/IncusOS_${{ github.ref_name }}.iso upload/IncusOS_${{ github.ref_name }}.iso
