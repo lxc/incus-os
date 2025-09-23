@@ -499,12 +499,12 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return err
 	}
 
-	err = os.Mkdir("/tmp/sourceESP", 0o755)
+	err = os.MkdirAll("/tmp/sourceESP", 0o755)
 	if err != nil {
 		return err
 	}
 
-	err = os.Mkdir("/tmp/targetESP", 0o755)
+	err = os.MkdirAll("/tmp/targetESP", 0o755)
 	if err != nil {
 		return err
 	}
