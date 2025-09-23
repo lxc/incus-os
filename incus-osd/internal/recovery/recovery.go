@@ -126,7 +126,7 @@ func runHotfix(ctx context.Context, mountDir string) error {
 
 	defer os.Remove(scriptFile.Name())
 
-	_, err = scriptFile.Write([]byte(strings.ReplaceAll(verified.String(), "\r\n", "\n")))
+	_, err = scriptFile.WriteString(strings.ReplaceAll(verified.String(), "\r\n", "\n"))
 	if err != nil {
 		return err
 	}
