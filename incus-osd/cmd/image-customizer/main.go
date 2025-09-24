@@ -278,6 +278,10 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
+
+		if imageFilePath != "" {
+			break
+		}
 	}
 
 	if imageFilePath == "" {
