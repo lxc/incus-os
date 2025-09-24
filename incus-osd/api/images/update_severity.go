@@ -1,9 +1,5 @@
 package images
 
-import (
-	"fmt"
-)
-
 // UpdateSeverity represents the severity field in an update.
 type UpdateSeverity string
 
@@ -24,7 +20,8 @@ const (
 	UpdateSeverityCritical UpdateSeverity = "critical"
 )
 
-var updateSeverities = map[UpdateSeverity]struct{}{
+// UpdateSeverities is a map of the supported update severities.
+var UpdateSeverities = map[UpdateSeverity]struct{}{
 	UpdateSeverityNone:     {},
 	UpdateSeverityLow:      {},
 	UpdateSeverityMedium:   {},
@@ -43,11 +40,6 @@ func (u *UpdateSeverity) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (u *UpdateSeverity) UnmarshalText(text []byte) error {
-	_, ok := updateSeverities[UpdateSeverity(text)]
-	if !ok {
-		return fmt.Errorf("%q is not a valid update severity", string(text))
-	}
-
 	*u = UpdateSeverity(text)
 
 	return nil

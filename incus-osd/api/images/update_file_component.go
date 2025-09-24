@@ -1,9 +1,5 @@
 package images
 
-import (
-	"fmt"
-)
-
 // UpdateFileComponent represents the component affected by an update.
 type UpdateFileComponent string
 
@@ -24,7 +20,8 @@ const (
 	UpdateFileComponentDebug UpdateFileComponent = "debug"
 )
 
-var updateFileComponents = map[UpdateFileComponent]struct{}{
+// UpdateFileComponents is a map of the supported update file components.
+var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentOS:               {},
 	UpdateFileComponentIncus:            {},
 	UpdateFileComponentMigrationManager: {},
@@ -43,11 +40,6 @@ func (u *UpdateFileComponent) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (u *UpdateFileComponent) UnmarshalText(text []byte) error {
-	_, ok := updateFileComponents[UpdateFileComponent(text)]
-	if !ok {
-		return fmt.Errorf("%q is not a valid update file component", string(text))
-	}
-
 	*u = UpdateFileComponent(text)
 
 	return nil

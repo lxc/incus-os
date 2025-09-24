@@ -1,9 +1,5 @@
 package images
 
-import (
-	"fmt"
-)
-
 // UpdateFileType represents the type in an update file.
 type UpdateFileType string
 
@@ -36,7 +32,8 @@ const (
 	UpdateFileTypeApplication UpdateFileType = "application"
 )
 
-var updateFileType = map[UpdateFileType]struct{}{
+// UpdateFileTypes is a map of the supported update file types.
+var UpdateFileTypes = map[UpdateFileType]struct{}{
 	UpdateFileTypeUndefined:                {},
 	UpdateFileTypeImageRaw:                 {},
 	UpdateFileTypeImageISO:                 {},
@@ -59,11 +56,6 @@ func (u *UpdateFileType) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (u *UpdateFileType) UnmarshalText(text []byte) error {
-	_, ok := updateFileType[UpdateFileType(text)]
-	if !ok {
-		return fmt.Errorf("%q is not a valid update file type", string(text))
-	}
-
 	*u = UpdateFileType(text)
 
 	return nil
