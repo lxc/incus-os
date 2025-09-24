@@ -1,9 +1,5 @@
 package images
 
-import (
-	"fmt"
-)
-
 // UpdateFileArchitecture represents the architecture for a given file.
 type UpdateFileArchitecture string
 
@@ -18,7 +14,8 @@ const (
 	UpdateFileArchitecture64BitARM UpdateFileArchitecture = "aarch64"
 )
 
-var architecture = map[UpdateFileArchitecture]struct{}{
+// UpdateFileArchitectures is a map of the supported file architectures.
+var UpdateFileArchitectures = map[UpdateFileArchitecture]struct{}{
 	UpdateFileArchitectureUndefined: {},
 	UpdateFileArchitecture64BitX86:  {},
 	UpdateFileArchitecture64BitARM:  {},
@@ -35,11 +32,6 @@ func (u *UpdateFileArchitecture) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (u *UpdateFileArchitecture) UnmarshalText(text []byte) error {
-	_, ok := architecture[UpdateFileArchitecture(text)]
-	if !ok {
-		return fmt.Errorf("%q is not a valid update file type", string(text))
-	}
-
 	*u = UpdateFileArchitecture(text)
 
 	return nil
