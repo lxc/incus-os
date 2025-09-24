@@ -486,8 +486,8 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	// Get partition prefixes, if needed.
-	sourcePartitionPrefix := getPartitionPrefix(sourceDevice)
-	targetPartitionPrefix := getPartitionPrefix(targetDevice)
+	sourcePartitionPrefix := GetPartitionPrefix(sourceDevice)
+	targetPartitionPrefix := GetPartitionPrefix(targetDevice)
 
 	// Format the target ESP partition and manually copy any files from the source.
 	// This is a speed optimization since we don't care about copying any unused data
@@ -712,7 +712,7 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 // rebootUponDeviceRemoval waits for the given device to disappear from /dev/, and once it does
 // it will reboot the system. If ForceReoot is true in the config, the system will reboot immediately.
 func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) error {
-	partition := fmt.Sprintf("%s%s1", device, getPartitionPrefix(device))
+	partition := fmt.Sprintf("%s%s1", device, GetPartitionPrefix(device))
 
 	// If we're running from a CDROM, adjust the device we watch for removal.
 	if device == cdromMappedDevice {
@@ -739,9 +739,9 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
 }
 
-// getPartitionPrefix returns the necessary partition prefix, if any, for a give device.
+// GetPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme devices have partitions named "pN", while traditional disk partitions are just "N".
-func getPartitionPrefix(device string) string {
+func GetPartitionPrefix(device string) string {
 	cdromMatched, _ := regexp.MatchString(`/mapper/sr\d+`, device)
 
 	if strings.Contains(device, "/nvme") || cdromMatched {
