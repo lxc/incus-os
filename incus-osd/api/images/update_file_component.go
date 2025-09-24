@@ -14,6 +14,12 @@ const (
 	// UpdateFileComponentIncus represents an Incus application update.
 	UpdateFileComponentIncus UpdateFileComponent = "incus"
 
+	// UpdateFileComponentOperationsCenter represents an Operations Center application update.
+	UpdateFileComponentOperationsCenter UpdateFileComponent = "operations-center"
+
+	// UpdateFileComponentMigrationManager represents a Migration Manager application update.
+	UpdateFileComponentMigrationManager UpdateFileComponent = "migration-manager"
+
 	// UpdateFileComponentDebug represents a debug application update.
 	UpdateFileComponentDebug UpdateFileComponent = "debug"
 )
