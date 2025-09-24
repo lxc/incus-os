@@ -25,7 +25,11 @@ are not backwards compatible.
   
     `GET`: Returns systemd journal entries, optionally filtering by unit, boot number, and
     number of return entries
+
+  * `/1.0/debug/tui`
   
+    `POST`: Send a message that should be logged by the system
+
   * `/1.0/services`
   
     `GET`: Returns a list of service endpoints
@@ -42,7 +46,7 @@ are not backwards compatible.
       - `shutdown`, `poweroff`, `reboot`: Self-descriptive
       - `reset_encryption_bindings`: Force-reset TPM encryption bindings; intended only for
       use if it was required to enter a recovery passphrase to boot the system
-  
+
   * `/1.0/system/network`
   
     `GET`: Return the current network state
