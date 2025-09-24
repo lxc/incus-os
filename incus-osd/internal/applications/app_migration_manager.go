@@ -182,3 +182,8 @@ func doMMRequest(ctx context.Context, url string, method string, body []byte) er
 
 	return nil
 }
+
+// IsPrimary reports if the application is a primary application.
+func (*migrationManager) IsPrimary() bool {
+	return true
+}

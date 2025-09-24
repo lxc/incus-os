@@ -11,4 +11,5 @@ type Application interface {
 	Initialize(ctx context.Context) error
 	Update(ctx context.Context, version string) error
 	IsRunning(ctx context.Context) bool
+	IsPrimary() bool
 }

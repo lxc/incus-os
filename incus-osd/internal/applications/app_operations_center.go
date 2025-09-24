@@ -197,3 +197,8 @@ func doOCRequest(ctx context.Context, url string, method string, body []byte) er
 
 	return nil
 }
+
+// IsPrimary reports if the application is a primary application.
+func (*operationsCenter) IsPrimary() bool {
+	return true
+}

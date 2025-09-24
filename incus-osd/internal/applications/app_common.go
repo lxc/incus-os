@@ -32,6 +32,11 @@ func (*common) Update(_ context.Context, _ string) error {
 	return nil
 }
 
+// IsPrimary reports if the application is a primary application.
+func (*common) IsPrimary() bool {
+	return false
+}
+
 // IsRunning reports if the application is currently running.
 func (*common) IsRunning(_ context.Context) bool {
 	return true
