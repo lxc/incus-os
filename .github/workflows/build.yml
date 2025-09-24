@@ -16,7 +16,7 @@ jobs:
         arch:
           - amd64
           - arm64
-    timeout-minutes: 45
+    timeout-minutes: 60
     runs-on:
       - self-hosted
       - cpu-4
