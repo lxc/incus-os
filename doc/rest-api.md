@@ -50,7 +50,13 @@ are not backwards compatible.
     `PATCH`: Update the current network configuration
     
     `PUT`: Replace the current network configuration
+
+  * `/1.0/system/reset`
   
+    `POST`: Perform a complete factory reset of the system and immediately reboot. An
+    optional number of seed configurations may also be provided, which will be used
+    when the system starts up into its fresh state.
+    
   * `/1.0/system/resources`
   
     `GET`: Returns a detailed low-level dump of the system's resources
