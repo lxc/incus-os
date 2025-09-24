@@ -300,7 +300,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	slog.InfoContext(ctx, "System is starting up", "mode", mode, "release", s.OS.RunningRelease)
+	// Get the machine ID.
+	machineID, err := os.ReadFile("/etc/machine-id")
+	if err != nil {
+		machineID = []byte("UNKNOWN")
+	}
+
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "release", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
 
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
