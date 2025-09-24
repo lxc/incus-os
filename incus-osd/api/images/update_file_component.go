@@ -25,9 +25,11 @@ const (
 )
 
 var updateFileComponents = map[UpdateFileComponent]struct{}{
-	UpdateFileComponentOS:    {},
-	UpdateFileComponentIncus: {},
-	UpdateFileComponentDebug: {},
+	UpdateFileComponentOS:               {},
+	UpdateFileComponentIncus:            {},
+	UpdateFileComponentMigrationManager: {},
+	UpdateFileComponentOperationsCenter: {},
+	UpdateFileComponentDebug:            {},
 }
 
 func (u *UpdateFileComponent) String() string {
