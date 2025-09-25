@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	incusclient "github.com/lxc/incus/v6/client"
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
 	incustls "github.com/lxc/incus/v6/shared/tls"
@@ -131,35 +130,14 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		return err
 	}
 
-	// Connect to Incus.
-	c, err := incusclient.ConnectIncusUnix("", nil)
+	// Get the primary application.
+	app, err := applications.GetPrimary(ctx, p.state)
 	if err != nil {
 		return err
 	}
 
-	// Set listen address if not set.
-	conf, etag, err := c.GetServer()
-	if err != nil {
-		return err
-	}
-
-	_, ok := conf.Config["core.https_address"]
-	if !ok {
-		conf.Config["core.https_address"] = ":8443"
-
-		err = c.UpdateServer(conf.Writable(), etag)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Add the certificate.
-	cert := api.CertificatesPost{}
-	cert.Name = p.serverURL
-	cert.Type = "client"
-	cert.Certificate = registrationResp.Certificate
-
-	err = c.CreateCertificate(cert)
+	// Get the server certificate.
+	err = app.AddTrustedCertificate(p.serverURL, registrationResp.Certificate)
 	if err != nil {
 		return err
 	}
