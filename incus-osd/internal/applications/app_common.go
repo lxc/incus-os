@@ -2,6 +2,7 @@ package applications
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +12,11 @@ import (
 )
 
 type common struct{}
+
+// GetCertificate gets the server certificate for the application.
+func (*common) GetCertificate() (*tls.Certificate, error) {
+	return nil, errors.New("not supported")
+}
 
 // Initialize runs first time initialization.
 func (*common) Initialize(_ context.Context) error {

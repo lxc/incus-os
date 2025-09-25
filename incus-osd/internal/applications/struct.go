@@ -2,10 +2,12 @@ package applications
 
 import (
 	"context"
+	"crypto/tls"
 )
 
 // Application represents an installed application.
 type Application interface {
+	GetCertificate() (*tls.Certificate, error)
 	Initialize(ctx context.Context) error
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool

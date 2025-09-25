@@ -20,7 +20,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-type migrationManager struct{}
+type migrationManager struct {
+	common
+}
 
 // Start starts the systemd unit.
 func (*migrationManager) Start(ctx context.Context, _ string) error {

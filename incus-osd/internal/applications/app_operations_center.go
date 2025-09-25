@@ -20,7 +20,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-type operationsCenter struct{}
+type operationsCenter struct {
+	common
+}
 
 // Start starts the systemd unit.
 func (*operationsCenter) Start(ctx context.Context, _ string) error {
