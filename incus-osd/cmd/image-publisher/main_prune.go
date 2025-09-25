@@ -69,7 +69,7 @@ func (c *cmdPrune) run(cmd *cobra.Command, args []string) error {
 		used := false
 
 		for _, channel := range update.Channels {
-			if imagesPerChannel[channel] < retention {
+			if imagesPerChannel[channel] <= retention {
 				imagesPerChannel[channel]++
 				used = true
 			}
