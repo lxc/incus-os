@@ -18,7 +18,6 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/proxy"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
@@ -30,7 +29,7 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time.Duration) error {
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time.Duration, refresh func(context.Context, *state.State) error) error {
 	networkCfg := s.System.Network.Config
 
 	err := ValidateNetworkConfiguration(networkCfg, true)
@@ -103,14 +102,9 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time
 	}
 
 	// Refresh registration.
-	if s.System.Provider.Config.Name != "" {
-		p, err := providers.Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
+	if refresh != nil {
+		err := refresh(ctx, s)
 		if err != nil {
-			return err
-		}
-
-		err = p.RefreshRegister(ctx)
-		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 			slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
 		}
 	}

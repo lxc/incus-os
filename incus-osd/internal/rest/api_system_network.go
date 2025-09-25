@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -68,7 +69,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		// Apply the updated configuration.
 		s.state.System.Network.Config = newConfig.Config
 
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, 30*time.Second)
+		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, 30*time.Second, providers.Refresh)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 

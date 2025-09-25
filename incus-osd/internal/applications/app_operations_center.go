@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 
@@ -20,7 +22,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-type operationsCenter struct{}
+type operationsCenter struct {
+	common
+}
 
 // Start starts the systemd unit.
 func (*operationsCenter) Start(ctx context.Context, _ string) error {
@@ -173,6 +177,28 @@ func (*operationsCenter) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "operations-center.service")
 }
 
+// GetCertificate returns the keypair for the server certificate.
+func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
+	// Load the certificate.
+	tlsCert, err := os.ReadFile("/var/lib/operations-center/server.crt")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsKey, err := os.ReadFile("/var/lib/operations-center/server.key")
+	if err != nil {
+		return nil, err
+	}
+
+	// Put together a keypair.
+	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
+}
+
 // Operations Center specific helper to interact with the REST API.
 func doOCRequest(ctx context.Context, url string, method string, body []byte) error {
 	client, err := unixHTTPClient("/run/operations-center/unix.socket")
@@ -196,4 +222,9 @@ func doOCRequest(ctx context.Context, url string, method string, body []byte) er
 	}
 
 	return nil
+}
+
+// IsPrimary reports if the application is a primary application.
+func (*operationsCenter) IsPrimary() bool {
+	return true
 }

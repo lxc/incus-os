@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -56,4 +57,23 @@ func Load(ctx context.Context, s *state.State, name string, config map[string]st
 	}
 
 	return p, nil
+}
+
+// Refresh is a hook being called whenever the current provider should be refreshed.
+func Refresh(ctx context.Context, s *state.State) error {
+	if s.System.Provider.Config.Name == "" {
+		return nil
+	}
+
+	p, err := Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
+	if err != nil {
+		return err
+	}
+
+	err = p.RefreshRegister(ctx)
+	if err != nil && !errors.Is(err, ErrRegistrationUnsupported) {
+		return err
+	}
+
+	return nil
 }

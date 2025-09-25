@@ -2,6 +2,7 @@ package applications
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +12,16 @@ import (
 )
 
 type common struct{}
+
+// AddTrustedCertificate adds a new trusted certificate to the application.
+func (*common) AddTrustedCertificate(_ string, _ string) error {
+	return errors.New("not supported")
+}
+
+// GetCertificate gets the server certificate for the application.
+func (*common) GetCertificate() (*tls.Certificate, error) {
+	return nil, errors.New("not supported")
+}
 
 // Initialize runs first time initialization.
 func (*common) Initialize(_ context.Context) error {
@@ -30,6 +41,11 @@ func (*common) Stop(_ context.Context, _ string) error {
 // Update triggers a partial application restart after an update.
 func (*common) Update(_ context.Context, _ string) error {
 	return nil
+}
+
+// IsPrimary reports if the application is a primary application.
+func (*common) IsPrimary() bool {
+	return false
 }
 
 // IsRunning reports if the application is currently running.

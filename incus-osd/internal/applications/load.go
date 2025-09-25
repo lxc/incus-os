@@ -2,6 +2,9 @@ package applications
 
 import (
 	"context"
+	"errors"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // Load retrieves and returns the application specific logic.
@@ -20,4 +23,20 @@ func Load(_ context.Context, name string) (Application, error) {
 	}
 
 	return app, nil
+}
+
+// GetPrimary returns the current primary application.
+func GetPrimary(ctx context.Context, s *state.State) (Application, error) {
+	for appName := range s.Applications {
+		app, err := Load(ctx, appName)
+		if err != nil {
+			return nil, err
+		}
+
+		if app.IsPrimary() {
+			return app, nil
+		}
+	}
+
+	return nil, errors.New("no primary application")
 }

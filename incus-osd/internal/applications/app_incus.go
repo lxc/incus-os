@@ -2,7 +2,9 @@ package applications
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"os"
 
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
@@ -12,7 +14,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-type incus struct{}
+type incus struct {
+	common //nolint:unused
+}
 
 // Start starts all the systemd units.
 func (*incus) Start(ctx context.Context, _ string) error {
@@ -110,6 +114,70 @@ func (a *incus) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*incus) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "incus.service")
+}
+
+// IsPrimary reports if the application is a primary application.
+func (*incus) IsPrimary() bool {
+	return true
+}
+
+// GetCertificate returns the keypair for the server certificate.
+func (*incus) GetCertificate() (*tls.Certificate, error) {
+	// Load the certificate.
+	tlsCert, err := os.ReadFile("/var/lib/incus/server.crt")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsKey, err := os.ReadFile("/var/lib/incus/server.key")
+	if err != nil {
+		return nil, err
+	}
+
+	// Put together a keypair.
+	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
+}
+
+func (*incus) AddTrustedCertificate(name string, cert string) error {
+	// Connect to Incus.
+	c, err := incusclient.ConnectIncusUnix("", nil)
+	if err != nil {
+		return err
+	}
+
+	// Set listen address if not set.
+	conf, etag, err := c.GetServer()
+	if err != nil {
+		return err
+	}
+
+	_, ok := conf.Config["core.https_address"]
+	if !ok {
+		conf.Config["core.https_address"] = ":8443"
+
+		err = c.UpdateServer(conf.Writable(), etag)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Add the certificate.
+	req := incusapi.CertificatesPost{}
+	req.Name = name
+	req.Type = "client"
+	req.Certificate = cert
+
+	err = c.CreateCertificate(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
