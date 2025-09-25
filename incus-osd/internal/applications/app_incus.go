@@ -15,7 +15,7 @@ import (
 )
 
 type incus struct {
-	common //nolint:unused
+	common
 }
 
 // Start starts all the systemd units.

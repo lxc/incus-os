@@ -13,6 +13,11 @@ import (
 
 type common struct{}
 
+// AddTrustedCertificate adds a new trusted certificate to the application.
+func (*common) AddTrustedCertificate(_ string, _ string) error {
+	return errors.New("not supported")
+}
+
 // GetCertificate gets the server certificate for the application.
 func (*common) GetCertificate() (*tls.Certificate, error) {
 	return nil, errors.New("not supported")

@@ -23,7 +23,7 @@ import (
 )
 
 type operationsCenter struct {
-	common //nolint:unused
+	common
 }
 
 // Start starts the systemd unit.
