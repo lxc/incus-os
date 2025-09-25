@@ -3,12 +3,8 @@ package applications
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
@@ -126,18 +122,10 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 		// Compute fingerprints for any user-provided client certificates and add to the
 		// list of trusted TLS client certificates.
 		for i, certString := range ocSeed.TrustedClientCertificates {
-			certBlock, _ := pem.Decode([]byte(certString))
-			if certBlock == nil {
-				return fmt.Errorf("cannot parse client certificate PEM in seed (index %d)", i)
-			}
-
-			cert, err := x509.ParseCertificate(certBlock.Bytes)
+			fp, err := getCertificateFingerprint(certString)
 			if err != nil {
-				return fmt.Errorf("invalid client certificate in seed (index %d): %w", i, err)
+				return fmt.Errorf("%w (seed index %d)", err, i)
 			}
-
-			rawFp := sha256.Sum256(cert.Raw)
-			fp := hex.EncodeToString(rawFp[:])
 
 			if !slices.Contains(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
 				ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints = append(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)

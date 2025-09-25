@@ -2,9 +2,14 @@ package applications
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -109,4 +114,21 @@ func getErrorMessage(reader io.Reader) error {
 	}
 
 	return errors.New(r.Error)
+}
+
+// Comment helper to compute the SHA256 fingerprint of a PEM-encoded certificate.
+func getCertificateFingerprint(certificate string) (string, error) {
+	certBlock, _ := pem.Decode([]byte(certificate))
+	if certBlock == nil {
+		return "", errors.New("cannot parse certificate PEM")
+	}
+
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("invalid certificate: %w", err)
+	}
+
+	rawFp := sha256.Sum256(cert.Raw)
+
+	return hex.EncodeToString(rawFp[:]), nil
 }
