@@ -81,5 +81,5 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 	}
 
-	_ = s.state.Save(r.Context())
+	_ = s.state.Save()
 }

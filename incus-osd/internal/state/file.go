@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"os"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -11,7 +10,7 @@ var currentStateVersion = 3
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
-func LoadOrCreate(ctx context.Context, path string) (*State, error) {
+func LoadOrCreate(path string) (*State, error) {
 	s := State{
 		path: path,
 
@@ -29,7 +28,7 @@ func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 
 	if os.IsNotExist(err) {
 		// State file doesn't exist, create it and return it.
-		err = s.Save(ctx)
+		err = s.Save()
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +40,7 @@ func LoadOrCreate(ctx context.Context, path string) (*State, error) {
 }
 
 // Save writes out the current state struct into its on-disk storage.
-func (s *State) Save(_ context.Context) error {
+func (s *State) Save() error {
 	body, err := Encode(s)
 	if err != nil {
 		return err
