@@ -21,7 +21,7 @@ import (
 type common struct{}
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
-func (*common) AddTrustedCertificate(_ string, _ string) error {
+func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) error {
 	return errors.New("not supported")
 }
 

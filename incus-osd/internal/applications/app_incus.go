@@ -143,7 +143,7 @@ func (*incus) GetCertificate() (*tls.Certificate, error) {
 	return &cert, nil
 }
 
-func (*incus) AddTrustedCertificate(name string, cert string) error {
+func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string) error {
 	// Connect to Incus.
 	c, err := incusclient.ConnectIncusUnix("", nil)
 	if err != nil {
