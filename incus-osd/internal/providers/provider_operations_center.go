@@ -137,7 +137,7 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 	}
 
 	// Get the server certificate.
-	err = app.AddTrustedCertificate(p.serverURL, registrationResp.Certificate)
+	err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.Certificate)
 	if err != nil {
 		return err
 	}

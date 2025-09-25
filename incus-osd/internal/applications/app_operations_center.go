@@ -1,14 +1,9 @@
 package applications
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
@@ -23,7 +18,7 @@ import (
 )
 
 type operationsCenter struct {
-	common
+	common //nolint:unused
 }
 
 // Start starts the systemd unit.
@@ -67,7 +62,7 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 	count := 0
 
 	for {
-		err := doOCRequest(ctx, "http://localhost/1.0", http.MethodGet, nil)
+		_, err := doOCRequest(ctx, "http://localhost/1.0", http.MethodGet, nil)
 		if err == nil {
 			break
 		}
@@ -88,7 +83,7 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doOCRequest(ctx, "http://localhost/1.0/system/certificate", http.MethodPost, contentJSON)
+		_, err = doOCRequest(ctx, "http://localhost/1.0/system/certificate", http.MethodPost, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -111,7 +106,7 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doOCRequest(ctx, "http://localhost/1.0/system/network", http.MethodPut, contentJSON)
+		_, err = doOCRequest(ctx, "http://localhost/1.0/system/network", http.MethodPut, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -126,18 +121,10 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 		// Compute fingerprints for any user-provided client certificates and add to the
 		// list of trusted TLS client certificates.
 		for i, certString := range ocSeed.TrustedClientCertificates {
-			certBlock, _ := pem.Decode([]byte(certString))
-			if certBlock == nil {
-				return fmt.Errorf("cannot parse client certificate PEM in seed (index %d)", i)
-			}
-
-			cert, err := x509.ParseCertificate(certBlock.Bytes)
+			fp, err := getCertificateFingerprint(certString)
 			if err != nil {
-				return fmt.Errorf("invalid client certificate in seed (index %d): %w", i, err)
+				return fmt.Errorf("%w (seed index %d)", err, i)
 			}
-
-			rawFp := sha256.Sum256(cert.Raw)
-			fp := hex.EncodeToString(rawFp[:])
 
 			if !slices.Contains(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
 				ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints = append(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)
@@ -149,7 +136,7 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doOCRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
+		_, err = doOCRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -162,7 +149,7 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doOCRequest(ctx, "http://localhost/1.0/system/updates", http.MethodPut, contentJSON)
+		_, err = doOCRequest(ctx, "http://localhost/1.0/system/updates", http.MethodPut, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -199,29 +186,48 @@ func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
 	return &cert, nil
 }
 
+// AddTrustedCertificate adds a new trusted certificate to the application.
+func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, cert string) error {
+	// Compute the certificate's fingerprint.
+	fp, err := getCertificateFingerprint(cert)
+	if err != nil {
+		return err
+	}
+
+	// Get the current security configuration.
+	body, err := doOCRequest(ctx, "http://localhost/1.0/system/security", http.MethodGet, nil)
+	if err != nil {
+		return err
+	}
+
+	sec := &api.SystemSecurity{}
+
+	err = json.Unmarshal(body, sec)
+	if err != nil {
+		return err
+	}
+
+	// Check if the certificate is already trusted.
+	if slices.Contains(sec.TrustedTLSClientCertFingerprints, fp) {
+		return errors.New("client certificate is already trusted")
+	}
+
+	// Add the certificate's fingerprint to list of trusted clients.
+	sec.TrustedTLSClientCertFingerprints = append(sec.TrustedTLSClientCertFingerprints, fp)
+
+	contentJSON, err := json.Marshal(sec)
+	if err != nil {
+		return err
+	}
+
+	_, err = doOCRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
+
+	return err
+}
+
 // Operations Center specific helper to interact with the REST API.
-func doOCRequest(ctx context.Context, url string, method string, body []byte) error {
-	client, err := unixHTTPClient("/run/operations-center/unix.socket")
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return getErrorMessage(resp.Body)
-	}
-
-	return nil
+func doOCRequest(ctx context.Context, url string, method string, body []byte) ([]byte, error) {
+	return doRequest(ctx, "/run/operations-center/unix.socket", url, method, body)
 }
 
 // IsPrimary reports if the application is a primary application.

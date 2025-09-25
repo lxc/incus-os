@@ -8,7 +8,7 @@ import (
 // Application represents an installed application.
 type Application interface {
 	GetCertificate() (*tls.Certificate, error)
-	AddTrustedCertificate(name string, cert string) error
+	AddTrustedCertificate(ctx context.Context, name string, cert string) error
 	Initialize(ctx context.Context) error
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool
