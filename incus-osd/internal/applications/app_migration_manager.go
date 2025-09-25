@@ -1,7 +1,6 @@
 package applications
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -63,7 +62,7 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	count := 0
 
 	for {
-		err := doMMRequest(ctx, "http://localhost/1.0", http.MethodGet, nil)
+		_, err := doMMRequest(ctx, "http://localhost/1.0", http.MethodGet, nil)
 		if err == nil {
 			break
 		}
@@ -84,7 +83,7 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doMMRequest(ctx, "http://localhost/1.0/system/certificate", http.MethodPost, contentJSON)
+		_, err = doMMRequest(ctx, "http://localhost/1.0/system/certificate", http.MethodPost, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -106,7 +105,7 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doMMRequest(ctx, "http://localhost/1.0/system/network", http.MethodPut, contentJSON)
+		_, err = doMMRequest(ctx, "http://localhost/1.0/system/network", http.MethodPut, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -136,7 +135,7 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 			return err
 		}
 
-		err = doMMRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
+		_, err = doMMRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
 		if err != nil {
 			return err
 		}
@@ -173,28 +172,8 @@ func (*migrationManager) GetCertificate() (*tls.Certificate, error) {
 }
 
 // Migration Manager specific helper to interact with the REST API.
-func doMMRequest(ctx context.Context, url string, method string, body []byte) error {
-	client, err := unixHTTPClient("/run/migration-manager/unix.socket")
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return getErrorMessage(resp.Body)
-	}
-
-	return nil
+func doMMRequest(ctx context.Context, url string, method string, body []byte) ([]byte, error) {
+	return doRequest(ctx, "/run/migration-manager/unix.socket", url, method, body)
 }
 
 // IsPrimary reports if the application is a primary application.

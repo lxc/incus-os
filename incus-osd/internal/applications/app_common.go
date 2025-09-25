@@ -1,6 +1,7 @@
 package applications
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -10,10 +11,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/lxc/incus/v6/shared/api"
 )
 
 type common struct{}
@@ -95,25 +97,41 @@ func unixHTTPClient(socketPath string) (*http.Client, error) {
 	return client, nil
 }
 
-// Common helper to grab error message from return json data.
-func getErrorMessage(reader io.Reader) error {
-	type resp struct {
-		ErrorCode int    `json:"error_code"`
-		Error     string `json:"error"`
-	}
-
-	r := &resp{}
-
-	err := json.NewDecoder(reader).Decode(r)
+// Common helper for performing REST API calls.
+func doRequest(ctx context.Context, socket string, url string, method string, body []byte) ([]byte, error) {
+	client, err := unixHTTPClient(socket)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if r.ErrorCode == 200 {
-		return nil
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
 	}
 
-	return errors.New(r.Error)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	r := &api.ResponseRaw{}
+
+	err = json.NewDecoder(resp.Body).Decode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK || r.StatusCode != http.StatusOK {
+		return nil, errors.New(r.Error)
+	}
+
+	ret, err := json.Marshal(r.Metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }
 
 // Comment helper to compute the SHA256 fingerprint of a PEM-encoded certificate.
