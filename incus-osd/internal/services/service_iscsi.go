@@ -51,7 +51,7 @@ func (n *ISCSI) Update(ctx context.Context, req any) error {
 	}
 
 	// Save the state on return.
-	defer n.state.Save(ctx)
+	defer n.state.Save()
 
 	// Disable the service.
 	err := n.Stop(ctx)

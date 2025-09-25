@@ -82,7 +82,7 @@ func (n *LVM) Update(ctx context.Context, req any) error {
 	}
 
 	// Save the state on return.
-	defer n.state.Save(ctx)
+	defer n.state.Save()
 
 	// Disable the service if requested.
 	if n.state.Services.LVM.Config.Enabled && !newState.Config.Enabled {
