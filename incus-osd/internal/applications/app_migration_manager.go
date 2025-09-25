@@ -18,7 +18,7 @@ import (
 )
 
 type migrationManager struct {
-	common
+	common //nolint:unused
 }
 
 // Start starts the systemd unit.
@@ -169,6 +169,45 @@ func (*migrationManager) GetCertificate() (*tls.Certificate, error) {
 	}
 
 	return &cert, nil
+}
+
+// AddTrustedCertificate adds a new trusted certificate to the application.
+func (*migrationManager) AddTrustedCertificate(ctx context.Context, _ string, cert string) error {
+	// Compute the certificate's fingerprint.
+	fp, err := getCertificateFingerprint(cert)
+	if err != nil {
+		return err
+	}
+
+	// Get the current security configuration.
+	body, err := doMMRequest(ctx, "http://localhost/1.0/system/security", http.MethodGet, nil)
+	if err != nil {
+		return err
+	}
+
+	sec := &api.SystemSecurity{}
+
+	err = json.Unmarshal(body, sec)
+	if err != nil {
+		return err
+	}
+
+	// Check if the certificate is already trusted.
+	if slices.Contains(sec.TrustedTLSClientCertFingerprints, fp) {
+		return errors.New("client certificate is already trusted")
+	}
+
+	// Add the certificate's fingerprint to list of trusted clients.
+	sec.TrustedTLSClientCertFingerprints = append(sec.TrustedTLSClientCertFingerprints, fp)
+
+	contentJSON, err := json.Marshal(sec)
+	if err != nil {
+		return err
+	}
+
+	_, err = doMMRequest(ctx, "http://localhost/1.0/system/security", http.MethodPut, contentJSON)
+
+	return err
 }
 
 // Migration Manager specific helper to interact with the REST API.

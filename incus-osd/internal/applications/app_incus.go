@@ -143,6 +143,7 @@ func (*incus) GetCertificate() (*tls.Certificate, error) {
 	return &cert, nil
 }
 
+// AddTrustedCertificate adds a new trusted certificate to the application.
 func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string) error {
 	// Connect to Incus.
 	c, err := incusclient.ConnectIncusUnix("", nil)
