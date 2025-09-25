@@ -15,7 +15,7 @@ import (
 )
 
 type incus struct {
-	common
+	common //nolint:unused
 }
 
 // Start starts all the systemd units.
@@ -141,6 +141,43 @@ func (*incus) GetCertificate() (*tls.Certificate, error) {
 	}
 
 	return &cert, nil
+}
+
+func (*incus) AddTrustedCertificate(name string, cert string) error {
+	// Connect to Incus.
+	c, err := incusclient.ConnectIncusUnix("", nil)
+	if err != nil {
+		return err
+	}
+
+	// Set listen address if not set.
+	conf, etag, err := c.GetServer()
+	if err != nil {
+		return err
+	}
+
+	_, ok := conf.Config["core.https_address"]
+	if !ok {
+		conf.Config["core.https_address"] = ":8443"
+
+		err = c.UpdateServer(conf.Writable(), etag)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Add the certificate.
+	req := incusapi.CertificatesPost{}
+	req.Name = name
+	req.Type = "client"
+	req.Certificate = cert
+
+	err = c.CreateCertificate(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
