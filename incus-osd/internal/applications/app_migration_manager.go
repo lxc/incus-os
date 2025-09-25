@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 
@@ -21,7 +23,7 @@ import (
 )
 
 type migrationManager struct {
-	common
+	common //nolint:unused
 }
 
 // Start starts the systemd unit.
@@ -158,6 +160,28 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*migrationManager) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "migration-manager.service")
+}
+
+// GetCertificate returns the keypair for the server certificate.
+func (*migrationManager) GetCertificate() (*tls.Certificate, error) {
+	// Load the certificate.
+	tlsCert, err := os.ReadFile("/var/lib/migration-manager/server.crt")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsKey, err := os.ReadFile("/var/lib/migration-manager/server.key")
+	if err != nil {
+		return nil, err
+	}
+
+	// Put together a keypair.
+	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
 }
 
 // Migration Manager specific helper to interact with the REST API.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
 	"time"
 
@@ -21,7 +23,7 @@ import (
 )
 
 type operationsCenter struct {
-	common
+	common //nolint:unused
 }
 
 // Start starts the systemd unit.
@@ -173,6 +175,28 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 // IsRunning reports if the application is currently running.
 func (*operationsCenter) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "operations-center.service")
+}
+
+// GetCertificate returns the keypair for the server certificate.
+func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
+	// Load the certificate.
+	tlsCert, err := os.ReadFile("/var/lib/operations-center/server.crt")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsKey, err := os.ReadFile("/var/lib/operations-center/server.key")
+	if err != nil {
+		return nil, err
+	}
+
+	// Put together a keypair.
+	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
 }
 
 // Operations Center specific helper to interact with the REST API.
