@@ -47,6 +47,17 @@ are not backwards compatible.
       - `reset_encryption_bindings`: Force-reset TPM encryption bindings; intended only for
       use if it was required to enter a recovery passphrase to boot the system
 
+  * `/1.0/system/backup`
+  
+    `GET`: Return a tar archive backup of the system state and configuration
+    
+    `PATCH`: Use provided tar archive to perform a partial restore of the system state and
+    configuration. Things like the "local-data" encryption key and NIC MAC addresses will not
+    be overwritten from the provided backup.
+    
+    `PUT`: Use provided tar archive to perform a complete restore of the system state and
+    configuration.
+
   * `/1.0/system/network`
   
     `GET`: Return the current network state
