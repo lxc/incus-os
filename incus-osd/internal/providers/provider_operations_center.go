@@ -25,6 +25,7 @@ import (
 	"github.com/lxc/incus/v6/shared/osarch"
 	incustls "github.com/lxc/incus/v6/shared/tls"
 
+	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -246,7 +247,7 @@ func (p *operationsCenter) GetApplication(ctx context.Context, name string) (App
 	return &app, nil
 }
 
-func (p *operationsCenter) load(_ context.Context) error {
+func (p *operationsCenter) load(ctx context.Context) error {
 	p.client = &http.Client{}
 
 	// Set up the configuration.
@@ -286,7 +287,7 @@ func (p *operationsCenter) load(_ context.Context) error {
 	}
 
 	// Set the client certificate (if present).
-	err := p.configureClientCertificate(tlsConfig)
+	err := p.configureClientCertificate(ctx, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("failed to set client certificate: %w", err)
 	}
@@ -305,33 +306,20 @@ func (p *operationsCenter) load(_ context.Context) error {
 	return nil
 }
 
-func (*operationsCenter) configureClientCertificate(tlsConfig *tls.Config) error {
-	// Load the certificate.
-	tlsClientCert, err := os.ReadFile("/var/lib/incus/server.crt")
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-
-		return err
-	}
-
-	tlsClientKey, err := os.ReadFile("/var/lib/incus/server.key")
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-
-		return err
-	}
-
-	// Set the client certificate in the config.
-	clientCert, err := tls.X509KeyPair(tlsClientCert, tlsClientKey)
+func (p *operationsCenter) configureClientCertificate(ctx context.Context, tlsConfig *tls.Config) error {
+	// Get the primary application.
+	app, err := applications.GetPrimary(ctx, p.state)
 	if err != nil {
 		return err
 	}
 
-	tlsConfig.Certificates = []tls.Certificate{clientCert}
+	// Get the server certificate.
+	cert, err := app.GetCertificate()
+	if err != nil {
+		return err
+	}
+
+	tlsConfig.Certificates = []tls.Certificate{*cert}
 
 	return nil
 }
