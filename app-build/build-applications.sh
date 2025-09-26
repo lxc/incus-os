@@ -125,8 +125,9 @@ fi
 
 pushd migration-manager
 go build -o migration-managerd ./cmd/migration-managerd
+go build -o migration-manager ./cmd/migration-manager
 go build -o migration-manager-worker ./cmd/migration-manager-worker
-strip migration-managerd migration-manager-worker
+strip migration-managerd migration-manager migration-manager-worker
 
 pushd ui
 YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
@@ -159,7 +160,8 @@ fi
 
 pushd operations-center
 go build -o operations-centerd ./cmd/operations-centerd
-strip operations-centerd
+go build -o operations-center ./cmd/operations-center
+strip operations-centerd operations-center
 
 pushd ui
 YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
