@@ -358,6 +358,10 @@ func getLatestRelease(ctx context.Context) (string, map[string]*url.URL, error) 
 			continue
 		}
 
+		if *run.Conclusion != "success" {
+			continue
+		}
+
 		if *run.Name != "Build" {
 			continue
 		}
