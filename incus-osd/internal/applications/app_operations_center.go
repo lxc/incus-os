@@ -13,6 +13,7 @@ import (
 
 	"github.com/FuturFusion/operations-center/shared/api"
 
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -53,9 +54,9 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 		return err
 	}
 
-	// Return if no seed was provided.
+	// Configure an empty seed if none was provided.
 	if ocSeed == nil {
-		return nil
+		ocSeed = new(apiseed.OperationsCenter)
 	}
 
 	// Wait for Operations Center to begin accepting connections.

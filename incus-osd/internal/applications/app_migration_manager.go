@@ -13,6 +13,7 @@ import (
 
 	"github.com/FuturFusion/migration-manager/shared/api"
 
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -53,9 +54,9 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 		return err
 	}
 
-	// Return if no seed was provided.
+	// Configure an empty seed if none was provided.
 	if mmSeed == nil {
-		return nil
+		mmSeed = new(apiseed.MigrationManager)
 	}
 
 	// Wait for Migration Manager to begin accepting connections.
