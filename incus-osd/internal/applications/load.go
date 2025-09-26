@@ -7,6 +7,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
+// ErrNoPrimary is returned when the system doesn't yet have a primary application.
+var ErrNoPrimary = errors.New("no primary application")
+
 // Load retrieves and returns the application specific logic.
 func Load(_ context.Context, name string) (Application, error) {
 	var app Application
@@ -38,5 +41,5 @@ func GetPrimary(ctx context.Context, s *state.State) (Application, error) {
 		}
 	}
 
-	return nil, errors.New("no primary application")
+	return nil, ErrNoPrimary
 }

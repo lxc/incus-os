@@ -288,6 +288,11 @@ func (p *operationsCenter) configureClientCertificate(ctx context.Context, tlsCo
 	// Get the primary application.
 	app, err := applications.GetPrimary(ctx, p.state)
 	if err != nil {
+		if errors.Is(err, applications.ErrNoPrimary) {
+			// Don't try to setup the TLS client certificate if no primary application installed yet.
+			return nil
+		}
+
 		return err
 	}
 
