@@ -95,10 +95,10 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	{
-		// If no IP address is provided, default to listening on all addresses with the default port.
+		// If no IP address is provided, default to listening on all addresses on port 8443.
 		if ocSeed.SystemNetwork.OperationsCenterAddress == "" && ocSeed.SystemNetwork.RestServerAddress == "" {
-			ocSeed.SystemNetwork.OperationsCenterAddress = "https://[::]:0"
-			ocSeed.SystemNetwork.RestServerAddress = "[::]:0"
+			ocSeed.SystemNetwork.OperationsCenterAddress = "https://[::]:8443"
+			ocSeed.SystemNetwork.RestServerAddress = "[::]:8443"
 		}
 
 		contentJSON, err := json.Marshal(ocSeed.SystemNetwork)

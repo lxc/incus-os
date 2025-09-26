@@ -95,9 +95,9 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	}
 
 	{
-		// If no IP address is provided, default to listening on all addresses with the default port.
+		// If no IP address is provided, default to listening on all addresses on port 8443.
 		if mmSeed.SystemNetwork.Address == "" {
-			mmSeed.SystemNetwork.Address = "[::]"
+			mmSeed.SystemNetwork.Address = "[::]:8443"
 		}
 
 		contentJSON, err := json.Marshal(mmSeed.SystemNetwork)
