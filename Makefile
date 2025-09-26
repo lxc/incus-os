@@ -69,6 +69,7 @@ endif
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/ui/
 	cp app-build/migration-manager/migration-managerd mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
+	cp app-build/migration-manager/migration-manager mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	cp app-build/migration-manager/migration-manager-worker mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
 	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/ui/
 
@@ -77,6 +78,7 @@ endif
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
 	cp app-build/opentofu/tofu mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	cp app-build/operations-center/operations-centerd mkosi.images/operations-center/mkosi.extra/usr/local/bin/
+	cp app-build/operations-center/operations-center mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	cp -r app-build/operations-center/ui/dist/* mkosi.images/operations-center/mkosi.extra/usr/share/operations-center/ui/
 	cp -r app-build/terraform-provider-null/hashicorp/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
 	cp -r app-build/terraform-provider-random/hashicorp/ mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/
