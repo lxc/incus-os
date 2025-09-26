@@ -338,6 +338,10 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 
 	// Quick validation.
 	if apiResp.Type != "sync" || apiResp.StatusCode != http.StatusOK {
+		if apiResp.Type == "error" {
+			return nil, fmt.Errorf("error from operations center: %s", apiResp.Error)
+		}
+
 		return nil, errors.New("bad response from operations center")
 	}
 
