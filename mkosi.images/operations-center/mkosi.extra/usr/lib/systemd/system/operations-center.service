@@ -3,6 +3,7 @@ Description=Operations Center
 Documentation=https://github.com/FuturFusion/operations-center
 
 [Service]
+EnvironmentFile=-/etc/environment
 ExecStart=/usr/local/bin/operations-centerd
 KillMode=process
 Restart=on-failure
