@@ -426,6 +426,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Handle registration.
 	if !s.System.Provider.State.Registered {
+		// Reload the provider following application startup (so it can fetch the certificate).
+		p, err = providers.Load(ctx, s, provider, providerConfig)
+		if err != nil {
+			return err
+		}
+
+		// Register with the provider.
 		err = p.Register(ctx)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 			return err
