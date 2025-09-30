@@ -190,17 +190,7 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = os.RemoveAll("/var/lib/incus/")
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll("/var/lib/incus-lxcfs/")
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll("/var/log/incus/")
+	err = a.WipeLocalData()
 	if err != nil {
 		return err
 	}
@@ -213,6 +203,21 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 
 	// Perform first start initialization.
 	return a.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*incus) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/incus/")
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll("/var/lib/incus-lxcfs/")
+	if err != nil {
+		return err
+	}
+
+	return os.RemoveAll("/var/log/incus/")
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {

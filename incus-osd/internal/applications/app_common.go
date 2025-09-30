@@ -60,6 +60,11 @@ func (*common) IsRunning(_ context.Context) bool {
 	return true
 }
 
+// WipeLocalData removes local data created by the application.
+func (*common) WipeLocalData() error {
+	return errors.New("not supported")
+}
+
 // FactoryReset performs a full factory reset of the application.
 func (*common) FactoryReset(_ context.Context) error {
 	return errors.New("not supported")

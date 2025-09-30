@@ -245,12 +245,7 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = os.RemoveAll("/var/lib/operations-center/")
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove("/var/log/operations-center.log")
+	err = oc.WipeLocalData()
 	if err != nil {
 		return err
 	}
@@ -263,4 +258,14 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 
 	// Perform first start initialization.
 	return oc.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*operationsCenter) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/operations-center/")
+	if err != nil {
+		return err
+	}
+
+	return os.Remove("/var/log/operations-center.log")
 }

@@ -230,12 +230,7 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = os.RemoveAll("/var/lib/migration-manager/")
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove("/var/log/migration-manager.log")
+	err = mm.WipeLocalData()
 	if err != nil {
 		return err
 	}
@@ -248,4 +243,14 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 
 	// Perform first start initialization.
 	return mm.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*migrationManager) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/migration-manager/")
+	if err != nil {
+		return err
+	}
+
+	return os.Remove("/var/log/migration-manager.log")
 }
