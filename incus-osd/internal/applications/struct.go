@@ -6,7 +6,7 @@ import (
 )
 
 // Application represents an installed application.
-type Application interface {
+type Application interface { //nolint:interfacebloat
 	GetCertificate() (*tls.Certificate, error)
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
 	Initialize(ctx context.Context) error
@@ -17,4 +17,5 @@ type Application interface {
 	Update(ctx context.Context, version string) error
 	WipeLocalData() error
 	FactoryReset(ctx context.Context) error
+	GetBackup(archive io.Writer, complete bool) error
 }

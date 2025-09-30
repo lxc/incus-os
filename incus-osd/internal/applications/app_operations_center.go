@@ -269,3 +269,12 @@ func (*operationsCenter) WipeLocalData() error {
 
 	return os.Remove("/var/log/operations-center.log")
 }
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*operationsCenter) GetBackup(archive io.Writer, complete bool) error {
+	if complete {
+		return createTarArchive("/var/lib/operations-center/", nil, archive)
+	}
+
+	return createTarArchive("/var/lib/operations-center/", []string{"updates"}, archive)
+}

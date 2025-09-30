@@ -1,6 +1,7 @@
 package applications
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -11,8 +12,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/api"
@@ -67,6 +73,11 @@ func (*common) WipeLocalData() error {
 
 // FactoryReset performs a full factory reset of the application.
 func (*common) FactoryReset(_ context.Context) error {
+	return errors.New("not supported")
+}
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*common) GetBackup(_ io.Writer, _ bool) error {
 	return errors.New("not supported")
 }
 
@@ -159,4 +170,57 @@ func getCertificateFingerprint(certificate string) (string, error) {
 	rawFp := sha256.Sum256(cert.Raw)
 
 	return hex.EncodeToString(rawFp[:]), nil
+}
+
+func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writer) error {
+	tw := tar.NewWriter(archive)
+
+	err := filepath.Walk(archiveRoot, func(path string, info fs.FileInfo, _ error) error {
+		archiveFilename := strings.TrimPrefix(path, archiveRoot)
+
+		// Skip the root directory and any relative path starting with a path to be excluded.
+		if archiveFilename == "" || slices.ContainsFunc(excludePaths, func(s string) bool {
+			return strings.HasPrefix(archiveFilename, s)
+		}) {
+			return nil
+		}
+
+		// Skip any directories; any files within the directory will be added as the root is walked.
+		if info.IsDir() {
+			return nil
+		}
+
+		// Open the file.
+		// #nosec G304
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		// Create the header for the file.
+		header := &tar.Header{
+			Name: archiveFilename,
+			Mode: 0o600,
+			Size: info.Size(),
+		}
+
+		// Write the header and file contents.
+		err = tw.WriteHeader(header)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return tw.Close()
 }

@@ -254,3 +254,12 @@ func (*migrationManager) WipeLocalData() error {
 
 	return os.Remove("/var/log/migration-manager.log")
 }
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*migrationManager) GetBackup(archive io.Writer, complete bool) error {
+	if complete {
+		return createTarArchive("/var/lib/migration-manager/", nil, archive)
+	}
+
+	return createTarArchive("/var/lib/migration-manager/", []string{"artifacts"}, archive)
+}

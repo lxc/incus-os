@@ -220,6 +220,11 @@ func (*incus) WipeLocalData() error {
 	return os.RemoveAll("/var/log/incus/")
 }
 
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*incus) GetBackup(archive io.Writer, _ bool) error {
+	return createTarArchive("/var/lib/incus/", []string{"guestapi", "shmounts", "unix.socket"}, archive)
+}
+
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()
