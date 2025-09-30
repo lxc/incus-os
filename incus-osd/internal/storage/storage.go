@@ -574,10 +574,8 @@ func WipeDrive(ctx context.Context, drive string) error {
 
 	for _, d := range drives.State.Drives {
 		if d.ID == drive {
-			if d.Boot { //nolint:gocritic
+			if d.Boot {
 				return errors.New("cannot wipe boot drive")
-			} else if d.Remote {
-				return errors.New("cannot wipe remote drive")
 			} else if d.MemberPool != "" {
 				return errors.New("cannot wipe drive belonging to pool '" + d.MemberPool + "'")
 			}
