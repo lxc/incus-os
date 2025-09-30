@@ -45,7 +45,7 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 	}
 
 	// Stop the remaining units.
-	err = systemd.StopUnit(ctx, "incus.service", "incus-lxcfs.service")
+	err = systemd.StopUnit(ctx, "incus.service", "incus.socket", "incus-lxcfs.service")
 	if err != nil {
 		return err
 	}
