@@ -220,3 +220,32 @@ func doMMRequest(ctx context.Context, url string, method string, body []byte) ([
 func (*migrationManager) IsPrimary() bool {
 	return true
 }
+
+// FactoryReset performs a full factory reset of the application.
+func (mm *migrationManager) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := mm.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = os.RemoveAll("/var/lib/migration-manager/")
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove("/var/log/migration-manager.log")
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = mm.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return mm.Initialize(ctx)
+}

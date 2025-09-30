@@ -15,4 +15,5 @@ type Application interface {
 	Start(ctx context.Context, version string) error
 	Stop(ctx context.Context, version string) error
 	Update(ctx context.Context, version string) error
+	FactoryReset(ctx context.Context) error
 }

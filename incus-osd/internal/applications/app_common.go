@@ -60,6 +60,11 @@ func (*common) IsRunning(_ context.Context) bool {
 	return true
 }
 
+// FactoryReset performs a full factory reset of the application.
+func (*common) FactoryReset(_ context.Context) error {
+	return errors.New("not supported")
+}
+
 // Common helper to construct an HTTP client using the provided local Unix socket.
 func unixHTTPClient(socketPath string) (*http.Client, error) {
 	// Setup a Unix socket dialer

@@ -181,6 +181,40 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 	return nil
 }
 
+// FactoryReset performs a full factory reset of the application.
+func (a *incus) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := a.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = os.RemoveAll("/var/lib/incus/")
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll("/var/lib/incus-lxcfs/")
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll("/var/log/incus/")
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = a.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return a.Initialize(ctx)
+}
+
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()

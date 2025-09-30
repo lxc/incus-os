@@ -235,3 +235,32 @@ func doOCRequest(ctx context.Context, url string, method string, body []byte) ([
 func (*operationsCenter) IsPrimary() bool {
 	return true
 }
+
+// FactoryReset performs a full factory reset of the application.
+func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := oc.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = os.RemoveAll("/var/lib/operations-center/")
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove("/var/log/operations-center.log")
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = oc.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return oc.Initialize(ctx)
+}
