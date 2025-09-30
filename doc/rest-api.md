@@ -16,6 +16,10 @@ are not backwards compatible.
   * `/1.0/applications/{name}`
   
     `GET`: Returns application-specific status and/or configuration information
+
+  * `/1.0/applications/{name}/reset`
+
+    `POST`: Performs a factory reset of the application
   
   * `/1.0/debug`
   

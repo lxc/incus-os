@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
@@ -59,4 +60,42 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 
 	// Handle the request.
 	_ = response.SyncResponse(true, app).Render(w)
+}
+
+func (s *Server) apiApplicationsReset(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	_, ok := s.state.Applications[name]
+	if !ok {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), name)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	// Do the factory reset.
+	err = app.FactoryReset(r.Context())
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
 }
