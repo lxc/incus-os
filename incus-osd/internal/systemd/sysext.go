@@ -35,6 +35,24 @@ func RefreshExtensions(ctx context.Context) error {
 	return nil
 }
 
+// RemoveExtension removes the specified system extension layer.
+func RemoveExtension(ctx context.Context, name string) error {
+	// Remove the sysext image.
+	err := os.Remove("/var/lib/extensions/" + name + ".raw")
+	if err != nil {
+		return err
+	}
+
+	// Refresh the system extensions.
+	err = RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Reload the systemd daemon.
+	return ReloadDaemon(ctx)
+}
+
 // VerifyExtensionCertificateFingerprint takes the filename of a sysext image and verifies its basic
 // format is correct and that its certificate fingerprint matches one currently trusted by the kernel.
 // Actual cryptographic validation of the signature is deferred to systemd-sysext.
