@@ -23,6 +23,7 @@ import (
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
@@ -466,7 +467,10 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 }
 
 func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string, error) {
-	provider, err := providers.Load(ctx, nil, "images", nil)
+	s := state.State{}
+	s.System.Provider.Config.Name = "images"
+
+	provider, err := providers.Load(ctx, &s)
 	if err != nil {
 		return "", err
 	}
