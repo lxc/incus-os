@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"os"
 
 	incusclient "github.com/lxc/incus/v6/client"
@@ -223,6 +224,11 @@ func (*incus) WipeLocalData() error {
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
 func (*incus) GetBackup(archive io.Writer, _ bool) error {
 	return createTarArchive("/var/lib/incus/", []string{"guestapi", "shmounts", "unix.socket"}, archive)
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*incus) RestoreBackup(archive io.Reader) error {
+	return extractTarArchive("/var/lib/incus/", archive)
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {

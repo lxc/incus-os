@@ -3,6 +3,7 @@ package applications
 import (
 	"context"
 	"crypto/tls"
+	"io"
 )
 
 // Application represents an installed application.
@@ -18,4 +19,5 @@ type Application interface { //nolint:interfacebloat
 	WipeLocalData() error
 	FactoryReset(ctx context.Context) error
 	GetBackup(archive io.Writer, complete bool) error
+	RestoreBackup(archive io.Reader) error
 }

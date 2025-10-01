@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/revert"
 )
 
 type common struct{}
@@ -78,6 +80,11 @@ func (*common) FactoryReset(_ context.Context) error {
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
 func (*common) GetBackup(_ io.Writer, _ bool) error {
+	return errors.New("not supported")
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*common) RestoreBackup(_ io.Reader) error {
 	return errors.New("not supported")
 }
 
@@ -223,4 +230,89 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 	}
 
 	return tw.Close()
+}
+
+func extractTarArchive(archiveRoot string, archive io.Reader) error {
+	reverter := revert.New()
+	defer reverter.Fail()
+
+	// Backup the current directory.
+	backupArchiveRoot := strings.TrimSuffix(archiveRoot, "/") + ".bak"
+
+	err := os.Rename(archiveRoot, backupArchiveRoot)
+	if err != nil {
+		return err
+	}
+
+	// If we encounter an error, restore things to the prior state.
+	reverter.Add(func() {
+		// Restore the backup directory.
+		_ = os.RemoveAll(archiveRoot)
+		_ = os.Rename(backupArchiveRoot, archiveRoot)
+	})
+
+	// Iterate through each file in the tar archive.
+	tr := tar.NewReader(archive)
+	for {
+		header, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		// Don't let someone feed us a path traversal escape attack.
+		// #nosec G305
+		filename := filepath.Join(archiveRoot, header.Name)
+		if !strings.HasPrefix(filename, archiveRoot) {
+			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
+		}
+
+		// Create parent directory if needed.
+		parentDir := filepath.Dir(filename)
+
+		_, err = os.Stat(parentDir)
+		if err != nil {
+			err := os.MkdirAll(parentDir, 0o755)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Write file to disk.
+		// #nosec G304
+		file, err := os.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer file.Close() //nolint:revive
+
+		// Read from the archive in chunks to avoid excessive memory consumption.
+		var size int64
+
+		for {
+			n, err := io.CopyN(file, tr, 4*1024*1024)
+			size += n
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return err
+			}
+		}
+	}
+
+	// Remove the old backup.
+	err = os.RemoveAll(backupArchiveRoot)
+	if err != nil {
+		return err
+	}
+
+	reverter.Success()
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"slices"
@@ -277,4 +278,9 @@ func (*operationsCenter) GetBackup(archive io.Writer, complete bool) error {
 	}
 
 	return createTarArchive("/var/lib/operations-center/", []string{"updates"}, archive)
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*operationsCenter) RestoreBackup(archive io.Reader) error {
+	return extractTarArchive("/var/lib/operations-center/", archive)
 }
