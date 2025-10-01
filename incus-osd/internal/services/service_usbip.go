@@ -36,7 +36,7 @@ func (n *USBIP) Update(ctx context.Context, req any) error {
 	}
 
 	// Save the state on return.
-	defer n.state.Save(ctx)
+	defer n.state.Save()
 
 	// Update the configuration.
 	n.state.Services.USBIP.Config = newState.Config

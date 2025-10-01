@@ -259,7 +259,7 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string, installed
 	// Record the newly installed OS version.
 	s.OS.NextRelease = update.Version
 	s.System.Update.State.NeedsReboot = true
-	_ = s.Save(ctx)
+	_ = s.Save()
 
 	return nil
 }

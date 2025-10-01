@@ -143,3 +143,8 @@ func (s *State) ManagementAddress() net.IP {
 
 	return nil
 }
+
+// SetPath sets the path that the state struct will be written to.
+func (s *State) SetPath(path string) {
+	s.path = path
+}

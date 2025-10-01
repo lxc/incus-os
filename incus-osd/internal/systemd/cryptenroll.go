@@ -92,7 +92,7 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 
 	// First, wipe all recovery and password slots.
 	for _, volume := range luksVolumes {
-		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--wipe-slot", "recovery,password", volume)
+		err := WipeAllRecoveryKeys(ctx, volume)
 		if err != nil {
 			return err
 		}
@@ -114,6 +114,13 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 	}
 
 	return nil
+}
+
+// WipeAllRecoveryKeys will wipe all recovery and password key slots for the provided volume.
+func WipeAllRecoveryKeys(ctx context.Context, volume string) error {
+	_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--wipe-slot", "recovery,password", volume)
+
+	return err
 }
 
 // ListEncryptedVolumes returns a list of each encrypted volume and its status.
