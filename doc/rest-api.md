@@ -17,6 +17,14 @@ are not backwards compatible.
   
     `GET`: Returns application-specific status and/or configuration information
 
+  * `/1.0/applications/{name}/backup`
+
+    `GET`: Returns a tar archive backup for the application. If passed `complete=true`, a
+    full backup will be generated which may be quite large depending on what artifacts or
+    updates may be locally cached by the application.
+
+    `PUT`: Restore a tar archive for the application.
+
   * `/1.0/applications/{name}/reset`
 
     `POST`: Performs a factory reset of the application
