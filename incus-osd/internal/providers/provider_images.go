@@ -23,8 +23,7 @@ import (
 
 // The images provider.
 type images struct {
-	config map[string]string
-	state  *state.State
+	state *state.State
 
 	serverURL string
 	updateCA  string
@@ -155,8 +154,8 @@ func (p *images) GetApplication(ctx context.Context, name string) (Application, 
 
 func (p *images) load(_ context.Context) error {
 	// Set up the configuration.
-	p.serverURL = p.config["server_url"]
-	p.updateCA = p.config["update_ca"]
+	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
+	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
 
 	// Basic validation.
 	if p.serverURL == "" {

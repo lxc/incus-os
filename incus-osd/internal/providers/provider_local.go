@@ -14,8 +14,7 @@ import (
 
 // The Local provider.
 type local struct {
-	config map[string]string
-	state  *state.State
+	state *state.State
 
 	path string
 

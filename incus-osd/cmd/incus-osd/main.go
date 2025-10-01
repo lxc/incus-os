@@ -358,25 +358,22 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return errors.New("currently unsupported operating mode")
 	}
 
-	if s.System.Provider.Config.Name != "" {
-		provider = s.System.Provider.Config.Name
-		providerConfig = s.System.Provider.Config.Config
-	} else {
+	if s.System.Provider.Config.Name == "" {
 		providerSeed, err := seed.GetProvider(ctx, seed.GetSeedPath())
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
 
 		if providerSeed != nil {
-			provider = providerSeed.Name
-			providerConfig = providerSeed.Config
+			s.System.Provider.Config.Name = providerSeed.Name
+			s.System.Provider.Config.Config = providerSeed.Config
+		} else {
+			s.System.Provider.Config.Name = provider
+			s.System.Provider.Config.Config = providerConfig
 		}
-
-		s.System.Provider.Config.Name = provider
-		s.System.Provider.Config.Config = providerConfig
 	}
 
-	p, err := providers.Load(ctx, s, provider, providerConfig)
+	p, err := providers.Load(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -427,7 +424,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Handle registration.
 	if !s.System.Provider.State.Registered {
 		// Reload the provider following application startup (so it can fetch the certificate).
-		p, err = providers.Load(ctx, s, provider, providerConfig)
+		p, err = providers.Load(ctx, s)
 		if err != nil {
 			return err
 		}

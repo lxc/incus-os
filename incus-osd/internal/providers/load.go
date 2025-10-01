@@ -4,51 +4,40 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // Load gets a specific provider and initializes it with the provider configuration.
-func Load(ctx context.Context, s *state.State, name string, config map[string]string) (Provider, error) {
+func Load(ctx context.Context, s *state.State) (Provider, error) {
 	// NOTE: Migration logic, remove after a few releases.
-	if name == "github" {
-		if s.System.Provider.Config.Name == "github" {
-			s.System.Provider.Config.Name = "images"
-		}
-
-		name = "images"
-	}
-
-	if !slices.Contains([]string{"images", "local", "operations-center"}, name) {
-		return nil, fmt.Errorf("unknown provider %q", name)
+	if s.System.Provider.Config.Name == "github" {
+		s.System.Provider.Config.Name = "images"
 	}
 
 	var p Provider
 
-	switch name {
+	switch s.System.Provider.Config.Name {
 	case "images":
 		// Setup the images provider.
 		p = &images{
-			config: config,
-			state:  s,
+			state: s,
 		}
 
 	case "local":
 		// Setup the local provider.
 		p = &local{
-			config: config,
-			state:  s,
+			state: s,
 		}
 
 	case "operations-center":
 		// Setup the Operations Center provider.
 		p = &operationsCenter{
-			config: config,
-			state:  s,
+			state: s,
 		}
 
 	default:
+		return nil, fmt.Errorf("unknown provider %q", s.System.Provider.Config.Name)
 	}
 
 	err := p.load(ctx)
@@ -65,7 +54,7 @@ func Refresh(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
-	p, err := Load(ctx, s, s.System.Provider.Config.Name, s.System.Provider.Config.Config)
+	p, err := Load(ctx, s)
 	if err != nil {
 		return err
 	}

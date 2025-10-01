@@ -30,8 +30,7 @@ import (
 
 // The Operations Center provider.
 type operationsCenter struct {
-	config map[string]string
-	state  *state.State
+	state *state.State
 
 	client *http.Client
 
@@ -117,7 +116,7 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 	}
 
 	// Register.
-	resp, err := p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.config["server_token"], bytes.NewReader(data))
+	resp, err := p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.state.System.Provider.Config.Config["server_token"], bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -229,9 +228,9 @@ func (p *operationsCenter) load(ctx context.Context) error {
 	p.client = &http.Client{}
 
 	// Set up the configuration.
-	p.serverCertificate = p.config["server_certificate"]
-	p.serverURL = p.config["server_url"]
-	p.serverToken = p.config["server_token"]
+	p.serverCertificate = p.state.System.Provider.Config.Config["server_certificate"]
+	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
+	p.serverToken = p.state.System.Provider.Config.Config["server_token"]
 
 	// Basic validation.
 	if p.serverURL == "" {
