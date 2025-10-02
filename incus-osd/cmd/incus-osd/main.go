@@ -344,6 +344,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
+	// Configure logging.
+	err = systemd.SetSyslog(ctx, s.System.Logging.Config.Syslog)
+	if err != nil {
+		return err
+	}
+
 	// Get the provider.
 	var provider string
 

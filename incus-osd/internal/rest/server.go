@@ -58,6 +58,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/services", s.apiServices)
 	router.HandleFunc("/1.0/services/{name}", s.apiServicesEndpoint)
 	router.HandleFunc("/1.0/system", s.apiSystem)
+	router.HandleFunc("/1.0/system/logging", s.apiSystemLogging)
 	router.HandleFunc("/1.0/system/network", s.apiSystemNetwork)
 	router.HandleFunc("/1.0/system/reset", s.apiSystemReset)
 	router.HandleFunc("/1.0/system/resources", s.apiSystemResources)
