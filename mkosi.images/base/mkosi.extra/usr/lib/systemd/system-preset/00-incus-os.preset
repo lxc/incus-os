@@ -22,6 +22,7 @@ disable ovs-record-hostname.service
 disable dpkg-db-backup.service
 disable dpkg-db-backup.timer
 disable systemd-journald-audit.socket
+disable systemd-netlogd.service
 disable systemd-sysupdate-reboot.service
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.service
