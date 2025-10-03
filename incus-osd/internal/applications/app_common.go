@@ -1,6 +1,7 @@
 package applications
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -11,11 +12,18 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/revert"
 )
 
 type common struct{}
@@ -58,6 +66,26 @@ func (*common) IsPrimary() bool {
 // IsRunning reports if the application is currently running.
 func (*common) IsRunning(_ context.Context) bool {
 	return true
+}
+
+// WipeLocalData removes local data created by the application.
+func (*common) WipeLocalData() error {
+	return errors.New("not supported")
+}
+
+// FactoryReset performs a full factory reset of the application.
+func (*common) FactoryReset(_ context.Context) error {
+	return errors.New("not supported")
+}
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*common) GetBackup(_ io.Writer, _ bool) error {
+	return errors.New("not supported")
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*common) RestoreBackup(_ io.Reader) error {
+	return errors.New("not supported")
 }
 
 // Common helper to construct an HTTP client using the provided local Unix socket.
@@ -149,4 +177,142 @@ func getCertificateFingerprint(certificate string) (string, error) {
 	rawFp := sha256.Sum256(cert.Raw)
 
 	return hex.EncodeToString(rawFp[:]), nil
+}
+
+func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writer) error {
+	tw := tar.NewWriter(archive)
+
+	err := filepath.Walk(archiveRoot, func(path string, info fs.FileInfo, _ error) error {
+		archiveFilename := strings.TrimPrefix(path, archiveRoot)
+
+		// Skip the root directory and any relative path starting with a path to be excluded.
+		if archiveFilename == "" || slices.ContainsFunc(excludePaths, func(s string) bool {
+			return strings.HasPrefix(archiveFilename, s)
+		}) {
+			return nil
+		}
+
+		// Skip any directories; any files within the directory will be added as the root is walked.
+		if info.IsDir() {
+			return nil
+		}
+
+		// Open the file.
+		// #nosec G304
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		// Create the header for the file.
+		header := &tar.Header{
+			Name: archiveFilename,
+			Mode: 0o600,
+			Size: info.Size(),
+		}
+
+		// Write the header and file contents.
+		err = tw.WriteHeader(header)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return tw.Close()
+}
+
+func extractTarArchive(archiveRoot string, archive io.Reader) error {
+	reverter := revert.New()
+	defer reverter.Fail()
+
+	// Backup the current directory.
+	backupArchiveRoot := strings.TrimSuffix(archiveRoot, "/") + ".bak"
+
+	err := os.Rename(archiveRoot, backupArchiveRoot)
+	if err != nil {
+		return err
+	}
+
+	// If we encounter an error, restore things to the prior state.
+	reverter.Add(func() {
+		// Restore the backup directory.
+		_ = os.RemoveAll(archiveRoot)
+		_ = os.Rename(backupArchiveRoot, archiveRoot)
+	})
+
+	// Iterate through each file in the tar archive.
+	tr := tar.NewReader(archive)
+	for {
+		header, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return err
+		}
+
+		// Don't let someone feed us a path traversal escape attack.
+		// #nosec G305
+		filename := filepath.Join(archiveRoot, header.Name)
+		if !strings.HasPrefix(filename, archiveRoot) {
+			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
+		}
+
+		// Create parent directory if needed.
+		parentDir := filepath.Dir(filename)
+
+		_, err = os.Stat(parentDir)
+		if err != nil {
+			err := os.MkdirAll(parentDir, 0o755)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Write file to disk.
+		// #nosec G304
+		file, err := os.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer file.Close() //nolint:revive
+
+		// Read from the archive in chunks to avoid excessive memory consumption.
+		var size int64
+
+		for {
+			n, err := io.CopyN(file, tr, 4*1024*1024)
+			size += n
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return err
+			}
+		}
+	}
+
+	// Remove the old backup.
+	err = os.RemoveAll(backupArchiveRoot)
+	if err != nil {
+		return err
+	}
+
+	reverter.Success()
+
+	return nil
 }

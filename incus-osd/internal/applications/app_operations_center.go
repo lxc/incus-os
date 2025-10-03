@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"slices"
@@ -234,4 +235,52 @@ func doOCRequest(ctx context.Context, url string, method string, body []byte) ([
 // IsPrimary reports if the application is a primary application.
 func (*operationsCenter) IsPrimary() bool {
 	return true
+}
+
+// FactoryReset performs a full factory reset of the application.
+func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := oc.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = oc.WipeLocalData()
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = oc.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return oc.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*operationsCenter) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/operations-center/")
+	if err != nil {
+		return err
+	}
+
+	return os.Remove("/var/log/operations-center.log")
+}
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*operationsCenter) GetBackup(archive io.Writer, complete bool) error {
+	if complete {
+		return createTarArchive("/var/lib/operations-center/", nil, archive)
+	}
+
+	return createTarArchive("/var/lib/operations-center/", []string{"updates"}, archive)
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*operationsCenter) RestoreBackup(archive io.Reader) error {
+	return extractTarArchive("/var/lib/operations-center/", archive)
 }

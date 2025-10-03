@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"slices"
@@ -219,4 +220,52 @@ func doMMRequest(ctx context.Context, url string, method string, body []byte) ([
 // IsPrimary reports if the application is a primary application.
 func (*migrationManager) IsPrimary() bool {
 	return true
+}
+
+// FactoryReset performs a full factory reset of the application.
+func (mm *migrationManager) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := mm.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = mm.WipeLocalData()
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = mm.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return mm.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*migrationManager) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/migration-manager/")
+	if err != nil {
+		return err
+	}
+
+	return os.Remove("/var/log/migration-manager.log")
+}
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*migrationManager) GetBackup(archive io.Writer, complete bool) error {
+	if complete {
+		return createTarArchive("/var/lib/migration-manager/", nil, archive)
+	}
+
+	return createTarArchive("/var/lib/migration-manager/", []string{"artifacts"}, archive)
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*migrationManager) RestoreBackup(archive io.Reader) error {
+	return extractTarArchive("/var/lib/migration-manager/", archive)
 }

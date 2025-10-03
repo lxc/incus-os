@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"os"
 
 	incusclient "github.com/lxc/incus/v6/client"
@@ -45,7 +46,7 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 	}
 
 	// Stop the remaining units.
-	err = systemd.StopUnit(ctx, "incus.service", "incus-lxcfs.service")
+	err = systemd.StopUnit(ctx, "incus.service", "incus.socket", "incus-lxcfs.service")
 	if err != nil {
 		return err
 	}
@@ -179,6 +180,55 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 	}
 
 	return nil
+}
+
+// FactoryReset performs a full factory reset of the application.
+func (a *incus) FactoryReset(ctx context.Context) error {
+	// Stop the application.
+	err := a.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local configuration.
+	err = a.WipeLocalData()
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	err = a.Start(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Perform first start initialization.
+	return a.Initialize(ctx)
+}
+
+// WipeLocalData removes local data created by the application.
+func (*incus) WipeLocalData() error {
+	err := os.RemoveAll("/var/lib/incus/")
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll("/var/lib/incus-lxcfs/")
+	if err != nil {
+		return err
+	}
+
+	return os.RemoveAll("/var/log/incus/")
+}
+
+// GetBackup returns a tar archive backup of the application's configuration and/or state.
+func (*incus) GetBackup(archive io.Writer, _ bool) error {
+	return createTarArchive("/var/lib/incus/", []string{"guestapi", "shmounts", "unix.socket"}, archive)
+}
+
+// RestoreBackup restores a tar archive backup of the application's configuration and/or state.
+func (*incus) RestoreBackup(archive io.Reader) error {
+	return extractTarArchive("/var/lib/incus/", archive)
 }
 
 func (*incus) applyDefaults(c incusclient.InstanceServer) error {
