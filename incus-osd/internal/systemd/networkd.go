@@ -186,12 +186,11 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 
 	// State update for interfaces.
 	for _, i := range n.Config.Interfaces {
-		iState, err := getInterfaceState(ctx, "interface", i.Name, nil)
+		iState, err := getInterfaceState(ctx, "interface", i.Name, i.Hwaddr, nil)
 		if err != nil {
 			return err
 		}
 
-		iState.Hwaddr = i.Hwaddr
 		iState.Roles = i.Roles
 		rolesFound = append(rolesFound, i.Roles...)
 		n.State.Interfaces[i.Name] = iState
@@ -204,18 +203,17 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		for _, m := range b.Members {
 			mName := "_p" + strings.ToLower(strings.ReplaceAll(m, ":", ""))
 
-			members[mName], err = getInterfaceState(ctx, "", mName, nil)
+			members[mName], err = getInterfaceState(ctx, "", mName, m, nil)
 			if err != nil {
 				return err
 			}
 		}
 
-		bState, err := getInterfaceState(ctx, "bond", b.Name, members)
+		bState, err := getInterfaceState(ctx, "bond", b.Name, b.Hwaddr, members)
 		if err != nil {
 			return err
 		}
 
-		bState.Hwaddr = b.Hwaddr
 		bState.Roles = b.Roles
 		rolesFound = append(rolesFound, b.Roles...)
 		n.State.Interfaces[b.Name] = bState
@@ -223,14 +221,16 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 
 	// State update for vlans.
 	for _, v := range n.Config.VLANs {
-		vState, err := getInterfaceState(ctx, "vlan", v.Name, nil)
-		if err != nil {
-			return err
-		}
+		hwaddr := ""
 
 		parent, ok := n.State.Interfaces[v.Parent]
 		if ok {
-			vState.Hwaddr = parent.Hwaddr
+			hwaddr = parent.Hwaddr
+		}
+
+		vState, err := getInterfaceState(ctx, "vlan", v.Name, hwaddr, nil)
+		if err != nil {
+			return err
 		}
 
 		vState.Roles = v.Roles
@@ -263,7 +263,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 }
 
 // getInterfaceState runs various commands to gather network state for a specific interface.
-func getInterfaceState(ctx context.Context, ifaceType string, iface string, members map[string]api.SystemNetworkInterfaceState) (api.SystemNetworkInterfaceState, error) {
+func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwaddr string, members map[string]api.SystemNetworkInterfaceState) (api.SystemNetworkInterfaceState, error) {
 	// Get IPs for the interface.
 	ips, err := GetIPAddresses(ctx, iface)
 	if err != nil {
@@ -383,6 +383,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, memb
 	return api.SystemNetworkInterfaceState{
 		Type:      ifaceType,
 		Addresses: ips,
+		Hwaddr:    hwaddr,
 		Routes:    routes,
 		MTU:       mtu,
 		Speed:     speed,
