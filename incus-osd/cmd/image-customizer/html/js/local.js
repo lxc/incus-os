@@ -12,6 +12,16 @@ function download() {
         return
     }
 
+    // Process image architecture.
+    if (document.getElementById("imageArchitectureX86_64").checked) {
+        req["architecture"] = "x86_64"
+    } else if (document.getElementById("imageArchitectureAARCH64").checked) {
+        req["architecture"] = "aarch64"
+    } else {
+        alert("Missing image architecture")
+        return
+    }
+
     // Generate installation seed.
     if (document.getElementById("imageUsageInstallation").checked) {
         install = {}

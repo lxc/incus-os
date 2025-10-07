@@ -33,6 +33,9 @@ import (
 var staticFiles embed.FS
 
 const (
+	imageArchitectureX86_64  = "x86_64"
+	imageArchitectureAARCH64 = "aarch64"
+
 	imageTypeISO = "iso"
 	imageTypeRaw = "raw"
 )
@@ -43,8 +46,9 @@ var (
 )
 
 type apiImagesPost struct {
-	Type  string             `json:"type"  yaml:"type"`
-	Seeds apiImagesPostSeeds `json:"seeds" yaml:"seeds"`
+	Architecture string             `json:"architecture" yaml:"architecture"`
+	Type         string             `json:"type"         yaml:"type"`
+	Seeds        apiImagesPostSeeds `json:"seeds"        yaml:"seeds"`
 }
 
 type apiImagesPostSeeds struct {
@@ -177,6 +181,13 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !slices.Contains([]string{imageArchitectureX86_64, imageArchitectureAARCH64}, req.Architecture) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(errors.New("invalid image architecture")).Render(w)
+
+		return
+	}
+
 	// Store the request.
 	imagesMu.Lock()
 	defer imagesMu.Unlock()
@@ -274,7 +285,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, fileEntry := range update.Files {
-			if fileEntry.Architecture == "x86_64" && string(fileEntry.Type) == fileType {
+			if string(fileEntry.Architecture) == req.Architecture && string(fileEntry.Type) == fileType {
 				imageFilePath = filepath.Join(os.Args[1], update.Version, fileEntry.Filename)
 
 				break
