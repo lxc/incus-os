@@ -1,6 +1,7 @@
 package systemd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -29,13 +30,22 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, timeout time.Duration, refresh func(context.Context, *state.State) error) error {
-	networkCfg := s.System.Network.Config
-
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, refresh func(context.Context, *state.State) error) error {
+	// Validate the new network configuration before proceeding.
 	err := ValidateNetworkConfiguration(networkCfg, true)
 	if err != nil {
 		return err
 	}
+
+	// Delete any interfaces, bonds, or vlans that currently exist but don't in
+	// the new configuration, or have a different configuration.
+	err = cleanupStaleDevices(ctx, s.System.Network.Config, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	// Update the state before (re)generating networking configuration.
+	s.System.Network.Config = networkCfg
 
 	// Apply the configured hostname, or reset back to default if not set.
 	err = SetHostname(ctx, s.Hostname())
@@ -1209,4 +1219,110 @@ func generateLinkSectionContents(addresses []string, requiredForOnline string) s
 	}
 
 	return "RequiredForOnline=yes\nRequiredFamilyForOnline=" + requiredForOnline
+}
+
+func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, newCfg *api.SystemNetworkConfig) error {
+	// Check for changed/deleted interfaces.
+	for oldIndex := range oldCfg.Interfaces {
+		newIndex := slices.IndexFunc(newCfg.Interfaces, func(i api.SystemNetworkInterface) bool {
+			return oldCfg.Interfaces[oldIndex].Name == i.Name
+		})
+
+		// If not found, remove the existing interface (either deleted, or the device is now a bond or vlan).
+		if newIndex < 0 {
+			deleteNetworkDevice(ctx, "_v"+oldCfg.Interfaces[oldIndex].Name, oldCfg.Interfaces[oldIndex].Name)
+
+			continue
+		}
+
+		// Check if the interface's configuration has changed.
+		oldConfig, err := json.Marshal(oldCfg.Interfaces[oldIndex])
+		if err != nil {
+			return err
+		}
+
+		newConfig, err := json.Marshal(newCfg.Interfaces[newIndex])
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(oldConfig, newConfig) {
+			deleteNetworkDevice(ctx, "_v"+oldCfg.Interfaces[oldIndex].Name, oldCfg.Interfaces[oldIndex].Name)
+
+			continue
+		}
+	}
+
+	// Check for changed/deleted bonds.
+	for oldIndex := range oldCfg.Bonds {
+		newIndex := slices.IndexFunc(newCfg.Bonds, func(b api.SystemNetworkBond) bool {
+			return oldCfg.Bonds[oldIndex].Name == b.Name
+		})
+
+		// If not found, remove the existing bond (either deleted, or the device is now an interface or vlan).
+		if newIndex < 0 {
+			deleteNetworkDevice(ctx, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name, oldCfg.Bonds[oldIndex].Name)
+
+			continue
+		}
+
+		// Check if the bond's configuration has changed.
+		oldConfig, err := json.Marshal(oldCfg.Bonds[oldIndex])
+		if err != nil {
+			return err
+		}
+
+		newConfig, err := json.Marshal(newCfg.Bonds[newIndex])
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(oldConfig, newConfig) {
+			deleteNetworkDevice(ctx, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name, oldCfg.Bonds[oldIndex].Name)
+
+			continue
+		}
+	}
+
+	// Check for changed/deleted vlans.
+	for oldIndex := range oldCfg.VLANs {
+		newIndex := slices.IndexFunc(newCfg.VLANs, func(v api.SystemNetworkVLAN) bool {
+			return oldCfg.VLANs[oldIndex].Name == v.Name
+		})
+
+		// If not found, remove the existing vlan (either deleted, or the device is now an interface or bond).
+		if newIndex < 0 {
+			deleteNetworkDevice(ctx, oldCfg.VLANs[oldIndex].Name)
+
+			continue
+		}
+
+		// Check if the vlan's configuration has changed.
+		oldConfig, err := json.Marshal(oldCfg.VLANs[oldIndex])
+		if err != nil {
+			return err
+		}
+
+		newConfig, err := json.Marshal(newCfg.VLANs[newIndex])
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(oldConfig, newConfig) {
+			deleteNetworkDevice(ctx, oldCfg.VLANs[oldIndex].Name)
+
+			continue
+		}
+	}
+
+	return nil
+}
+
+func deleteNetworkDevice(ctx context.Context, devices ...string) {
+	for _, dev := range devices {
+		// Ignore errors; when deconstructing a complex network setup we may have already
+		// removed one end of a shared device, and we don't want to error out if we fail to
+		// remove the other end.
+		_, _ = subprocess.RunCommandContext(ctx, "networkctl", "delete", dev)
+	}
 }
