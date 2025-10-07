@@ -176,6 +176,10 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	var err error
 
+	if n.Config == nil {
+		return errors.New("no network configuration defined")
+	}
+
 	// Clear any existing state.
 	n.State = api.SystemNetworkState{
 		Interfaces: make(map[string]api.SystemNetworkInterfaceState),
