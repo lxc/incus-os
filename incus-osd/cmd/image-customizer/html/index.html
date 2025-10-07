@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="icon" href="/ui/img/favicon.ico">
-        <title>Incus OS downloader</title>
+        <title>IncusOS downloader</title>
 
         <!-- Bootstrap core CSS -->
         <link href="/ui/css/bootstrap.min.css" rel="stylesheet">
@@ -22,13 +22,14 @@
                 <div class="card-body">
                     <p class="card-text w-75">
                         IncusOS is designed to provide an extremely secure
-                        environment in which to run Incus.<br>
+                        environment in which to run Incus and related software.<br>
+
                         It requires a lot of modern system features and
                         will not function properly on older unsupported systems.
                     </p>
 
                     <ul>
-                        <li>Modern x86_64 system (5 years old at most)</li>
+                        <li>Modern x86_64 or arm64 system (5 years old at most)</li>
                         <li>Support for UEFI with SecureBoot</li>
                         <li>TPM 2.0 security module</li>
                         <li>At least 50GiB of storage</li>
@@ -50,11 +51,12 @@
 
                     <p class="card-text w-75">
                         The installed system is only reachable through
-                        Incus, there is no local shell access or remote
+                        the API, there is no local shell access or remote
                         access through SSH.
+
                         The customization tool below allows you to
-                        configure IncusOS's behavior, including what
-                        Incus client will be allowed to control the system.
+                        configure IncusOS' behavior, including what
+                        client will be allowed to control the system.
                     </p>
 
                     <form class="w-75">
