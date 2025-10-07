@@ -1,8 +1,5 @@
 function download() {
-    req = {}
-    req["seeds"] = {}
-
-    // Process image type.
+    // Validate image type.
     if (document.getElementById("imageTypeISO").checked) {
         req["type"] = "iso"
     } else if (document.getElementById("imageTypeUSB").checked) {
@@ -12,7 +9,7 @@ function download() {
         return
     }
 
-    // Process image architecture.
+    // Validate image architecture.
     if (document.getElementById("imageArchitectureX86_64").checked) {
         req["architecture"] = "x86_64"
     } else if (document.getElementById("imageArchitectureAARCH64").checked) {
@@ -22,7 +19,29 @@ function download() {
         return
     }
 
+    // Validate image application.
+    app = ""
+    if (document.getElementById("imageAppIncus").checked) {
+        app = "incus"
+    } else if (document.getElementById("imageAppOperationsCenter").checked) {
+        app = "operations-center"
+    } else if (document.getElementById("imageAppMigrationManager").checked) {
+        app = "migration-manager"
+    } else {
+        alert("Missing image application")
+        return
+    }
+
+    // Validate client certificate.
+    if (document.getElementById("appClientCertificate").value == "") {
+        alert("Missing client certificate")
+        return
+    }
+
     // Generate installation seed.
+    req = {}
+    req["seeds"] = {}
+
     if (document.getElementById("imageUsageInstallation").checked) {
         install = {}
         install["version"] = "1"
@@ -43,29 +62,40 @@ function download() {
         req["seeds"]["install"] = install
     }
 
-    // Generate Incus seed.
-    if (document.getElementById("incusClientCertificate").value == "") {
-        alert("Missing Incus client certificate")
-        return
+    // Generate application seed.
+    req["seeds"]["applications"] = {
+       "version": "1",
+       "applications": [{"name": app}]
     }
 
-    incus = {}
-    incus["version"] = "1"
+    if app == "incus" {
+        certificate = {
+            "name": "admin",
+            "type": "client",
+            "description": "Initial admin client",
+            "certificate": document.getElementById("incusClientCertificate").value
+        }
 
-    if (document.getElementById("incusDefaults").checked) {
-        incus["apply_defaults"] = true
+        incus = {
+            "version": "1",
+            "preseed": {
+                "certificates": [certificate]
+            }
+        }
+
+        if (document.getElementById("appDefaults").checked) {
+            incus["apply_defaults"] = true
+        }
+
+        req["seeds"]["incus"] = incus
+    } else {
+        appSeed = {
+            "version": "1",
+            "trusted_client_certificates": [certificate]
+        }
+
+        req["seeds"][app] = appSeed
     }
-
-    certificate = {}
-    certificate["name"] = "admin"
-    certificate["type"] = "client"
-    certificate["description"] = "Initial admin client"
-    certificate["certificate"] = document.getElementById("incusClientCertificate").value
-
-    incus["preseed"] = {}
-    incus["preseed"]["certificates"] = [certificate]
-
-    req["seeds"]["incus"] = incus
 
     // Send the request.
     fetch("/1.0/images", {
