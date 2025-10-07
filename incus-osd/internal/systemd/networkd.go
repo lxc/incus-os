@@ -186,7 +186,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 
 	// State update for interfaces.
 	for _, i := range n.Config.Interfaces {
-		iState, err := getInterfaceState(ctx, "interface", i.Name, i.Hwaddr, nil)
+		iState, err := getInterfaceState(ctx, "interface", i.Name, i.Hwaddr, "", nil)
 		if err != nil {
 			return err
 		}
@@ -203,13 +203,13 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		for _, m := range b.Members {
 			mName := "_p" + strings.ToLower(strings.ReplaceAll(m, ":", ""))
 
-			members[mName], err = getInterfaceState(ctx, "", mName, m, nil)
+			members[mName], err = getInterfaceState(ctx, "bond_member", mName, m, "", nil)
 			if err != nil {
 				return err
 			}
 		}
 
-		bState, err := getInterfaceState(ctx, "bond", b.Name, b.Hwaddr, members)
+		bState, err := getInterfaceState(ctx, "bond", b.Name, b.Hwaddr, "", members)
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			hwaddr = parent.Hwaddr
 		}
 
-		vState, err := getInterfaceState(ctx, "vlan", v.Name, hwaddr, nil)
+		vState, err := getInterfaceState(ctx, "vlan", v.Name, hwaddr, v.Parent, nil)
 		if err != nil {
 			return err
 		}
@@ -263,7 +263,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 }
 
 // getInterfaceState runs various commands to gather network state for a specific interface.
-func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwaddr string, members map[string]api.SystemNetworkInterfaceState) (api.SystemNetworkInterfaceState, error) {
+func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwaddr string, parent string, members map[string]api.SystemNetworkInterfaceState) (api.SystemNetworkInterfaceState, error) {
 	// Get IPs for the interface.
 	ips, err := GetIPAddresses(ctx, iface)
 	if err != nil {
@@ -314,13 +314,6 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 		remoteMAC = strings.Fields(remoteMACRegex.FindStringSubmatch(output)[1])[0]
 	}
 
-	speedRegex := regexp.MustCompile(`Speed: (.+)`)
-
-	speed := ""
-	if len(speedRegex.FindStringSubmatch(output)) == 2 {
-		speed = speedRegex.FindStringSubmatch(output)[1]
-	}
-
 	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
 
 	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
@@ -356,10 +349,39 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
+	// Get the actual underlying device's speed; querying the veth device always
+	// returns 10Gbps. Interfaces, bond members, and vlans directly on an interface
+	// look at the actual device, while bonds and vlans on a bond look at the bond
+	// device.
+	var underlyingDevice string
+
+	switch ifaceType {
+	case "interface", "bond_member":
+		underlyingDevice = "_p" + strings.ToLower(strings.ReplaceAll(hwaddr, ":", ""))
+	case "bond":
+		underlyingDevice = iface
+	case "vlan":
+		if hwaddr == "" {
+			underlyingDevice = parent
+		} else {
+			underlyingDevice = "_p" + strings.ToLower(strings.ReplaceAll(hwaddr, ":", ""))
+		}
+	default:
+		return api.SystemNetworkInterfaceState{}, errors.New("unknown interface type '" + ifaceType + "' for interface " + iface)
+	}
+
+	// #nosec G304
+	contents, err := os.ReadFile("/sys/class/net/" + underlyingDevice + "/speed")
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	speed := strings.TrimSuffix(string(contents), "\n")
+
 	// Fetch any LLDP info.
 	lldp := []api.SystemNetworkLLDPState{}
 
-	if ifaceType == "interface" || ifaceType == "" {
+	if ifaceType == "interface" || ifaceType == "bond_member" {
 		lldpIface := iface
 		if ifaceType == "interface" {
 			lldpIface = "_p" + strings.ToLower(strings.ReplaceAll(localMAC, ":", ""))
@@ -373,7 +395,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 
 	// Get LACP info for a bond member.
 	var lacp *api.SystemNetworkLACPState
-	if ifaceType == "" {
+	if ifaceType == "bond_member" {
 		lacp = &api.SystemNetworkLACPState{
 			LocalMAC:  localMAC,
 			RemoteMAC: remoteMAC,
