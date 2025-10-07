@@ -67,10 +67,12 @@ endif
 
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
+	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/images/
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/ui/
 	cp app-build/migration-manager/migration-managerd mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	cp app-build/migration-manager/migration-manager mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	cp app-build/migration-manager/migration-manager-worker mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
+	cp app-build/migration-manager/worker/mkosi.output/migration-manager-worker.raw mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/images/worker-$$(uname -m).img
 	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/ui/
 
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/local/bin/

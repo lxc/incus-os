@@ -129,6 +129,10 @@ go build -o migration-manager ./cmd/migration-manager
 go build -o migration-manager-worker ./cmd/migration-manager-worker
 strip migration-managerd migration-manager migration-manager-worker
 
+pushd worker
+make build
+popd
+
 pushd ui
 YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
 popd
