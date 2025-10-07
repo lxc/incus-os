@@ -9,12 +9,15 @@ type ServiceISCSITarget struct {
 
 // ServiceISCSI represents the state and configuration of the ISCSI service.
 type ServiceISCSI struct {
-	State struct {
-		InitiatorName string `json:"initiator_name" yaml:"initiator_name"`
-	} `json:"state" yaml:"state"`
+	State ServiceISCSIState `json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled bool                 `json:"enabled" yaml:"enabled"`
 		Targets []ServiceISCSITarget `json:"targets" yaml:"targets"`
 	} `json:"config" yaml:"config"`
+}
+
+// ServiceISCSIState represents the state for the ISCSI service.
+type ServiceISCSIState struct {
+	InitiatorName string `json:"initiator_name" yaml:"initiator_name"`
 }
