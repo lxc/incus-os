@@ -228,7 +228,7 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 			return err
 		}
 
-		parent, ok := n.State.Interfaces[v.Name]
+		parent, ok := n.State.Interfaces[v.Parent]
 		if ok {
 			vState.Hwaddr = parent.Hwaddr
 		}
