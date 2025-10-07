@@ -122,16 +122,16 @@
                         <hr>
 
                         <div>
-                            <h3>Incus configuration</h3>
+                            <h3>Application configuration</h3>
 
                             <div class="mb-3">
-                                <input class="form-check-input" type="checkbox" value="" id="incusDefaults" checked>
-                                <label class="form-check-label" for="incusDefaults">Apply default Incus configuration</label>
+                                <input class="form-check-input" type="checkbox" value="" id="applicationDefaults" checked>
+                                <label class="form-check-label" for="applicationDefaults">Apply default configuration</label>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="incusClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
-                                <textarea class="form-control" id="incusClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
+                                <label class="form-label" for="applicationClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
+                                <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
                             </div>
                         </div>
                     </form>
