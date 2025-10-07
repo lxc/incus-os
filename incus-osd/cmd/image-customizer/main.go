@@ -48,11 +48,13 @@ type apiImagesPost struct {
 }
 
 type apiImagesPostSeeds struct {
-	Applications *apiseed.Applications `json:"applications" yaml:"applications"`
-	Incus        *apiseed.Incus        `json:"incus"        yaml:"incus"`
-	Install      *apiseed.Install      `json:"install"      yaml:"install"`
-	Network      *apiseed.Network      `json:"network"      yaml:"network"`
-	Provider     *apiseed.Provider     `json:"provider"     yaml:"provider"`
+	Applications     *apiseed.Applications     `json:"applications"      yaml:"applications"`
+	Incus            *apiseed.Incus            `json:"incus"             yaml:"incus"`
+	Install          *apiseed.Install          `json:"install"           yaml:"install"`
+	MigrationManager *apiseed.MigrationManager `json:"migration-manager" yaml:"migration-manager"` //nolint:tagliatelle
+	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
+	Network          *apiseed.Network          `json:"network"           yaml:"network"`
+	Provider         *apiseed.Provider         `json:"provider"          yaml:"provider"`
 }
 
 func main() {
@@ -402,6 +404,26 @@ func writeSeed(writer io.Writer, seeds apiImagesPostSeeds) (int, error) {
 		}
 
 		archiveContents = append(archiveContents, []string{"incus.yaml", string(yamlContents)})
+	}
+
+	// Create operations-center yaml contents.
+	if seeds.OperationsCenter != nil {
+		yamlContents, err := yaml.Marshal(seeds.OperationsCenter)
+		if err != nil {
+			return -1, err
+		}
+
+		archiveContents = append(archiveContents, []string{"operations-center.yaml", string(yamlContents)})
+	}
+
+	// Create migration-manager yaml contents.
+	if seeds.MigrationManager != nil {
+		yamlContents, err := yaml.Marshal(seeds.MigrationManager)
+		if err != nil {
+			return -1, err
+		}
+
+		archiveContents = append(archiveContents, []string{"migration-manager.yaml", string(yamlContents)})
 	}
 
 	// Create install yaml contents.
