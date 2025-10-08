@@ -53,6 +53,8 @@ are not backwards compatible.
     `POST`: Update a service's configuration
   
   * `/1.0/system`
+
+    `GET`: Returns a list of system endpoints
   
     `PUT`: Perform a system-wide action
       - `shutdown`, `poweroff`, `reboot`: Self-descriptive
