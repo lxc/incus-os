@@ -75,6 +75,9 @@ endif
 	cp app-build/migration-manager/worker/mkosi.output/migration-manager-worker.raw mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/images/worker-$$(uname -m).img
 	cp -r app-build/migration-manager/ui/dist/* mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/ui/
 
+	mkdir -p mkosi.images/openfga/mkosi.extra/usr/local/bin/
+	cp app-build/openfga/openfga mkosi.images/openfga/mkosi.extra/usr/local/bin/
+
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/local/bin/
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/share/operations-center/ui/
 	mkdir -p mkosi.images/operations-center/mkosi.extra/usr/share/terraform/plugins/registry.opentofu.org/

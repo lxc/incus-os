@@ -9,6 +9,7 @@ HASHICORP_TERRAFORM_TIME_VERSION=0.13.1
 INCUS_TERRAFORM_VERSION=0.5.1
 MIGRATION_MANAGER_VERSION=main
 KPX_VERSION=1.12.2
+OPENFGA_VERSION=1.10.1
 OPENTOFU_VERSION=1.10.6
 OPERATIONS_CENTER_VERSION=main
 
@@ -137,6 +138,20 @@ pushd ui
 YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
 popd
 
+popd
+
+### openfga ###
+if [ -d openfga ]; then
+    pushd openfga
+    git reset --hard && git fetch --depth 1 origin "v${OPENFGA_VERSION}:refs/tags/v${OPENFGA_VERSION}" && git checkout "v${OPENFGA_VERSION}"
+    popd
+else
+    git clone https://github.com/openfga/openfga.git openfga --depth 1 -b "v${OPENFGA_VERSION}"
+fi
+
+pushd openfga
+go build -o openfga ./cmd/openfga
+strip openfga
 popd
 
 ### opentofu ###
