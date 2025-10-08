@@ -66,10 +66,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Apply the updated configuration.
-		s.state.System.Network.Config = newConfig.Config
-
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, 30*time.Second, providers.Refresh)
+		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, newConfig.Config, 30*time.Second, providers.Refresh)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 
