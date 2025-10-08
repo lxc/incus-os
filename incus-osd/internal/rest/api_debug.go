@@ -20,9 +20,16 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	endpoint, _ := url.JoinPath(getAPIRoot(r), "debug/log")
+	endpoint, _ := url.JoinPath(getAPIRoot(r), "debug")
 
-	_ = response.SyncResponse(true, []string{endpoint}).Render(w)
+	urls := []string{}
+
+	for _, debug := range []string{"log", "tui"} {
+		debugURL, _ := url.JoinPath(endpoint, debug)
+		urls = append(urls, debugURL)
+	}
+
+	_ = response.SyncResponse(true, urls).Render(w)
 }
 
 func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
