@@ -9,7 +9,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
-func (*Server) apiSystemReset(w http.ResponseWriter, r *http.Request) {
+func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {

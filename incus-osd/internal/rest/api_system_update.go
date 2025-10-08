@@ -16,11 +16,6 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		// Return the current system update state.
 		_ = response.SyncResponse(true, s.state.System.Update).Render(w)
-	case http.MethodPost:
-		// Trigger a manual update check.
-		s.state.TriggerUpdate <- true
-
-		_ = response.EmptySyncResponse.Render(w)
 	case http.MethodPut:
 		// Apply a new system update configuration.
 		newConfig := &api.SystemUpdate{}
@@ -63,4 +58,19 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 		// If none of the supported methods, return NotImplemented.
 		_ = response.NotImplemented(nil).Render(w)
 	}
+}
+
+func (s *Server) apiSystemUpdateCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Trigger a manual update check.
+	s.state.TriggerUpdate <- true
+
+	_ = response.EmptySyncResponse.Render(w)
 }
