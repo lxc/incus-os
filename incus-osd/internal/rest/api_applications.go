@@ -163,7 +163,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Load the application.
-	app, err := applications.Load(r.Context(), name)
+	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
