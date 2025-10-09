@@ -107,6 +107,12 @@ are not backwards compatible.
 
     `PUT`: Apply a new network configuration
 
+  * `/1.0/system/provider`
+
+    `GET`: Returns the current system provider state
+
+    `PUT`: Apply a new system provider configuration
+
   * `/1.0/system/resources`
 
     `GET`: Returns a detailed low-level dump of the system's resources

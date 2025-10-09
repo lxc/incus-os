@@ -20,7 +20,7 @@ func (*Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, system := range []string{"logging", "network", "resources", "security", "storage", "update"} {
+	for _, system := range []string{"logging", "network", "provider", "resources", "security", "storage", "update"} {
 		systemURL, _ := url.JoinPath(endpoint, system)
 		urls = append(urls, systemURL)
 	}

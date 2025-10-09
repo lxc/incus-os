@@ -45,9 +45,14 @@ func (*images) RefreshRegister(_ context.Context) error {
 	return ErrRegistrationUnsupported
 }
 
-func (*images) Register(_ context.Context) error {
+func (*images) Register(_ context.Context, _ bool) error {
 	// No registration with the images provider.
 	return ErrRegistrationUnsupported
+}
+
+func (*images) Deregister(_ context.Context) error {
+	// Since we can't register, deregister is a no-op.
+	return nil
 }
 
 func (*images) Type() string {

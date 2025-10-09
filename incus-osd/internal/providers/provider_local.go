@@ -32,9 +32,14 @@ func (*local) RefreshRegister(_ context.Context) error {
 	return ErrRegistrationUnsupported
 }
 
-func (*local) Register(_ context.Context) error {
+func (*local) Register(_ context.Context, _ bool) error {
 	// No registration with the local provider.
 	return ErrRegistrationUnsupported
+}
+
+func (*local) Deregister(_ context.Context) error {
+	// Since we can't register, deregister is a no-op.
+	return nil
 }
 
 func (*local) Type() string {
