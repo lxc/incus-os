@@ -6,10 +6,13 @@ type SystemProviderConfig struct {
 	Config map[string]string `json:"config" yaml:"config"`
 }
 
+// SystemProviderState holds information about the current provider state.
+type SystemProviderState struct {
+	Registered bool `json:"registered" yaml:"registered"`
+}
+
 // SystemProvider defines a struct to hold information about the system's update and configuration provider.
 type SystemProvider struct {
 	Config SystemProviderConfig `json:"config" yaml:"config"`
-	State  struct {
-		Registered bool `json:"registered" yaml:"registered"`
-	} `json:"state"  yaml:"state"`
+	State  SystemProviderState  `json:"state"  yaml:"state"`
 }

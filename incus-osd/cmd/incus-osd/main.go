@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// Get persistent state.
-	s, err := state.LoadOrCreate(ctx, filepath.Join(varPath, "state.txt"))
+	s, err := state.LoadOrCreate(filepath.Join(varPath, "state.txt"))
 	if err != nil {
 		tui.EarlyError("unable to load state file: " + err.Error())
 		os.Exit(1)
@@ -210,7 +210,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
-	defer func() { _ = s.Save(ctx) }()
+	defer func() { _ = s.Save() }()
 
 	modal := t.AddModal("System shutdown")
 
@@ -261,7 +261,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
-	defer func() { _ = s.Save(ctx) }()
+	defer func() { _ = s.Save() }()
 
 	// Check kernel keyring.
 	slog.DebugContext(ctx, "Getting trusted system keys")
@@ -445,7 +445,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 			slog.InfoContext(ctx, "Server registered with the provider")
 
 			s.System.Provider.State.Registered = true
-			_ = s.Save(ctx)
+			_ = s.Save()
 		}
 	}
 
@@ -783,7 +783,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		// update we won't be able to save the state to disk.
 		priorNextRelease := s.OS.NextRelease
 		s.OS.NextRelease = update.Version()
-		_ = s.Save(ctx)
+		_ = s.Save()
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.InfoContext(ctx, "Applying OS update", "release", update.Version())
@@ -792,7 +792,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
-			_ = s.Save(ctx)
+			_ = s.Save()
 
 			return "", err
 		}
@@ -803,7 +803,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		s.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(ctx)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
-			_ = s.Save(ctx)
+			_ = s.Save()
 
 			return "", err
 		}
@@ -862,7 +862,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		newAppInfo.State.Version = app.Version()
 
 		s.Applications[app.Name()] = newAppInfo
-		_ = s.Save(ctx)
+		_ = s.Save()
 
 		return app.Version(), nil
 	} else if isStartupCheck {
@@ -906,7 +906,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 	if update.Version() != s.SecureBoot.Version && !s.SecureBoot.FullyApplied { //nolint:nestif
 		// Immediately set FullyApplied to false and save state to disk.
 		s.SecureBoot.FullyApplied = false
-		_ = s.Save(ctx)
+		_ = s.Save()
 
 		// Check if we need to download the update or not.
 		_, err := os.Stat(archiveFilepath)

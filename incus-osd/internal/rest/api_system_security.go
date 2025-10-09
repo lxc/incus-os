@@ -111,7 +111,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 	}
 
-	_ = s.state.Save(r.Context())
+	_ = s.state.Save()
 }
 
 func (s *Server) apiSystemSecurityTPMRebind(w http.ResponseWriter, r *http.Request) {
@@ -131,5 +131,5 @@ func (s *Server) apiSystemSecurityTPMRebind(w http.ResponseWriter, r *http.Reque
 	}
 
 	_ = response.EmptySyncResponse.Render(w)
-	_ = s.state.Save(r.Context())
+	_ = s.state.Save()
 }

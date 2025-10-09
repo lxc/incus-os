@@ -2,16 +2,19 @@ package api
 
 // ServiceLVM represents the state and configuration of the LVM service.
 type ServiceLVM struct {
-	State struct {
-		PVs []ServiceLVMPV  `json:"pvs,omitempty" yaml:"pvs,omitempty"`
-		VGs []ServiceLVMVG  `json:"vgs,omitempty" yaml:"vgs,omitempty"`
-		Log []ServiceLVMLog `json:"log,omitempty" yaml:"log,omitempty"`
-	} `json:"state" yaml:"state"`
+	State ServiceLVMState `json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled  bool  `json:"enabled"   yaml:"enabled"`
 		SystemID int64 `json:"system_id" yaml:"system_id"`
 	} `json:"config" yaml:"config"`
+}
+
+// ServiceLVMState represents the state for the LVM service.
+type ServiceLVMState struct {
+	PVs []ServiceLVMPV  `json:"pvs,omitempty" yaml:"pvs,omitempty"`
+	VGs []ServiceLVMVG  `json:"vgs,omitempty" yaml:"vgs,omitempty"`
+	Log []ServiceLVMLog `json:"log,omitempty" yaml:"log,omitempty"`
 }
 
 // ServiceLVMPV defines information about a given physical volume.

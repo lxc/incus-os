@@ -15,6 +15,8 @@ type ServiceCephKeyring struct {
 
 // ServiceCeph represents the state and configuration of the Ceph service.
 type ServiceCeph struct {
+	State struct{} `json:"state" yaml:"state"`
+
 	Config struct {
 		Enabled  bool                          `json:"enabled"  yaml:"enabled"`
 		Clusters map[string]ServiceCephCluster `json:"clusters" yaml:"clusters"`

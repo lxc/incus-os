@@ -23,6 +23,8 @@ are not backwards compatible.
     full backup will be generated which may be quite large depending on what artifacts or
     updates may be locally cached by the application.
 
+    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
+
   * `/1.0/applications/{name}/:factory-reset`
 
     `POST`: Performs a factory reset of the application
@@ -58,6 +60,10 @@ are not backwards compatible.
 
     `GET`: Returns a list of system endpoints
 
+  * `/1.0/system/:backup`
+
+    `POST`: Return a tar archive backup of the system state and configuration
+
   * `/1.0/system/:factory-reset`
 
     `POST`: Perform a complete factory reset of the system and immediately reboot. An
@@ -71,6 +77,23 @@ are not backwards compatible.
   * `/1.0/system/:reboot`
 
     `POST:` Reboot the system
+
+  * `/1.0/system/:restore`
+
+    `POST`: Use provided tar archive to perform a restore of the system state and
+    configuration. Upon completion the system will immediately reboot.
+
+    Optionally, a `skip` parameter may be provided consisting of a comma-separated
+    list of items to ignore when restoring the backup. Supported values include:
+
+      - "encryption-recovery-keys": Do not overwrite any existing encryption recovery
+        keys
+      - "local-data-encryption-key": Do not overwrite the existing encryption key for
+        the "local" data pool
+      - "network-macs": Do not copy MAC addresses from network interface or bond
+        definitions in the backup
+
+    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
 
   * `/1.0/system/logging`
 

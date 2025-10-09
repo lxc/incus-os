@@ -23,12 +23,15 @@ type ServiceMultipathPath struct {
 
 // ServiceMultipath represents the state and configuration of the Multipath service.
 type ServiceMultipath struct {
-	State struct {
-		Devices map[string]ServiceMultipathDevice `json:"devices" yaml:"devices"`
-	} `json:"state" yaml:"state"`
+	State ServiceMultipathState `json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled bool     `json:"enabled" yaml:"enabled"`
 		WWNs    []string `json:"wwns"    yaml:"wwns"`
 	} `json:"config" yaml:"config"`
+}
+
+// ServiceMultipathState represents the state for the Multipath service.
+type ServiceMultipathState struct {
+	Devices map[string]ServiceMultipathDevice `json:"devices" yaml:"devices"`
 }

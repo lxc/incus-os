@@ -9,13 +9,16 @@ type ServiceNVMETarget struct {
 
 // ServiceNVME represents the state and configuration of the NVME service.
 type ServiceNVME struct {
-	State struct {
-		HostID  string `json:"host_id"  yaml:"host_id"`
-		HostNQN string `json:"host_nqn" yaml:"host_nqn"`
-	} `json:"state" yaml:"state"`
+	State ServiceNVMEState `json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled bool                `json:"enabled" yaml:"enabled"`
 		Targets []ServiceNVMETarget `json:"targets" yaml:"targets"`
 	} `json:"config" yaml:"config"`
+}
+
+// ServiceNVMEState represents the state for the NVME service.
+type ServiceNVMEState struct {
+	HostID  string `json:"host_id"  yaml:"host_id"`
+	HostNQN string `json:"host_nqn" yaml:"host_nqn"`
 }

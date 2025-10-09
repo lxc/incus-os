@@ -77,7 +77,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 	}
 
-	_ = s.state.Save(r.Context())
+	_ = s.state.Save()
 }
 
 func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request) {
