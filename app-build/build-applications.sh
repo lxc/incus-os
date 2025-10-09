@@ -129,9 +129,12 @@ go build -o migration-manager ./cmd/migration-manager
 go build -o migration-manager-worker ./cmd/migration-manager-worker
 strip migration-managerd migration-manager migration-manager-worker
 
-pushd worker
-make build
-popd
+# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.
+if [ "${ARCH}" = "amd64" ]; then
+    pushd worker
+    make build
+    popd
+fi
 
 pushd ui
 YARN_ENABLE_HARDENED_MODE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false yarnpkg install && yarnpkg build
