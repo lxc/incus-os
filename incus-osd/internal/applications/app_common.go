@@ -24,9 +24,13 @@ import (
 
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/revert"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
-type common struct{}
+type common struct {
+	state *state.State
+}
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
 func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) error {

@@ -83,7 +83,7 @@ func (s *Server) apiApplicationsReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load the application.
-	app, err := applications.Load(r.Context(), name)
+	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
@@ -115,7 +115,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load the application.
-	app, err := applications.Load(r.Context(), name)
+	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 

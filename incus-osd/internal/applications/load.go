@@ -11,18 +11,18 @@ import (
 var ErrNoPrimary = errors.New("no primary application")
 
 // Load retrieves and returns the application specific logic.
-func Load(_ context.Context, name string) (Application, error) {
+func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	var app Application
 
 	switch name {
 	case "incus":
-		app = &incus{}
+		app = &incus{common: common{state: s}}
 	case "migration-manager":
-		app = &migrationManager{}
+		app = &migrationManager{common: common{state: s}}
 	case "operations-center":
-		app = &operationsCenter{}
+		app = &operationsCenter{common: common{state: s}}
 	default:
-		app = &common{}
+		return nil, errors.New("unknown application")
 	}
 
 	return app, nil
@@ -31,7 +31,7 @@ func Load(_ context.Context, name string) (Application, error) {
 // GetPrimary returns the current primary application.
 func GetPrimary(ctx context.Context, s *state.State) (Application, error) {
 	for appName := range s.Applications {
-		app, err := Load(ctx, appName)
+		app, err := Load(ctx, s, appName)
 		if err != nil {
 			return nil, err
 		}
