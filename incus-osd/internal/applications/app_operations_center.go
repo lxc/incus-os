@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"slices"
@@ -48,7 +49,7 @@ func (*operationsCenter) Update(ctx context.Context, _ string) error {
 }
 
 // Initialize runs first time initialization.
-func (*operationsCenter) Initialize(ctx context.Context) error {
+func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
 	ocSeed, err := seed.GetOperationsCenter(ctx, seed.GetSeedPath())
 	if err != nil && !seed.IsMissing(err) {
@@ -99,7 +100,14 @@ func (*operationsCenter) Initialize(ctx context.Context) error {
 	{
 		// If no IP address is provided, default to listening on all addresses on port 8443.
 		if ocSeed.SystemNetwork.OperationsCenterAddress == "" && ocSeed.SystemNetwork.RestServerAddress == "" {
-			ocSeed.SystemNetwork.OperationsCenterAddress = "https://[::]:8443"
+			// Get the management address.
+			mgmtAddr := oc.state.ManagementAddress()
+			if mgmtAddr != nil {
+				ocSeed.SystemNetwork.OperationsCenterAddress = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
+			} else {
+				ocSeed.SystemNetwork.OperationsCenterAddress = "https://127.0.0.1:8443"
+			}
+
 			ocSeed.SystemNetwork.RestServerAddress = "[::]:8443"
 		}
 
