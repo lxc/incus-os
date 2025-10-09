@@ -58,6 +58,7 @@ type Provider interface {
 
 	Register(ctx context.Context) error
 	RefreshRegister(ctx context.Context) error
+	Deregister(ctx context.Context) error
 
 	load(ctx context.Context) error
 }

@@ -144,6 +144,11 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 	return nil
 }
 
+func (*operationsCenter) Deregister(_ context.Context) error {
+	// At the moment, deregistration is not supported for Operations Center.
+	return ErrDeregistrationUnsupported
+}
+
 func (*operationsCenter) Type() string {
 	return "operations-center"
 }

@@ -12,3 +12,6 @@ var ErrNoUpdateAvailable = errors.New("no update available")
 
 // ErrRegistrationUnsupported is returned if the provider doesn't (currently) support registration.
 var ErrRegistrationUnsupported = errors.New("registration unsupported")
+
+// ErrDeregistrationUnsupported is returned if the provider doesn't (currently) support deregistration.
+var ErrDeregistrationUnsupported = errors.New("deregistration unsupported")
