@@ -31,8 +31,16 @@ type networkdConfigFile struct {
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
 func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, refresh func(context.Context, *state.State) error) error {
+	// Very first, dynamically lookup any MAC address that is referred to by an interface name.
+	// This could be the case when reading in seed data, or if a user provides an interface
+	// name via an API update.
+	err := resolveMACs(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
 	// Validate the new network configuration before proceeding.
-	err := ValidateNetworkConfiguration(networkCfg, true)
+	err = ValidateNetworkConfiguration(networkCfg, true)
 	if err != nil {
 		return err
 	}
@@ -1352,4 +1360,62 @@ func deleteNetworkDevice(ctx context.Context, devices ...string) {
 		// remove the other end.
 		_, _ = subprocess.RunCommandContext(ctx, "networkctl", "delete", dev)
 	}
+}
+
+// resolveMACs attempts to resolve any non-MAC looking value to a MAC address by treating the
+// value of an interface name and attempting to query its MAC.
+func resolveMACs(ctx context.Context, config *api.SystemNetworkConfig) error {
+	hwaddrhRegex := regexp.MustCompile(`^[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}:[[:xdigit:]]{2}$`)
+
+	for i := range len(config.Interfaces) {
+		if !hwaddrhRegex.MatchString(config.Interfaces[i].Hwaddr) {
+			hwaddr, err := getMacForInterface(ctx, config.Interfaces[i].Hwaddr)
+			if err != nil {
+				return fmt.Errorf("interface %d failed getting MAC for '%s': %s", i, config.Interfaces[i].Hwaddr, err.Error())
+			}
+
+			config.Interfaces[i].Hwaddr = hwaddr
+		}
+	}
+
+	for i := range len(config.Bonds) {
+		if config.Bonds[i].Hwaddr != "" && !hwaddrhRegex.MatchString(config.Bonds[i].Hwaddr) {
+			hwaddr, err := getMacForInterface(ctx, config.Bonds[i].Hwaddr)
+			if err != nil {
+				return fmt.Errorf("bond %d failed getting MAC for '%s': %s", i, config.Bonds[i].Hwaddr, err.Error())
+			}
+
+			config.Bonds[i].Hwaddr = hwaddr
+		}
+
+		for j := range len(config.Bonds[i].Members) {
+			if !hwaddrhRegex.MatchString(config.Bonds[i].Members[j]) {
+				hwaddr, err := getMacForInterface(ctx, config.Bonds[i].Members[j])
+				if err != nil {
+					return fmt.Errorf("bond %d member %d failed getting MAC for '%s': %s", i, j, config.Bonds[i].Members[j], err.Error())
+				}
+
+				config.Bonds[i].Members[j] = hwaddr
+			}
+		}
+	}
+
+	return nil
+}
+
+// getMacForInterface attempts to query a give network interface and return its MAC address.
+func getMacForInterface(ctx context.Context, iface string) (string, error) {
+	macAddressRegex := regexp.MustCompile(`link/ether (.+) brd`)
+
+	output, err := subprocess.RunCommandContext(ctx, "ip", "link", "show", iface)
+	if err != nil {
+		return "", err
+	}
+
+	match := macAddressRegex.FindAllStringSubmatch(output, -1)
+	if len(match) != 1 {
+		return "", errors.New("no MAC address found")
+	}
+
+	return match[0][1], nil
 }
