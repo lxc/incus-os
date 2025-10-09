@@ -220,7 +220,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Run application shutdown actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
-		app, err := applications.Load(ctx, appName)
+		app, err := applications.Load(ctx, s, appName)
 		if err != nil {
 			return err
 		}
@@ -496,7 +496,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	appInfo := s.Applications[appName]
 
 	// Get the application.
-	app, err := applications.Load(ctx, appName)
+	app, err := applications.Load(ctx, s, appName)
 	if err != nil {
 		return err
 	}
@@ -677,7 +677,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Notify the applications that they need to update/restart.
 		for appName, appVersion := range appsUpdated {
 			// Get the application.
-			app, err := applications.Load(ctx, appName)
+			app, err := applications.Load(ctx, s, appName)
 			if err != nil {
 				s.System.Update.State.UpdateStatus = "Failed to load application"
 				showModalError(s.System.Update.State.UpdateStatus, err)
