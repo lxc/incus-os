@@ -436,7 +436,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 
 		// Register with the provider.
-		err = p.Register(ctx)
+		err = p.Register(ctx, true)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 			return err
 		}

@@ -87,7 +87,7 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) Register(ctx context.Context) error {
+func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	// API structs.
 	type serverPost struct {
 		Name          string `json:"name"`

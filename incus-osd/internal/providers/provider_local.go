@@ -32,7 +32,7 @@ func (*local) RefreshRegister(_ context.Context) error {
 	return ErrRegistrationUnsupported
 }
 
-func (*local) Register(_ context.Context) error {
+func (*local) Register(_ context.Context, _ bool) error {
 	// No registration with the local provider.
 	return ErrRegistrationUnsupported
 }

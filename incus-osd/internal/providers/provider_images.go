@@ -45,7 +45,7 @@ func (*images) RefreshRegister(_ context.Context) error {
 	return ErrRegistrationUnsupported
 }
 
-func (*images) Register(_ context.Context) error {
+func (*images) Register(_ context.Context, _ bool) error {
 	// No registration with the images provider.
 	return ErrRegistrationUnsupported
 }
