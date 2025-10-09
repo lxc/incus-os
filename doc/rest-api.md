@@ -17,18 +17,20 @@ are not backwards compatible.
   
     `GET`: Returns application-specific status and/or configuration information
 
-  * `/1.0/applications/{name}/backup`
+  * `/1.0/applications/{name}/:backup`
 
-    `GET`: Returns a tar archive backup for the application. If passed `complete=true`, a
+    `POST`: Returns a tar archive backup for the application. If passed `complete=true`, a
     full backup will be generated which may be quite large depending on what artifacts or
     updates may be locally cached by the application.
 
-    `PUT`: Restore a tar archive for the application.
-
-  * `/1.0/applications/{name}/reset`
+  * `/1.0/applications/{name}/:factory-reset`
 
     `POST`: Performs a factory reset of the application
-  
+
+  * `/1.0/applications/{name}/:restore`
+
+    `POST`: Restore a tar archive backup for the application
+
   * `/1.0/debug`
   
     `GET`: Returns a list of debug endpoints
@@ -38,75 +40,91 @@ are not backwards compatible.
     `GET`: Returns systemd journal entries, optionally filtering by unit, boot number, and
     number of return entries
 
-  * `/1.0/debug/tui`
+  * `/1.0/debug/tui/:write-message`
   
     `POST`: Send a message that should be logged by the system
 
   * `/1.0/services`
-  
+
     `GET`: Returns a list of service endpoints
-  
+
   * `/1.0/services/{name}`
-  
+
     `GET`: Returns service-specific status and/or configuration information
-    
-    `POST`: Update a service's configuration
-  
+
+    `PUT`: Update a service's configuration
+
   * `/1.0/system`
-  
-    `PUT`: Perform a system-wide action
-      - `shutdown`, `poweroff`, `reboot`: Self-descriptive
-      - `reset_encryption_bindings`: Force-reset TPM encryption bindings; intended only for
-      use if it was required to enter a recovery passphrase to boot the system
 
-  * `/1.0/system/network`
-  
-    `GET`: Return the current network state
-    
-    `PATCH`: Update the current network configuration
-    
-    `PUT`: Replace the current network configuration
+    `GET`: Returns a list of system endpoints
 
-  * `/1.0/system/reset`
-  
+  * `/1.0/system/:factory-reset`
+
     `POST`: Perform a complete factory reset of the system and immediately reboot. An
     optional number of seed configurations may also be provided, which will be used
     when the system starts up into its fresh state.
-    
+
+  * `/1.0/system/:poweroff`
+
+    `POST`: Power off the system
+
+  * `/1.0/system/:reboot`
+
+    `POST:` Reboot the system
+
+  * `/1.0/system/logging`
+
+    `GET`: Returns the current system logging state
+
+    `PUT`: Apply a new system logging configuration
+
+  * `/1.0/system/network`
+
+    `GET`: Return the current network state
+
+    `PUT`: Apply a new network configuration
+
   * `/1.0/system/resources`
-  
+
     `GET`: Returns a detailed low-level dump of the system's resources
-  
+
   * `/1.0/system/security`
-  
+
     `GET`: Returns information about the system's security state, such as Secure Boot and TPM
     status, encryption recovery keys, etc
-    
-    `PUT`: Add an encryption recovery passphrase
-    
-    `DELETE`: Remove an encryption recovery passphrase
-  
+
+    `PUT`: Update list of encryption recovery keys
+
+  * `/1.0/system/security/:tpm-rebind`
+
+    `POST`: Force-reset TPM encryption bindings; intended only for use if it was required to enter
+    a recovery passphrase to boot the system
+
   * `/1.0/system/storage`
-  
-    `DELETE`: Destroy a local storage pool
-  
+
     `GET`: Returns information about drives present in the system and status of any local storage
     pools
-    
+
     `PUT`: Create or update a local storage pool
 
-  * `/1.0/system/storage/import`
-  
+  * `/1.0/system/storage/:delete-pool`
+
+    `POST`: Destroy a local storage pool
+
+  * `/1.0/system/storage/:import-encryption-key`
+
     `POST`: Set the encryption key when importing an existing storage pool
 
-  * `/1.0/system/storage/wipe`
-  
+  * `/1.0/system/storage/:wipe-drive`
+
     `POST`: Forcibly wipe all data from the specified drive
-  
+
   * `/1.0/system/update`
 
     `GET`: Returns the current system update state
-    
-    `POST`: Trigger an immediate system update check
-    
+
     `PUT`: Apply a new system update configuration
+
+  * `/1.0/system/update/:check`
+
+    `POST`: Trigger an immediate system update check

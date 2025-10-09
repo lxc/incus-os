@@ -1,10 +1,13 @@
 package rest
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"slices"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -48,10 +51,10 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 
 		// Return the current system security state.
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
-	case http.MethodPut, http.MethodDelete:
-		// Add or remove an encryption key.
+	case http.MethodPut:
+		// Update the list of encryption recovery keys.
 		if r.ContentLength <= 0 {
-			_ = response.BadRequest(errors.New("no encryption key provided")).Render(w)
+			_ = response.BadRequest(errors.New("no security configuration provided")).Render(w)
 
 			return
 		}
@@ -63,16 +66,43 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if r.Method == http.MethodPut {
-			err = systemd.AddEncryptionKey(r.Context(), s.state, string(b))
-		} else {
-			err = systemd.DeleteEncryptionKey(r.Context(), s.state, string(b))
-		}
+		securityStruct := api.SystemSecurity{}
 
+		err = json.Unmarshal(b, &securityStruct)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 
 			return
+		}
+
+		if len(securityStruct.Config.EncryptionRecoveryKeys) == 0 {
+			_ = response.BadRequest(errors.New("no encryption key provided")).Render(w)
+
+			return
+		}
+
+		// Remove any encryption keys no longer present.
+		for _, existingKey := range s.state.System.Security.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
+				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
+				if err != nil {
+					_ = response.BadRequest(err).Render(w)
+
+					return
+				}
+			}
+		}
+
+		// Add any new encryption keys.
+		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
+				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
+				if err != nil {
+					_ = response.BadRequest(err).Render(w)
+
+					return
+				}
+			}
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
@@ -81,5 +111,25 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		_ = response.NotImplemented(nil).Render(w)
 	}
 
+	_ = s.state.Save(r.Context())
+}
+
+func (s *Server) apiSystemSecurityTPMRebind(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	err := secureboot.ForceUpdatePCRBindings(r.Context(), s.state.OS.Name, s.state.OS.RunningRelease, s.state.System.Security.Config.EncryptionRecoveryKeys[0])
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
 	_ = s.state.Save(r.Context())
 }

@@ -28,30 +28,11 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 		// Return the current network state.
 		_ = response.SyncResponse(true, s.state.System.Network).Render(w)
-	case http.MethodPatch, http.MethodPut:
-		// Apply an update or completely replace the network configuration.
+	case http.MethodPut:
+		// Replace the existing network configuration.
 		newConfig := &api.SystemNetwork{}
 
-		// If updating, grab the current configuration.
-		if r.Method == http.MethodPatch {
-			// We make a copy of the current network configuration so we don't corrupt
-			// the existing good state with a bad update from the user.
-			cpy, err := json.Marshal(s.state.System.Network)
-			if err != nil {
-				_ = response.BadRequest(err).Render(w)
-
-				return
-			}
-
-			err = json.Unmarshal(cpy, newConfig)
-			if err != nil {
-				_ = response.BadRequest(err).Render(w)
-
-				return
-			}
-		}
-
-		// Update the network configuration from request's body.
+		// Populate the network configuration from request's body.
 		err := json.NewDecoder(r.Body).Decode(newConfig)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
@@ -74,7 +55,6 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
-
 		_ = s.state.Save(r.Context())
 	default:
 		// If none of the supported methods, return NotImplemented.
