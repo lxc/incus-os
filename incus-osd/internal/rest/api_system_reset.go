@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -20,16 +21,20 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 
 	resetData := &api.SystemReset{}
 
-	if r.ContentLength > 0 {
-		err := json.NewDecoder(r.Body).Decode(resetData)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+	if r.ContentLength <= 0 {
+		_ = response.BadRequest(errors.New("no reset data provided")).Render(w)
 
-			return
-		}
+		return
 	}
 
-	err := reset.PerformOSFactoryReset(r.Context(), resetData)
+	err := json.NewDecoder(r.Body).Decode(resetData)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	err = reset.PerformOSFactoryReset(r.Context(), resetData)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
