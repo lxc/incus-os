@@ -80,8 +80,8 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemCertificate, if any.
-	if ocSeed.SystemCertificate != nil {
-		contentJSON, err := json.Marshal(ocSeed.SystemCertificate)
+	if ocSeed.Preseed.SystemCertificate != nil {
+		contentJSON, err := json.Marshal(ocSeed.Preseed.SystemCertificate)
 		if err != nil {
 			return err
 		}
@@ -93,25 +93,25 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemNetwork, if any.
-	if ocSeed.SystemNetwork == nil {
-		ocSeed.SystemNetwork = new(api.SystemNetworkPut)
+	if ocSeed.Preseed.SystemNetwork == nil {
+		ocSeed.Preseed.SystemNetwork = new(api.SystemNetworkPut)
 	}
 
 	{
 		// If no IP address is provided, default to listening on all addresses on port 8443.
-		if ocSeed.SystemNetwork.OperationsCenterAddress == "" && ocSeed.SystemNetwork.RestServerAddress == "" {
+		if ocSeed.Preseed.SystemNetwork.OperationsCenterAddress == "" && ocSeed.Preseed.SystemNetwork.RestServerAddress == "" {
 			// Get the management address.
 			mgmtAddr := oc.state.ManagementAddress()
 			if mgmtAddr != nil {
-				ocSeed.SystemNetwork.OperationsCenterAddress = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
+				ocSeed.Preseed.SystemNetwork.OperationsCenterAddress = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
 			} else {
-				ocSeed.SystemNetwork.OperationsCenterAddress = "https://127.0.0.1:8443"
+				ocSeed.Preseed.SystemNetwork.OperationsCenterAddress = "https://127.0.0.1:8443"
 			}
 
-			ocSeed.SystemNetwork.RestServerAddress = "[::]:8443"
+			ocSeed.Preseed.SystemNetwork.RestServerAddress = "[::]:8443"
 		}
 
-		contentJSON, err := json.Marshal(ocSeed.SystemNetwork)
+		contentJSON, err := json.Marshal(ocSeed.Preseed.SystemNetwork)
 		if err != nil {
 			return err
 		}
@@ -123,11 +123,11 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemSecurity, if any.
-	if ocSeed.SystemSecurity == nil && len(ocSeed.TrustedClientCertificates) > 0 {
-		ocSeed.SystemSecurity = new(api.SystemSecurityPut)
+	if ocSeed.Preseed.SystemSecurity == nil && len(ocSeed.TrustedClientCertificates) > 0 {
+		ocSeed.Preseed.SystemSecurity = new(api.SystemSecurityPut)
 	}
 
-	if ocSeed.SystemSecurity != nil {
+	if ocSeed.Preseed.SystemSecurity != nil {
 		// Compute fingerprints for any user-provided client certificates and add to the
 		// list of trusted TLS client certificates.
 		for i, certString := range ocSeed.TrustedClientCertificates {
@@ -136,12 +136,12 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 				return fmt.Errorf("%w (seed index %d)", err, i)
 			}
 
-			if !slices.Contains(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
-				ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints = append(ocSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)
+			if !slices.Contains(ocSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
+				ocSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints = append(ocSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)
 			}
 		}
 
-		contentJSON, err := json.Marshal(ocSeed.SystemSecurity)
+		contentJSON, err := json.Marshal(ocSeed.Preseed.SystemSecurity)
 		if err != nil {
 			return err
 		}
@@ -153,8 +153,8 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemUpdates, if any.
-	if ocSeed.SystemUpdates != nil {
-		contentJSON, err := json.Marshal(ocSeed.SystemUpdates)
+	if ocSeed.Preseed.SystemUpdates != nil {
+		contentJSON, err := json.Marshal(ocSeed.Preseed.SystemUpdates)
 		if err != nil {
 			return err
 		}

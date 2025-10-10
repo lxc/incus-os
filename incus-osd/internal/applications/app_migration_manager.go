@@ -79,8 +79,8 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemCertificate, if any.
-	if mmSeed.SystemCertificate != nil {
-		contentJSON, err := json.Marshal(mmSeed.SystemCertificate)
+	if mmSeed.Preseed.SystemCertificate != nil {
+		contentJSON, err := json.Marshal(mmSeed.Preseed.SystemCertificate)
 		if err != nil {
 			return err
 		}
@@ -92,17 +92,17 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemNetwork, if any.
-	if mmSeed.SystemNetwork == nil {
-		mmSeed.SystemNetwork = new(api.SystemNetwork)
+	if mmSeed.Preseed.SystemNetwork == nil {
+		mmSeed.Preseed.SystemNetwork = new(api.SystemNetwork)
 	}
 
 	{
 		// If no IP address is provided, default to listening on all addresses on port 8443.
-		if mmSeed.SystemNetwork.Address == "" {
-			mmSeed.SystemNetwork.Address = "[::]:8443"
+		if mmSeed.Preseed.SystemNetwork.Address == "" {
+			mmSeed.Preseed.SystemNetwork.Address = "[::]:8443"
 		}
 
-		contentJSON, err := json.Marshal(mmSeed.SystemNetwork)
+		contentJSON, err := json.Marshal(mmSeed.Preseed.SystemNetwork)
 		if err != nil {
 			return err
 		}
@@ -114,11 +114,11 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 	}
 
 	// Apply SystemSecurity, if any.
-	if mmSeed.SystemSecurity == nil && len(mmSeed.TrustedClientCertificates) > 0 {
-		mmSeed.SystemSecurity = new(api.SystemSecurity)
+	if mmSeed.Preseed.SystemSecurity == nil && len(mmSeed.TrustedClientCertificates) > 0 {
+		mmSeed.Preseed.SystemSecurity = new(api.SystemSecurity)
 	}
 
-	if mmSeed.SystemSecurity != nil {
+	if mmSeed.Preseed.SystemSecurity != nil {
 		// Compute fingerprints for any user-provided client certificates and add to the
 		// list of trusted TLS client certificates.
 		for i, certString := range mmSeed.TrustedClientCertificates {
@@ -127,12 +127,12 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 				return fmt.Errorf("%w (seed index %d)", err, i)
 			}
 
-			if !slices.Contains(mmSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
-				mmSeed.SystemSecurity.TrustedTLSClientCertFingerprints = append(mmSeed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)
+			if !slices.Contains(mmSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints, fp) {
+				mmSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints = append(mmSeed.Preseed.SystemSecurity.TrustedTLSClientCertFingerprints, fp)
 			}
 		}
 
-		contentJSON, err := json.Marshal(mmSeed.SystemSecurity)
+		contentJSON, err := json.Marshal(mmSeed.Preseed.SystemSecurity)
 		if err != nil {
 			return err
 		}
