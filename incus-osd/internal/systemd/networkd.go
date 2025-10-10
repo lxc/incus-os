@@ -52,6 +52,11 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
+	// Determine if any new physical devices (starting with "_p") will be added. Later
+	// after generating the new network configuration files we will need to wait until
+	// the new devices are properly renamed by udev.
+	expectedNewPhysicalDevices := getExpectedNewPhysicalDevices(ctx, networkCfg)
+
 	// Update the state before (re)generating networking configuration.
 	s.System.Network.Config = networkCfg
 
@@ -77,7 +82,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	err = waitForUdevInterfaceRename(ctx, 5*time.Second)
+	err = waitForUdevInterfaceRename(ctx, expectedNewPhysicalDevices, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -589,7 +594,7 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 // the renaming of interfaces. At system startup there's a small race between udev being fully
 // started and our reconfiguring of the network, so we poll in a loop until we see the kernel
 // has been notified of the rename.
-func waitForUdevInterfaceRename(ctx context.Context, timeout time.Duration) error {
+func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []string, timeout time.Duration) error {
 	endTime := time.Now().Add(timeout)
 
 	for {
@@ -609,10 +614,20 @@ func waitForUdevInterfaceRename(ctx context.Context, timeout time.Duration) erro
 			return err
 		}
 
-		// Check if the kernel has noticed the renaming of (at least) one interface to
-		// the expected "_p<MAC address>" format.
-		_, err = subprocess.RunCommandContext(ctx, "journalctl", "-b", "-t", "kernel", "-g", "_p[[:xdigit:]]{12}: renamed from ")
-		if err == nil {
+		allDevicesRenamed := true
+
+		// Check if the kernel has noticed the renaming of each of the expected
+		// interfaces to the "_p<MAC address>" format.
+		for _, iface := range expectedInterfaces {
+			_, err = subprocess.RunCommandContext(ctx, "journalctl", "--since", "10 seconds ago", "-t", "kernel", "-g", iface+": renamed from ")
+			if err != nil {
+				allDevicesRenamed = false
+
+				break
+			}
+		}
+
+		if allDevicesRenamed {
 			return nil
 		}
 
@@ -724,7 +739,7 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 		}
 
 		// Check if systemd-timesyncd has performed its initial synchronization.
-		_, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "systemd-timesyncd", "-g", "Initial clock synchronization")
+		_, err := subprocess.RunCommandContext(ctx, "journalctl", "--since", "10 seconds ago", "-u", "systemd-timesyncd", "-g", "Initial clock synchronization")
 		if err == nil {
 			return nil
 		}
@@ -1418,4 +1433,32 @@ func getMacForInterface(ctx context.Context, iface string) (string, error) {
 	}
 
 	return match[0][1], nil
+}
+
+func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetworkConfig) []string {
+	devices := []string{}
+	ret := []string{}
+
+	// Get a list of all the expected "_p" physical devices referenced by the interfaces or bond
+	// members in the given network configuration.
+	for i := range config.Interfaces {
+		devices = append(devices, "_p"+strings.ToLower(strings.ReplaceAll(config.Interfaces[i].Hwaddr, ":", "")))
+	}
+
+	for i := range config.Bonds {
+		for j := range config.Bonds[i].Members {
+			devices = append(devices, "_p"+strings.ToLower(strings.ReplaceAll(config.Bonds[i].Members[j], ":", "")))
+		}
+	}
+
+	// Check if the given device is already known to networkd; if not, add it to the list
+	// of devices we need to wait for.
+	for _, dev := range devices {
+		_, err := subprocess.RunCommandContext(ctx, "networkctl", "status", dev)
+		if err != nil {
+			ret = append(ret, dev)
+		}
+	}
+
+	return ret
 }
