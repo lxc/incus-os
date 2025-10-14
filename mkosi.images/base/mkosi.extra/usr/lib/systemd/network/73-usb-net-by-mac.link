@@ -1,0 +1,6 @@
+[Match]
+Path=*-usb-*
+Property=ID_NET_NAME_MAC=*
+
+[Link]
+NamePolicy=keep kernel database onboard slot path
