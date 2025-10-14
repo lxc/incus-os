@@ -165,8 +165,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 		}
 	}
 
-	// Restart the service to ensure any seed settings are properly applied.
-	return systemd.RestartUnit(ctx, "operations-center.service")
+	return nil
 }
 
 // IsRunning reports if the application is currently running.
