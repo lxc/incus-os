@@ -192,7 +192,7 @@ func validateName(name string) error {
 	}
 
 	if len(name) > 13 {
-		return errors.New("name cannot be longer than 13 characters")
+		return errors.New("name '" + name + "' cannot be longer than 13 characters")
 	}
 
 	return nil
