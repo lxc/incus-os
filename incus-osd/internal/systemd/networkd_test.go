@@ -176,7 +176,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
-		require.EqualError(t, err, "interface 0 name cannot be longer than 13 characters")
+		require.EqualError(t, err, "interface 0 name 'myreallylongname' cannot be longer than 13 characters")
 	}
 
 	{
