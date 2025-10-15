@@ -133,6 +133,8 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		modal := t.AddModal(s.OS.Name)
 		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
 
+		slog.ErrorContext(ctx, "System check error: "+err.Error())
+
 		// If we fail the system requirement check, we'll enter a startup loop with the systemd service
 		// constantly trying to restart the daemon. Rather than doing that, just sleep here for an hour
 		// so the error message doesn't flicker off and on, then exit and let systemd start us again.
