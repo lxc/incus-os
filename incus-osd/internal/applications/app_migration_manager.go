@@ -60,6 +60,10 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 		mmSeed = new(apiseed.MigrationManager)
 	}
 
+	if mmSeed.Preseed == nil {
+		mmSeed.Preseed = new(apiseed.MigrationManagerPreseed)
+	}
+
 	// Wait for Migration Manager to begin accepting connections.
 	count := 0
 

@@ -61,6 +61,10 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 		ocSeed = new(apiseed.OperationsCenter)
 	}
 
+	if ocSeed.Preseed == nil {
+		ocSeed.Preseed = new(apiseed.OperationsCenterPreseed)
+	}
+
 	// Wait for Operations Center to begin accepting connections.
 	count := 0
 
