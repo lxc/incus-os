@@ -23,8 +23,6 @@ are not backwards compatible.
     full backup will be generated which may be quite large depending on what artifacts or
     updates may be locally cached by the application.
 
-    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
-
   * `/1.0/applications/{name}/:factory-reset`
 
     `POST`: Performs a factory reset of the application
@@ -32,6 +30,8 @@ are not backwards compatible.
   * `/1.0/applications/{name}/:restore`
 
     `POST`: Restore a tar archive backup for the application
+
+    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
 
   * `/1.0/debug`
   
