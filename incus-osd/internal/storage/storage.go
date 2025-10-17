@@ -215,6 +215,13 @@ func PoolExists(ctx context.Context, zpoolName string) bool {
 	return err == nil
 }
 
+// DatasetExists checks if a given ZFS dataset exists.
+func DatasetExists(ctx context.Context, datasetName string) bool {
+	_, err := subprocess.RunCommandContext(ctx, "zfs", "list", datasetName)
+
+	return err == nil
+}
+
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
 // Logically it makes more sense for this to be in the zfs package, but that would cause an import loop.
 func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePool, error) {

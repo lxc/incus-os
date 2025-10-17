@@ -112,6 +112,14 @@ func CheckSystemRequirements(ctx context.Context) error {
 		if targetDeviceSize < 50*1024*1024*1024 {
 			return fmt.Errorf("target device '%s' is too small (%0.2fGiB), must be at least 50GiB", targetDevice, float64(targetDeviceSize)/(1024.0*1024.0*1024.0))
 		}
+
+		// If an applications seed is present, ensure at least one application is defined.
+		apps, _ := seed.GetApplications(ctx, seed.GetSeedPath())
+		if apps != nil {
+			if len(apps.Applications) == 0 {
+				return errors.New("at least one application must be defined in the provided applications seed")
+			}
+		}
 	}
 
 	return nil
