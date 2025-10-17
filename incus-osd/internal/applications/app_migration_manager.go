@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"slices"
@@ -48,7 +49,7 @@ func (*migrationManager) Update(ctx context.Context, _ string) error {
 }
 
 // Initialize runs first time initialization.
-func (*migrationManager) Initialize(ctx context.Context) error {
+func (mm *migrationManager) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
 	mmSeed, err := seed.GetMigrationManager(ctx, seed.GetSeedPath())
 	if err != nil && !seed.IsMissing(err) {
@@ -104,6 +105,12 @@ func (*migrationManager) Initialize(ctx context.Context) error {
 		// If no IP address is provided, default to listening on all addresses on port 8443.
 		if mmSeed.Preseed.SystemNetwork.Address == "" {
 			mmSeed.Preseed.SystemNetwork.Address = "[::]:8443"
+
+			// Get the management address.
+			mgmtAddr := mm.state.ManagementAddress()
+			if mgmtAddr != nil {
+				mmSeed.Preseed.SystemNetwork.WorkerEndpoint = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
+			}
 		}
 
 		contentJSON, err := json.Marshal(mmSeed.Preseed.SystemNetwork)
