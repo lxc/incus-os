@@ -209,7 +209,7 @@ test-update-sb-keys:
 .PHONY: update-gomod
 update-gomod:
 	cd incus-osd && go get -t -v -u ./...
-	cd incus-osd && go mod tidy --go=1.24.0
+	cd incus-osd && go mod tidy --go=1.24.7
 	cd incus-osd && go get toolchain@none
 
 .PHONY: doc-setup
