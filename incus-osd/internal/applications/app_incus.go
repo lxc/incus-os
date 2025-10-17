@@ -12,6 +12,7 @@ import (
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
@@ -103,7 +104,7 @@ func (a *incus) Initialize(ctx context.Context) error {
 
 	// Handle the defaults.
 	if incusSeed.ApplyDefaults {
-		err = a.applyDefaults(c)
+		err = a.applyDefaults(ctx, c)
 		if err != nil {
 			return err
 		}
@@ -231,7 +232,7 @@ func (*incus) RestoreBackup(archive io.Reader) error {
 	return extractTarArchive("/var/lib/incus/", archive)
 }
 
-func (*incus) applyDefaults(c incusclient.InstanceServer) error {
+func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()
 	if err != nil {
@@ -271,7 +272,7 @@ func (*incus) applyDefaults(c incusclient.InstanceServer) error {
 	}
 
 	// Create storage pools.
-	if len(storagePools) == 0 {
+	if len(storagePools) == 0 && !storage.DatasetExists(ctx, "local/incus") {
 		// Create the local pool.
 		err = c.CreateStoragePool(incusapi.StoragePoolsPost{
 			Name:   "local",
