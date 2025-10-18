@@ -744,6 +744,10 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 	// Do a final sync and then reboot the system.
 	unix.Sync()
 
+	// Wait 5s to better handle virtual machines with virtual media.
+	// This is to avoid them dealing with both a media removal and reboot concurently.
+	time.Sleep(5 * time.Second)
+
 	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
 }
 
