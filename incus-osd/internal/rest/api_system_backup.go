@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -48,12 +47,6 @@ func (s *Server) apiSystemRestore(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
-
-		return
-	}
-
-	if r.ContentLength <= 0 {
-		_ = response.BadRequest(errors.New("no tar archive provided")).Render(w)
 
 		return
 	}
