@@ -93,3 +93,41 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (s *Server) apiServicesEndpointReset(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	name := r.PathValue("name")
+
+	// Check if the service is valid.
+	if !slices.Contains(services.Supported(s.state), name) {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the service.
+	srv, err := services.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Handle the request.
+	switch r.Method {
+	case http.MethodPost:
+		err = srv.Reset(r.Context())
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+}

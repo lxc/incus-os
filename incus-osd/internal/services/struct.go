@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 )
 
 // Service represents a system service.
 type Service interface {
 	Get(ctx context.Context) (any, error)
 	ShouldStart() bool
+	Reset(ctx context.Context) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	Struct() any
@@ -31,6 +33,10 @@ func (*common) Start(_ context.Context) error {
 
 func (*common) Stop(_ context.Context) error {
 	return nil
+}
+
+func (*common) Reset(_ context.Context) error {
+	return errors.New("Reset isn't supported by this service")
 }
 
 func (*common) Struct() any {

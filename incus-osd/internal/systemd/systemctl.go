@@ -6,6 +6,19 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
 
+// KillUnit kills the systemd unit(s) using the specified signal.
+func KillUnit(ctx context.Context, signal string, units ...string) error {
+	args := []string{"kill", "--signal=" + signal}
+	args = append(args, units...)
+
+	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // StartUnit instructs systemd to start the provided unit(s).
 func StartUnit(ctx context.Context, units ...string) error {
 	args := []string{"start"}
