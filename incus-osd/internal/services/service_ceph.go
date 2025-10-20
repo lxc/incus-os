@@ -14,7 +14,7 @@ import (
 
 // Ceph represents the system Ceph service.
 type Ceph struct {
-	common //nolint:unused
+	common
 
 	state *state.State
 }
