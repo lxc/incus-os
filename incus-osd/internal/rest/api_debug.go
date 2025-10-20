@@ -2,13 +2,16 @@ package rest
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
 
 func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
@@ -95,4 +98,47 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.SyncResponse(true, jsonObj).Render(w)
+}
+
+func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Write the request body to a temporary file.
+	f, err := os.CreateTemp("", "incus-os-sb-update")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+	defer os.Remove(f.Name())
+
+	_, err = io.Copy(f, r.Body)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	err = f.Close()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Invoke the Secure Boot update process.
+	_, err = secureboot.UpdateSecureBootCerts(r.Context(), f.Name())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
 }
