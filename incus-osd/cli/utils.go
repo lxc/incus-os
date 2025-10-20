@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/api"
@@ -14,7 +16,7 @@ import (
 
 const dateLayoutSecond = "2006/01/02 15:04:05 MST"
 
-func doQuery(do func(remoteName string, req *http.Request) (*http.Response, error), remote string, method string, path string, data any, etag string) (*api.Response, string, error) {
+func doQuery(do func(remoteName string, req *http.Request) (*http.Response, error), remote string, method string, path string, inData any, outData io.Writer, etag string) (*api.Response, string, error) {
 	var (
 		req *http.Request
 		err error
@@ -23,8 +25,8 @@ func doQuery(do func(remoteName string, req *http.Request) (*http.Response, erro
 	ctx := context.Background()
 
 	// Get a new HTTP request setup
-	if data != nil {
-		switch data := data.(type) {
+	if inData != nil {
+		switch data := inData.(type) {
 		case io.Reader:
 			// Some data to be sent along with the request
 			req, err = http.NewRequestWithContext(ctx, method, path, io.NopCloser(data))
@@ -36,6 +38,19 @@ func doQuery(do func(remoteName string, req *http.Request) (*http.Response, erro
 
 			// Set the encoding accordingly
 			req.Header.Set("Content-Type", "application/octet-stream")
+		case string:
+			// Some data to be sent along with the request
+			// Use a reader since the request body needs to be seekable
+			req, err = http.NewRequestWithContext(ctx, method, path, strings.NewReader(data))
+			if err != nil {
+				return nil, "", err
+			}
+
+			req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader(data)), nil }
+
+			// Set the encoding accordingly
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Length", strconv.Itoa(len(data)))
 		default:
 			// Encode the provided data
 			buf := bytes.Buffer{}
@@ -76,6 +91,23 @@ func doQuery(do func(remoteName string, req *http.Request) (*http.Response, erro
 		return nil, "", err
 	}
 
+	// Handle direct download.
+	if outData != nil {
+		for {
+			_, err = io.CopyN(outData, resp.Body, 4*1024*1024)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return nil, "", err
+			}
+		}
+
+		return nil, "", nil
+	}
+
+	// Handle JSON responses.
 	defer func() { _ = resp.Body.Close() }()
 
 	// Decode the response

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -166,12 +165,6 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	if r.ContentLength <= 0 {
-		_ = response.BadRequest(errors.New("no tar archive provided")).Render(w)
 
 		return
 	}

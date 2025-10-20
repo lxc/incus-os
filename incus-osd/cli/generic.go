@@ -1,12 +1,15 @@
 package cli
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
 
+	"github.com/lxc/incus/v6/shared/ask"
 	cli "github.com/lxc/incus/v6/shared/cmd"
 	"github.com/lxc/incus/v6/shared/termios"
 	"github.com/spf13/cobra"
@@ -60,13 +63,13 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 
 	// If stdin isn't a terminal, read text from it
 	if !termios.IsTerminal(getStdinFd()) {
-		_, _, err := doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, os.Stdin, "")
+		_, _, err := doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, os.Stdin, nil, "")
 
 		return err
 	}
 
 	// Extract the current value
-	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, nil, "")
 	if err != nil {
 		return err
 	}
@@ -95,7 +98,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 
 		err = yaml.Unmarshal(content, &newdata)
 		if err == nil {
-			_, _, err = doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, makeJsonable(newdata), "")
+			_, _, err = doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, makeJsonable(newdata), nil, "")
 		}
 
 		// Respawn the editor
@@ -169,7 +172,7 @@ func (c *cmdGenericList) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the list.
-	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, nil, "")
 	if err != nil {
 		return err
 	}
@@ -193,6 +196,163 @@ func (c *cmdGenericList) run(cmd *cobra.Command, args []string) error {
 	return cli.RenderTable(os.Stdout, c.flagFormat, header, data, entries)
 }
 
+// Run.
+type cmdGenericRun struct {
+	action        string
+	name          string
+	description   string
+	endpoint      string
+	entity        string
+	hasData       bool
+	confirm       string
+	defaultData   string
+	hasFileInput  bool
+	hasFileOutput bool
+
+	flagData string
+
+	os *cmdAdminOS
+}
+
+func (c *cmdGenericRun) command() *cobra.Command {
+	cmd := &cobra.Command{}
+
+	usage := "[<remote>:]"
+	if c.entity != "" {
+		usage += "<" + c.entity + ">"
+	}
+
+	if c.hasFileOutput || c.hasFileInput {
+		usage += " <file>"
+	}
+
+	if c.name == "" {
+		c.name = c.action
+	}
+
+	cmd.Use = cli.Usage(c.name, usage)
+	cmd.Short = c.description
+	cmd.Long = cli.FormatSection("Description", c.description)
+
+	if c.os.args.SupportsTarget {
+		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
+	}
+
+	if c.hasData {
+		cmd.Flags().StringVarP(&c.flagData, "data", "d", "", "Command data``")
+	}
+
+	cmd.RunE = c.run
+
+	return cmd
+}
+
+func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
+	// Quick checks.
+	minArgs := 0
+	maxArgs := 1
+
+	if c.entity != "" {
+		minArgs++
+	}
+
+	if c.hasFileOutput || c.hasFileInput {
+		minArgs++
+		maxArgs++
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, minArgs, maxArgs)
+	if exit {
+		return err
+	}
+
+	// Parse remote.
+	remote := ""
+	resource := ""
+
+	if len(args) > 0 {
+		remote, resource = parseRemote(args[0])
+	}
+
+	if c.entity != "" && resource == "" {
+		return errors.New("missing " + c.entity + " name")
+	}
+
+	// Ask for confirmation if needed.
+	if c.confirm != "" {
+		asker := ask.NewAsker(bufio.NewReader(os.Stdin))
+
+		confirm, err := asker.AskBool(fmt.Sprintf("Are you sure you want to %s? (yes/no) [default=no]: ", c.confirm), "no")
+		if err != nil {
+			return err
+		}
+
+		if !confirm {
+			return nil
+		}
+	}
+
+	// Use cluster target if specified.
+	apiURL := "/os/1.0/" + c.endpoint
+
+	if c.entity != "" {
+		apiURL += "/" + resource
+	}
+
+	apiURL += "/:" + c.action
+
+	if c.os.flagTarget != "" {
+		apiURL = apiURL + "?target=" + c.os.flagTarget
+	}
+
+	// Set default data.
+	var inData any
+
+	if c.hasData {
+		if c.flagData == "" {
+			c.flagData = c.defaultData
+		}
+
+		if c.flagData != "" {
+			inData = c.flagData
+		}
+	}
+
+	// Set source file.
+	if c.hasFileInput {
+		f, err := os.Open(args[len(args)-1])
+		if err != nil {
+			return err
+		}
+
+		defer func() { _ = f.Close() }()
+
+		inData = f
+	}
+
+	// Set target file.
+	var outData io.Writer
+
+	if c.hasFileOutput {
+		f, err := os.Create(args[len(args)-1])
+		if err != nil {
+			return err
+		}
+
+		defer func() { _ = f.Close() }()
+
+		outData = f
+	}
+
+	// Run the command.
+	_, _, err = doQuery(c.os.args.DoHTTP, remote, "POST", apiURL, inData, outData, "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Show.
 type cmdGenericShow struct {
 	os *cmdAdminOS
@@ -203,10 +363,18 @@ type cmdGenericShow struct {
 }
 
 func (c *cmdGenericShow) command() *cobra.Command {
+	name := "Show details"
+	usage := "[<remote>:]"
+
+	if c.entity != "" {
+		name = "Show " + c.entity + " details"
+		usage += "<" + c.entityShort + ">"
+	}
+
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("show", "[<remote>:]<"+c.entityShort+">")
-	cmd.Short = "Show " + c.entity + " details"
-	cmd.Long = cli.FormatSection("Description", "Show "+c.entity+" details")
+	cmd.Use = cli.Usage("show", usage)
+	cmd.Short = name
+	cmd.Long = cli.FormatSection("Description", name)
 
 	if c.os.args.SupportsTarget {
 		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
@@ -219,24 +387,46 @@ func (c *cmdGenericShow) command() *cobra.Command {
 
 func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 1, 1)
+	minArgs := 0
+	maxArgs := 1
+
+	if c.entity != "" {
+		minArgs = 1
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, minArgs, maxArgs)
 	if exit {
 		return err
 	}
 
 	// Parse remote.
-	remote, resource := parseRemote(args[0])
-	if resource == "" {
+	remote := ""
+	resource := ""
+
+	if len(args) > 0 {
+		remote, resource = parseRemote(args[0])
+	}
+
+	if c.entity != "" && resource == "" {
 		return errors.New("missing " + c.entity + " name")
 	}
 
 	// Use cluster target if specified.
-	apiURL := "/os/1.0/" + c.endpoint + "/" + resource
+	apiURL := "/os/1.0"
+
+	if c.endpoint != "" {
+		apiURL += "/" + c.endpoint
+	}
+
+	if resource != "" {
+		apiURL += "/" + resource
+	}
+
 	if c.os.flagTarget != "" {
 		apiURL = apiURL + "?target=" + c.os.flagTarget
 	}
 
-	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, nil, "")
 	if err != nil {
 		return err
 	}

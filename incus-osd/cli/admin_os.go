@@ -25,20 +25,24 @@ func (c *cmdAdminOS) command() *cobra.Command {
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS systems")
 
 	// Applications
-	adminOSApplicationCmd := cmdAdminOSApplication{os: c}
-	cmd.AddCommand(adminOSApplicationCmd.command())
+	applicationCmd := cmdAdminOSApplication{os: c}
+	cmd.AddCommand(applicationCmd.command())
 
 	// Debug
-	adminOSDebugCmd := cmdAdminOSDebug{os: c}
-	cmd.AddCommand(adminOSDebugCmd.command())
+	debugCmd := cmdAdminOSDebug{os: c}
+	cmd.AddCommand(debugCmd.command())
 
 	// Services
-	adminOSServiceCmd := cmdAdminOSService{os: c}
-	cmd.AddCommand(adminOSServiceCmd.command())
+	serviceCmd := cmdAdminOSService{os: c}
+	cmd.AddCommand(serviceCmd.command())
+
+	// Show.
+	showCmd := cmdGenericShow{os: c}
+	cmd.AddCommand(showCmd.command())
 
 	// System
-	adminOSSystemCmd := cmdAdminOSSystem{os: c}
-	cmd.AddCommand(adminOSSystemCmd.command())
+	systemCmd := cmdAdminOSSystem{os: c}
+	cmd.AddCommand(systemCmd.command())
 
 	// Show a warning.
 	cmd.PersistentPreRun = func(_ *cobra.Command, _ []string) {
@@ -63,13 +67,51 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS applications"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS applications")
 
-	// List
-	adminOSApplicationListCmd := cmdGenericList{os: c.os, entity: "applications", endpoint: "applications"}
-	cmd.AddCommand(adminOSApplicationListCmd.command())
+	// Backup.
+	backupCmd := cmdGenericRun{
+		os:            c.os,
+		action:        "backup",
+		description:   "Backup the application",
+		endpoint:      "applications",
+		entity:        "application",
+		hasData:       true,
+		defaultData:   "{}",
+		hasFileOutput: true,
+	}
+	cmd.AddCommand(backupCmd.command())
 
-	// Show
-	adminOSApplicationShowCmd := cmdGenericShow{os: c.os, entity: "application", entityShort: "application", endpoint: "applications"}
-	cmd.AddCommand(adminOSApplicationShowCmd.command())
+	// Factory reset.
+	factoryResetCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "factory-reset",
+		description: "Factory reset the application",
+		endpoint:    "applications",
+		entity:      "application",
+		hasData:     true,
+		defaultData: "{}",
+		confirm:     "factory-reset the application",
+	}
+	cmd.AddCommand(factoryResetCmd.command())
+
+	// List.
+	listCmd := cmdGenericList{os: c.os, entity: "applications", endpoint: "applications"}
+	cmd.AddCommand(listCmd.command())
+
+	// Restore.
+	restoreCmd := cmdGenericRun{
+		os:           c.os,
+		action:       "restore",
+		description:  "Restore an application backup",
+		endpoint:     "applications",
+		entity:       "application",
+		hasFileInput: true,
+		confirm:      "restore the system state to provided backup",
+	}
+	cmd.AddCommand(restoreCmd.command())
+
+	// Show.
+	showCmd := cmdGenericShow{os: c.os, entity: "application", entityShort: "application", endpoint: "applications"}
+	cmd.AddCommand(showCmd.command())
 
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
 	cmd.Args = cobra.NoArgs
@@ -90,8 +132,8 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	cmd.Long = cli.FormatSection("Description", "Debug IncusOS systems")
 
 	// Log
-	adminOSDebugLogCmd := cmdAdminOSDebugLog{os: c.os}
-	cmd.AddCommand(adminOSDebugLogCmd.command())
+	logCmd := cmdAdminOSDebugLog{os: c.os}
+	cmd.AddCommand(logCmd.command())
 
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
 	cmd.Args = cobra.NoArgs
@@ -167,7 +209,7 @@ func (c *cmdAdminOSDebugLog) run(cmd *cobra.Command, args []string) error {
 	u.RawQuery = values.Encode()
 
 	// Get the log.
-	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", u.String(), nil, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", u.String(), nil, nil, "")
 	if err != nil {
 		return err
 	}
@@ -223,16 +265,27 @@ func (c *cmdAdminOSService) command() *cobra.Command {
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS services")
 
 	// Edit
-	adminOSServiceEditCmd := cmdGenericEdit{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
-	cmd.AddCommand(adminOSServiceEditCmd.command())
+	editCmd := cmdGenericEdit{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
+	cmd.AddCommand(editCmd.command())
 
 	// List
-	adminOSApplicationListCmd := cmdGenericList{os: c.os, entity: "services", endpoint: "services"}
-	cmd.AddCommand(adminOSApplicationListCmd.command())
+	listCmd := cmdGenericList{os: c.os, entity: "services", endpoint: "services"}
+	cmd.AddCommand(listCmd.command())
+
+	// Reset.
+	resetCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "reset",
+		description: "Reset the service",
+		endpoint:    "services",
+		entity:      "service",
+		confirm:     "reset the service",
+	}
+	cmd.AddCommand(resetCmd.command())
 
 	// Show
-	adminOSServiceShowCmd := cmdGenericShow{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
-	cmd.AddCommand(adminOSServiceShowCmd.command())
+	showCmd := cmdGenericShow{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
+	cmd.AddCommand(showCmd.command())
 
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
 	cmd.Args = cobra.NoArgs
@@ -252,17 +305,125 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS system details"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS system details")
 
-	// Edit
-	adminOSSystemEditCmd := cmdGenericEdit{os: c.os, entity: "system", entityShort: "section", endpoint: "system"}
-	cmd.AddCommand(adminOSSystemEditCmd.command())
+	// Backup.
+	backupCmd := cmdGenericRun{
+		os:            c.os,
+		action:        "backup",
+		description:   "Backup the system",
+		endpoint:      "system",
+		hasData:       true,
+		defaultData:   "{}",
+		hasFileOutput: true,
+	}
+	cmd.AddCommand(backupCmd.command())
 
-	// List
-	adminOSSystemListCmd := cmdGenericList{os: c.os, entity: "system configuration sections", endpoint: "system"}
-	cmd.AddCommand(adminOSSystemListCmd.command())
+	// Check updates.
+	checkUpdatesCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "check",
+		name:        "check-update",
+		description: "Check for updates",
+		endpoint:    "system/update",
+	}
+	cmd.AddCommand(checkUpdatesCmd.command())
 
-	// Show
-	adminOSSystemShowCmd := cmdGenericShow{os: c.os, entity: "system configuration", entityShort: "section", endpoint: "system"}
-	cmd.AddCommand(adminOSSystemShowCmd.command())
+	// Delete storage pool.
+	deleteStoragePoolCmd := cmdGenericRun{
+		os:          c.os,
+		name:        "delete-storage-pool",
+		description: "Delete the storage pool",
+		action:      "delete-pool",
+		endpoint:    "system/storage",
+		hasData:     true,
+		confirm:     "delete the storage pool",
+	}
+	cmd.AddCommand(deleteStoragePoolCmd.command())
+
+	// Edit.
+	editCmd := cmdGenericEdit{os: c.os, entity: "system", entityShort: "section", endpoint: "system"}
+	cmd.AddCommand(editCmd.command())
+
+	// Factory reset.
+	factoryResetCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "factory-reset",
+		description: "Factory reset the system",
+		endpoint:    "system",
+		hasData:     true,
+		defaultData: "{}",
+		confirm:     "factory-reset the system",
+	}
+	cmd.AddCommand(factoryResetCmd.command())
+
+	// Import encryption key.
+	importStorageEncryptionKeyCmd := cmdGenericRun{
+		os:          c.os,
+		name:        "import-storage-encryption-key",
+		description: "Import the storage encryption key",
+		action:      "import-encryption-key",
+		endpoint:    "system/storage",
+		hasData:     true,
+	}
+	cmd.AddCommand(importStorageEncryptionKeyCmd.command())
+
+	// List.
+	listCmd := cmdGenericList{os: c.os, entity: "system configuration sections", endpoint: "system"}
+	cmd.AddCommand(listCmd.command())
+
+	// Power off.
+	poweroffCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "poweroff",
+		description: "Power off the system",
+		endpoint:    "system",
+		confirm:     "power off the system",
+	}
+	cmd.AddCommand(poweroffCmd.command())
+
+	// Reboot.
+	rebootCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "reboot",
+		description: "Reboot the system",
+		endpoint:    "system",
+		confirm:     "reboot the system",
+	}
+	cmd.AddCommand(rebootCmd.command())
+
+	// Restore.
+	restoreCmd := cmdGenericRun{
+		os:           c.os,
+		action:       "restore",
+		description:  "Restore a system backup",
+		endpoint:     "system",
+		hasFileInput: true,
+		confirm:      "restore the system state to provided backup",
+	}
+	cmd.AddCommand(restoreCmd.command())
+
+	// Show.
+	showCmd := cmdGenericShow{os: c.os, entity: "system configuration", entityShort: "section", endpoint: "system"}
+	cmd.AddCommand(showCmd.command())
+
+	// TPM rebind.
+	tpmRebindCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "tpm-rebind",
+		description: "Rebind the TPM (after using recovery key)",
+		endpoint:    "system/security",
+	}
+	cmd.AddCommand(tpmRebindCmd.command())
+
+	// Wipe drive.
+	wipeDriveCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "wipe-drive",
+		description: "Wipe the drive",
+		endpoint:    "system/storage",
+		hasData:     true,
+		confirm:     "wipe the drive",
+	}
+	cmd.AddCommand(wipeDriveCmd.command())
 
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
 	cmd.Args = cobra.NoArgs
