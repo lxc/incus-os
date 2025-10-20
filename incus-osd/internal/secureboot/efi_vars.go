@@ -1,8 +1,11 @@
 package secureboot
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -10,8 +13,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/google/go-eventlog/tcg"
@@ -36,10 +41,164 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	return certs, err
 }
 
-// AppendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
+// UpdateSecureBootCerts takes a given tar archive and applies any SecureBoot KEK, db, or dbx
+// updates that are not yet present on the current system.
+func UpdateSecureBootCerts(ctx context.Context, tarGzArchive string) (bool, error) {
+	kekUpdates := make(map[string][]byte)
+	dbUpdates := make(map[string][]byte)
+	dbxUpdates := make(map[string][]byte)
+
+	// #nosec G304
+	archive, err := os.Open(tarGzArchive)
+	if err != nil {
+		return false, err
+	}
+	defer archive.Close()
+
+	// Iterate through each update in the tar archive.
+	gz, err := gzip.NewReader(archive)
+	if err != nil {
+		return false, err
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+	for {
+		header, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return false, err
+		}
+
+		// Only consider signed SecureBoot variable updates.
+		if !strings.HasSuffix(header.Name, ".auth") {
+			continue
+		}
+
+		if header.Size > 8192 {
+			return false, fmt.Errorf("file '%s' is greater than 8192 bytes, rejecting update", header.Name)
+		}
+
+		// Filenames are of the format db_71CA141362BFE014F290119630C536451D575064C6336BEB0DF871F67E5323A8.auth.
+		parts := strings.Split(header.Name, "_")
+		if len(parts) != 2 {
+			return false, fmt.Errorf("invalid filename '%s', rejecting update", header.Name)
+		}
+
+		fingerprint := strings.TrimSuffix(parts[1], ".auth")
+		buf := make([]byte, header.Size)
+
+		n, err := tr.Read(buf)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return false, err
+		} else if int64(n) != header.Size {
+			return false, fmt.Errorf("only read %d of %d bytes for file '%s'", n, header.Size, header.Name)
+		}
+
+		switch parts[0] {
+		case "KEK":
+			kekUpdates[fingerprint] = buf
+		case "db":
+			dbUpdates[fingerprint] = buf
+		case "dbx":
+			dbxUpdates[fingerprint] = buf
+		default:
+			return false, fmt.Errorf("unsupported SecureBoot variable update type '%s'", parts[0])
+		}
+	}
+
+	// Apply any updates in order: KEK, then db, then dbx.
+	needsReboot, err := applySecureBootUpdates(ctx, "KEK", kekUpdates)
+	if err != nil {
+		return needsReboot, err
+	} else if needsReboot {
+		return true, nil
+	}
+
+	needsReboot, err = applySecureBootUpdates(ctx, "db", dbUpdates)
+	if err != nil {
+		return needsReboot, err
+	} else if needsReboot {
+		return true, nil
+	}
+
+	needsReboot, err = applySecureBootUpdates(ctx, "dbx", dbxUpdates)
+	if err != nil {
+		return needsReboot, err
+	} else if needsReboot {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[string][]byte) (bool, error) {
+	existingCerts, err := GetCertificatesFromVar(varName)
+	if err != nil {
+		return false, fmt.Errorf("failed to read EFI variable '%s'", varName)
+	}
+
+	for certFingerprint, certContents := range newCerts {
+		certFingerprintBytes, err := hex.DecodeString(certFingerprint)
+		if err != nil {
+			return false, err
+		}
+
+		if slices.ContainsFunc(existingCerts, func(c x509.Certificate) bool {
+			cFingerprint := sha256.Sum256(c.Raw)
+
+			return bytes.Equal(certFingerprintBytes, cFingerprint[:])
+		}) {
+			// This update is already present on the system, so nothing to do.
+			continue
+		}
+
+		slog.InfoContext(ctx, "Appending certificate SHA256:"+certFingerprint+" to EFI variable "+varName)
+
+		// Create a temp file for efi-updatevar to read from.
+		f, err := os.CreateTemp("", "incus-os-sb-update")
+		if err != nil {
+			return false, err
+		}
+		defer os.Remove(f.Name()) //nolint:revive
+
+		_, err = f.Write(certContents)
+		if err != nil {
+			return false, err
+		}
+
+		err = f.Close()
+		if err != nil {
+			return false, err
+		}
+
+		err = appendEFIVarUpdate(ctx, f.Name(), varName)
+		if err != nil {
+			if varName != "KEK" {
+				return false, err
+			}
+
+			slog.WarnContext(ctx, "Failed to automatically apply KEK update, likely because a custom PK is configured")
+
+			continue
+		}
+
+		slog.InfoContext(ctx, "Successfully updated EFI variable")
+
+		// After applying a SecureBoot update, we need to restart before applying the next (if any).
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// appendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
 // to the current EFI value, and then updates the expected PCR7 value used to
 // decrypt the root file system and swap at boot.
-func AppendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName string) error {
+func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName string) error {
 	// Verify the file exists.
 	_, err := os.Stat(efiUpdateFile)
 	if err != nil {
