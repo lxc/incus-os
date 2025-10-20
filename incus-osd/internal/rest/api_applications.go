@@ -198,4 +198,6 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 
 		return
 	}
+
+	_ = response.EmptySyncResponse.Render(w)
 }

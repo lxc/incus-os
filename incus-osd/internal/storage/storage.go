@@ -188,6 +188,11 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 		return "", errors.New("empty string provided for device path")
 	}
 
+	// If the device is already mapped, no need to do anything else.
+	if strings.HasPrefix(device, "/dev/disk/by-id/") {
+		return device, nil
+	}
+
 	output, err := subprocess.RunCommandContext(ctx, "udevadm", "info", "-q", "symlink", device)
 	if err != nil {
 		return "", err
@@ -524,6 +529,12 @@ func isMemberDrive(list []string, drive string) bool {
 
 // IsRemoteDevice determines if a given device is remote (NVMEoTCP, FC, etc).
 func IsRemoteDevice(deviceName string) (bool, error) {
+	// We might be given a symlink, such as /dev/disk/by-id/....; if so, first resolve it to the actual device.
+	symlink, err := os.Readlink(deviceName)
+	if err == nil {
+		deviceName = filepath.Join(deviceName, symlink)
+	}
+
 	device := filepath.Base(deviceName)
 
 	// SATA or FC.
