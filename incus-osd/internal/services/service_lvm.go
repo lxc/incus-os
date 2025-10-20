@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -162,6 +163,25 @@ func (n *LVM) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Reset will forcefully reset the service.
+func (n *LVM) Reset(ctx context.Context) error {
+	if !n.state.Services.LVM.Config.Enabled {
+		return errors.New("LVM isn't currently enabled")
+	}
+
+	// Kill all relevant units.
+	err := systemd.KillUnit(ctx, "SIGKILL", "lvmlockd.service", "sanlock.service", "wdmd.service")
+	if err != nil {
+		return err
+	}
+
+	// Clear wdmd shared memory file if present.
+	_ = os.Remove("/dev/shm/wdmd")
+
+	// Start the services back up.
+	return n.Start(ctx)
 }
 
 // ShouldStart returns true if the service should be started on boot.
