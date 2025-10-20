@@ -56,6 +56,10 @@ are not backwards compatible.
 
     `PUT`: Update a service's configuration
 
+  * `/1.0/services/{name}/:reset`
+
+    `POST`: Forcefully reset the service
+
   * `/1.0/system`
 
     `GET`: Returns a list of system endpoints
