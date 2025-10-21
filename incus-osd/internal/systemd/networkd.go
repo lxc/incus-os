@@ -30,7 +30,7 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, refresh func(context.Context, *state.State) error) error {
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error) error {
 	// Very first, dynamically lookup any MAC address that is referred to by an interface name.
 	// This could be the case when reading in seed data, or if a user provides an interface
 	// name via an API update.
@@ -102,7 +102,11 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	// Wait for DNS to be functional.
 	err = waitForDNS(ctx, timeout)
 	if err != nil {
-		return err
+		if !allowPartialConfig {
+			return err
+		}
+
+		slog.WarnContext(ctx, "DNS check failed, system may have trouble resolving hostnames")
 	}
 
 	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
