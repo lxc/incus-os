@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/api"
@@ -196,35 +197,89 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 			return nil
 		}
 
-		// Skip any directories; any files within the directory will be added as the root is walked.
-		if info.IsDir() {
-			return nil
+		mode := int64(info.Mode().Perm())
+		modTime := info.ModTime()
+
+		stat, ok := info.Sys().(*syscall.Stat_t)
+		if !ok {
+			return errors.New("unable to stat file " + archiveFilename)
 		}
 
-		// Open the file.
-		// #nosec G304
-		file, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+		uid := int(stat.Uid)
+		gid := int(stat.Gid)
 
-		// Create the header for the file.
-		header := &tar.Header{
-			Name: archiveFilename,
-			Mode: 0o600,
-			Size: info.Size(),
-		}
+		switch {
+		case info.Mode().IsDir():
+			// Create the header for the directory.
+			header := &tar.Header{
+				Name:     archiveFilename,
+				Typeflag: tar.TypeDir,
+				Mode:     mode,
+				ModTime:  modTime,
+				Uid:      uid,
+				Gid:      gid,
+			}
 
-		// Write the header and file contents.
-		err = tw.WriteHeader(header)
-		if err != nil {
-			return err
-		}
+			// Write the header.
+			err := tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+		case info.Mode()&os.ModeSymlink == os.ModeSymlink:
+			// Get the symlink destination.
+			dest, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
 
-		_, err = io.Copy(tw, file)
-		if err != nil {
-			return err
+			// Create the header for the symlink.
+			header := &tar.Header{
+				Name:     archiveFilename,
+				Typeflag: tar.TypeSymlink,
+				Linkname: dest,
+				Mode:     mode,
+				ModTime:  modTime,
+				Uid:      uid,
+				Gid:      gid,
+			}
+
+			// Write the header.
+			err = tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+		case info.Mode().IsRegular():
+			// Open the file.
+			// #nosec G304
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			// Create the header for the file.
+			header := &tar.Header{
+				Name:     archiveFilename,
+				Typeflag: tar.TypeReg,
+				Mode:     mode,
+				ModTime:  modTime,
+				Uid:      uid,
+				Gid:      gid,
+				Size:     info.Size(),
+			}
+
+			// Write the header and file contents.
+			err = tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(tw, file)
+			if err != nil {
+				return err
+			}
+		default:
+			return errors.New("unsupported file: " + archiveFilename)
 		}
 
 		return nil

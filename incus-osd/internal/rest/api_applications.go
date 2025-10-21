@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"slices"
@@ -129,13 +130,27 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 
 	complete := r.FormValue("complete")
 
+	// Once we begin streaming the tar archive back to the user,
+	// we can no longer return a nice error message if something
+	// goes wrong. So, first generate the archive and dump everything
+	// to /dev/null. If any error is reported, we can return it to the
+	// user. We can't buffer in-memory or on-disk since we don't know
+	// how large the archive might be and we don't want to DOS ourselves.
+	err = app.GetBackup(io.Discard, complete == "true")
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/x-tar")
+
+	// From this point onwards we cannot return any nice errors
+	// to the user, since we will have already begun streaming
+	// the tar archive to them.
 
 	err = app.GetBackup(w, complete == "true")
 	if err != nil {
-		// This is unlikely to actually be a useful error, since we might
-		// be in the middle of streaming a tar archive back when the error
-		// is encountered.
 		_ = response.BadRequest(err).Render(w)
 
 		return
