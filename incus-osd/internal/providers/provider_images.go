@@ -60,8 +60,8 @@ func (*images) Type() string {
 }
 
 func (*images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
-	// Hardcode a single upadte for now until we have support for it in the provider.
-	updateURL := "https://images.linuxcontainers.org/os/IncusOS_SB_transition.tar.gz"
+	// Hardcode a single update for now until we have support for it in the provider.
+	updateURL := "https://images.linuxcontainers.org/os/keys/efi/IncusOS_2026_R1.tar.gz"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, updateURL, nil)
 	if err != nil {
@@ -80,7 +80,7 @@ func (*images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBoo
 
 	update := imagesSecureBootCertUpdate{
 		url:     updateURL,
-		version: "202506261900",
+		version: "202601010000",
 	}
 
 	return &update, nil
