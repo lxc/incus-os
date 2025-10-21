@@ -84,8 +84,8 @@ func main() {
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
 	// If the update frequency is set to less than five minutes, reset to a default of six hours.
-	if s.System.Update.Config.UpdateFrequency.Minutes() < 5 {
-		s.System.Update.Config.UpdateFrequency = 6 * time.Hour
+	if s.System.Update.Config.CheckFrequency.Minutes() < 5 {
+		s.System.Update.Config.CheckFrequency = 6 * time.Hour
 	}
 
 	// Clear the reboot flag on startup.
@@ -539,14 +539,14 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Sleep at the top of each loop, except if we're performing a startup or manual check.
 		if !isStartupCheck && !isUserRequested {
 			timeSinceCheck := time.Since(s.System.Update.State.LastCheck)
-			if timeSinceCheck < s.System.Update.Config.UpdateFrequency {
-				time.Sleep(s.System.Update.Config.UpdateFrequency - timeSinceCheck)
+			if timeSinceCheck < s.System.Update.Config.CheckFrequency {
+				time.Sleep(s.System.Update.Config.CheckFrequency - timeSinceCheck)
 			}
 		}
 
 		// Save when we last performed an update check.
 		s.System.Update.State.LastCheck = time.Now().UTC()
-		s.System.Update.State.UpdateStatus = "Running update check"
+		s.System.Update.State.Status = "Running update check"
 
 		// Check maintenance window, except if we're performing a startup or manual check.
 		if !isStartupCheck && !isUserRequested {
@@ -561,8 +561,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 
 			if !inMaintenanceWindow {
-				s.System.Update.State.UpdateStatus = "Skipping update check outside of maintenance window(s)"
-				slog.InfoContext(ctx, s.System.Update.State.UpdateStatus)
+				s.System.Update.State.Status = "Skipping update check outside of maintenance window(s)"
+				slog.InfoContext(ctx, s.System.Update.State.Status)
 
 				continue
 			}
@@ -572,8 +572,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if isUserRequested {
 			err := p.ClearCache(ctx)
 			if err != nil {
-				s.System.Update.State.UpdateStatus = "Failed to clear provider cache"
-				slog.ErrorContext(ctx, s.System.Update.State.UpdateStatus, "err", err.Error())
+				s.System.Update.State.Status = "Failed to clear provider cache"
+				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
 
 				break
 			}
@@ -582,8 +582,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
 		err := checkDoSecureBootCertUpdate(ctx, s, t, p, isStartupCheck)
 		if err != nil {
-			s.System.Update.State.UpdateStatus = "Failed to check for Secure Boot key updates"
-			showModalError(s.System.Update.State.UpdateStatus, err)
+			s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
+			showModalError(s.System.Update.State.Status, err)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -599,8 +599,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Assume first start of the daemon.
 			apps, err := seed.GetApplications(ctx, seed.GetSeedPath())
 			if err != nil && !seed.IsMissing(err) {
-				s.System.Update.State.UpdateStatus = "Failed to get application list"
-				slog.ErrorContext(ctx, s.System.Update.State.UpdateStatus, "err", err.Error())
+				s.System.Update.State.Status = "Failed to get application list"
+				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -632,8 +632,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		for _, appName := range toInstall {
 			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
 			if err != nil {
-				s.System.Update.State.UpdateStatus = "Failed to check for application updates"
-				showModalError(s.System.Update.State.UpdateStatus, err)
+				s.System.Update.State.Status = "Failed to check for application updates"
+				showModalError(s.System.Update.State.Status, err)
 
 				break
 			}
@@ -649,8 +649,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 			err = systemd.RefreshExtensions(ctx)
 			if err != nil {
-				s.System.Update.State.UpdateStatus = "Failed to refresh system extensions"
-				showModalError(s.System.Update.State.UpdateStatus, err)
+				s.System.Update.State.Status = "Failed to refresh system extensions"
+				showModalError(s.System.Update.State.Status, err)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -663,8 +663,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		// Check for the latest OS update.
 		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
 		if err != nil {
-			s.System.Update.State.UpdateStatus = "Failed to check for OS updates"
-			showModalError(s.System.Update.State.UpdateStatus, err)
+			s.System.Update.State.Status = "Failed to check for OS updates"
+			showModalError(s.System.Update.State.Status, err)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -678,8 +678,8 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			// Get the application.
 			app, err := applications.Load(ctx, s, appName)
 			if err != nil {
-				s.System.Update.State.UpdateStatus = "Failed to load application"
-				showModalError(s.System.Update.State.UpdateStatus, err)
+				s.System.Update.State.Status = "Failed to load application"
+				showModalError(s.System.Update.State.Status, err)
 
 				continue
 			}
@@ -691,16 +691,16 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 					err := app.Update(ctx, appVersion)
 					if err != nil {
-						s.System.Update.State.UpdateStatus = "Failed to reload application"
-						showModalError(s.System.Update.State.UpdateStatus, err)
+						s.System.Update.State.Status = "Failed to reload application"
+						showModalError(s.System.Update.State.Status, err)
 
 						continue
 					}
 				} else {
 					err := startInitializeApplication(ctx, s, appName)
 					if err != nil {
-						s.System.Update.State.UpdateStatus = "Failed to start application"
-						showModalError(s.System.Update.State.UpdateStatus, err)
+						s.System.Update.State.Status = "Failed to start application"
+						showModalError(s.System.Update.State.Status, err)
 
 						continue
 					}
@@ -713,12 +713,12 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				updateModal = t.AddModal(s.OS.Name + " Update")
 			}
 
-			s.System.Update.State.UpdateStatus = s.OS.Name + " has been updated to version " + newInstalledOSVersion
+			s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
 			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
 
 			s.System.Update.State.NeedsReboot = true
 		} else {
-			s.System.Update.State.UpdateStatus = "Update check completed"
+			s.System.Update.State.Status = "Update check completed"
 		}
 
 		if isStartupCheck || isUserRequested {
