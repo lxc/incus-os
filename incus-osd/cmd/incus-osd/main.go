@@ -201,6 +201,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Done with all initialization.
 	slog.InfoContext(ctx, "System is ready", "release", s.OS.RunningRelease)
+	s.OS.SuccessfulBoot = true
 
 	// Wait for the API to go down.
 	return <-chErr
