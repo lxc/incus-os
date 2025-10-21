@@ -338,7 +338,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Perform network configuration.
 	slog.InfoContext(ctx, "Bringing up the network")
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, providers.Refresh)
+	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Refresh)
 	if err != nil {
 		return err
 	}
