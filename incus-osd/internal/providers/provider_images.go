@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -228,12 +229,22 @@ func (p *images) checkRelease(ctx context.Context) error {
 		return err
 	}
 
-	if len(index.Updates) == 0 {
-		return errors.New("no update available")
+	// Get the latest update for the expected channel.
+	var latestUpdate *apiupdate.UpdateFull
+
+	for _, update := range index.Updates {
+		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+			continue
+		}
+
+		latestUpdate = &update
+
+		break
 	}
 
-	// Get the latest update.
-	latestUpdate := index.Updates[0]
+	if latestUpdate == nil {
+		return errors.New("no update available")
+	}
 
 	if len(latestUpdate.Files) == 0 {
 		return errors.New("no files in update")

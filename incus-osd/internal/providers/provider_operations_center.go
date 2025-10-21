@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -401,11 +402,25 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 		return errors.New("no update available")
 	}
 
-	// Get the latest release.
-	latestRelease := updates[0].Version
+	// Get the latest update for the expected channel.
+	var latestUpdate *update
+
+	for _, update := range updates {
+		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+			continue
+		}
+
+		latestUpdate = &update
+
+		break
+	}
+
+	if latestUpdate == nil {
+		return errors.New("no update available")
+	}
 
 	// Get the file list.
-	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+updates[0].UUID+"/files", nil)
+	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+latestUpdate.UUID+"/files", nil)
 	if err != nil {
 		return err
 	}
@@ -433,7 +448,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 
 	// Record the release.
 	p.releaseLastCheck = time.Now()
-	p.releaseVersion = latestRelease
+	p.releaseVersion = latestUpdate.Version
 	p.releaseAssets = latestReleaseFiles
 
 	return nil
