@@ -496,6 +496,12 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 		})
 	}
 
+	// Sort the list of returned drives by the device's ID. This ensures a
+	// consistent ordering, which is useful for some tests.
+	slices.SortFunc(ret.State.Drives, func(a, b api.SystemStorageDrive) int {
+		return strings.Compare(a.ID, b.ID)
+	})
+
 	return ret, nil
 }
 
