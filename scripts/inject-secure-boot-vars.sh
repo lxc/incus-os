@@ -20,18 +20,23 @@ if [ "$(id -u)" -ne 0 ]; then
      exit 1
 fi
 
-mkdir -p certs/mnt/
-LOOP=$(losetup --show -f -P "$1")
-mount "${LOOP}p1" certs/mnt/
+# Originally we had been loop-mounting the raw image and just copying in the
+# needed secure boot certificates. However, occasionally the mount failed in
+# CI runs. So, switch to using mtools to directly manipulate the ESP vfat
+# partition in the image so we don't need to mount anything.
+
+# This is the offset to the beginning of the ESP partition.
+OFFSET=1048576
+
+# Remove any existing certificates we will be overwriting.
+mdeltree -i "$1"@@$OFFSET ::loader/keys/auto/ || true
+mdeltree -i "$1"@@$OFFSET ::keys/ || true
+mdel -i "$1"@@$OFFSET ::mkosi.der || true
 
 # Push the new enrollment keys.
-rm certs/mnt/loader/keys/auto/*
-cp certs/efi/*.auth certs/mnt/loader/keys/auto/
+mmd -i "$1"@@$OFFSET ::loader/keys/auto
+mcopy -i "$1"@@$OFFSET certs/efi/*.auth ::loader/keys/auto/
 
 # Push the keys as DER.
-rm certs/mnt/mkosi.der || true
-mkdir -p certs/mnt/keys/
-cp certs/efi/*.der certs/mnt/keys/ || true
-
-umount certs/mnt/
-losetup -d "${LOOP}"
+mmd -i "$1"@@$OFFSET ::keys
+mcopy -i "$1"@@$OFFSET certs/efi/*.der ::keys/ || true

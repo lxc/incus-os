@@ -45,6 +45,7 @@ jobs:
             devscripts \
             libnbd-dev \
             make \
+            mtools \
             parted \
             pkgconf \
             pipx \
