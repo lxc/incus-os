@@ -102,29 +102,31 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	storageStruct := api.SystemStorage{}
+	type deleteStruct struct {
+		Name string `json:"name"`
+	}
 
-	err = json.Unmarshal(b, &storageStruct)
+	config := deleteStruct{}
+
+	err = json.Unmarshal(b, &config)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	if len(storageStruct.Config.Pools) == 0 {
-		_ = response.BadRequest(errors.New("no pool configuration provided")).Render(w)
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
 
 		return
 	}
 
-	// Delete a pool.
-	for _, pool := range storageStruct.Config.Pools {
-		err = zfs.DestroyZpool(r.Context(), pool.Name)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+	// Delete the pool.
+	err = zfs.DestroyZpool(r.Context(), config.Name)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
 
-			return
-		}
+		return
 	}
 
 	_ = response.EmptySyncResponse.Render(w)
