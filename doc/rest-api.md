@@ -42,6 +42,10 @@ are not backwards compatible.
     `GET`: Returns systemd journal entries, optionally filtering by unit, boot number, and
     number of return entries
 
+  * `/1.0/debug/secureboot/:update`
+
+    `POST`: Apply a gzipped tar archive of Secure Boot variable updates
+
   * `/1.0/debug/tui/:write-message`
   
     `POST`: Send a message that should be logged by the system

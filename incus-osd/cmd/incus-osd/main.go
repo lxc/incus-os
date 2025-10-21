@@ -2,11 +2,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -923,100 +919,26 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 			}
 		}
 
-		// Extract the archive and apply any needed updates.
-		tmpDir, err := os.MkdirTemp("/tmp", "incus-os")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(tmpDir)
+		modal := t.AddModal(s.OS.Name + " EFI Variable Update")
 
-		_, err = subprocess.RunCommandContext(ctx, "tar", "-C", tmpDir, "-xf", archiveFilepath)
-		if err != nil {
-			return err
-		}
+		slog.InfoContext(ctx, "Applying Secure Boot certificate update version "+update.Version()+".")
+		modal.Update("Applying Secure Boot certificate update version " + update.Version() + ".")
 
-		err = applyIndividualSecureBootUpdates(ctx, s, t, tmpDir, isStartupCheck)
+		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, archiveFilepath)
 		if err != nil {
+			modal.Done()
+
 			return err
 		}
 
 		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
 		// for the user to restart the system before going any further.
-		if s.System.Update.State.NeedsReboot {
-			return nil
-		}
-	}
-
-	slog.DebugContext(ctx, "System Secure Boot keys are up to date")
-
-	// Update state and remove the cached download.
-	s.SecureBoot.Version = update.Version()
-	s.SecureBoot.FullyApplied = true
-	_ = os.Remove(archiveFilepath)
-
-	return nil
-}
-
-func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tui.TUI, updatesDir string, isStartupCheck bool) error {
-	availableCerts, err := os.ReadDir(updatesDir)
-	if err != nil {
-		return err
-	}
-
-	// Apply any updates in order: KEK, then db, then dbx.
-	for _, certType := range []string{"KEK", "db", "dbx"} {
-		existingCerts, err := secureboot.GetCertificatesFromVar(certType)
-		if err != nil {
-			return fmt.Errorf("failed to read EFI variable '%s'", certType)
-		}
-
-		for _, certFile := range availableCerts {
-			if !strings.HasPrefix(certFile.Name(), certType+"_") {
-				continue
-			}
-
-			updateFingerprint := strings.TrimPrefix(certFile.Name(), certType+"_")
-			updateFingerprint = strings.TrimSuffix(updateFingerprint, ".auth")
-
-			updateFingerprintBytes, err := hex.DecodeString(updateFingerprint)
-			if err != nil {
-				return err
-			}
-
-			if slices.ContainsFunc(existingCerts, func(c x509.Certificate) bool {
-				cFingerprint := sha256.Sum256(c.Raw)
-
-				return bytes.Equal(updateFingerprintBytes, cFingerprint[:])
-			}) {
-				// This update is already present on the system, so nothing to do.
-				continue
-			}
-
-			modal := t.AddModal(s.OS.Name + " EFI Variable Update")
-
-			// Apply the key update.
-			slog.InfoContext(ctx, "Appending certificate SHA256:"+updateFingerprint+" to EFI variable "+certType)
-			modal.Update("Appending certificate SHA256:" + updateFingerprint + " to EFI variable " + certType)
-
-			err = secureboot.AppendEFIVarUpdate(ctx, filepath.Join(updatesDir, certFile.Name()), certType)
-			if err != nil {
-				if certType != "KEK" {
-					slog.ErrorContext(ctx, err.Error())
-					modal.Update("[red]ERROR:[white] " + err.Error())
-
-					return err
-				}
-
-				slog.WarnContext(ctx, "Failed to automatically apply KEK update, likely because a custom PK is configured")
-
-				continue
-			}
-
+		if needsReboot {
 			s.System.Update.State.NeedsReboot = true
 
 			if isStartupCheck {
-				slog.InfoContext(ctx, "Successfully updated EFI variable. Automatically rebooting system in five seconds.")
-				modal.Update("Successfully updated EFI variable. Automatically rebooting system in five seconds.")
+				slog.InfoContext(ctx, "Automatically rebooting system in five seconds.")
+				modal.Update("Automatically rebooting system in five seconds.")
 
 				time.Sleep(5 * time.Second)
 
@@ -1024,13 +946,22 @@ func applyIndividualSecureBootUpdates(ctx context.Context, s *state.State, t *tu
 
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
-				slog.InfoContext(ctx, "Successfully updated EFI variable. A reboot is required to finalize the update.")
-				modal.Update("Successfully updated EFI variable. A reboot is required to finalize the update.")
+				slog.InfoContext(ctx, "A reboot is required to finalize the update.")
+				modal.Update("A reboot is required to finalize the update.")
 			}
 
 			return nil
 		}
+
+		modal.Done()
 	}
+
+	slog.DebugContext(ctx, "System Secure Boot keys are up to date")
+
+	// Update state and remove zip file once all SecureBoot keys are updated.
+	s.SecureBoot.Version = update.Version()
+	s.SecureBoot.FullyApplied = true
+	_ = os.Remove(archiveFilepath)
 
 	return nil
 }
