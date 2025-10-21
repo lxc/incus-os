@@ -100,6 +100,7 @@ jobs:
             efitools \
             libnbd-dev \
             make \
+            mtools \
             pkgconf \
             pipx \
             qemu-utils \
