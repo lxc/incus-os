@@ -83,11 +83,6 @@ func main() {
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
-	// If the update frequency is set to less than five minutes, reset to a default of six hours.
-	if s.System.Update.Config.CheckFrequency.Minutes() < 5 {
-		s.System.Update.Config.CheckFrequency = 6 * time.Hour
-	}
-
 	// Clear the reboot flag on startup.
 	s.System.Update.State.NeedsReboot = false
 
