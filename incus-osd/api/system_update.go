@@ -13,16 +13,17 @@ type SystemUpdate struct {
 
 // SystemUpdateConfig defines a struct to hold configuration details for the update checks.
 type SystemUpdateConfig struct {
-	UpdateFrequency    time.Duration                   `json:"update_frequency"              yaml:"update_frequency"`
 	AutoReboot         bool                            `json:"auto_reboot"                   yaml:"auto_reboot"`
+	Channel            string                          `json:"channel"                       yaml:"channel"`
+	CheckFrequency     time.Duration                   `json:"check_frequency"               yaml:"check_frequency"`
 	MaintenanceWindows []SystemUpdateMaintenanceWindow `json:"maintenance_windows,omitempty" yaml:"maintenance_windows,omitempty"`
 }
 
 // SystemUpdateState holds information about the current update state.
 type SystemUpdateState struct {
-	LastCheck    time.Time `json:"last_check"    yaml:"last_check"`
-	UpdateStatus string    `json:"update_status" yaml:"update_status"`
-	NeedsReboot  bool      `json:"needs_reboot"  yaml:"needs_reboot"`
+	LastCheck   time.Time `json:"last_check"   yaml:"last_check"`
+	Status      string    `json:"status"       yaml:"status"`
+	NeedsReboot bool      `json:"needs_reboot" yaml:"needs_reboot"`
 }
 
 // SystemUpdateMaintenanceWindow defines a maintenance window for when it is acceptable to check for and apply updates.

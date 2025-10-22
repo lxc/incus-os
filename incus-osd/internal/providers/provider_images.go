@@ -2,7 +2,6 @@ package providers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -28,14 +28,13 @@ type images struct {
 	serverURL string
 	updateCA  string
 
-	releaseLastCheck time.Time
-	releaseVersion   string
-	releaseAssets    []string
+	lastCheck    time.Time
+	latestUpdate *apiupdate.UpdateFull
 }
 
 func (p *images) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.releaseLastCheck = time.Time{}
+	p.lastCheck = time.Time{}
 
 	return nil
 }
@@ -86,36 +85,32 @@ func (*images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBoo
 	return &update, nil
 }
 
-func (p *images) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
+func (p *images) GetOSUpdate(ctx context.Context, _ string) (OSUpdate, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify the list of returned assets for the OS update contains at least
-	// one file for the release version, otherwise we shouldn't report an OS update.
-	foundUpdateFile := false
+	// Check that an OS update is included.
+	found := false
 
-	for _, asset := range p.releaseAssets {
-		fileName := filepath.Base(asset)
-
-		if strings.HasPrefix(fileName, osName+"_") && strings.Contains(fileName, p.releaseVersion) {
-			foundUpdateFile = true
+	for _, file := range latestUpdate.Files {
+		if file.Component == apiupdate.UpdateFileComponentOS {
+			found = true
 
 			break
 		}
 	}
 
-	if !foundUpdateFile {
+	if !found {
 		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the OS update struct.
 	update := imagesOSUpdate{
-		provider: p,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
+		provider:     p,
+		latestUpdate: latestUpdate,
 	}
 
 	return &update, nil
@@ -123,35 +118,31 @@ func (p *images) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, erro
 
 func (p *images) GetApplication(ctx context.Context, name string) (Application, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify the list of returned assets contains a "<name>.raw.gz" file, otherwise
-	// we shouldn't return an application update.
-	foundUpdateFile := false
+	// Check that an application update is included.
+	found := false
 
-	for _, asset := range p.releaseAssets {
-		fileName := filepath.Base(asset)
-
-		if fileName == name+".raw.gz" {
-			foundUpdateFile = true
+	for _, file := range latestUpdate.Files {
+		if string(file.Component) == name {
+			found = true
 
 			break
 		}
 	}
 
-	if !foundUpdateFile {
+	if !found {
 		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the application struct.
 	app := imagesApplication{
-		provider: p,
-		name:     name,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
+		provider:     p,
+		name:         name,
+		latestUpdate: latestUpdate,
 	}
 
 	return &app, nil
@@ -171,43 +162,43 @@ func (p *images) load(_ context.Context) error {
 	return nil
 }
 
-func (p *images) checkRelease(ctx context.Context) error {
+func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error) {
+	// Only talk to image server once an hour.
+	if p.latestUpdate != nil && !p.lastCheck.IsZero() && p.lastCheck.Add(time.Hour).After(time.Now()) {
+		return p.latestUpdate, nil
+	}
+
 	// Get local architecture.
 	archName, err := osarch.ArchitectureGetLocal()
 	if err != nil {
-		return err
-	}
-
-	// Only talk to image server once an hour.
-	if !p.releaseLastCheck.IsZero() && p.releaseLastCheck.Add(time.Hour).After(time.Now()) {
-		return nil
+		return nil, err
 	}
 
 	// Get the latest signed index.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.serverURL+"/index.sjson", nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := p.tryRequest(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("server failed to return expected file")
+		return nil, errors.New("server failed to return expected file")
 	}
 
 	// Write the CA certificate.
 	rootCA, err := os.CreateTemp("", "")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = fmt.Fprintf(rootCA, "%s", p.updateCA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer func() { _ = os.Remove(rootCA.Name()) }()
@@ -217,7 +208,7 @@ func (p *images) checkRelease(ctx context.Context) error {
 
 	err = subprocess.RunCommandWithFds(ctx, resp.Body, verified, "openssl", "smime", "-verify", "-text", "-CAfile", rootCA.Name())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Parse the update list.
@@ -225,35 +216,55 @@ func (p *images) checkRelease(ctx context.Context) error {
 
 	err = json.NewDecoder(bytes.NewReader(verified.Bytes())).Decode(index)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if len(index.Updates) == 0 {
-		return errors.New("no update available")
-	}
+	// Get the latest update for the expected channel.
+	var latestUpdate *apiupdate.UpdateFull
 
-	// Get the latest update.
-	latestUpdate := index.Updates[0]
-
-	if len(latestUpdate.Files) == 0 {
-		return errors.New("no files in update")
-	}
-
-	latestUpdateFiles := make([]string, 0, len(latestUpdate.Files))
-	for _, file := range latestUpdate.Files {
-		if string(file.Architecture) != archName {
+	for _, update := range index.Updates {
+		// Skip any update targeting the wrong channel(s).
+		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
 			continue
 		}
 
-		latestUpdateFiles = append(latestUpdateFiles, p.serverURL+"/"+latestUpdate.URL+"/"+file.Filename)
+		// Skip any update with no files.
+		if len(update.Files) == 0 {
+			continue
+		}
+
+		// Strip files for other architectures.
+		newFiles := []apiupdate.UpdateFile{}
+
+		for _, file := range update.Files {
+			if file.Architecture != "" && string(file.Architecture) != archName {
+				continue
+			}
+
+			newFiles = append(newFiles, file)
+		}
+
+		update.Files = newFiles
+
+		// Skip images with no suitable files.
+		if len(update.Files) == 0 {
+			continue
+		}
+
+		latestUpdate = &update
+
+		break
+	}
+
+	if latestUpdate == nil {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Record the release.
-	p.releaseLastCheck = time.Now()
-	p.releaseVersion = latestUpdate.Version
-	p.releaseAssets = latestUpdateFiles
+	p.lastCheck = time.Now()
+	p.latestUpdate = latestUpdate
 
-	return nil
+	return latestUpdate, nil
 }
 
 func (*images) tryRequest(req *http.Request) (*http.Response, error) {
@@ -273,72 +284,12 @@ func (*images) tryRequest(req *http.Request) (*http.Response, error) {
 	return nil, err
 }
 
-func (*images) downloadAsset(ctx context.Context, assetURL string, target string, progressFunc func(float64)) error {
-	// Prepare the request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
-	if err != nil {
-		return err
-	}
-
-	// Get a reader for the release asset.
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	// Get the release asset size.
-	srcSize := float64(resp.ContentLength)
-
-	// Setup a gzip reader to decompress during streaming.
-	body, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	defer body.Close()
-
-	// Create the target path.
-	// #nosec G304
-	fd, err := os.Create(target)
-	if err != nil {
-		return err
-	}
-
-	defer fd.Close()
-
-	// Read from the decompressor in chunks to avoid excessive memory consumption.
-	count := int64(0)
-
-	for {
-		_, err = io.CopyN(fd, body, 4*1024*1024)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return err
-		}
-
-		// Update progress every 24MiB.
-		if progressFunc != nil && count%6 == 0 {
-			progressFunc(float64(count*4*1024*1024) / srcSize)
-		}
-
-		count++
-	}
-
-	return nil
-}
-
 // An application from the images provider.
 type imagesApplication struct {
 	provider *images
 
-	assets  []string
-	name    string
-	version string
+	name         string
+	latestUpdate *apiupdate.UpdateFull
 }
 
 func (a *imagesApplication) Name() string {
@@ -346,11 +297,11 @@ func (a *imagesApplication) Name() string {
 }
 
 func (a *imagesApplication) Version() string {
-	return a.version
+	return a.latestUpdate.Version
 }
 
 func (a *imagesApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.version, otherVersion)
+	return datetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
 func (a *imagesApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
@@ -360,18 +311,17 @@ func (a *imagesApplication) Download(ctx context.Context, target string, progres
 		return err
 	}
 
-	for _, asset := range a.assets {
-		fileName := filepath.Base(asset)
-
-		appName := strings.TrimSuffix(fileName, ".raw.gz")
-
+	for _, file := range a.latestUpdate.Files {
 		// Only select the desired applications.
-		if appName != a.name {
+		if string(file.Component) != a.name {
 			continue
 		}
 
+		fileURL := a.provider.serverURL + "/" + a.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
+
 		// Download the application.
-		err = a.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -384,52 +334,41 @@ func (a *imagesApplication) Download(ctx context.Context, target string, progres
 type imagesOSUpdate struct {
 	provider *images
 
-	assets  []string
-	version string
+	latestUpdate *apiupdate.UpdateFull
 }
 
 func (o *imagesOSUpdate) Version() string {
-	return o.version
+	return o.latestUpdate.Version
 }
 
 func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.version, otherVersion)
+	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(targetPath)
+	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(targetPath, 0o700)
+	err = os.MkdirAll(target, 0o700)
 	if err != nil {
 		return err
 	}
 
-	for _, asset := range o.assets {
-		fileName := filepath.Base(asset)
-
-		// Only select OS files.
-		if !strings.HasPrefix(fileName, osName+"_") {
+	for _, file := range o.latestUpdate.Files {
+		// Only select OS updates.
+		if file.Component != apiupdate.UpdateFileComponentOS || !strings.HasPrefix(string(file.Type), "update-") {
 			continue
 		}
 
-		// Parse the file names.
-		fields := strings.SplitN(fileName, ".", 2)
-		if len(fields) != 2 {
-			continue
-		}
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
-		// Skip the full image.
-		if fields[1] == "img.gz" || fields[1] == "iso.gz" {
-			continue
-		}
-
-		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		// Download the application.
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -438,39 +377,29 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, osName string, targ
 	return nil
 }
 
-func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, osName string, targetPath string, progressFunc func(float64)) (string, error) {
+func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ string, target string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
-	err := os.MkdirAll(targetPath, 0o700)
+	err := os.MkdirAll(target, 0o700)
 	if err != nil {
 		return "", err
 	}
 
-	for _, asset := range o.assets {
-		fileName := filepath.Base(asset)
-
-		// Only select OS files.
-		if !strings.HasPrefix(fileName, osName+"_") {
+	for _, file := range o.latestUpdate.Files {
+		// Only select OS updates.
+		if file.Component != apiupdate.UpdateFileComponentOS || string(file.Type) != "image-"+imageType {
 			continue
 		}
 
-		// Parse the file names.
-		fields := strings.SplitN(fileName, ".", 2)
-		if len(fields) != 2 {
-			continue
-		}
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
-		// Continue if not the full image we're looking for.
-		if fields[1] != imageType+".gz" {
-			continue
-		}
+		// Download the application.
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 
-		// Download the image.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
-
-		return strings.TrimSuffix(fileName, ".gz"), err
+		return targetName, err
 	}
 
-	return "", fmt.Errorf("failed to download image type '%s' for %s release %s", imageType, osName, o.version)
+	return "", fmt.Errorf("failed to download image type '%s' for release %s", imageType, o.latestUpdate.Version)
 }
 
 // Secure Boot key updates from the GitHub provider.

@@ -2,6 +2,7 @@ package state
 
 import (
 	"os"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -27,6 +28,12 @@ func LoadOrCreate(path string) (*State, error) {
 	}
 
 	if os.IsNotExist(err) {
+		// Initialize with default values.
+		err = s.initialize()
+		if err != nil {
+			return nil, err
+		}
+
 		// State file doesn't exist, create it and return it.
 		err = s.Save()
 		if err != nil {
@@ -50,6 +57,17 @@ func (s *State) Save() error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// initialize sets default values for a new state file.
+func (s *State) initialize() error {
+	// Use the default update channel.
+	s.System.Update.Config.Channel = "stable"
+
+	// Set the initial update frequency to 6 hours.
+	s.System.Update.Config.CheckFrequency = 6 * time.Hour
 
 	return nil
 }
