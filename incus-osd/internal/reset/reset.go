@@ -10,11 +10,11 @@ import (
 	"os"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // PerformOSFactoryReset performs an OS-level factory reset.
@@ -140,8 +140,10 @@ func PerformOSFactoryReset(ctx context.Context, resetSeed *api.SystemReset) erro
 		}
 	}
 
-	// Finally, immediately reboot the system.
-	return systemd.SystemReboot(ctx)
+	// Finally, sync disks and immediately reboot the system.
+	unix.Sync()
+
+	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
 }
 
 func getExistingSeeds(seedPartition string) (map[string][]byte, error) {
