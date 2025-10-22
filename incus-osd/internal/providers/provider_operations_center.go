@@ -24,9 +24,30 @@ import (
 	"github.com/lxc/incus/v6/shared/osarch"
 	incustls "github.com/lxc/incus/v6/shared/tls"
 
+	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
+
+// API structs.
+type operationsCenterUpdate struct {
+	Channels []string `json:"channels"`
+	UUID     string   `json:"uuid"`
+	Version  string   `json:"version"`
+
+	Files []operationsCenterUpdateFile
+}
+
+type operationsCenterUpdateFile struct {
+	Filename     string `json:"filename"`
+	Size         int64  `json:"size"`
+	Component    string `json:"component"`
+	Type         string `json:"type"`
+	Architecture string `json:"architecture"`
+	Sha256       string `json:"sha256"`
+
+	url string
+}
 
 // The Operations Center provider.
 type operationsCenter struct {
@@ -38,15 +59,14 @@ type operationsCenter struct {
 	serverURL         string
 	serverToken       string
 
-	releaseLastCheck time.Time
-	releaseVersion   string
-	releaseAssets    []string
-	releaseMu        sync.Mutex
+	lastCheck    time.Time
+	latestUpdate *operationsCenterUpdate
+	releaseMu    sync.Mutex
 }
 
 func (p *operationsCenter) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.releaseLastCheck = time.Time{}
+	p.lastCheck = time.Time{}
 
 	return nil
 }
@@ -158,36 +178,32 @@ func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context, _ string) (S
 	return nil, ErrNoUpdateAvailable
 }
 
-func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
+func (p *operationsCenter) GetOSUpdate(ctx context.Context, _ string) (OSUpdate, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify the list of returned assets for the OS update contains at least
-	// one file for the release version, otherwise we shouldn't report an OS update.
-	foundUpdateFile := false
+	// Check that an OS update is included.
+	found := false
 
-	for _, asset := range p.releaseAssets {
-		fileName := filepath.Base(asset)
-
-		if strings.HasPrefix(fileName, osName+"_") && strings.Contains(fileName, p.releaseVersion) {
-			foundUpdateFile = true
+	for _, file := range latestUpdate.Files {
+		if file.Component == string(apiupdate.UpdateFileComponentOS) {
+			found = true
 
 			break
 		}
 	}
 
-	if !foundUpdateFile {
+	if !found {
 		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the OS update struct.
 	update := operationsCenterOSUpdate{
-		provider: p,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
+		provider:     p,
+		latestUpdate: latestUpdate,
 	}
 
 	return &update, nil
@@ -195,35 +211,31 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context, osName string) (OSUp
 
 func (p *operationsCenter) GetApplication(ctx context.Context, name string) (Application, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify the list of returned assets contains a "<name>.raw.gz" file, otherwise
-	// we shouldn't return an application update.
-	foundUpdateFile := false
+	// Check that an application update is included.
+	found := false
 
-	for _, asset := range p.releaseAssets {
-		fileName := filepath.Base(asset)
-
-		if fileName == name+".raw.gz" {
-			foundUpdateFile = true
+	for _, file := range latestUpdate.Files {
+		if file.Component == name {
+			found = true
 
 			break
 		}
 	}
 
-	if !foundUpdateFile {
+	if !found {
 		return nil, ErrNoUpdateAvailable
 	}
 
 	// Prepare the application struct.
 	app := operationsCenterApplication{
-		provider: p,
-		name:     name,
-		assets:   p.releaseAssets,
-		version:  p.releaseVersion,
+		provider:     p,
+		name:         name,
+		latestUpdate: p.latestUpdate,
 	}
 
 	return &app, nil
@@ -352,7 +364,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 	return apiResp, nil
 }
 
-func (p *operationsCenter) checkRelease(ctx context.Context) error {
+func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterUpdate, error) {
 	// Acquire lock.
 	p.releaseMu.Lock()
 	defer p.releaseMu.Unlock()
@@ -360,49 +372,35 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	// Get local architecture.
 	archName, err := osarch.ArchitectureGetLocal()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Only talk to Operations Center once an hour.
-	if !p.releaseLastCheck.IsZero() && p.releaseLastCheck.Add(time.Hour).After(time.Now()) {
-		return nil
+	if p.latestUpdate != nil && !p.lastCheck.IsZero() && p.lastCheck.Add(time.Hour).After(time.Now()) {
+		return p.latestUpdate, nil
 	}
 
 	// API structs.
-	type update struct {
-		Channels []string `json:"channels"`
-		UUID     string   `json:"uuid"`
-		Version  string   `json:"version"`
-	}
-
-	type updateFile struct {
-		Filename     string `json:"filename"`
-		Size         int64  `json:"size"`
-		Component    string `json:"component"`
-		Type         string `json:"type"`
-		Architecture string `json:"architecture"`
-	}
-
 	// Get the latest release.
 	apiResp, err := p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates?recursion=1", nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Parse the update list.
-	updates := []update{}
+	updates := []operationsCenterUpdate{}
 
 	err = apiResp.MetadataAsStruct(&updates)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(updates) == 0 {
-		return errors.New("no update available")
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Get the latest update for the expected channel.
-	var latestUpdate *update
+	var latestUpdate *operationsCenterUpdate
 
 	for _, update := range updates {
 		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
@@ -415,51 +413,53 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	}
 
 	if latestUpdate == nil {
-		return errors.New("no update available")
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Get the file list.
 	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+latestUpdate.UUID+"/files", nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Parse the file list.
-	files := []updateFile{}
+	files := []operationsCenterUpdateFile{}
 
 	err = apiResp.MetadataAsStruct(&files)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if len(files) == 0 {
-		return errors.New("no files in update")
-	}
+	latestUpdateFiles := []operationsCenterUpdateFile{}
 
-	latestReleaseFiles := make([]string, 0, len(files))
 	for _, file := range files {
-		if file.Architecture != archName {
+		if file.Architecture != "" && file.Architecture != archName {
 			continue
 		}
 
-		latestReleaseFiles = append(latestReleaseFiles, p.serverURL+"/1.0/provisioning/updates/"+updates[0].UUID+"/files/"+file.Filename)
+		file.url = p.serverURL + "/1.0/provisioning/updates/" + updates[0].UUID + "/files/" + file.Filename
+		latestUpdateFiles = append(latestUpdateFiles, file)
+	}
+
+	latestUpdate.Files = latestUpdateFiles
+
+	if len(latestUpdate.Files) == 0 {
+		return nil, ErrNoUpdateAvailable
 	}
 
 	// Record the release.
-	p.releaseLastCheck = time.Now()
-	p.releaseVersion = latestUpdate.Version
-	p.releaseAssets = latestReleaseFiles
+	p.lastCheck = time.Now()
+	p.latestUpdate = latestUpdate
 
-	return nil
+	return latestUpdate, nil
 }
 
 // An application from the Operations Center provider.
 type operationsCenterApplication struct {
 	provider *operationsCenter
 
-	assets  []string
-	name    string
-	version string
+	name         string
+	latestUpdate *operationsCenterUpdate
 }
 
 func (a *operationsCenterApplication) Name() string {
@@ -467,11 +467,11 @@ func (a *operationsCenterApplication) Name() string {
 }
 
 func (a *operationsCenterApplication) Version() string {
-	return a.version
+	return a.latestUpdate.Version
 }
 
 func (a *operationsCenterApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.version, otherVersion)
+	return datetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
 func (a *operationsCenterApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
@@ -481,18 +481,17 @@ func (a *operationsCenterApplication) Download(ctx context.Context, target strin
 		return err
 	}
 
-	for _, asset := range a.assets {
-		fileName := filepath.Base(asset)
-
-		appName := strings.TrimSuffix(fileName, ".raw.gz")
-
+	for _, file := range a.latestUpdate.Files {
 		// Only select the desired applications.
-		if appName != a.name {
+		if file.Component != a.name {
 			continue
 		}
 
+		fileURL := a.provider.serverURL + "/" + a.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
+
 		// Download the application.
-		err = downloadAsset(ctx, a.provider.client, asset, "", filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -505,52 +504,41 @@ func (a *operationsCenterApplication) Download(ctx context.Context, target strin
 type operationsCenterOSUpdate struct {
 	provider *operationsCenter
 
-	assets  []string
-	version string
+	latestUpdate *operationsCenterUpdate
 }
 
 func (o *operationsCenterOSUpdate) Version() string {
-	return o.version
+	return o.latestUpdate.Version
 }
 
 func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.version, otherVersion)
+	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, _ string, target string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(targetPath)
+	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(targetPath, 0o700)
+	err = os.MkdirAll(target, 0o700)
 	if err != nil {
 		return err
 	}
 
-	for _, asset := range o.assets {
-		fileName := filepath.Base(asset)
-
-		// Only select OS files.
-		if !strings.HasPrefix(fileName, osName+"_") {
+	for _, file := range o.latestUpdate.Files {
+		// Only select OS updates.
+		if file.Component != string(apiupdate.UpdateFileComponentOS) || !strings.HasPrefix(file.Type, "update-") {
 			continue
 		}
 
-		// Parse the file names.
-		fields := strings.SplitN(fileName, ".", 2)
-		if len(fields) != 2 {
-			continue
-		}
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
-		// Skip the full image.
-		if fields[1] == "img.gz" || fields[1] == "iso.gz" {
-			continue
-		}
-
-		// Download the actual update.
-		err = downloadAsset(ctx, o.provider.client, asset, "", filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		// Download the application.
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -559,37 +547,27 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, osName st
 	return nil
 }
 
-func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, osName string, targetPath string, progressFunc func(float64)) (string, error) {
+func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, _ string, target string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
-	err := os.MkdirAll(targetPath, 0o700)
+	err := os.MkdirAll(target, 0o700)
 	if err != nil {
 		return "", err
 	}
 
-	for _, asset := range o.assets {
-		fileName := filepath.Base(asset)
-
-		// Only select OS files.
-		if !strings.HasPrefix(fileName, osName+"_") {
+	for _, file := range o.latestUpdate.Files {
+		// Only select OS updates.
+		if file.Component != string(apiupdate.UpdateFileComponentOS) || file.Type != "image-"+imageType {
 			continue
 		}
 
-		// Parse the file names.
-		fields := strings.SplitN(fileName, ".", 2)
-		if len(fields) != 2 {
-			continue
-		}
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
-		// Continue if not the full image we're looking for.
-		if fields[1] != imageType+".gz" {
-			continue
-		}
+		// Download the application.
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 
-		// Download the image.
-		err = downloadAsset(ctx, o.provider.client, asset, "", filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
-
-		return strings.TrimSuffix(fileName, ".gz"), err
+		return targetName, err
 	}
 
-	return "", fmt.Errorf("failed to download image type '%s' for %s release %s", imageType, osName, o.version)
+	return "", fmt.Errorf("failed to download image type '%s' for release %s", imageType, o.latestUpdate.Version)
 }
