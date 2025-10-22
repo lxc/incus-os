@@ -2,7 +2,6 @@ package providers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -454,65 +453,6 @@ func (p *operationsCenter) checkRelease(ctx context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) downloadAsset(ctx context.Context, assetURL string, target string, progressFunc func(float64)) error {
-	// Prepare the request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
-	if err != nil {
-		return err
-	}
-
-	// Get a reader for the release asset.
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	// Get the release asset size.
-	srcSize := float64(resp.ContentLength)
-
-	// Setup a gzip reader to decompress during streaming.
-	body, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	defer body.Close()
-
-	// Create the target path.
-	// #nosec G304
-	fd, err := os.Create(target)
-	if err != nil {
-		return err
-	}
-
-	defer fd.Close()
-
-	// Read from the decompressor in chunks to avoid excessive memory consumption.
-	count := int64(0)
-
-	for {
-		_, err = io.CopyN(fd, body, 4*1024*1024)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return err
-		}
-
-		// Update progress every 24MiB.
-		if progressFunc != nil && count%6 == 0 {
-			progressFunc(float64(count*4*1024*1024) / srcSize)
-		}
-
-		count++
-	}
-
-	return nil
-}
-
 // An application from the Operations Center provider.
 type operationsCenterApplication struct {
 	provider *operationsCenter
@@ -552,7 +492,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, target strin
 		}
 
 		// Download the application.
-		err = a.provider.downloadAsset(ctx, asset, filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = downloadAsset(ctx, a.provider.client, asset, "", filepath.Join(target, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -610,7 +550,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, osName st
 		}
 
 		// Download the actual update.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, asset, "", filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -646,7 +586,7 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 		}
 
 		// Download the image.
-		err = o.provider.downloadAsset(ctx, asset, filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, asset, "", filepath.Join(targetPath, strings.TrimSuffix(fileName, ".gz")), progressFunc)
 
 		return strings.TrimSuffix(fileName, ".gz"), err
 	}
