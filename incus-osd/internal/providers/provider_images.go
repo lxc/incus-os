@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -285,7 +287,7 @@ func (*images) tryRequest(req *http.Request) (*http.Response, error) {
 	return nil, err
 }
 
-func (*images) downloadAsset(ctx context.Context, assetURL string, target string, progressFunc func(float64)) error {
+func (*images) downloadAsset(ctx context.Context, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
@@ -303,8 +305,14 @@ func (*images) downloadAsset(ctx context.Context, assetURL string, target string
 	// Get the release asset size.
 	srcSize := float64(resp.ContentLength)
 
+	// Setup a sha256 hasher.
+	h := sha256.New()
+
+	// Setup the main reader.
+	tr := io.TeeReader(resp.Body, h)
+
 	// Setup a gzip reader to decompress during streaming.
-	body, err := gzip.NewReader(resp.Body)
+	body, err := gzip.NewReader(tr)
 	if err != nil {
 		return err
 	}
@@ -339,6 +347,11 @@ func (*images) downloadAsset(ctx context.Context, assetURL string, target string
 		}
 
 		count++
+	}
+
+	// Check the hash.
+	if expectedSHA256 != "" && expectedSHA256 != hex.EncodeToString(h.Sum(nil)) {
+		return errors.New("sha256 mismatch for file " + target)
 	}
 
 	return nil
@@ -381,7 +394,7 @@ func (a *imagesApplication) Download(ctx context.Context, target string, progres
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = a.provider.downloadAsset(ctx, fileURL, filepath.Join(target, targetName), progressFunc)
+		err = a.provider.downloadAsset(ctx, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -428,7 +441,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target st
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = o.provider.downloadAsset(ctx, fileURL, filepath.Join(target, targetName), progressFunc)
+		err = o.provider.downloadAsset(ctx, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -454,7 +467,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = o.provider.downloadAsset(ctx, fileURL, filepath.Join(target, targetName), progressFunc)
+		err = o.provider.downloadAsset(ctx, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
 
 		return targetName, err
 	}
