@@ -112,4 +112,15 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V4: Set default value for channel list.
+	func(lines []string) ([]string, error) {
+		for i := range lines {
+			lines[i] = strings.Replace(lines[i], "System.Update.Config.UpdateFrequency: ", "System.Update.Config.CheckFrequency: ", 1)
+			lines[i] = strings.Replace(lines[i], "System.Update.State.UpdateStatus: ", "System.Update.State.Status: ", 1)
+		}
+
+		lines = append(lines, "System.Update.Config.Channel: stable")
+
+		return lines, nil
+	},
 }
