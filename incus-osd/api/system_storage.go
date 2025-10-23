@@ -9,7 +9,7 @@ type SystemStorage struct {
 	State struct {
 		Drives []SystemStorageDrive `json:"drives" yaml:"drives"`
 		Pools  []SystemStoragePool  `json:"pools"  yaml:"pools"`
-	} `json:"state" yaml:"state"`
+	} `incusos:"-" json:"state" yaml:"state"`
 }
 
 // SystemStoragePool defines a struct that is used to create or update a storage pool and return its current state.

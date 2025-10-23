@@ -16,7 +16,7 @@ type SystemSecurity struct {
 		EncryptionRecoveryKeys []string `json:"encryption_recovery_keys" yaml:"encryption_recovery_keys"`
 	} `json:"config" yaml:"config"`
 
-	State SystemSecurityState `json:"state" yaml:"state"`
+	State SystemSecurityState `incusos:"-" json:"state" yaml:"state"`
 }
 
 // SystemSecuritySecureBootCertificate defines a struct that holds information about Secure Boot keys present on the host.

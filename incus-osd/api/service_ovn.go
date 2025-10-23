@@ -2,7 +2,7 @@ package api
 
 // ServiceOVN represents the state and configuration of the OVN service.
 type ServiceOVN struct {
-	State struct{} `json:"state" yaml:"state"`
+	State struct{} `incusos:"-" json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled              bool   `json:"enabled"                yaml:"enabled"`

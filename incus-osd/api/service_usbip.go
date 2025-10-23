@@ -8,7 +8,7 @@ type ServiceUSBIPTarget struct {
 
 // ServiceUSBIP represents the state and configuration of the USBIP service.
 type ServiceUSBIP struct {
-	State struct{} `json:"state" yaml:"state"`
+	State struct{} `incusos:"-" json:"state" yaml:"state"`
 
 	Config struct {
 		Targets []ServiceUSBIPTarget `json:"targets" yaml:"targets"`

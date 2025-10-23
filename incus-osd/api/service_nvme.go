@@ -9,7 +9,7 @@ type ServiceNVMETarget struct {
 
 // ServiceNVME represents the state and configuration of the NVME service.
 type ServiceNVME struct {
-	State ServiceNVMEState `json:"state" yaml:"state"`
+	State ServiceNVMEState `incusos:"-" json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled bool                `json:"enabled" yaml:"enabled"`
