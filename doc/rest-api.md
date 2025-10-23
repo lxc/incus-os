@@ -27,6 +27,10 @@ are not backwards compatible.
 
     `POST`: Performs a factory reset of the application
 
+  * `/1.0/applications/{name}/:restart`
+
+    `POST`: Trigger a restart of the application.
+
   * `/1.0/applications/{name}/:restore`
 
     `POST`: Restore a gzip'ed tar archive backup for the application
