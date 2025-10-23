@@ -97,6 +97,17 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	listCmd := cmdGenericList{os: c.os, entity: "applications", endpoint: "applications"}
 	cmd.AddCommand(listCmd.command())
 
+	// Restart.
+	restartCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "restart",
+		description: "Restart the application",
+		endpoint:    "applications",
+		entity:      "application",
+		confirm:     "restart the application",
+	}
+	cmd.AddCommand(restartCmd.command())
+
 	// Restore.
 	restoreCmd := cmdGenericRun{
 		os:           c.os,
