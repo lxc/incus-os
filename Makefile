@@ -64,6 +64,9 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp incus-osd/incus-osd mkosi.images/base/mkosi.extra/usr/local/bin/
 	cp app-build/kpx/kpx mkosi.images/base/mkosi.extra/usr/local/bin/
+	cp app-build/tailscale/tailscaled mkosi.images/base/mkosi.extra/usr/local/bin/
+	rm -f mkosi.images/base/mkosi.extra/usr/local/bin/tailscale
+	ln -s tailscaled mkosi.images/base/mkosi.extra/usr/local/bin/tailscale
 
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/local/bin/
 	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/lib/migration-manager/
