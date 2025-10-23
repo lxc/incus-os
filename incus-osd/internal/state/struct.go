@@ -52,6 +52,7 @@ type State struct {
 		Multipath api.ServiceMultipath `json:"multipath"`
 		NVME      api.ServiceNVME      `json:"nvme"`
 		OVN       api.ServiceOVN       `json:"ovn"`
+		Tailscale api.ServiceTailscale `json:"tailscale"`
 		USBIP     api.ServiceUSBIP     `json:"usbip"`
 	} `json:"services"`
 
