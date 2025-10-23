@@ -543,6 +543,15 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 
 	device := filepath.Base(deviceName)
 
+	// Check if we have been given a partition; if so, get the device it belongs to.
+	_, err = os.Stat("/sys/class/block/" + device + "/partition")
+	if err == nil {
+		symlink, err := os.Readlink("/sys/class/block/" + device)
+		if err == nil {
+			device = filepath.Base(filepath.Join(symlink, ".."))
+		}
+	}
+
 	// SATA or FC.
 	if strings.HasPrefix(device, "sd") {
 		link, err := os.Readlink("/sys/class/block/" + device)
