@@ -3,6 +3,7 @@ package backup
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
@@ -28,7 +29,8 @@ func GetOSBackup() ([]byte, error) {
 	// about memory exhaustion when creating the tar archive.
 	var ret bytes.Buffer
 
-	tw := tar.NewWriter(&ret)
+	zw := gzip.NewWriter(&ret)
+	tw := tar.NewWriter(zw)
 
 	files, err := os.ReadDir("/var/lib/incus-os/")
 	if err != nil {
@@ -73,6 +75,11 @@ func GetOSBackup() ([]byte, error) {
 		return nil, err
 	}
 
+	err = zw.Close()
+	if err != nil {
+		return nil, err
+	}
+
 	return ret.Bytes(), nil
 }
 
@@ -107,7 +114,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	}
 
 	// Iterate through each file in the tar archive.
-	tr := tar.NewReader(buf)
+	gz, err := gzip.NewReader(buf)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
 	stateSuccessfullyProcessed := false
 
 	for {

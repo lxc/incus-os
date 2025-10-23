@@ -32,7 +32,7 @@ func (s *Server) apiSystemBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/x-tar")
+	w.Header().Set("Content-Type", "application/gzip")
 
 	_, err = w.Write(archive)
 	if err != nil {
