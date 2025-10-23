@@ -587,7 +587,7 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 	return false, nil
 }
 
-// WipeDrive will forcefully run `blkdiscard` on the drive, unless it is the boot device,
+// WipeDrive will wipe all data on the given drive, unless it is the boot device,
 // a remote device, or currently a member of a storage pool.
 func WipeDrive(ctx context.Context, drive string) error {
 	// Get a list of all drives.
@@ -605,9 +605,7 @@ func WipeDrive(ctx context.Context, drive string) error {
 			}
 
 			// Wipe the drive.
-			_, err := subprocess.RunCommandContext(ctx, "blkdiscard", "-f", drive)
-
-			return err
+			return ClearBlock(drive, 0)
 		}
 	}
 

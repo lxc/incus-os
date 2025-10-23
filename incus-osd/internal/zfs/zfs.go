@@ -285,46 +285,59 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 
 	// Wipe old member devices.
 	for _, dev := range poolConfig.Devices {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.Log {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.Cache {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.DevicesDegraded {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.LogDegraded {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.CacheDegraded {
-		_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", dev)
+		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// Helper method to zap any GPT table and opportunistically run blkdiscard
+// to fully wipe a device that's just been removed from a storage pool.
+func clearDevice(ctx context.Context, device string) error {
+	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-Z", device)
+	if err != nil {
+		return err
+	}
+
+	_, _ = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", device)
 
 	return nil
 }
@@ -417,7 +430,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 			}
 
 			if zpoolCmd == "remove" {
-				_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", actualDev)
+				err := clearDevice(ctx, actualDev)
 				if err != nil {
 					return err
 				}
@@ -448,7 +461,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 				return err
 			}
 
-			_, err = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", actualDevOld)
+			err = clearDevice(ctx, actualDevOld)
 			if err != nil {
 				return err
 			}
