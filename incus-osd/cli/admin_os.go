@@ -24,15 +24,15 @@ func (c *cmdAdminOS) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS systems"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS systems")
 
-	// Applications
+	// Applications.
 	applicationCmd := cmdAdminOSApplication{os: c}
 	cmd.AddCommand(applicationCmd.command())
 
-	// Debug
+	// Debug.
 	debugCmd := cmdAdminOSDebug{os: c}
 	cmd.AddCommand(debugCmd.command())
 
-	// Services
+	// Services.
 	serviceCmd := cmdAdminOSService{os: c}
 	cmd.AddCommand(serviceCmd.command())
 
@@ -40,7 +40,7 @@ func (c *cmdAdminOS) command() *cobra.Command {
 	showCmd := cmdGenericShow{os: c}
 	cmd.AddCommand(showCmd.command())
 
-	// System
+	// System.
 	systemCmd := cmdAdminOSSystem{os: c}
 	cmd.AddCommand(systemCmd.command())
 
@@ -49,7 +49,7 @@ func (c *cmdAdminOS) command() *cobra.Command {
 		_, _ = fmt.Fprint(os.Stderr, "WARNING: The IncusOS API and configuration is subject to change\n\n")
 	}
 
-	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
 
@@ -113,7 +113,7 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	showCmd := cmdGenericShow{os: c.os, entity: "application", entityShort: "application", endpoint: "applications"}
 	cmd.AddCommand(showCmd.command())
 
-	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
 
@@ -131,11 +131,11 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	cmd.Short = "Debug IncusOS systems"
 	cmd.Long = cli.FormatSection("Description", "Debug IncusOS systems")
 
-	// Log
+	// Log.
 	logCmd := cmdAdminOSDebugLog{os: c.os}
 	cmd.AddCommand(logCmd.command())
 
-	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
 
@@ -264,11 +264,11 @@ func (c *cmdAdminOSService) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS services"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS services")
 
-	// Edit
+	// Edit.
 	editCmd := cmdGenericEdit{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
 	cmd.AddCommand(editCmd.command())
 
-	// List
+	// List.
 	listCmd := cmdGenericList{os: c.os, entity: "services", endpoint: "services"}
 	cmd.AddCommand(listCmd.command())
 
@@ -283,11 +283,11 @@ func (c *cmdAdminOSService) command() *cobra.Command {
 	}
 	cmd.AddCommand(resetCmd.command())
 
-	// Show
+	// Show.
 	showCmd := cmdGenericShow{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
 	cmd.AddCommand(showCmd.command())
 
-	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
 
@@ -425,7 +425,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 	}
 	cmd.AddCommand(wipeDriveCmd.command())
 
-	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
 

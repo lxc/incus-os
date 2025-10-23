@@ -11,7 +11,7 @@ import (
 // Supported returns the list of all valid services for this system.
 // The list is sorted in recommended startup order to handle service dependencies.
 func Supported(s *state.State) []string {
-	services := []string{"ceph", "iscsi", "nvme", "multipath", "lvm", "ovn", "usbip"}
+	services := []string{"ceph", "iscsi", "nvme", "multipath", "lvm", "ovn", "tailscale", "usbip"}
 	supported := make([]string, 0, len(services))
 
 	for _, service := range services {
@@ -61,6 +61,8 @@ func loadByName(s *state.State, name string) (Service, error) {
 		srv = &NVME{state: s}
 	case "ovn":
 		srv = &OVN{state: s}
+	case "tailscale":
+		srv = &Tailscale{state: s}
 	case "usbip":
 		srv = &USBIP{state: s}
 	default:
