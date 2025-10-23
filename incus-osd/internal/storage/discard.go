@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
@@ -23,7 +24,7 @@ func IsBlockdev(fm os.FileMode) bool {
 // An offset can be specified to only reset a part of a device.
 func ClearBlock(blockPath string, blockOffset int64) error {
 	// Open the block device for checking.
-	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o644)
+	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o644) //nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
 			// If the file is missing, there is nothing to clear.
@@ -105,7 +106,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 			}
 
 			if n != int(markerLength) {
-				return fmt.Errorf("Only managed to write %d bytes out of %d of the %d offset marker", n, markerLength, offset)
+				return fmt.Errorf("only managed to write %d bytes out of %d of the %d offset marker", n, markerLength, offset)
 			}
 		}
 
@@ -118,6 +119,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 		for _, offset := range []int64{markerOffsetStart, markerOffsetMiddle, markerOffsetEnd} {
 			if offset < 0 {
 				found++
+
 				continue
 			}
 
@@ -130,7 +132,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 			}
 
 			if n != int(markerLength) {
-				return found, fmt.Errorf("Only managed to read %d bytes out of %d of the %d offset marker", n, markerLength, offset)
+				return found, fmt.Errorf("only managed to read %d bytes out of %d of the %d offset marker", n, markerLength, offset)
 			}
 
 			// Check if we found it.
@@ -154,17 +156,17 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	}
 
 	if found != 3 {
-		return errors.New("Some of our initial markers weren't written properly")
+		return errors.New("some of our initial markers weren't written properly")
 	}
 
 	// Start clearing the block.
 	_ = fd.Close()
 
 	// Attempt a secure discard run.
-	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", fmt.Sprintf("%d", blockOffset), "-s", blockPath)
+	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), "-s", blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath)
+		fd, err := os.Open(blockPath) //nolint:gosec
 		if err != nil {
 			return err
 		}
@@ -186,10 +188,10 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	}
 
 	// Attempt a regular discard run.
-	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", fmt.Sprintf("%d", blockOffset), blockPath)
+	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath)
+		fd, err := os.Open(blockPath) //nolint:gosec
 		if err != nil {
 			return err
 		}
@@ -211,10 +213,10 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	}
 
 	// Attempt device zero-ing.
-	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", fmt.Sprintf("%d", blockOffset), "-z", blockPath)
+	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), "-z", blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath)
+		fd, err := os.Open(blockPath) //nolint:gosec
 		if err != nil {
 			return err
 		}
@@ -243,7 +245,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 
 	defer zero.Close()
 
-	fd, err = os.OpenFile(blockPath, os.O_WRONLY, 0o644)
+	fd, err = os.OpenFile(blockPath, os.O_WRONLY, 0o644) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -261,7 +263,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	}
 
 	if n != (size - blockOffset) {
-		return fmt.Errorf("Only managed to reset %d bytes out of %d", n, size)
+		return fmt.Errorf("only managed to reset %d bytes out of %d", n, size)
 	}
 
 	return nil
