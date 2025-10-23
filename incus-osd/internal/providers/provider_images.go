@@ -224,7 +224,7 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 
 	for _, update := range index.Updates {
 		// Skip any update targeting the wrong channel(s).
-		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+		if update.Version != p.state.OS.RunningRelease && p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
 			continue
 		}
 

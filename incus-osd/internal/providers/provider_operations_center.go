@@ -403,7 +403,8 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	var latestUpdate *operationsCenterUpdate
 
 	for _, update := range updates {
-		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+		// Skip any update targeting the wrong channel(s).
+		if update.Version != p.state.OS.RunningRelease && p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
 			continue
 		}
 
