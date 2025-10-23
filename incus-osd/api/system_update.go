@@ -8,7 +8,7 @@ import (
 type SystemUpdate struct {
 	Config SystemUpdateConfig `json:"config" yaml:"config"`
 
-	State SystemUpdateState `json:"state" yaml:"state"`
+	State SystemUpdateState `incusos:"-" json:"state" yaml:"state"`
 }
 
 // SystemUpdateConfig defines a struct to hold configuration details for the update checks.

@@ -2,7 +2,7 @@ package api
 
 // ServiceLVM represents the state and configuration of the LVM service.
 type ServiceLVM struct {
-	State ServiceLVMState `json:"state" yaml:"state"`
+	State ServiceLVMState `incusos:"-" json:"state" yaml:"state"`
 
 	Config struct {
 		Enabled  bool  `json:"enabled"   yaml:"enabled"`

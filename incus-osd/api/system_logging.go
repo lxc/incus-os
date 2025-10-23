@@ -15,5 +15,5 @@ type SystemLoggingConfig struct {
 // SystemLogging defines a struct to hold information about the system's logging configuration.
 type SystemLogging struct {
 	Config SystemLoggingConfig `json:"config" yaml:"config"`
-	State  struct{}            `json:"state"  yaml:"state"`
+	State  struct{}            `incusos:"-"   json:"state"  yaml:"state"`
 }
