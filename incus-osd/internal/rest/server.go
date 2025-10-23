@@ -54,6 +54,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/applications/{name}", s.apiApplicationsEndpoint)
 	router.HandleFunc("/1.0/applications/{name}/:backup", s.apiApplicationsBackup)
 	router.HandleFunc("/1.0/applications/{name}/:factory-reset", s.apiApplicationsFactoryReset)
+	router.HandleFunc("/1.0/applications/{name}/:restart", s.apiApplicationsRestart)
 	router.HandleFunc("/1.0/applications/{name}/:restore", s.apiApplicationsRestore)
 	router.HandleFunc("/1.0/debug", s.apiDebug)
 	router.HandleFunc("/1.0/debug/log", s.apiDebugLog)
