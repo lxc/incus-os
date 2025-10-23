@@ -3,6 +3,7 @@ package applications
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -185,7 +186,8 @@ func getCertificateFingerprint(certificate string) (string, error) {
 }
 
 func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writer) error {
-	tw := tar.NewWriter(archive)
+	zw := gzip.NewWriter(archive)
+	tw := tar.NewWriter(zw)
 
 	err := filepath.Walk(archiveRoot, func(path string, info fs.FileInfo, _ error) error {
 		archiveFilename := strings.TrimPrefix(path, archiveRoot)
@@ -288,7 +290,12 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 		return err
 	}
 
-	return tw.Close()
+	err = tw.Close()
+	if err != nil {
+		return err
+	}
+
+	return zw.Close()
 }
 
 func extractTarArchive(archiveRoot string, archive io.Reader) error {
@@ -310,8 +317,25 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 		_ = os.Rename(backupArchiveRoot, archiveRoot)
 	})
 
+	// Create the new root directory.
+	stat, err := os.Stat(backupArchiveRoot)
+	if err != nil {
+		return err
+	}
+
+	err = os.Mkdir(archiveRoot, stat.Mode())
+	if err != nil {
+		return err
+	}
+
 	// Iterate through each file in the tar archive.
-	tr := tar.NewReader(archive)
+	gz, err := gzip.NewReader(archive)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
 	for {
 		header, err := tr.Next()
 		if err != nil {
@@ -329,39 +353,51 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
 		}
 
-		// Create parent directory if needed.
-		parentDir := filepath.Dir(filename)
+		mode := fs.FileMode(header.Mode) //nolint:gosec
 
-		_, err = os.Stat(parentDir)
-		if err != nil {
-			err := os.MkdirAll(parentDir, 0o755)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			err := os.Mkdir(filename, mode)
 			if err != nil {
 				return err
 			}
+		case tar.TypeSymlink:
+			err := os.Symlink(header.Linkname, filename)
+			if err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			// Write file to disk.
+			// #nosec G304
+			file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, mode)
+			if err != nil {
+				return err
+			}
+			defer file.Close() //nolint:revive
+
+			// Read from the archive in chunks to avoid excessive memory consumption.
+			var size int64
+
+			for {
+				n, err := io.CopyN(file, tr, 4*1024*1024)
+				size += n
+
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+
+					return err
+				}
+			}
+		default:
+			return errors.New("unsupported file: " + header.Name)
 		}
 
-		// Write file to disk.
-		// #nosec G304
-		file, err := os.Create(filename)
+		// Set proper ownership.
+		err = os.Lchown(filename, header.Uid, header.Gid)
 		if err != nil {
 			return err
-		}
-		defer file.Close() //nolint:revive
-
-		// Read from the archive in chunks to avoid excessive memory consumption.
-		var size int64
-
-		for {
-			n, err := io.CopyN(file, tr, 4*1024*1024)
-			size += n
-
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return err
-			}
 		}
 	}
 

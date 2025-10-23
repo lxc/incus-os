@@ -143,7 +143,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/x-tar")
+	w.Header().Set("Content-Type", "application/gzip")
 
 	// From this point onwards we cannot return any nice errors
 	// to the user, since we will have already begun streaming

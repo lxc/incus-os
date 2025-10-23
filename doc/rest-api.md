@@ -19,7 +19,7 @@ are not backwards compatible.
 
   * `/1.0/applications/{name}/:backup`
 
-    `POST`: Returns a tar archive backup for the application. If passed `complete=true`, a
+    `POST`: Returns a gzip'ed tar archive backup for the application. If passed `complete=true`, a
     full backup will be generated which may be quite large depending on what artifacts or
     updates may be locally cached by the application.
 
@@ -29,9 +29,9 @@ are not backwards compatible.
 
   * `/1.0/applications/{name}/:restore`
 
-    `POST`: Restore a tar archive backup for the application
+    `POST`: Restore a gzip'ed tar archive backup for the application
 
-    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
+    Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 
   * `/1.0/debug`
   
@@ -70,7 +70,7 @@ are not backwards compatible.
 
   * `/1.0/system/:backup`
 
-    `POST`: Return a tar archive backup of the system state and configuration
+    `POST`: Return a gzip'ed tar archive backup of the system state and configuration
 
   * `/1.0/system/:factory-reset`
 
@@ -88,7 +88,7 @@ are not backwards compatible.
 
   * `/1.0/system/:restore`
 
-    `POST`: Use provided tar archive to perform a restore of the system state and
+    `POST`: Use provided gzip'ed tar archive to perform a restore of the system state and
     configuration. Upon completion the system will immediately reboot.
 
     Optionally, a `skip` parameter may be provided consisting of a comma-separated
@@ -101,7 +101,7 @@ are not backwards compatible.
       - "network-macs": Do not copy MAC addresses from network interface or bond
         definitions in the backup
 
-    Remember to properly set the 'Content-Type: application/x-tar' HTTP header.
+    Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 
   * `/1.0/system/logging`
 
