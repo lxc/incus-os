@@ -3,6 +3,7 @@ package applications
 import (
 	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -185,7 +186,8 @@ func getCertificateFingerprint(certificate string) (string, error) {
 }
 
 func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writer) error {
-	tw := tar.NewWriter(archive)
+	zw := gzip.NewWriter(archive)
+	tw := tar.NewWriter(zw)
 
 	err := filepath.Walk(archiveRoot, func(path string, info fs.FileInfo, _ error) error {
 		archiveFilename := strings.TrimPrefix(path, archiveRoot)
@@ -288,7 +290,12 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 		return err
 	}
 
-	return tw.Close()
+	err = tw.Close()
+	if err != nil {
+		return err
+	}
+
+	return zw.Close()
 }
 
 func extractTarArchive(archiveRoot string, archive io.Reader) error {
@@ -311,7 +318,13 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 	})
 
 	// Iterate through each file in the tar archive.
-	tr := tar.NewReader(archive)
+	gz, err := gzip.NewReader(archive)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
 	for {
 		header, err := tr.Next()
 		if err != nil {
