@@ -11,6 +11,7 @@ MIGRATION_MANAGER_VERSION=main
 KPX_VERSION=1.12.2
 OPENTOFU_VERSION=1.10.6
 OPERATIONS_CENTER_VERSION=main
+TAILSCALE_VERSION=1.90.1
 
 ### Detect architecture string for tofu providers ###
 ARCH=$(uname -m)
@@ -112,6 +113,21 @@ patch -p1 < ../../patches/kpx-0001-Enable-IPv6-support.patch
 
 go build -o kpx -ldflags="s -w -X github.com/momiji/kpx.AppVersion=${KPX_VERSION}" ./cli
 strip kpx
+popd
+
+### tailscale ###
+if [ -d tailscale ]; then
+    pushd tailscale
+    git reset --hard && git fetch --depth 1 origin "v${TAILSCALE_VERSION}:refs/tags/v${TAILSCALE_VERSION}" && git checkout "v${TAILSCALE_VERSION}"
+    popd
+else
+    git clone https://github.com/tailscale/tailscale.git tailscale --depth 1 -b "v${TAILSCALE_VERSION}"
+fi
+
+pushd tailscale
+
+TAGS="$(go run ./cmd/featuretags -add cli,debug,dns,osrouter,advertiseroutes,useroutes,resolved,tailnetlock,unixsocketidentity -min)" ./build_dist.sh tailscale.com/cmd/tailscaled
+strip tailscaled
 popd
 
 ### Migration Manager ###
