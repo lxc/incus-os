@@ -223,22 +223,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Restore the application's backup.
-	err = app.RestoreBackup(r.Body)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	// Restart the application.
-	err = app.Stop(r.Context(), "")
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	err = app.Start(r.Context(), "")
+	err = app.RestoreBackup(r.Context(), r.Body)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 

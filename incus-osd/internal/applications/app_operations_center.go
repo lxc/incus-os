@@ -297,6 +297,6 @@ func (*operationsCenter) GetBackup(archive io.Writer, complete bool) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*operationsCenter) RestoreBackup(archive io.Reader) error {
-	return extractTarArchive("/var/lib/operations-center/", archive)
+func (*operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	return extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
 }

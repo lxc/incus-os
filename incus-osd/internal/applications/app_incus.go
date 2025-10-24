@@ -233,8 +233,8 @@ func (*incus) GetBackup(archive io.Writer, _ bool) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*incus) RestoreBackup(archive io.Reader) error {
-	return extractTarArchive("/var/lib/incus/", archive)
+func (*incus) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	return extractTarArchive(ctx, "/var/lib/incus/", []string{"incus-startup.service", "incus.socket", "incus.service", "incus-lxcfs.service"}, archive)
 }
 
 func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) error {

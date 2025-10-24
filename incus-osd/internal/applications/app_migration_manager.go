@@ -282,6 +282,6 @@ func (*migrationManager) GetBackup(archive io.Writer, complete bool) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*migrationManager) RestoreBackup(archive io.Reader) error {
-	return extractTarArchive("/var/lib/migration-manager/", archive)
+func (*migrationManager) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	return extractTarArchive(ctx, "/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
 }
