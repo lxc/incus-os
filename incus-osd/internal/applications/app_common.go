@@ -28,6 +28,7 @@ import (
 	"github.com/lxc/incus/v6/shared/revert"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 type common struct {
@@ -95,7 +96,7 @@ func (*common) GetBackup(_ io.Writer, _ bool) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*common) RestoreBackup(_ io.Reader) error {
+func (*common) RestoreBackup(_ context.Context, _ io.Reader) error {
 	return errors.New("not supported")
 }
 
@@ -326,7 +327,7 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 	return zw.Close()
 }
 
-func extractTarArchive(archiveRoot string, archive io.Reader) error {
+func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []string, archive io.Reader) error {
 	reverter := revert.New()
 	defer reverter.Fail()
 
@@ -421,6 +422,12 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 		}
 	}
 
+	// Stop unit(s).
+	err = systemd.StopUnit(ctx, restartUnits...)
+	if err != nil {
+		return err
+	}
+
 	// Remove the existing directory.
 	err = os.RemoveAll(archiveRoot)
 	if err != nil {
@@ -429,6 +436,12 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 
 	// Rename the new directory.
 	err = os.Rename(newArchiveRoot, archiveRoot)
+	if err != nil {
+		return err
+	}
+
+	// Start unit(s).
+	err = systemd.StartUnit(ctx, restartUnits...)
 	if err != nil {
 		return err
 	}
