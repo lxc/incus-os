@@ -330,31 +330,23 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 	reverter := revert.New()
 	defer reverter.Fail()
 
-	// Backup the current directory.
-	backupArchiveRoot := strings.TrimSuffix(archiveRoot, "/") + ".bak"
-
-	err := os.Rename(archiveRoot, backupArchiveRoot)
-	if err != nil {
-		return err
-	}
-
-	// If we encounter an error, restore things to the prior state.
-	reverter.Add(func() {
-		// Restore the backup directory.
-		_ = os.RemoveAll(archiveRoot)
-		_ = os.Rename(backupArchiveRoot, archiveRoot)
-	})
-
 	// Create the new root directory.
-	stat, err := os.Stat(backupArchiveRoot)
+	stat, err := os.Stat(archiveRoot)
 	if err != nil {
 		return err
 	}
 
-	err = os.Mkdir(archiveRoot, stat.Mode())
+	newArchiveRoot := strings.TrimSuffix(archiveRoot, "/") + ".new"
+
+	err = os.Mkdir(newArchiveRoot, stat.Mode())
 	if err != nil {
 		return err
 	}
+
+	// If we encounter an error, clean up intermediate state.
+	reverter.Add(func() {
+		_ = os.RemoveAll(newArchiveRoot)
+	})
 
 	// Iterate through each file in the tar archive.
 	gz, err := gzip.NewReader(archive)
@@ -376,8 +368,8 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 
 		// Don't let someone feed us a path traversal escape attack.
 		// #nosec G305
-		filename := filepath.Join(archiveRoot, header.Name)
-		if !strings.HasPrefix(filename, archiveRoot) {
+		filename := filepath.Join(newArchiveRoot, header.Name)
+		if !strings.HasPrefix(filename, newArchiveRoot) {
 			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
 		}
 
@@ -429,8 +421,14 @@ func extractTarArchive(archiveRoot string, archive io.Reader) error {
 		}
 	}
 
-	// Remove the old backup.
-	err = os.RemoveAll(backupArchiveRoot)
+	// Remove the existing directory.
+	err = os.RemoveAll(archiveRoot)
+	if err != nil {
+		return err
+	}
+
+	// Rename the new directory.
+	err = os.Rename(newArchiveRoot, archiveRoot)
 	if err != nil {
 		return err
 	}
