@@ -36,6 +36,11 @@ func (*migrationManager) Stop(ctx context.Context, _ string) error {
 	return systemd.StopUnit(ctx, "migration-manager.service")
 }
 
+// Restart restarts the main systemd unit.
+func (*migrationManager) Restart(ctx context.Context, _ string) error {
+	return systemd.RestartUnit(ctx, "migration-manager.service")
+}
+
 // Update triggers restart after an application update.
 func (*migrationManager) Update(ctx context.Context, _ string) error {
 	// Reload the systemd daemon to pickup any service definition changes.

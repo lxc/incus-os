@@ -49,6 +49,11 @@ func (*common) Initialize(_ context.Context) error {
 	return nil
 }
 
+// Restart restarts runs restart action.
+func (*common) Restart(_ context.Context, _ string) error {
+	return nil
+}
+
 // Start runs startup action.
 func (*common) Start(_ context.Context, _ string) error {
 	return nil

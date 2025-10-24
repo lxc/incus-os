@@ -101,6 +101,44 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	_, ok := s.state.Applications[name]
+	if !ok {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	// Trigger the restart.
+	err = app.Restart(r.Context(), s.state.Applications[name].State.Version)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
 func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

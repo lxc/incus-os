@@ -55,6 +55,11 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 	return nil
 }
 
+// Restart restarts the main systemd unit.
+func (*incus) Restart(ctx context.Context, _ string) error {
+	return systemd.RestartUnit(ctx, "incus.service")
+}
+
 // Update triggers a partial restart after an application update.
 func (*incus) Update(ctx context.Context, _ string) error {
 	// Refresh the system users.

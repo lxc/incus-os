@@ -36,6 +36,11 @@ func (*operationsCenter) Stop(ctx context.Context, _ string) error {
 	return systemd.StopUnit(ctx, "operations-center.service")
 }
 
+// Restart restarts the main systemd unit.
+func (*operationsCenter) Restart(ctx context.Context, _ string) error {
+	return systemd.RestartUnit(ctx, "operations-center.service")
+}
+
 // Update triggers restart after an application update.
 func (*operationsCenter) Update(ctx context.Context, _ string) error {
 	// Reload the systemd daemon to pickup any service definition changes.
