@@ -2,7 +2,7 @@
 Description=Tailscale daemon
 
 [Service]
-ExecStart=/usr/local/bin/tailscaled
+ExecStart=/usr/local/bin/tailscaled -tun=_tailscale0
 ExecStopPost=/usr/local/bin/tailscaled --cleanup
 Restart=on-failure
 RuntimeDirectory=tailscale
