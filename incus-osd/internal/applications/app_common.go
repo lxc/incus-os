@@ -189,7 +189,20 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 	zw := gzip.NewWriter(archive)
 	tw := tar.NewWriter(zw)
 
-	err := filepath.Walk(archiveRoot, func(path string, info fs.FileInfo, _ error) error {
+	// Stat the archive root to get the device it's on, so we can limit our walk to just that file system.
+	s, err := os.Stat(archiveRoot)
+	if err != nil {
+		return err
+	}
+
+	rootStat, ok := s.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("unable to stat file " + archiveRoot)
+	}
+
+	rootDev := rootStat.Dev
+
+	err = filepath.WalkDir(archiveRoot, func(path string, dirEntry fs.DirEntry, _ error) error {
 		archiveFilename := strings.TrimPrefix(path, archiveRoot)
 
 		// Skip the root directory and any relative path starting with a path to be excluded.
@@ -197,6 +210,11 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 			return strings.HasPrefix(archiveFilename, s)
 		}) {
 			return nil
+		}
+
+		info, err := dirEntry.Info()
+		if err != nil {
+			return err
 		}
 
 		mode := int64(info.Mode().Perm())
@@ -209,6 +227,11 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 
 		uid := int(stat.Uid)
 		gid := int(stat.Gid)
+
+		// Don't walk other file systems.
+		if info.Mode().IsDir() && stat.Dev != rootDev {
+			return fs.SkipDir
+		}
 
 		switch {
 		case info.Mode().IsDir():
