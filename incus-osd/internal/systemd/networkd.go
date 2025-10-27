@@ -737,6 +737,8 @@ func waitForDNS(ctx context.Context, timeout time.Duration) error {
 func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 	endTime := time.Now().Add(timeout)
 
+	count := 0
+
 	for {
 		if time.Now().After(endTime) {
 			return errors.New("timed out waiting for NTP synchronization")
@@ -746,6 +748,17 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 		_, err := subprocess.RunCommandContext(ctx, "journalctl", "--since", "10 seconds ago", "-u", "systemd-timesyncd", "-g", "Initial clock synchronization")
 		if err == nil {
 			return nil
+		}
+
+		// Restart systemd-timesyncd every 5 tries.
+		count++
+		if count == 5 {
+			count = 0
+
+			err = RestartUnit(ctx, "systemd-timesyncd")
+			if err != nil {
+				return err
+			}
 		}
 
 		time.Sleep(500 * time.Millisecond)
