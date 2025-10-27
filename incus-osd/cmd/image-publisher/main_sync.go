@@ -160,6 +160,8 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 		for {
 			n, err := io.CopyN(w, r, 4*1024*1024)
+			size += n
+
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -167,8 +169,6 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 				return err
 			}
-
-			size += n
 		}
 
 		// Add the file to the image.
@@ -239,6 +239,8 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 
 	for {
 		n, err := io.CopyN(tempImage, resp.Body, 4*1024*1024)
+		size += n
+
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -246,8 +248,6 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 
 			return nil, err
 		}
-
-		size += n
 	}
 
 	// Parse the image file.
