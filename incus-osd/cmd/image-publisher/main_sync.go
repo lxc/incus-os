@@ -132,6 +132,55 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		metaUpdate.Files = append(metaUpdate.Files, files...)
 	}
 
+	// Include the SecureBoot update (if present).
+	updateSecureboot := os.Getenv("UPDATE_SECUREBOOT")
+	if updateSecureboot != "" {
+		// Open the update tarball.
+		f, err := os.Open(updateSecureboot) //nolint:gosec
+		if err != nil {
+			return err
+		}
+
+		defer func() { _ = f.Close() }()
+
+		// Setup a hashing reader.
+		h := sha256.New()
+		r := io.TeeReader(f, h)
+
+		// Create the target file.
+		w, err := os.Create(filepath.Join(targetPath, releaseName, filepath.Base(updateSecureboot))) //nolint:gosec
+		if err != nil {
+			return err
+		}
+
+		defer func() { _ = w.Close() }()
+
+		// Copy the content.
+		var size int64
+
+		for {
+			n, err := io.CopyN(w, r, 4*1024*1024)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return err
+			}
+
+			size += n
+		}
+
+		// Add the file to the image.
+		metaUpdate.Files = append(metaUpdate.Files, apiupdate.UpdateFile{
+			Component: apiupdate.UpdateFileComponentOS,
+			Filename:  filepath.Base(updateSecureboot),
+			Sha256:    hex.EncodeToString(h.Sum(nil)),
+			Size:      size,
+			Type:      apiupdate.UpdateFileTypeUpdateSecureboot,
+		})
+	}
+
 	// Write the update metadata.
 	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json")) //nolint:gosec
 	if err != nil {
