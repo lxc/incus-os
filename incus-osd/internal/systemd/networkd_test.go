@@ -105,7 +105,7 @@ proxy:
       host: https://proxy.example.org
       auth: anonymous
 interfaces:
-  - name: eth0
+  - name: enxffeeddccbbaa
     addresses:
       - dhcp4
     required_for_online: no
@@ -455,12 +455,17 @@ func TestNetdevFileGeneration(t *testing.T) {
 	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
+	// The third test case contains a mock USB NIC name, and we must first validate the config
+	// to properly correct that name.
+	err = ValidateNetworkConfiguration(&networkCfg, true)
+	require.NoError(t, err)
+
 	cfgs = generateNetdevFileContents(networkCfg)
 	require.Len(t, cfgs, 2)
-	require.Equal(t, "10-eth0.netdev", cfgs[0].Name)
-	require.Equal(t, "[NetDev]\nName=eth0\nKind=bridge\n\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
-	require.Equal(t, "10-_veth0.netdev", cfgs[1].Name)
-	require.Equal(t, "[NetDev]\nName=_veth0\nKind=veth\nMACAddress=FF:EE:DD:CC:BB:AA\n\n\n[Peer]\nName=_iffeeddccbbaa\n", cfgs[1].Contents)
+	require.Equal(t, "10-ffeeddccbbaa.netdev", cfgs[0].Name)
+	require.Equal(t, "[NetDev]\nName=ffeeddccbbaa\nKind=bridge\n\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
+	require.Equal(t, "10-_vffeeddccbbaa.netdev", cfgs[1].Name)
+	require.Equal(t, "[NetDev]\nName=_vffeeddccbbaa\nKind=veth\nMACAddress=FF:EE:DD:CC:BB:AA\n\n\n[Peer]\nName=_iffeeddccbbaa\n", cfgs[1].Contents)
 
 	// Test fourth config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -542,16 +547,21 @@ func TestNetworkFileGeneration(t *testing.T) {
 	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
+	// The third test case contains a mock USB NIC name, and we must first validate the config
+	// to properly correct that name.
+	err = ValidateNetworkConfiguration(&networkCfg, true)
+	require.NoError(t, err)
+
 	cfgs = generateNetworkFileContents(networkCfg)
 	require.Len(t, cfgs, 4)
-	require.Equal(t, "20-_veth0.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_veth0\n\n[Link]\nRequiredForOnline=no\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
+	require.Equal(t, "20-_vffeeddccbbaa.network", cfgs[0].Name)
+	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
 	require.Equal(t, "20-_iffeeddccbbaa.network", cfgs[1].Name)
-	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Network]\nBridge=eth0\n", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Network]\nBridge=ffeeddccbbaa\n", cfgs[1].Contents)
 	require.Equal(t, "20-_pffeeddccbbaa.network", cfgs[2].Name)
-	require.Equal(t, "[Match]\nName=_pffeeddccbbaa\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=eth0\n", cfgs[2].Contents)
-	require.Equal(t, "20-eth0.network", cfgs[3].Name)
-	require.Equal(t, "[Match]\nName=eth0\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n", cfgs[3].Contents)
+	require.Equal(t, "[Match]\nName=_pffeeddccbbaa\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=ffeeddccbbaa\n", cfgs[2].Contents)
+	require.Equal(t, "20-ffeeddccbbaa.network", cfgs[3].Name)
+	require.Equal(t, "[Match]\nName=ffeeddccbbaa\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n", cfgs[3].Contents)
 
 	// Test fourth config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
