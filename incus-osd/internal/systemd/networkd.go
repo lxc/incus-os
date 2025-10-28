@@ -171,6 +171,10 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 		names = append(names, vlan.Name)
 	}
 
+	// Some USB NICs have a default name of "enx<MAC>", which is 15 characters long.
+	// To work around this, strip the leading "enx" before validating network interfaces.
+	mangleUSBNICs(networkCfg)
+
 	err := validateInterfaces(networkCfg.Interfaces, requireValidMAC)
 	if err != nil {
 		return err
@@ -1478,4 +1482,14 @@ func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetwor
 	}
 
 	return ret
+}
+
+func mangleUSBNICs(config *api.SystemNetworkConfig) {
+	usbNICRegex := regexp.MustCompile(`^enx[[:xdigit:]]{12}$`)
+
+	for i := range config.Interfaces {
+		if usbNICRegex.MatchString(config.Interfaces[i].Name) {
+			config.Interfaces[i].Name = strings.TrimPrefix(config.Interfaces[i].Name, "enx")
+		}
+	}
 }
