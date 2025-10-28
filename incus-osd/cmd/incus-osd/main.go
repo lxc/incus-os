@@ -897,7 +897,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar.gz")
 
 	// Apply the update.
-	if update.Version() != s.SecureBoot.Version && !s.SecureBoot.FullyApplied { //nolint:nestif
+	if update.Version() != s.SecureBoot.Version { //nolint:nestif
 		// Immediately set FullyApplied to false and save state to disk.
 		s.SecureBoot.FullyApplied = false
 		_ = s.Save()
