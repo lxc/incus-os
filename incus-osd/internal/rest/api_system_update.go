@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -46,6 +47,13 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 
 				return
 			}
+		}
+
+		_, err = time.ParseDuration(newConfig.Config.CheckFrequency)
+		if err != nil {
+			_ = response.BadRequest(errors.New("invalid update check frequency")).Render(w)
+
+			return
 		}
 
 		// Apply the updated configuration.
