@@ -28,6 +28,9 @@ const (
 	// UpdateFileTypeUpdateUsrVeritySignature represents the /usr verity signature part of an OS update.
 	UpdateFileTypeUpdateUsrVeritySignature UpdateFileType = "update-usr-verity-signature"
 
+	// UpdateFileTypeUpdateSecureboot represents a SecureBoot key update.
+	UpdateFileTypeUpdateSecureboot UpdateFileType = "update-secureboot"
+
 	// UpdateFileTypeApplication represents an application.
 	UpdateFileTypeApplication UpdateFileType = "application"
 )
