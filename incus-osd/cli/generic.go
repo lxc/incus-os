@@ -26,11 +26,20 @@ type cmdGenericEdit struct {
 }
 
 func (c *cmdGenericEdit) command() *cobra.Command {
+	usage := ""
+	if c.os.args.SupportsRemote {
+		usage = "[<remote>:]"
+	}
+
+	if c.entity != "" {
+		usage += "<" + c.entityShort + ">"
+	}
+
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("edit", "[<remote>:]<"+c.entityShort+">")
+	cmd.Use = cli.Usage("edit", usage)
 	cmd.Short = "Edit " + c.entity + " configuration"
 	cmd.Long = cli.FormatSection("Description", "Edit "+c.entity+" configuration")
-	cmd.Example = cli.FormatSection("", `incus admin os service edit [<remote>:]<`+c.entityShort+`> < `+c.entityShort+`.yaml
+	cmd.Example = cli.FormatSection("", `incus admin os service edit `+usage+` < `+c.entityShort+`.yaml
     Update an IncusOS `+c.entity+` using the content of `+c.entityShort+`.yaml.`)
 
 	if c.os.args.SupportsTarget {
@@ -136,8 +145,13 @@ type cmdGenericList struct {
 }
 
 func (c *cmdGenericList) command() *cobra.Command {
+	usage := ""
+	if c.os.args.SupportsRemote {
+		usage = "[<remote>:]"
+	}
+
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("list")
+	cmd.Use = cli.Usage("list", usage)
 	cmd.Aliases = []string{"ls"}
 	cmd.Short = "List " + c.entity
 	cmd.Long = cli.FormatSection("Description", "List "+c.entity)
@@ -154,7 +168,13 @@ func (c *cmdGenericList) command() *cobra.Command {
 
 func (c *cmdGenericList) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	maxArgs := 0
+
+	if c.os.args.SupportsRemote {
+		maxArgs = 1
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, 0, maxArgs)
 	if exit {
 		return err
 	}
@@ -217,7 +237,11 @@ type cmdGenericRun struct {
 func (c *cmdGenericRun) command() *cobra.Command {
 	cmd := &cobra.Command{}
 
-	usage := "[<remote>:]"
+	usage := ""
+	if c.os.args.SupportsRemote {
+		usage = "[<remote>:]"
+	}
+
 	if c.entity != "" {
 		usage += "<" + c.entity + ">"
 	}
@@ -250,10 +274,14 @@ func (c *cmdGenericRun) command() *cobra.Command {
 func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
 	minArgs := 0
-	maxArgs := 1
+	maxArgs := 0
 
 	if c.entity != "" {
 		minArgs++
+	}
+
+	if c.entity != "" || c.os.args.SupportsRemote {
+		maxArgs++
 	}
 
 	if c.hasFileOutput || c.hasFileInput {
@@ -364,7 +392,11 @@ type cmdGenericShow struct {
 
 func (c *cmdGenericShow) command() *cobra.Command {
 	name := "Show details"
-	usage := "[<remote>:]"
+
+	usage := ""
+	if c.os.args.SupportsRemote {
+		usage = "[<remote>:]"
+	}
 
 	if c.entity != "" {
 		name = "Show " + c.entity + " details"
@@ -388,10 +420,15 @@ func (c *cmdGenericShow) command() *cobra.Command {
 func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
 	minArgs := 0
-	maxArgs := 1
+	maxArgs := 0
 
 	if c.entity != "" {
 		minArgs = 1
+		maxArgs = 1
+	}
+
+	if c.os.args.SupportsRemote {
+		maxArgs = 1
 	}
 
 	exit, err := cli.CheckArgs(cmd, args, minArgs, maxArgs)
