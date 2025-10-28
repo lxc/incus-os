@@ -531,6 +531,13 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	}
 
 	for {
+		// If updates are disabled, skip for an hour.
+		if !isUserRequested && s.System.Update.Config.CheckFrequency == "never" {
+			time.Sleep(time.Hour)
+
+			continue
+		}
+
 		// Sleep at the top of each loop, except if we're performing a startup or manual check.
 		if !isStartupCheck && !isUserRequested {
 			timeSinceCheck := time.Since(s.System.Update.State.LastCheck)

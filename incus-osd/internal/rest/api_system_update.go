@@ -49,11 +49,14 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		_, err = time.ParseDuration(newConfig.Config.CheckFrequency)
-		if err != nil {
-			_ = response.BadRequest(errors.New("invalid update check frequency")).Render(w)
+		// Check the update frequency is valid.
+		if newConfig.Config.CheckFrequency != "never" {
+			_, err = time.ParseDuration(newConfig.Config.CheckFrequency)
+			if err != nil {
+				_ = response.BadRequest(errors.New("invalid update check frequency")).Render(w)
 
-			return
+				return
+			}
 		}
 
 		// Apply the updated configuration.
