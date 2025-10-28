@@ -2,7 +2,6 @@ package state
 
 import (
 	"os"
-	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -67,7 +66,7 @@ func (s *State) initialize() error {
 	s.System.Update.Config.Channel = "stable"
 
 	// Set the initial update frequency to 6 hours.
-	s.System.Update.Config.CheckFrequency = 6 * time.Hour
+	s.System.Update.Config.CheckFrequency = "6h"
 
 	return nil
 }
