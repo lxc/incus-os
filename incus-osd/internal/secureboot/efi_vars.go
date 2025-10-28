@@ -3,7 +3,6 @@ package secureboot
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
@@ -43,26 +42,20 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 
 // UpdateSecureBootCerts takes a given tar archive and applies any SecureBoot KEK, db, or dbx
 // updates that are not yet present on the current system.
-func UpdateSecureBootCerts(ctx context.Context, tarGzArchive string) (bool, error) {
+func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error) {
 	kekUpdates := make(map[string][]byte)
 	dbUpdates := make(map[string][]byte)
 	dbxUpdates := make(map[string][]byte)
 
 	// #nosec G304
-	archive, err := os.Open(tarGzArchive)
+	archive, err := os.Open(tarArchive)
 	if err != nil {
 		return false, err
 	}
 	defer archive.Close()
 
 	// Iterate through each update in the tar archive.
-	gz, err := gzip.NewReader(archive)
-	if err != nil {
-		return false, err
-	}
-	defer gz.Close()
-
-	tr := tar.NewReader(gz)
+	tr := tar.NewReader(archive)
 	for {
 		header, err := tr.Next()
 		if err != nil {

@@ -894,7 +894,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 		return errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
 	}
 
-	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar.gz")
+	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar")
 
 	// Apply the update.
 	if update.Version() != s.SecureBoot.Version { //nolint:nestif
