@@ -168,7 +168,13 @@ func (c *cmdGenericList) command() *cobra.Command {
 
 func (c *cmdGenericList) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	maxArgs := 0
+
+	if c.os.args.SupportsRemote {
+		maxArgs = 1
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, 0, maxArgs)
 	if exit {
 		return err
 	}
@@ -268,10 +274,14 @@ func (c *cmdGenericRun) command() *cobra.Command {
 func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
 	minArgs := 0
-	maxArgs := 1
+	maxArgs := 0
 
 	if c.entity != "" {
 		minArgs++
+	}
+
+	if c.entity != "" || c.os.args.SupportsRemote {
+		maxArgs++
 	}
 
 	if c.hasFileOutput || c.hasFileInput {
@@ -410,10 +420,15 @@ func (c *cmdGenericShow) command() *cobra.Command {
 func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
 	minArgs := 0
-	maxArgs := 1
+	maxArgs := 0
 
 	if c.entity != "" {
 		minArgs = 1
+		maxArgs = 1
+	}
+
+	if c.os.args.SupportsRemote {
+		maxArgs = 1
 	}
 
 	exit, err := cli.CheckArgs(cmd, args, minArgs, maxArgs)
