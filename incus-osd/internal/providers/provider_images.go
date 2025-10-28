@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -58,28 +57,31 @@ func (*images) Type() string {
 	return "images"
 }
 
-func (*images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
-	// Hardcode a single update for now until we have support for it in the provider.
-	updateURL := "https://images.linuxcontainers.org/os/keys/efi/IncusOS_2026_R1.tar.gz"
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, updateURL, nil)
+func (p *images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
+	// Get latest release.
+	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
-		return nil, ErrNoUpdateAvailable
+		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, ErrNoUpdateAvailable
-	}
-	defer resp.Body.Close()
+	// Check if a SecureBoot update is included.
+	found := false
 
-	if resp.StatusCode != http.StatusOK {
+	for _, file := range latestUpdate.Files {
+		if file.Type == apiupdate.UpdateFileTypeUpdateSecureboot {
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
 		return nil, ErrNoUpdateAvailable
 	}
 
 	update := imagesSecureBootCertUpdate{
-		url:     updateURL,
-		version: "202601010000",
+		provider:     p,
+		latestUpdate: latestUpdate,
 	}
 
 	return &update, nil
@@ -404,42 +406,48 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ 
 
 // Secure Boot key updates from the GitHub provider.
 type imagesSecureBootCertUpdate struct {
-	url     string
-	version string
+	provider *images
+
+	latestUpdate *apiupdate.UpdateFull
 }
 
 func (o *imagesSecureBootCertUpdate) Version() string {
-	return o.version
+	return o.latestUpdate.Version
 }
 
 func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.version, otherVersion)
+	// Prior to distributing SecureBoot updates via the normal update channel,
+	// we had a hard-coded release URL. The latest version there was 202601010000,
+	// which we need to temporarily allow to downgrade until we pass Jan 1, 2026.
+	if otherVersion == "202601010000" {
+		return datetimeComparison(o.latestUpdate.Version, "202510272025")
+	}
+
+	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
-	// #nosec G304
-	f, err := os.Create(filepath.Join(target, osName+"_SecureBootKeys_"+o.version+".tar.gz"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, o.url, nil)
+	// Create the target path.
+	err := os.MkdirAll(target, 0o700)
 	if err != nil {
 		return err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
+	for _, file := range o.latestUpdate.Files {
+		// Only select the SecureBoot update.
+		if file.Type != apiupdate.UpdateFileTypeUpdateSecureboot {
+			continue
+		}
+
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+		targetName := osName + "_SecureBootKeys_" + o.latestUpdate.Version + ".tar"
+
+		// Download the application.
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), nil)
+		if err != nil {
+			return err
+		}
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.New("error downloading update: " + resp.Status)
-	}
-
-	_, err = io.Copy(f, resp.Body)
-
-	return err
+	return nil
 }
