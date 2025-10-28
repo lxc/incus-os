@@ -173,12 +173,12 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
-func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context, _ string) (SecureBootCertUpdate, error) {
+func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context) (SecureBootCertUpdate, error) {
 	// Eventually we'll have an API from OperationsCenter to query for any updates.
 	return nil, ErrNoUpdateAvailable
 }
 
-func (p *operationsCenter) GetOSUpdate(ctx context.Context, _ string) (OSUpdate, error) {
+func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -516,7 +516,7 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, _ string, target string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -548,7 +548,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, _ string,
 	return nil
 }
 
-func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, _ string, target string, progressFunc func(float64)) (string, error) {
+func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, target string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {

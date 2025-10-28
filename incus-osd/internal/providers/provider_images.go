@@ -57,7 +57,7 @@ func (*images) Type() string {
 	return "images"
 }
 
-func (p *images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
+func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -87,7 +87,7 @@ func (p *images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureB
 	return &update, nil
 }
 
-func (p *images) GetOSUpdate(ctx context.Context, _ string) (OSUpdate, error) {
+func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -347,7 +347,7 @@ func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, target string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(target)
 	if err != nil && !os.IsNotExist(err) {
@@ -379,7 +379,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target st
 	return nil
 }
 
-func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ string, target string, progressFunc func(float64)) (string, error) {
+func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, target string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {
@@ -415,6 +415,10 @@ func (o *imagesSecureBootCertUpdate) Version() string {
 	return o.latestUpdate.Version
 }
 
+func (o *imagesSecureBootCertUpdate) GetFilename() string {
+	return "SecureBootKeys_" + o.latestUpdate.Version + ".tar"
+}
+
 func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	// Prior to distributing SecureBoot updates via the normal update channel,
 	// we had a hard-coded release URL. The latest version there was 202601010000,
@@ -426,7 +430,7 @@ func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, target string) error {
 	// Create the target path.
 	err := os.MkdirAll(target, 0o700)
 	if err != nil {
@@ -440,10 +444,9 @@ func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string
 		}
 
 		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
-		targetName := osName + "_SecureBootKeys_" + o.latestUpdate.Version + ".tar"
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), nil)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, o.GetFilename()), nil)
 		if err != nil {
 			return err
 		}

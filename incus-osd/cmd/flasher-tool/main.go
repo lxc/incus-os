@@ -485,7 +485,7 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string
 	}
 
 	// Get the latest release.
-	release, err := provider.GetOSUpdate(ctx, "IncusOS")
+	release, err := provider.GetOSUpdate(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -493,7 +493,7 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string
 	slog.InfoContext(ctx, "Downloading and decompressing IncusOS image ("+imageFormat+") version "+release.Version()+" from Linux Containers CDN")
 
 	// Download and decompress the image.
-	return release.DownloadImage(ctx, imageFormat, "IncusOS", ".", nil)
+	return release.DownloadImage(ctx, imageFormat, ".", nil)
 }
 
 // Spawn the editor with a temporary YAML file for editing configs.
