@@ -10,6 +10,7 @@ import (
 type Args struct {
 	DefaultListFormat string
 	SupportsTarget    bool
+	SupportsRemote    bool
 	DoHTTP            func(remoteName string, req *http.Request) (*http.Response, error)
 }
 
