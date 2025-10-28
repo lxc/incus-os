@@ -1,3 +1,5 @@
+![Daily API tests](https://github.com/lxc/incus-os/actions/workflows/daily.yml/badge.svg)
+
 # Introduction
 Incus OS is a minimal immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
 It's based on [Debian](https://www.debian.org) trixie and built using [mkosi](https://github.com/systemd/mkosi).
