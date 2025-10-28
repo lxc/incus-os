@@ -3,7 +3,9 @@ package state
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // UpgradeFuncs is a list of functions to apply in order to upgrade the version of a given state.
@@ -120,6 +122,29 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 		}
 
 		lines = append(lines, "System.Update.Config.Channel: stable")
+
+		return lines, nil
+	},
+	// V5: Switch CheckFrequency to be a string.
+	func(lines []string) ([]string, error) {
+		for i := range lines {
+			if !strings.HasPrefix(lines[i], "System.Update.Config.CheckFrequency") {
+				continue
+			}
+
+			parts := strings.SplitN(lines[i], ": ", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("malformed line '%s'", lines[i])
+			}
+
+			frequency, err := strconv.ParseInt(parts[1], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("bad frequency: %d", frequency)
+			}
+
+			// Convert to a number of hours.
+			lines[i] = "System.Update.Config.CheckFrequency: " + time.Duration(frequency).String()
+		}
 
 		return lines, nil
 	},
