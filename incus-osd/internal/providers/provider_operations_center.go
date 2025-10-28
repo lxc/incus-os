@@ -475,9 +475,9 @@ func (a *operationsCenterApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
-func (a *operationsCenterApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (a *operationsCenterApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -492,7 +492,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, target strin
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -516,15 +516,15 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, target string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(target)
+	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(target, 0o700)
+	err = os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -539,7 +539,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, target st
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -548,9 +548,9 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, target st
 	return nil
 }
 
-func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, target string, progressFunc func(float64)) (string, error) {
+func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType string, targetPath string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return "", err
 	}
@@ -565,7 +565,7 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}

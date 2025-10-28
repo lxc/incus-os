@@ -45,7 +45,7 @@ type SecureBootCertUpdate interface {
 
 	GetFilename() string
 
-	Download(ctx context.Context, target string) error
+	Download(ctx context.Context, targetPath string) error
 }
 
 // Provider represents an update/application provider.

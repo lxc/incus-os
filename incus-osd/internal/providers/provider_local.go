@@ -189,7 +189,7 @@ func (p *local) checkRelease(_ context.Context) error {
 	return nil
 }
 
-func (p *local) copyAsset(_ context.Context, name string, target string, progressFunc func(float64)) error {
+func (p *local) copyAsset(_ context.Context, name string, targetPath string, progressFunc func(float64)) error {
 	// Open the source.
 	// #nosec G304
 	src, err := os.Open(filepath.Join(p.path, name))
@@ -209,7 +209,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 
 	// Open the destination.
 	// #nosec G304
-	dst, err := os.Create(filepath.Join(target, name))
+	dst, err := os.Create(filepath.Join(targetPath, name))
 	if err != nil {
 		return err
 	}
@@ -261,9 +261,9 @@ func (a *localApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.version, otherVersion)
 }
 
-func (a *localApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (a *localApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (a *localApplication) Download(ctx context.Context, target string, progress
 		}
 
 		// Copy the application.
-		err = a.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
+		err = a.provider.copyAsset(ctx, filepath.Base(asset), targetPath, progressFunc)
 		if err != nil {
 			return err
 		}
@@ -367,7 +367,7 @@ func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localSecureBootCertUpdate) Download(ctx context.Context, target string) error {
+func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
 	for _, asset := range o.assets {
 		// Only select Secure Boot keys for the expected version.
 		if filepath.Base(asset) != o.GetFilename() {
@@ -375,7 +375,7 @@ func (o *localSecureBootCertUpdate) Download(ctx context.Context, target string)
 		}
 
 		// Download the actual update.
-		err := o.provider.copyAsset(ctx, filepath.Base(asset), target, nil)
+		err := o.provider.copyAsset(ctx, filepath.Base(asset), targetPath, nil)
 		if err != nil {
 			return err
 		}
