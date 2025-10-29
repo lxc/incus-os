@@ -531,11 +531,28 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	}
 
 	for {
+		// If updates are disabled, skip for an hour.
+		if !isUserRequested && s.System.Update.Config.CheckFrequency == "never" {
+			time.Sleep(time.Hour)
+
+			continue
+		}
+
 		// Sleep at the top of each loop, except if we're performing a startup or manual check.
 		if !isStartupCheck && !isUserRequested {
 			timeSinceCheck := time.Since(s.System.Update.State.LastCheck)
-			if timeSinceCheck < s.System.Update.Config.CheckFrequency {
-				time.Sleep(s.System.Update.Config.CheckFrequency - timeSinceCheck)
+
+			frequency, err := time.ParseDuration(s.System.Update.Config.CheckFrequency)
+			if err != nil {
+				// Shouldn't be possible, we validate on update.
+				s.System.Update.State.Status = "Failed to parse update frequency"
+				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+
+				break
+			}
+
+			if timeSinceCheck < frequency {
+				time.Sleep(frequency - timeSinceCheck)
 			}
 		}
 

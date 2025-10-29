@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -43,6 +44,16 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 			// If either StartDayOfWeek or EndDayOfWeek is specified, the other must be too.
 			if (mw.StartDayOfWeek == api.NONE && mw.EndDayOfWeek != api.NONE) || (mw.StartDayOfWeek != api.NONE && mw.EndDayOfWeek == api.NONE) {
 				_ = response.BadRequest(errors.New("invalid migration window: both StartDayOfWeek and EndDayOfWeek must be provided")).Render(w)
+
+				return
+			}
+		}
+
+		// Check the update frequency is valid.
+		if newConfig.Config.CheckFrequency != "never" {
+			_, err = time.ParseDuration(newConfig.Config.CheckFrequency)
+			if err != nil {
+				_ = response.BadRequest(errors.New("invalid update check frequency")).Render(w)
 
 				return
 			}

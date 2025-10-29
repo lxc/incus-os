@@ -178,7 +178,7 @@ jobs:
 
           sleep 30s
 
-          incus restart test-incus-os
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/:reboot -X POST
 
       - name: Build a newer version of the image
         run: |
@@ -200,7 +200,7 @@ jobs:
 
           incus exec test-incus-os -- journalctl -u incus-osd -b0
 
-          incus restart test-incus-os
+          incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/:reboot -X POST
 
           sleep 3m
 

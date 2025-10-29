@@ -15,7 +15,7 @@ type SystemUpdate struct {
 type SystemUpdateConfig struct {
 	AutoReboot         bool                            `json:"auto_reboot"                   yaml:"auto_reboot"`
 	Channel            string                          `json:"channel"                       yaml:"channel"`
-	CheckFrequency     time.Duration                   `json:"check_frequency"               yaml:"check_frequency"`
+	CheckFrequency     string                          `json:"check_frequency"               yaml:"check_frequency"`
 	MaintenanceWindows []SystemUpdateMaintenanceWindow `json:"maintenance_windows,omitempty" yaml:"maintenance_windows,omitempty"`
 }
 

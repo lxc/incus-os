@@ -2,12 +2,11 @@ package state
 
 import (
 	"os"
-	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-var currentStateVersion = 3
+var currentStateVersion = 5
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
@@ -67,7 +66,7 @@ func (s *State) initialize() error {
 	s.System.Update.Config.Channel = "stable"
 
 	// Set the initial update frequency to 6 hours.
-	s.System.Update.Config.CheckFrequency = 6 * time.Hour
+	s.System.Update.Config.CheckFrequency = "6h"
 
 	return nil
 }
