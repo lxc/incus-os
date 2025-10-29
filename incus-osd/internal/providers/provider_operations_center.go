@@ -173,9 +173,34 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
-func (*operationsCenter) GetSecureBootCertUpdate(_ context.Context) (SecureBootCertUpdate, error) {
-	// Eventually we'll have an API from OperationsCenter to query for any updates.
-	return nil, ErrNoUpdateAvailable
+func (p *operationsCenter) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
+	// Get latest release.
+	latestUpdate, err := p.checkRelease(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if a SecureBoot update is included.
+	found := false
+
+	for _, file := range latestUpdate.Files {
+		if file.Type == string(apiupdate.UpdateFileTypeUpdateSecureboot) {
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	update := operationsCenterSecureBootCertUpdate{
+		provider:     p,
+		latestUpdate: latestUpdate,
+	}
+
+	return &update, nil
 }
 
 func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
@@ -571,4 +596,55 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 	}
 
 	return "", fmt.Errorf("failed to download image type '%s' for release %s", imageType, o.latestUpdate.Version)
+}
+
+// Secure Boot key updates from the Operations Center provider.
+type operationsCenterSecureBootCertUpdate struct {
+	provider *operationsCenter
+
+	latestUpdate *operationsCenterUpdate
+}
+
+func (o *operationsCenterSecureBootCertUpdate) Version() string {
+	return o.latestUpdate.Version
+}
+
+func (o *operationsCenterSecureBootCertUpdate) GetFilename() string {
+	return "SecureBootKeys_" + o.latestUpdate.Version + ".tar"
+}
+
+func (o *operationsCenterSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
+	// Prior to distributing SecureBoot updates via the normal update channel,
+	// we had a hard-coded release URL. The latest version there was 202601010000,
+	// which we need to temporarily allow to downgrade until we pass Jan 1, 2026.
+	if otherVersion == "202601010000" {
+		return datetimeComparison(o.latestUpdate.Version, "202510272025")
+	}
+
+	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+}
+
+func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
+	// Create the target path.
+	err := os.MkdirAll(targetPath, 0o700)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range o.latestUpdate.Files {
+		// Only select the SecureBoot update.
+		if file.Type != string(apiupdate.UpdateFileTypeUpdateSecureboot) {
+			continue
+		}
+
+		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
+
+		// Download the application.
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
