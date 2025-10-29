@@ -340,7 +340,7 @@ func wrapFooterText(label string, text string, maxLineLength int) []string {
 	currentLine := "[green]" + label + ":[white] "
 	currentLen := len(label) + 2
 
-	for _, word := range strings.Split(text, " ") {
+	for word := range strings.SplitSeq(text, " ") {
 		if currentLen+len(word) > maxLineLength {
 			ret = append(ret, currentLine)
 			currentLine = ""

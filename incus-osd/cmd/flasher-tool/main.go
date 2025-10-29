@@ -419,6 +419,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 	var buf bytes.Buffer
 
 	tw := tar.NewWriter(&buf)
+
 	for _, file := range archiveContents {
 		hdr := &tar.Header{
 			Name: file[0],

@@ -145,6 +145,7 @@ func makeJsonable(data any) any {
 	switch x := data.(type) {
 	case map[any]any:
 		newData := map[string]any{}
+
 		for k, v := range x {
 			kStr, ok := k.(string)
 			if !ok {
