@@ -142,15 +142,17 @@ func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error 
 		menuOptions = append(menuOptions, "Write image and exit")
 		menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 
-		menuPrompt := "\nCustomization options:\n"
+		var menuPrompt strings.Builder
+
+		_, _ = menuPrompt.WriteString("\nCustomization options:\n")
 		for i := range menuOptions {
-			menuPrompt += fmt.Sprintf("%s) %s\n", menuSelectionOptions[i], menuOptions[i])
+			_, _ = menuPrompt.WriteString(fmt.Sprintf("%s) %s\n", menuSelectionOptions[i], menuOptions[i]))
 		}
 
-		menuPrompt += "\nSelection: "
+		_, _ = menuPrompt.WriteString("\nSelection: ")
 
 		// Prompt the user for a selection.
-		selection, err := asker.AskChoice(menuPrompt, menuSelectionOptions, strconv.Itoa(len(menuOptions)))
+		selection, err := asker.AskChoice(menuPrompt.String(), menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 		if err != nil {
 			return err
 		}
