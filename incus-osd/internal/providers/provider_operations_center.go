@@ -556,7 +556,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPat
 
 	for _, file := range o.latestUpdate.Files {
 		// Only select OS updates.
-		if file.Component != string(apiupdate.UpdateFileComponentOS) || !strings.HasPrefix(file.Type, "update-") {
+		if file.Component != string(apiupdate.UpdateFileComponentOS) || !slices.Contains([]apiupdate.UpdateFileType{apiupdate.UpdateFileTypeUpdateEFI, apiupdate.UpdateFileTypeUpdateUsr, apiupdate.UpdateFileTypeUpdateUsrVerity, apiupdate.UpdateFileTypeUpdateUsrVeritySignature}, apiupdate.UpdateFileType(file.Type)) {
 			continue
 		}
 

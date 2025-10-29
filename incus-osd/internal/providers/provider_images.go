@@ -362,7 +362,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, 
 
 	for _, file := range o.latestUpdate.Files {
 		// Only select OS updates.
-		if file.Component != apiupdate.UpdateFileComponentOS || !strings.HasPrefix(string(file.Type), "update-") {
+		if file.Component != apiupdate.UpdateFileComponentOS || !slices.Contains([]apiupdate.UpdateFileType{apiupdate.UpdateFileTypeUpdateEFI, apiupdate.UpdateFileTypeUpdateUsr, apiupdate.UpdateFileTypeUpdateUsrVerity, apiupdate.UpdateFileTypeUpdateUsrVeritySignature}, file.Type) {
 			continue
 		}
 
