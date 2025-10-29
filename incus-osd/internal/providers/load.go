@@ -10,11 +10,6 @@ import (
 
 // Load gets a specific provider and initializes it with the provider configuration.
 func Load(ctx context.Context, s *state.State) (Provider, error) {
-	// NOTE: Migration logic, remove after a few releases.
-	if s.System.Provider.Config.Name == "github" {
-		s.System.Provider.Config.Name = "images"
-	}
-
 	var p Provider
 
 	switch s.System.Provider.Config.Name {
