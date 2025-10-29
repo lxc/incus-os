@@ -492,7 +492,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -539,7 +539,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPat
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -565,7 +565,7 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
