@@ -46,7 +46,7 @@ func (*local) Type() string {
 	return "local"
 }
 
-func (p *local) GetSecureBootCertUpdate(ctx context.Context, osName string) (SecureBootCertUpdate, error) {
+func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -58,7 +58,7 @@ func (p *local) GetSecureBootCertUpdate(ctx context.Context, osName string) (Sec
 	foundUpdateFile := false
 
 	for _, asset := range p.releaseAssets {
-		if strings.HasPrefix(filepath.Base(asset), osName+"_SecureBootKeys_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+		if strings.HasPrefix(filepath.Base(asset), "SecureBootKeys_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -79,7 +79,7 @@ func (p *local) GetSecureBootCertUpdate(ctx context.Context, osName string) (Sec
 	return &update, nil
 }
 
-func (p *local) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error) {
+func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -91,7 +91,7 @@ func (p *local) GetOSUpdate(ctx context.Context, osName string) (OSUpdate, error
 	foundUpdateFile := false
 
 	for _, asset := range p.releaseAssets {
-		if strings.HasPrefix(filepath.Base(asset), osName+"_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
+		if strings.HasPrefix(filepath.Base(asset), "IncusOS_") && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -189,7 +189,7 @@ func (p *local) checkRelease(_ context.Context) error {
 	return nil
 }
 
-func (p *local) copyAsset(_ context.Context, name string, target string, progressFunc func(float64)) error {
+func (p *local) copyAsset(_ context.Context, name string, targetPath string, progressFunc func(float64)) error {
 	// Open the source.
 	// #nosec G304
 	src, err := os.Open(filepath.Join(p.path, name))
@@ -209,7 +209,7 @@ func (p *local) copyAsset(_ context.Context, name string, target string, progres
 
 	// Open the destination.
 	// #nosec G304
-	dst, err := os.Create(filepath.Join(target, name))
+	dst, err := os.Create(filepath.Join(targetPath, name))
 	if err != nil {
 		return err
 	}
@@ -261,9 +261,9 @@ func (a *localApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.version, otherVersion)
 }
 
-func (a *localApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (a *localApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (a *localApplication) Download(ctx context.Context, target string, progress
 		}
 
 		// Copy the application.
-		err = a.provider.copyAsset(ctx, filepath.Base(asset), target, progressFunc)
+		err = a.provider.copyAsset(ctx, filepath.Base(asset), targetPath, progressFunc)
 		if err != nil {
 			return err
 		}
@@ -302,7 +302,7 @@ func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) DownloadUpdate(ctx context.Context, osName string, targetPath string, progressFunc func(float64)) error {
+func (o *localOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -317,7 +317,7 @@ func (o *localOSUpdate) DownloadUpdate(ctx context.Context, osName string, targe
 
 	for _, asset := range o.assets {
 		// Only select OS files for the expected version.
-		if !strings.HasPrefix(filepath.Base(asset), osName+"_"+o.version) {
+		if !strings.HasPrefix(filepath.Base(asset), "IncusOS_"+o.version) {
 			continue
 		}
 
@@ -342,7 +342,7 @@ func (o *localOSUpdate) DownloadUpdate(ctx context.Context, osName string, targe
 	return nil
 }
 
-func (*localOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ string, _ func(float64)) (string, error) {
+func (*localOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ func(float64)) (string, error) {
 	// No reason to support fetching a full install image from the local (development) provider.
 	return "", errors.New("downloading full image not supported by local provider")
 }
@@ -359,19 +359,23 @@ func (o *localSecureBootCertUpdate) Version() string {
 	return o.version
 }
 
+func (o *localSecureBootCertUpdate) GetFilename() string {
+	return "SecureBootKeys_" + o.version + ".tar"
+}
+
 func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
 	for _, asset := range o.assets {
 		// Only select Secure Boot keys for the expected version.
-		if !strings.HasPrefix(filepath.Base(asset), osName+"_SecureBootKeys_"+o.version) {
+		if filepath.Base(asset) != o.GetFilename() {
 			continue
 		}
 
 		// Download the actual update.
-		err := o.provider.copyAsset(ctx, filepath.Base(asset), target, nil)
+		err := o.provider.copyAsset(ctx, filepath.Base(asset), targetPath, nil)
 		if err != nil {
 			return err
 		}

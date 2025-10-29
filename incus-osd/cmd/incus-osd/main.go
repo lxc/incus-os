@@ -733,7 +733,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 	}
 
-	update, err := p.GetOSUpdate(ctx, s.OS.Name)
+	update, err := p.GetOSUpdate(ctx)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
 			slog.DebugContext(ctx, "OS update provider doesn't currently have any update")
@@ -765,7 +765,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		slog.InfoContext(ctx, "Downloading OS update", "release", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 
-		err := update.DownloadUpdate(ctx, s.OS.Name, systemd.SystemUpdatesPath, modal.UpdateProgress)
+		err := update.DownloadUpdate(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}
@@ -878,7 +878,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 		return nil
 	}
 
-	update, err := p.GetSecureBootCertUpdate(ctx, s.OS.Name)
+	update, err := p.GetSecureBootCertUpdate(ctx)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
 			slog.DebugContext(ctx, "Secure Boot key update provider doesn't currently have any update")
@@ -894,7 +894,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 		return errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
 	}
 
-	archiveFilepath := filepath.Join(varPath, s.OS.Name+"_SecureBootKeys_"+update.Version()+".tar")
+	archiveFilepath := filepath.Join(varPath, update.GetFilename())
 
 	// Apply the update.
 	if update.Version() != s.SecureBoot.Version { //nolint:nestif
@@ -909,7 +909,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 				return err
 			}
 
-			err := update.Download(ctx, s.OS.Name, varPath)
+			err := update.Download(ctx, varPath)
 			if err != nil {
 				return err
 			}

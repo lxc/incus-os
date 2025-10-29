@@ -57,7 +57,7 @@ func (*images) Type() string {
 	return "images"
 }
 
-func (p *images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureBootCertUpdate, error) {
+func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -87,7 +87,7 @@ func (p *images) GetSecureBootCertUpdate(ctx context.Context, _ string) (SecureB
 	return &update, nil
 }
 
-func (p *images) GetOSUpdate(ctx context.Context, _ string) (OSUpdate, error) {
+func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -306,9 +306,9 @@ func (a *imagesApplication) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
-func (a *imagesApplication) Download(ctx context.Context, target string, progressFunc func(float64)) error {
+func (a *imagesApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -323,7 +323,7 @@ func (a *imagesApplication) Download(ctx context.Context, target string, progres
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -347,15 +347,15 @@ func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
-	err := os.RemoveAll(target)
+	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the target path.
-	err = os.MkdirAll(target, 0o700)
+	err = os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target st
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -379,9 +379,9 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, _ string, target st
 	return nil
 }
 
-func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ string, target string, progressFunc func(float64)) (string, error) {
+func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, targetPath string, progressFunc func(float64)) (string, error) {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return "", err
 	}
@@ -396,7 +396,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, _ 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), progressFunc)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
@@ -415,6 +415,10 @@ func (o *imagesSecureBootCertUpdate) Version() string {
 	return o.latestUpdate.Version
 }
 
+func (o *imagesSecureBootCertUpdate) GetFilename() string {
+	return "SecureBootKeys_" + o.latestUpdate.Version + ".tar"
+}
+
 func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	// Prior to distributing SecureBoot updates via the normal update channel,
 	// we had a hard-coded release URL. The latest version there was 202601010000,
@@ -426,9 +430,9 @@ func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string, target string) error {
+func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
 	// Create the target path.
-	err := os.MkdirAll(target, 0o700)
+	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
 		return err
 	}
@@ -440,10 +444,9 @@ func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, osName string
 		}
 
 		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
-		targetName := osName + "_SecureBootKeys_" + o.latestUpdate.Version + ".tar"
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(target, targetName), nil)
+		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
 			return err
 		}

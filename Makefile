@@ -204,7 +204,7 @@ test-update-sb-keys:
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
 
-	cd certs/efi/updates/ && tar cf IncusOS_SecureBootKeys_${RELEASE}.tar *.auth
+	cd certs/efi/updates/ && tar cf SecureBootKeys_${RELEASE}.tar *.auth
 	incus file push certs/efi/updates/*.tar test-incus-os/root/updates/
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
