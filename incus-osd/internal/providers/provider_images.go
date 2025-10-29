@@ -404,7 +404,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, ta
 	return "", fmt.Errorf("failed to download image type '%s' for release %s", imageType, o.latestUpdate.Version)
 }
 
-// Secure Boot key updates from the GitHub provider.
+// Secure Boot key updates from the images provider.
 type imagesSecureBootCertUpdate struct {
 	provider *images
 
