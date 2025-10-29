@@ -15,6 +15,14 @@ else:
     raise("Unsupported architecture " + ARCH)
 
 applications = {
+    # incus-osd is special, but listed here to leverage the same install and manifest generation logic
+    "incus-osd": {
+        "repo": "https://github.com/lxc/incus-os.git",
+        "install_targets": [
+            ["incus-osd", "usr/local/bin/"]
+        ],
+        "clean_targets": ["usr/local/bin/incus-osd"]
+    },
     "kpx": {
         "version": "1.12.2",
         "repo": "https://github.com/momiji/kpx.git",
@@ -131,7 +139,7 @@ applications = {
 }
 
 images = [
-    ["base", ["kpx", "tailscale"]],
+    ["base", ["incus-osd", "kpx", "tailscale"]],
     ["migration-manager", ["migration-manager"]],
     ["operations-center", [
         "opentofu",
@@ -285,8 +293,12 @@ def create_image_manifest(image, applications):
 
 if __name__ == "__main__":
     for app in applications:
-        print("Building " + app)
-        build(app)
+        if app == "incus-osd":
+            # incus-osd is already built, so we only need to generate its manifest
+            create_application_manifest("incus-osd", "main")
+        else:
+            print("Building " + app)
+            build(app)
 
     for image, apps in images:
         for app in apps:
