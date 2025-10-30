@@ -6,29 +6,29 @@ import (
 
 // formatSection properly indents a text section.
 func formatSection(header string, content string) string {
-	out := ""
+	var out strings.Builder
 
 	// Add section header
 	if header != "" {
-		out += header + ":\n"
+		_, _ = out.WriteString(header + ":\n")
 	}
 
 	// Indent the content
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		if line != "" {
-			out += "  "
+			_, _ = out.WriteString("  ")
 		}
 
-		out += line + "\n"
+		_, _ = out.WriteString(line + "\n")
 	}
 
 	if header != "" {
 		// Section separator (when rendering a full section
-		out += "\n"
-	} else {
-		// Remove last newline when rendering partial section
-		out = strings.TrimSuffix(out, "\n")
+		_, _ = out.WriteString("\n")
+
+		return out.String()
 	}
 
-	return out
+	// Remove last newline when rendering partial section
+	return strings.TrimSuffix(out.String(), "\n")
 }
