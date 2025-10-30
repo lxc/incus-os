@@ -513,11 +513,10 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 			continue
 		}
 
-		fileURL := a.provider.serverURL + "/" + a.latestUpdate.Version + "/" + file.Filename
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, a.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -560,11 +559,10 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPat
 			continue
 		}
 
-		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return err
 		}
@@ -586,11 +584,10 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 			continue
 		}
 
-		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
@@ -637,10 +634,8 @@ func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, tar
 			continue
 		}
 
-		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
-
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
+		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
 			return err
 		}
