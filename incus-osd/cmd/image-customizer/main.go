@@ -67,6 +67,7 @@ func main() {
 	err := do(context.TODO())
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+
 		os.Exit(1)
 	}
 }
@@ -348,11 +349,9 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 
 	// Write leading part.
 	remainder := int64(2148532224)
+
 	for {
-		chunk := int64(4 * 1024 * 1024)
-		if remainder < chunk {
-			chunk = remainder
-		}
+		chunk := min(remainder, int64(4*1024*1024))
 
 		if chunk == 0 {
 			break

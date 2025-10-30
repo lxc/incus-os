@@ -80,7 +80,7 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 
 	jsonObj := []map[string]any{}
 
-	for _, line := range strings.Split(jsonOutput, "\n") {
+	for line := range strings.SplitSeq(jsonOutput, "\n") {
 		if line == "" {
 			continue
 		}

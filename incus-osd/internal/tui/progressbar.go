@@ -170,10 +170,7 @@ func (p *ProgressBar) Draw(screen tcell.Screen) {
 		maxLength = height
 	}
 
-	barLength := int(math.RoundToEven(float64(maxLength) * (float64(p.progress) / float64(p.max))))
-	if barLength > maxLength {
-		barLength = maxLength
-	}
+	barLength := min(int(math.RoundToEven(float64(maxLength)*(float64(p.progress)/float64(p.max)))), maxLength)
 
 	for i := range barSize {
 		for j := range barLength {

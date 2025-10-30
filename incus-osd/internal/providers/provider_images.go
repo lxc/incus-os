@@ -362,7 +362,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, 
 
 	for _, file := range o.latestUpdate.Files {
 		// Only select OS updates.
-		if file.Component != apiupdate.UpdateFileComponentOS || !strings.HasPrefix(string(file.Type), "update-") {
+		if file.Component != apiupdate.UpdateFileComponentOS || !slices.Contains([]apiupdate.UpdateFileType{apiupdate.UpdateFileTypeUpdateEFI, apiupdate.UpdateFileTypeUpdateUsr, apiupdate.UpdateFileTypeUpdateUsrVerity, apiupdate.UpdateFileTypeUpdateUsrVeritySignature}, file.Type) {
 			continue
 		}
 
@@ -404,7 +404,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, ta
 	return "", fmt.Errorf("failed to download image type '%s' for release %s", imageType, o.latestUpdate.Version)
 }
 
-// Secure Boot key updates from the GitHub provider.
+// Secure Boot key updates from the images provider.
 type imagesSecureBootCertUpdate struct {
 	provider *images
 

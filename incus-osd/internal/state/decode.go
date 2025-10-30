@@ -13,8 +13,9 @@ func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 	lines := strings.Split(string(b), "\n")
 
 	// Check if we need to run any update logic.
-	if strings.HasPrefix(lines[0], "#Version: ") {
-		version, err := strconv.Atoi(strings.TrimPrefix(lines[0], "#Version: "))
+	after, ok := strings.CutPrefix(lines[0], "#Version: ")
+	if ok {
+		version, err := strconv.Atoi(after)
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -54,6 +55,10 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 			return err
 		}
 	case reflect.Map:
+		if len(keyPrefix) == 0 {
+			return errors.New("key prefix cannot be empty")
+		}
+
 		keyBase := keyPrefix[len(keyPrefix)-1]
 
 		mapKeys := v.MapKeys()
@@ -80,6 +85,10 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 
 		return encodeHelper(b, keyPrefix, v.Elem())
 	case reflect.Slice:
+		if len(keyPrefix) == 0 {
+			return errors.New("key prefix cannot be empty")
+		}
+
 		keyBase := keyPrefix[len(keyPrefix)-1]
 		for i := range v.Len() {
 			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%d]", keyBase, i)

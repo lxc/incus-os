@@ -529,14 +529,14 @@ func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPStat
 
 func generateHosts(_ context.Context, s *state.State) error {
 	// Generate the /etc/hosts file.
-	return os.WriteFile("/etc/hosts", []byte(fmt.Sprintf(`127.0.0.1	localhost
+	return os.WriteFile("/etc/hosts", fmt.Appendf([]byte{}, `127.0.0.1	localhost
 127.0.1.1	%s
 
 # The following lines are desirable for IPv6 capable hosts
 ::1     localhost ip6-localhost ip6-loopback
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
-`, s.Hostname())), 0o644)
+`, s.Hostname()), 0o644)
 }
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
@@ -1146,12 +1146,13 @@ UseMTU=true
 }
 
 func processAddresses(addresses []string) string {
-	ret := ""
+	var ret strings.Builder
+
 	if len(addresses) != 0 {
-		ret += "LinkLocalAddressing=ipv6\n"
+		_, _ = ret.WriteString("LinkLocalAddressing=ipv6\n")
 	} else {
-		ret += "LinkLocalAddressing=no\n"
-		ret += "ConfigureWithoutCarrier=yes\n"
+		_, _ = ret.WriteString("LinkLocalAddressing=no\n")
+		_, _ = ret.WriteString("ConfigureWithoutCarrier=yes\n")
 	}
 
 	hasDHCP4 := false
@@ -1168,77 +1169,78 @@ func processAddresses(addresses []string) string {
 			acceptIPv6RA = true
 
 		default:
-			ret += fmt.Sprintf("Address=%s\n", addr)
+			_, _ = ret.WriteString(fmt.Sprintf("Address=%s\n", addr))
 		}
 	}
 
 	if acceptIPv6RA {
-		ret += "IPv6AcceptRA=true\n"
+		_, _ = ret.WriteString("IPv6AcceptRA=true\n")
 	} else {
-		ret += "IPv6AcceptRA=false\n"
+		_, _ = ret.WriteString("IPv6AcceptRA=false\n")
 	}
 
 	if hasDHCP4 && hasDHCP6 { //nolint:gocritic
-		ret += "DHCP=yes\n"
+		_, _ = ret.WriteString("DHCP=yes\n")
 	} else if hasDHCP4 {
-		ret += "DHCP=ipv4\n"
+		_, _ = ret.WriteString("DHCP=ipv4\n")
 	} else if hasDHCP6 {
-		ret += "DHCP=ipv6\n"
+		_, _ = ret.WriteString("DHCP=ipv6\n")
 	}
 
-	return ret
+	return ret.String()
 }
 
 func processRoutes(routes []api.SystemNetworkRoute) string {
-	ret := ""
+	var ret strings.Builder
 
 	for _, route := range routes {
-		ret += "\n[Route]\n"
+		_, _ = ret.WriteString("\n[Route]\n")
 
 		switch route.Via {
 		case "dhcp4":
-			ret += "Gateway=_dhcp4\n"
+			_, _ = ret.WriteString("Gateway=_dhcp4\n")
 		case "slaac":
-			ret += "Gateway=_ipv6ra\n"
+			_, _ = ret.WriteString("Gateway=_ipv6ra\n")
 		default:
-			ret += fmt.Sprintf("Gateway=%s\n", route.Via)
+			_, _ = ret.WriteString(fmt.Sprintf("Gateway=%s\n", route.Via))
 		}
 
-		ret += fmt.Sprintf("Destination=%s\n", route.To)
+		_, _ = ret.WriteString(fmt.Sprintf("Destination=%s\n", route.To))
 	}
 
-	return ret
+	return ret.String()
 }
 
 func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
-	ret := ""
+	var ret strings.Builder
 
 	// Add any matching VLANs to the config.
+
 	for _, v := range vlans {
 		if v.Parent == name {
-			ret += fmt.Sprintf("VLAN=%s\n", v.Name)
+			_, _ = ret.WriteString(fmt.Sprintf("VLAN=%s\n", v.Name))
 		}
 	}
 
 	// If there are search domains or name servers, add those to the config.
 	if dns != nil {
 		if len(dns.SearchDomains) > 0 {
-			ret += fmt.Sprintf("Domains=%s\n", strings.Join(dns.SearchDomains, " "))
+			_, _ = ret.WriteString(fmt.Sprintf("Domains=%s\n", strings.Join(dns.SearchDomains, " ")))
 		}
 
 		for _, ns := range dns.Nameservers {
-			ret += fmt.Sprintf("DNS=%s\n", ns)
+			_, _ = ret.WriteString(fmt.Sprintf("DNS=%s\n", ns))
 		}
 	}
 
 	// If there are time servers defined, add them to the config.
 	if ntp != nil {
 		for _, ts := range ntp.Timeservers {
-			ret += fmt.Sprintf("NTP=%s\n", ts)
+			_, _ = ret.WriteString(fmt.Sprintf("NTP=%s\n", ts))
 		}
 	}
 
-	return ret
+	return ret.String()
 }
 
 func generateTimesyncContents(ntp api.SystemNetworkNTP) string {
@@ -1268,16 +1270,16 @@ func generateVLANContents(devName string, additionalVLANTags []int, vlans []api.
 	slices.Sort(vlanTags)
 	vlanTags = slices.Compact(vlanTags)
 
-	ret := ""
+	var ret strings.Builder
 
 	if len(vlanTags) > 0 {
 		for _, tag := range vlanTags {
-			ret += "\n[BridgeVLAN]\n"
-			ret += fmt.Sprintf("VLAN=%d\n", tag)
+			_, _ = ret.WriteString("\n[BridgeVLAN]\n")
+			_, _ = ret.WriteString(fmt.Sprintf("VLAN=%d\n", tag))
 		}
 	}
 
-	return ret
+	return ret.String()
 }
 
 func generateLinkSectionContents(addresses []string, requiredForOnline string) string {
