@@ -19,6 +19,11 @@ flasher-tool:
 	(cd incus-osd && go build ./cmd/flasher-tool)
 	strip incus-osd/flasher-tool
 
+.PHONY: generate-manifests
+generate-manifests:
+	(cd incus-osd && go build ./cmd/generate-manifests)
+	strip incus-osd/generate-manifests
+
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
@@ -49,7 +54,7 @@ ifeq (,$(wildcard ./certs/))
 endif
 
 .PHONY: build
-build: incus-osd flasher-tool initrd-deb-package
+build: incus-osd flasher-tool generate-manifests initrd-deb-package
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
