@@ -16,11 +16,11 @@ the system post install.
 
 Minimum system requirements:
 
-  * Modern x86_64 or arm64 system (5 years old at most)
-  * Support for UEFI with SecureBoot
-  * TPM 2.0 security module
-  * At least 50GiB of storage
-  * At least one wired network port
+- Modern x86_64 or arm64 system (5 years old at most)
+- Support for UEFI with SecureBoot
+- TPM 2.0 security module
+- At least 50GiB of storage
+- At least one wired network port
 
 ## Installation
 ISO and raw images are distributed via the [Linux Containers CDN](https://images.linuxcontainers.org/os/).
