@@ -102,6 +102,10 @@ jobs:
           mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
           mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-*.raw upload/
 
+          mkdir upload/manifests
+
+          ./incus-osd/generate-manifests ./mkosi.output/ ./app-build/ ./upload/manifests/
+
       - name: Compress the files
         run: |
           cd upload
