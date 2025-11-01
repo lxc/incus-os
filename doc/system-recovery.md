@@ -39,13 +39,13 @@ storage endpoint.
 
 ## Recovery mode
 
-A special "recovery mode" can be triggered early in the Incus OS bootup if a data partition
-labeled `RESCUE_DATA` and formatted as vfat or iso is present. Incus OS will automatically
-attempt to find and run a hotfix script named `hotfix.sh.sig` at the root of that partition,
+A special "recovery mode" can be triggered early in the Incus OS boot sequence if a data partition
+labeled `RESCUE_DATA` and formatted as FAT or ISO is present. Incus OS will automatically
+attempt to find and run a hot-fix script named `hotfix.sh.sig` at the root of that partition,
 followed by any OS or application updates contained in an `update/` directory also at the root
 of the recovery partition.
 
-Both the hotfix script and update metadata json file must be properly signed by the same
+Both the hot-fix script and update metadata JSON file must be properly signed by the same
 certificate used to distribute normal Incus OS updates. This prevents an attacker from simply
 being able to connect a random USB stick and then running arbitrary commands with full
 system access.

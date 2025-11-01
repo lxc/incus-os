@@ -5,167 +5,162 @@ are not backwards compatible.
 
 ## REST endpoints
 
-  * `/1.0`
-  
-    `GET`: Returns the system's hostname, OS name, and OS version
- 
-  * `/1.0/applications`
-  
-    `GET`: Returns a list of installed application endpoints
-  
-  * `/1.0/applications/{name}`
-  
-    `GET`: Returns application-specific status and/or configuration information
+### `/1.0`
 
-  * `/1.0/applications/{name}/:backup`
+`GET`: Returns the system's host name, OS name, and OS version
 
-    `POST`: Returns a gzip'ed tar archive backup for the application. If passed `complete=true`, a
-    full backup will be generated which may be quite large depending on what artifacts or
-    updates may be locally cached by the application.
+### `/1.0/applications`
 
-  * `/1.0/applications/{name}/:factory-reset`
+`GET`: Returns a list of installed application endpoints
 
-    `POST`: Performs a factory reset of the application
+### `/1.0/applications/{name}`
 
-  * `/1.0/applications/{name}/:restart`
+`GET`: Returns application-specific status and/or configuration information
 
-    `POST`: Trigger a restart of the application.
+### `/1.0/applications/{name}/:backup`
 
-  * `/1.0/applications/{name}/:restore`
+`POST`: Returns a `gzip` compressed tar archive backup for the application. If passed `complete=true`, a
+full backup will be generated which may be quite large depending on what artifacts or
+updates may be locally cached by the application.
 
-    `POST`: Restore a gzip'ed tar archive backup for the application
+### `/1.0/applications/{name}/:factory-reset`
 
-    Remember to properly set the 'Content-Type: application/gzip' HTTP header.
+`POST`: Performs a factory reset of the application
 
-  * `/1.0/debug`
-  
-    `GET`: Returns a list of debug endpoints
-  
-  * `/1.0/debug/log`
-  
-    `GET`: Returns systemd journal entries, optionally filtering by unit, boot number, and
-    number of return entries
+### `/1.0/applications/{name}/:restart`
 
-  * `/1.0/debug/secureboot/:update`
+`POST`: Triggers a restart of the application.
 
-    `POST`: Apply a gzipped tar archive of Secure Boot variable updates
+### `/1.0/applications/{name}/:restore`
 
-  * `/1.0/debug/tui/:write-message`
-  
-    `POST`: Send a message that should be logged by the system
+`POST`: Restores a `gzip` compressed tar archive backup for the application
 
-  * `/1.0/services`
+Remember to properly set the `Content-Type: application/gzip` HTTP header.
 
-    `GET`: Returns a list of service endpoints
+### `/1.0/debug`
 
-  * `/1.0/services/{name}`
+`GET`: Returns a list of debug endpoints
 
-    `GET`: Returns service-specific status and/or configuration information
+### `/1.0/debug/log`
 
-    `PUT`: Update a service's configuration
+`GET`: Returns systemd journal entries, optionally filtering by unit, boot number, and number of return entries
 
-  * `/1.0/services/{name}/:reset`
+### `/1.0/debug/secureboot/:update`
 
-    `POST`: Forcefully reset the service
+`POST`: Applies a `gzip` compressed tar archive of Secure Boot variable updates
 
-  * `/1.0/system`
+### `/1.0/debug/tui/:write-message`
 
-    `GET`: Returns a list of system endpoints
+`POST`: Sends a message that should be logged by the system
 
-  * `/1.0/system/:backup`
+### `/1.0/services`
 
-    `POST`: Return a gzip'ed tar archive backup of the system state and configuration
+`GET`: Returns a list of service endpoints
 
-  * `/1.0/system/:factory-reset`
+### `/1.0/services/{name}`
 
-    `POST`: Perform a complete factory reset of the system and immediately reboot. An
-    optional number of seed configurations may also be provided, which will be used
-    when the system starts up into its fresh state.
+`GET`: Returns service-specific status and/or configuration information
 
-  * `/1.0/system/:poweroff`
+`PUT`: Updates a service's configuration
 
-    `POST`: Power off the system
+### `/1.0/services/{name}/:reset`
 
-  * `/1.0/system/:reboot`
+`POST`: Forcefully resets the service
 
-    `POST:` Reboot the system
+### `/1.0/system`
 
-  * `/1.0/system/:restore`
+`GET`: Returns a list of system endpoints
 
-    `POST`: Use provided gzip'ed tar archive to perform a restore of the system state and
-    configuration. Upon completion the system will immediately reboot.
+### `/1.0/system/:backup`
 
-    Optionally, a `skip` parameter may be provided consisting of a comma-separated
-    list of items to ignore when restoring the backup. Supported values include:
+`POST`: Returns a `gzip` compressed tar archive backup of the system state and configuration
 
-      - "encryption-recovery-keys": Do not overwrite any existing encryption recovery
-        keys
-      - "local-data-encryption-key": Do not overwrite the existing encryption key for
-        the "local" data pool
-      - "network-macs": Do not copy MAC addresses from network interface or bond
-        definitions in the backup
+### `/1.0/system/:factory-reset`
 
-    Remember to properly set the 'Content-Type: application/gzip' HTTP header.
+`POST`: Perform a complete factory reset of the system and immediately reboot. An
+optional number of seed configurations may also be provided, which will be used
+when the system starts up into its fresh state.
 
-  * `/1.0/system/logging`
+### `/1.0/system/:poweroff`
 
-    `GET`: Returns the current system logging state
+`POST`: Powers off the system
 
-    `PUT`: Apply a new system logging configuration
+### `/1.0/system/:reboot`
 
-  * `/1.0/system/network`
+`POST:` Reboots the system
 
-    `GET`: Return the current network state
+### `/1.0/system/:restore`
 
-    `PUT`: Apply a new network configuration
+`POST`: Uses provided `gzip` compressed tar archive to perform a restore of the system state and
+configuration. Upon completion the system will immediately reboot.
 
-  * `/1.0/system/provider`
+Optionally, a `skip` parameter may be provided consisting of a comma-separated
+list of items to ignore when restoring the backup. Supported values include:
 
-    `GET`: Returns the current system provider state
+- "encryption-recovery-keys": Do not overwrite any existing encryption recovery keys
+- "local-data-encryption-key": Do not overwrite the existing encryption key for the "local" data pool
+- "network-macs": Do not copy MAC addresses from network interface or bond definitions in the backup
 
-    `PUT`: Apply a new system provider configuration
+Remember to properly set the `Content-Type: application/gzip` HTTP header.
 
-  * `/1.0/system/resources`
+### `/1.0/system/logging`
 
-    `GET`: Returns a detailed low-level dump of the system's resources
+`GET`: Returns the current system logging state
 
-  * `/1.0/system/security`
+`PUT`: Applies a new system logging configuration
 
-    `GET`: Returns information about the system's security state, such as Secure Boot and TPM
-    status, encryption recovery keys, etc
+### `/1.0/system/network`
 
-    `PUT`: Update list of encryption recovery keys
+`GET`: Returns the current network state
 
-  * `/1.0/system/security/:tpm-rebind`
+`PUT`: Applies a new network configuration
 
-    `POST`: Force-reset TPM encryption bindings; intended only for use if it was required to enter
-    a recovery passphrase to boot the system
+### `/1.0/system/provider`
 
-  * `/1.0/system/storage`
+`GET`: Returns the current system provider state
 
-    `GET`: Returns information about drives present in the system and status of any local storage
-    pools
+`PUT`: Applies a new system provider configuration
 
-    `PUT`: Create or update a local storage pool
+### `/1.0/system/resources`
 
-  * `/1.0/system/storage/:delete-pool`
+`GET`: Returns a detailed low-level dump of the system's resources
 
-    `POST`: Destroy a local storage pool
+### `/1.0/system/security`
 
-  * `/1.0/system/storage/:import-encryption-key`
+`GET`: Returns information about the system's security state, such as Secure Boot and TPM
+status, encryption recovery keys, etc
 
-    `POST`: Set the encryption key when importing an existing storage pool
+`PUT`: Updates list of encryption recovery keys
 
-  * `/1.0/system/storage/:wipe-drive`
+### `/1.0/system/security/:tpm-rebind`
 
-    `POST`: Forcibly wipe all data from the specified drive
+`POST`: Forcibly resets TPM encryption bindings; intended only for use if it was required to enter
+a recovery passphrase to boot the system
 
-  * `/1.0/system/update`
+### `/1.0/system/storage`
 
-    `GET`: Returns the current system update state
+`GET`: Returns information about drives present in the system and status of any local storage pools
 
-    `PUT`: Apply a new system update configuration
+`PUT`: Creates or updates a local storage pool
 
-  * `/1.0/system/update/:check`
+### `/1.0/system/storage/:delete-pool`
 
-    `POST`: Trigger an immediate system update check
+`POST`: Destroys a local storage pool
+
+### `/1.0/system/storage/:import-encryption-key`
+
+`POST`: Sets the encryption key when importing an existing storage pool
+
+### `/1.0/system/storage/:wipe-drive`
+
+`POST`: Forcibly wipes all data from the specified drive
+
+### `/1.0/system/update`
+
+`GET`: Returns the current system update state
+
+`PUT`: Applies a new system update configuration
+
+### `/1.0/system/update/:check`
+
+`POST`: Triggers an immediate system update check
