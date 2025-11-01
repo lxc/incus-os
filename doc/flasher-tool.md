@@ -7,9 +7,9 @@ is a user-friendly way to provide install configuration for Incus OS.
     go build ./cmd/flasher-tool/
     ./flasher-tool
 
-You will first be prompted for the image format you want to use, either iso
-(default) or raw image (img). Note that the iso isn't a hybrid image; if you
-want to boot from a USB stick you should choose the img format.
+You will first be prompted for the image format you want to use, either ISO
+(default) or raw disk image. Note that the ISO isn't a hybrid image; if you
+want to boot from a USB stick you should choose the raw disk image format.
 
 The flasher tool will then connect to the Linux Containers CDN and download the
 latest release.

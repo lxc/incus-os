@@ -7,7 +7,7 @@ are not backwards compatible.
 
 ### `/1.0`
 
-`GET`: Returns the system's hostname, OS name, and OS version
+`GET`: Returns the system's host name, OS name, and OS version
 
 ### `/1.0/applications`
 
@@ -19,7 +19,7 @@ are not backwards compatible.
 
 ### `/1.0/applications/{name}/:backup`
 
-`POST`: Returns a gzip'ed tar archive backup for the application. If passed `complete=true`, a
+`POST`: Returns a `gzip` compressed tar archive backup for the application. If passed `complete=true`, a
 full backup will be generated which may be quite large depending on what artifacts or
 updates may be locally cached by the application.
 
@@ -29,13 +29,13 @@ updates may be locally cached by the application.
 
 ### `/1.0/applications/{name}/:restart`
 
-`POST`: Trigger a restart of the application.
+`POST`: Triggers a restart of the application.
 
 ### `/1.0/applications/{name}/:restore`
 
-`POST`: Restore a gzip'ed tar archive backup for the application
+`POST`: Restores a `gzip` compressed tar archive backup for the application
 
-Remember to properly set the 'Content-Type: application/gzip' HTTP header.
+Remember to properly set the `Content-Type: application/gzip` HTTP header.
 
 ### `/1.0/debug`
 
@@ -47,11 +47,11 @@ Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 
 ### `/1.0/debug/secureboot/:update`
 
-`POST`: Apply a gzipped tar archive of Secure Boot variable updates
+`POST`: Applies a `gzip` compressed tar archive of Secure Boot variable updates
 
 ### `/1.0/debug/tui/:write-message`
 
-`POST`: Send a message that should be logged by the system
+`POST`: Sends a message that should be logged by the system
 
 ### `/1.0/services`
 
@@ -61,11 +61,11 @@ Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 
 `GET`: Returns service-specific status and/or configuration information
 
-`PUT`: Update a service's configuration
+`PUT`: Updates a service's configuration
 
 ### `/1.0/services/{name}/:reset`
 
-`POST`: Forcefully reset the service
+`POST`: Forcefully resets the service
 
 ### `/1.0/system`
 
@@ -73,7 +73,7 @@ Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 
 ### `/1.0/system/:backup`
 
-`POST`: Return a gzip'ed tar archive backup of the system state and configuration
+`POST`: Returns a `gzip` compressed tar archive backup of the system state and configuration
 
 ### `/1.0/system/:factory-reset`
 
@@ -83,15 +83,15 @@ when the system starts up into its fresh state.
 
 ### `/1.0/system/:poweroff`
 
-`POST`: Power off the system
+`POST`: Powers off the system
 
 ### `/1.0/system/:reboot`
 
-`POST:` Reboot the system
+`POST:` Reboots the system
 
 ### `/1.0/system/:restore`
 
-`POST`: Use provided gzip'ed tar archive to perform a restore of the system state and
+`POST`: Uses provided `gzip` compressed tar archive to perform a restore of the system state and
 configuration. Upon completion the system will immediately reboot.
 
 Optionally, a `skip` parameter may be provided consisting of a comma-separated
@@ -101,25 +101,25 @@ list of items to ignore when restoring the backup. Supported values include:
 - "local-data-encryption-key": Do not overwrite the existing encryption key for the "local" data pool
 - "network-macs": Do not copy MAC addresses from network interface or bond definitions in the backup
 
-Remember to properly set the 'Content-Type: application/gzip' HTTP header.
+Remember to properly set the `Content-Type: application/gzip` HTTP header.
 
 ### `/1.0/system/logging`
 
 `GET`: Returns the current system logging state
 
-`PUT`: Apply a new system logging configuration
+`PUT`: Applies a new system logging configuration
 
 ### `/1.0/system/network`
 
-`GET`: Return the current network state
+`GET`: Returns the current network state
 
-`PUT`: Apply a new network configuration
+`PUT`: Applies a new network configuration
 
 ### `/1.0/system/provider`
 
 `GET`: Returns the current system provider state
 
-`PUT`: Apply a new system provider configuration
+`PUT`: Applies a new system provider configuration
 
 ### `/1.0/system/resources`
 
@@ -130,37 +130,37 @@ Remember to properly set the 'Content-Type: application/gzip' HTTP header.
 `GET`: Returns information about the system's security state, such as Secure Boot and TPM
 status, encryption recovery keys, etc
 
-`PUT`: Update list of encryption recovery keys
+`PUT`: Updates list of encryption recovery keys
 
 ### `/1.0/system/security/:tpm-rebind`
 
-`POST`: Force-reset TPM encryption bindings; intended only for use if it was required to enter
+`POST`: Forcibly resets TPM encryption bindings; intended only for use if it was required to enter
 a recovery passphrase to boot the system
 
 ### `/1.0/system/storage`
 
 `GET`: Returns information about drives present in the system and status of any local storage pools
 
-`PUT`: Create or update a local storage pool
+`PUT`: Creates or updates a local storage pool
 
 ### `/1.0/system/storage/:delete-pool`
 
-`POST`: Destroy a local storage pool
+`POST`: Destroys a local storage pool
 
 ### `/1.0/system/storage/:import-encryption-key`
 
-`POST`: Set the encryption key when importing an existing storage pool
+`POST`: Sets the encryption key when importing an existing storage pool
 
 ### `/1.0/system/storage/:wipe-drive`
 
-`POST`: Forcibly wipe all data from the specified drive
+`POST`: Forcibly wipes all data from the specified drive
 
 ### `/1.0/system/update`
 
 `GET`: Returns the current system update state
 
-`PUT`: Apply a new system update configuration
+`PUT`: Applies a new system update configuration
 
 ### `/1.0/system/update/:check`
 
-`POST`: Trigger an immediate system update check
+`POST`: Triggers an immediate system update check
