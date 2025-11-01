@@ -26,18 +26,21 @@ type cmdGenericEdit struct {
 }
 
 func (c *cmdGenericEdit) command() *cobra.Command {
+	cmd := &cobra.Command{}
+
 	usage := ""
 	if c.os.args.SupportsRemote {
 		usage = "[<remote>:]"
 	}
 
+	cmd.Short = "Edit configuration"
+
 	if c.entity != "" {
 		usage += "<" + c.entityShort + ">"
+		cmd.Short = "Edit " + c.entity + " configuration"
 	}
 
-	cmd := &cobra.Command{}
 	cmd.Use = cli.Usage("edit", usage)
-	cmd.Short = "Edit " + c.entity + " configuration"
 	cmd.Long = cli.FormatSection("Description", "Edit "+c.entity+" configuration")
 	cmd.Example = cli.FormatSection("", `incus admin os service edit `+usage+` < `+c.entityShort+`.yaml
     Update an IncusOS `+c.entity+` using the content of `+c.entityShort+`.yaml.`)
@@ -53,21 +56,37 @@ func (c *cmdGenericEdit) command() *cobra.Command {
 
 func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 1, 1)
+	minArgs := 0
+	if c.entity != "" {
+		minArgs = 1
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, minArgs, 1)
 	if exit {
 		return err
 	}
 
 	// Parse remote.
-	remote, resource := parseRemote(args[0])
-	if resource == "" {
+	remote := ""
+	resource := ""
+
+	if len(args) > 0 {
+		remote, resource = parseRemote(args[0])
+	}
+
+	if c.entity != "" && resource == "" {
 		return errors.New("missing " + c.entity + " name")
 	}
 
 	// Use cluster target if specified.
-	apiURL := "/os/1.0/" + c.endpoint + "/" + resource
+	apiURL := "/os/1.0/" + c.endpoint
+
+	if resource != "" {
+		apiURL += "/" + resource
+	}
+
 	if c.os.flagTarget != "" {
-		apiURL = apiURL + "?target=" + c.os.flagTarget
+		apiURL += "?target=" + c.os.flagTarget
 	}
 
 	// If stdin isn't a terminal, read text from it
