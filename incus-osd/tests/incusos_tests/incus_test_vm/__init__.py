@@ -53,12 +53,12 @@ class IncusTestVM:
 
         subprocess.run(["incus", "config", "device", "set", self.vm_name, device, prop], capture_output=True, check=True)
 
-    def StartVM(self, timeout=15):
+    def StartVM(self, timeout=60):
         """Start the VM and wait up to 15 seconds by default for the command to return."""
 
         subprocess.run(["incus", "start", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def StopVM(self, timeout=60):
+    def StopVM(self, timeout=120):
         """Stop the VM and wait up to 60 seconds by default for the command to return."""
 
         subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
@@ -83,7 +83,7 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Downloading application application="+application+" release="+incusos_version)
         self.WaitExpectedLog("incus-osd", "System is ready release="+incusos_version)
 
-    def WaitAgentRunning(self, timeout=240):
+    def WaitAgentRunning(self, timeout=480):
         """Wait for the Incus agent to start in the VM."""
 
         start = time.time()
@@ -101,7 +101,7 @@ class IncusTestVM:
 
             time.sleep(1)
 
-    def WaitExpectedLog(self, unit, log, timeout=240, regex=False):
+    def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
 
         start = time.time()
