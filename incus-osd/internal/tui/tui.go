@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/resources"
+	"github.com/lxc/incus/v6/shared/units"
 	"github.com/rivo/tview"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -31,7 +34,8 @@ type TUI struct {
 	modalMessages []*Modal
 	modalMutex    sync.Mutex
 
-	state *state.State
+	state           *state.State
+	systemResources *api.Resources
 }
 
 // NewTUI constructs a new TUI application that will show basic information and recent
@@ -45,6 +49,13 @@ func NewTUI(s *state.State) (*TUI, error) {
 	_, err := os.Stat("/dev/virtio-ports/org.linuxcontainers.incus")
 	if err == nil {
 		ttyDevs = append(ttyDevs, "/dev/ttyS0")
+	}
+
+	// Get information about the system's resources. Since we only display CPU
+	// and RAM, caching the results at creation time should be sufficient.
+	ret.systemResources, err = resources.GetResources()
+	if err != nil {
+		return ret, err
 	}
 
 	// Attempt to open the system's consoles.
@@ -273,6 +284,10 @@ func (t *TUI) redrawScreen() {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
 
+		for _, line := range wrapFooterText("Machine", getMachineInfo(t.systemResources), consoleWidth) {
+			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+		}
+
 		for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
@@ -390,4 +405,16 @@ func EarlyError(msg string) {
 
 	// Give the error a chance to render.
 	time.Sleep(1 * time.Second)
+}
+
+func getMachineInfo(r *api.Resources) string {
+	numCores := 0
+	for _, socket := range r.CPU.Sockets {
+		numCores += len(socket.Cores)
+	}
+
+	memory := int64(r.Memory.Total) //nolint:gosec
+
+	// Return a string like "AMD EPYC 7763 64-Core Processor (numa=8, sockets=2, cores=128, threads=256) (x86_64) / 514GiB memory".
+	return fmt.Sprintf("%s (numa=%d, sockets=%d, cores=%d, threads=%d) (%s) / %s memory", r.CPU.Sockets[0].Name, len(r.Memory.Nodes), len(r.CPU.Sockets), numCores, r.CPU.Total, r.CPU.Architecture, units.GetByteSizeStringIEC(memory, 0))
 }
