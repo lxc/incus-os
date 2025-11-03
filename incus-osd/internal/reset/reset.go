@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
@@ -143,7 +144,15 @@ func PerformOSFactoryReset(ctx context.Context, resetSeed *api.SystemReset) erro
 	// Finally, sync disks and immediately reboot the system.
 	unix.Sync()
 
-	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
+	// Spawn a go routine which will sleep one second before force-rebooting the system.
+	// This allows the HTTP connection to the client to properly close.
+	go func() {
+		time.Sleep(1 * time.Second)
+
+		_ = os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
+	}()
+
+	return nil
 }
 
 func getExistingSeeds(seedPartition string) (map[string][]byte, error) {
