@@ -191,6 +191,10 @@ update-gomod:
 	cd incus-osd && go mod tidy --go=1.24.7
 	cd incus-osd && go get toolchain@none
 
+.PHONY: update-app-versions
+update-app-versions:
+	cd app-build && ./update-application-tags.py
+
 .PHONY: doc-setup
 doc-setup:
 	@echo "Setting up documentation build environment"
