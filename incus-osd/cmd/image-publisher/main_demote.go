@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -80,6 +81,24 @@ func (c *cmdDemote) run(cmd *cobra.Command, args []string) error {
 	}
 
 	image.Channels = newChannels
+
+	// Remove the changelog(s).
+	newFiles := []apiupdate.UpdateFile{}
+
+	for _, file := range image.Files {
+		if file.Type == apiupdate.UpdateFileTypeChangelog && strings.Contains(file.Filename, "changelog-"+args[2]+".yaml") {
+			err := os.Remove(filepath.Join(args[0], args[1], file.Filename))
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		newFiles = append(newFiles, file)
+	}
+
+	image.Files = newFiles
 
 	// Write the updated data.
 	_, err = meta.Seek(0, io.SeekStart)
