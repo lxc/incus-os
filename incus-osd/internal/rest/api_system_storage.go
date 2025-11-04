@@ -27,19 +27,15 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, ret).Render(w)
 	case http.MethodPut:
 		// Create or update a pool.
-		if r.ContentLength <= 0 {
-			_ = response.BadRequest(errors.New("no pool configuration provided")).Render(w)
-
-			return
-		}
-
 		storageStruct := &api.SystemStorage{}
 
-		err := json.NewDecoder(r.Body).Decode(storageStruct)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+		if r.ContentLength > 0 {
+			err := json.NewDecoder(r.Body).Decode(storageStruct)
+			if err != nil {
+				_ = response.BadRequest(err).Render(w)
 
-			return
+				return
+			}
 		}
 
 		if len(storageStruct.Config.Pools) == 0 {
@@ -49,6 +45,8 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Create or update a pool.
+		var err error
+
 		for _, pool := range storageStruct.Config.Pools {
 			if !storage.PoolExists(r.Context(), pool.Name) {
 				err = zfs.CreateZpool(r.Context(), pool, s.state)
@@ -81,23 +79,19 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if r.ContentLength <= 0 {
-		_ = response.BadRequest(errors.New("no pool configuration provided")).Render(w)
-
-		return
-	}
-
 	type deleteStruct struct {
 		Name string `json:"name"`
 	}
 
 	config := &deleteStruct{}
 
-	err := json.NewDecoder(r.Body).Decode(config)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(config)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
 
-		return
+			return
+		}
 	}
 
 	if config.Name == "" {
@@ -107,7 +101,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 	}
 
 	// Delete the pool.
-	err = zfs.DestroyZpool(r.Context(), config.Name)
+	err := zfs.DestroyZpool(r.Context(), config.Name)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -127,19 +121,15 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Wipe the specified drive.
-	if r.ContentLength <= 0 {
-		_ = response.BadRequest(errors.New("no drive specified")).Render(w)
-
-		return
-	}
-
 	wipeStruct := &api.SystemStorageWipe{}
 
-	err := json.NewDecoder(r.Body).Decode(wipeStruct)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(wipeStruct)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
 
-		return
+			return
+		}
 	}
 
 	if wipeStruct.ID == "" {
@@ -148,7 +138,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = storage.WipeDrive(r.Context(), wipeStruct.ID)
+	err := storage.WipeDrive(r.Context(), wipeStruct.ID)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -168,19 +158,15 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 	}
 
 	// Add the specified encryption key for the manually imported pool.
-	if r.ContentLength <= 0 {
-		_ = response.BadRequest(errors.New("no pool configuration specified")).Render(w)
-
-		return
-	}
-
 	poolStruct := &api.SystemStoragePoolKey{}
 
-	err := json.NewDecoder(r.Body).Decode(poolStruct)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(poolStruct)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
 
-		return
+			return
+		}
 	}
 
 	if poolStruct.Name == "" || poolStruct.Type == "" || poolStruct.EncryptionKey == "" {
@@ -195,7 +181,7 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = storage.SetEncryptionKey(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
+	err := storage.SetEncryptionKey(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

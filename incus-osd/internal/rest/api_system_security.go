@@ -52,19 +52,15 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
 	case http.MethodPut:
 		// Update the list of encryption recovery keys.
-		if r.ContentLength <= 0 {
-			_ = response.BadRequest(errors.New("no security configuration provided")).Render(w)
-
-			return
-		}
-
 		securityStruct := &api.SystemSecurity{}
 
-		err := json.NewDecoder(r.Body).Decode(securityStruct)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+		if r.ContentLength > 0 {
+			err := json.NewDecoder(r.Body).Decode(securityStruct)
+			if err != nil {
+				_ = response.BadRequest(err).Render(w)
 
-			return
+				return
+			}
 		}
 
 		if len(securityStruct.Config.EncryptionRecoveryKeys) == 0 {
