@@ -22,7 +22,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		// Refresh network state; needed to get current LLDP info.
 		err := systemd.UpdateNetworkState(r.Context(), &s.state.System.Network)
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -53,7 +53,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, newConfig.Config, 30*time.Second, false, providers.Refresh)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "Failed to update network configuration: "+err.Error())
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}

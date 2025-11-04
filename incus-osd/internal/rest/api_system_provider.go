@@ -32,14 +32,14 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 		// Load the current provider and deregister it.
 		p, err := providers.Load(r.Context(), s.state)
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
 
 		err = p.Deregister(r.Context())
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -52,7 +52,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.state.System.Provider.Config = oldConfig
 			_ = s.state.Save()
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -61,7 +61,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.state.System.Provider.Config = oldConfig
 			_ = s.state.Save()
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}

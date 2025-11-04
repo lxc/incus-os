@@ -19,7 +19,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		ret, err := storage.GetStorageInfo(r.Context())
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -36,7 +36,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -65,7 +65,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err != nil {
-				_ = response.BadRequest(err).Render(w)
+				_ = response.InternalError(err).Render(w)
 
 				return
 			}
@@ -97,7 +97,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -124,7 +124,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 	// Delete the pool.
 	err = zfs.DestroyZpool(r.Context(), config.Name)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -150,7 +150,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -172,7 +172,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 
 	err = storage.WipeDrive(r.Context(), wipeStruct.ID)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -198,7 +198,7 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -226,7 +226,7 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 
 	err = storage.SetEncryptionKey(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
