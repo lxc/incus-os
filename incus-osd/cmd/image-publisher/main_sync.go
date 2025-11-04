@@ -302,19 +302,19 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case strings.Contains(assetName, ".usr-x86-64."), strings.Contains(assetName, ".usr-arm64."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsr
-		case strings.HasSuffix(assetName, "debug.manifest.json"):
+		case strings.HasSuffix(assetName, "debug.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentDebug
 			assetType = apiupdate.UpdateFileTypeImageManifest
-		case strings.HasSuffix(assetName, "incus.manifest.json"):
+		case strings.HasSuffix(assetName, "incus.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentIncus
 			assetType = apiupdate.UpdateFileTypeImageManifest
-		case strings.HasSuffix(assetName, "migration-manager.manifest.json"):
+		case strings.HasSuffix(assetName, "migration-manager.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentMigrationManager
 			assetType = apiupdate.UpdateFileTypeImageManifest
-		case strings.HasSuffix(assetName, "operations-center.manifest.json"):
+		case strings.HasSuffix(assetName, "operations-center.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentOperationsCenter
 			assetType = apiupdate.UpdateFileTypeImageManifest
-		case strings.HasSuffix(assetName, ".manifest.json"):
+		case strings.HasSuffix(assetName, ".manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeImageManifest
 		default:

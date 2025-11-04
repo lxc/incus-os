@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -73,12 +75,19 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 			var priorManifest manifests.IncusOSManifest
 
 			// #nosec G304
-			currentManifestFile, err := os.Open(filepath.Join(targetPath, f.Filename))
+			currentManifestFileGz, err := os.Open(filepath.Join(targetPath, f.Filename))
 			if err != nil {
 				return err
 			}
 
-			defer func() { _ = metaFile.Close() }() //nolint:revive
+			defer func() { _ = currentManifestFileGz.Close() }() //nolint:revive
+
+			currentManifestFile, err := gzip.NewReader(currentManifestFileGz)
+			if err != nil {
+				return err
+			}
+
+			defer func() { _ = currentManifestFile.Close() }() //nolint:revive
 
 			err = json.NewDecoder(currentManifestFile).Decode(&currentManifest)
 			if err != nil {
@@ -90,12 +99,19 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 				priorFilename := strings.Replace(f.Filename, "_"+metaUpdate.Version, "_"+priorVersion, 1)
 
 				// #nosec G304
-				priorManifestFile, err := os.Open(filepath.Join(targetPath, "../", priorVersion, priorFilename))
+				priorManifestFileGz, err := os.Open(filepath.Join(targetPath, "../", priorVersion, priorFilename))
 				if err != nil {
 					return err
 				}
 
-				defer func() { _ = metaFile.Close() }() //nolint:revive
+				defer func() { _ = priorManifestFileGz.Close() }() //nolint:revive
+
+				priorManifestFile, err := gzip.NewReader(priorManifestFileGz)
+				if err != nil {
+					return err
+				}
+
+				defer func() { _ = priorManifestFile.Close() }() //nolint:revive
 
 				err = json.NewDecoder(priorManifestFile).Decode(&priorManifest)
 				if err != nil {
@@ -105,7 +121,7 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 
 			diff := manifests.DiffManifests(priorManifest, currentManifest)
 			if len(diff.Added) > 0 || len(diff.Updated) > 0 || len(diff.Removed) > 0 {
-				componentName := strings.TrimSuffix(filename, ".manifest.json")               // Trim the filename extension.
+				componentName := strings.TrimSuffix(filename, ".manifest.json.gz")            // Trim the filename extension.
 				componentName = strings.Replace(componentName, "_"+metaUpdate.Version, "", 1) // Trim any version string.
 
 				changelogs[archName].Components[componentName] = diff
@@ -113,21 +129,35 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 		}
 	}
 
-	// Write each changelog as a yaml file and add it to the update metadata.
+	// Write each changelog as a gzip'ed yaml file and add it to the update metadata.
 	for archName, changelog := range changelogs {
 		contents, err := yaml.Marshal(&changelog)
 		if err != nil {
 			return err
 		}
 
-		hash256 := sha256.New()
+		var contentsGz bytes.Buffer
 
-		_, err = hash256.Write(contents)
+		gw := gzip.NewWriter(&contentsGz)
+
+		_, err = gw.Write(contents)
 		if err != nil {
 			return err
 		}
 
-		err = os.WriteFile(filepath.Join(targetPath, archName.String(), "changelog-"+channel+".yaml"), contents, 0o644)
+		err = gw.Close()
+		if err != nil {
+			return err
+		}
+
+		hash256 := sha256.New()
+
+		_, err = hash256.Write(contentsGz.Bytes())
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(filepath.Join(targetPath, archName.String(), "changelog-"+channel+".yaml.gz"), contentsGz.Bytes(), 0o644)
 		if err != nil {
 			return err
 		}
@@ -135,9 +165,9 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 		metaUpdate.Files = append(metaUpdate.Files, apiupdate.UpdateFile{
 			Architecture: archName,
 			Component:    apiupdate.UpdateFileComponentOS,
-			Filename:     filepath.Join(archName.String(), "changelog-"+channel+".yaml"),
+			Filename:     filepath.Join(archName.String(), "changelog-"+channel+".yaml.gz"),
 			Sha256:       hex.EncodeToString(hash256.Sum(nil)),
-			Size:         int64(len(contents)),
+			Size:         int64(contentsGz.Len()),
 			Type:         apiupdate.UpdateFileTypeChangelog,
 		})
 	}

@@ -277,9 +277,9 @@ func WriteManifests(root string, manifests map[string]IncusOSManifest) error {
 			return err
 		}
 
-		filename := manifest + ".json"
+		filename := manifest + ".manifest.json"
 		if manifest == "base" {
-			filename = manifests[manifest].Config.Name + "_" + manifests[manifest].Config.Version + ".json"
+			filename = manifests[manifest].Config.Name + "_" + manifests[manifest].Config.Version + ".manifest.json"
 		}
 
 		err = os.WriteFile(filepath.Join(root, filename), content, 0o644)
