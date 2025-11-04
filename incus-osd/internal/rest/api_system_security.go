@@ -3,7 +3,6 @@ package rest
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"slices"
 
@@ -59,16 +58,9 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
+		securityStruct := &api.SystemSecurity{}
 
-			return
-		}
-
-		securityStruct := api.SystemSecurity{}
-
-		err = json.Unmarshal(b, &securityStruct)
+		err := json.NewDecoder(r.Body).Decode(securityStruct)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 

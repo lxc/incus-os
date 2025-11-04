@@ -3,7 +3,6 @@ package rest
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -34,16 +33,9 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
+		storageStruct := &api.SystemStorage{}
 
-			return
-		}
-
-		storageStruct := api.SystemStorage{}
-
-		err = json.Unmarshal(b, &storageStruct)
+		err := json.NewDecoder(r.Body).Decode(storageStruct)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 
@@ -95,20 +87,13 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
 	type deleteStruct struct {
 		Name string `json:"name"`
 	}
 
-	config := deleteStruct{}
+	config := &deleteStruct{}
 
-	err = json.Unmarshal(b, &config)
+	err := json.NewDecoder(r.Body).Decode(config)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
@@ -148,16 +133,9 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
+	wipeStruct := &api.SystemStorageWipe{}
 
-		return
-	}
-
-	wipeStruct := api.SystemStorageWipe{}
-
-	err = json.Unmarshal(b, &wipeStruct)
+	err := json.NewDecoder(r.Body).Decode(wipeStruct)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
@@ -196,16 +174,9 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 		return
 	}
 
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
+	poolStruct := &api.SystemStoragePoolKey{}
 
-		return
-	}
-
-	poolStruct := api.SystemStoragePoolKey{}
-
-	err = json.Unmarshal(b, &poolStruct)
+	err := json.NewDecoder(r.Body).Decode(poolStruct)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
