@@ -11,6 +11,71 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
+// swagger:operation GET /1.0/system/storage system system_get_storage
+//
+//	Get storage information
+//
+//	Returns information about drives present in the system and the status of any local storage pools.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: State and configuration for the system storage
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: json
+//	          description: State and configuration for the system storage
+//	          example: {"config":{},"state":{"drives":[{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root","model_family":"QEMU","model_name":"QEMU HARDDISK","serial_number":"incus_root","bus":"scsi","capacity_in_bytes":53687091200,"boot":true,"removable":false,"remote":false}],"pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"],"state":"ONLINE","encryption_key_status":"available","raw_pool_size_in_bytes":17716740096,"usable_pool_size_in_bytes":17716740096,"pool_allocated_space_in_bytes":4313088}]}}
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+
+// swagger:operation PUT /1.0/system/storage system system_put_storage
+//
+//	Update system storage configuration
+//
+//	Creates or updates a local storage pool.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: Storage configuration
+//	    required: true
+//	    schema:
+//	      type: object
+//	      properties:
+//	        config:
+//	          type: object
+//	          description: The storage configuration
+//	          example: {"pools":[{"name":"mypool","type":"zfs-raidz3","devices":["/dev/sdb","/dev/sdc","/dev/sdd","/dev/sde"]}]}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -70,6 +135,32 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 	_ = s.state.Save()
 }
 
+// swagger:operation POST /1.0/system/storage/:delete-pool system system_post_storage_delete_pool
+//
+//	Delete local pool
+//
+//	Destroys a local storage pool.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The pool to be deleted
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name":"mypool"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -111,6 +202,32 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+// swagger:operation POST /1.0/system/storage/:wipe-drive system system_post_storage_wipe_drive
+//
+//	Wipe a drive
+//
+//	Forcibly wipes all data from the specified drive.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The drive to be wiped
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"id":"/dev/sdb"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -148,6 +265,32 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+// swagger:operation POST /1.0/system/storage/:import-encryption-key system system_post_storage_import_encryption_key
+//
+//	Import an existing encryption key
+//
+//	Sets the encryption key when importing an existing storage pool.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: Pool encryption information
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

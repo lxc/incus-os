@@ -10,6 +10,40 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 )
 
+// swagger:operation GET /1.0/services services services_get
+//
+//	Get available services
+//
+//	Returns a list of currently available services (URLs).
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: API endpoints
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: array
+//	          description: List of services
+//	          items:
+//	            type: string
+//	          example: ["/1.0/services/ceph","/1.0/services/iscsi","/1.0/services/lvm","/1.0/services/multipath","/1.0/services/nvme","/1.0/services/ovn","/1.0/services/tailscale","/1.0/services/usbip"]
 func (s *Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -35,6 +69,84 @@ func (s *Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	_ = response.SyncResponse(true, urls).Render(w)
 }
 
+// swagger:operation GET /1.0/services/{name} services services_get_service
+//
+//	Get service-specific information
+//
+//	Returns service-specific state and configuration information.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Service name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    description: State and configuration for the service
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: json
+//	          description: State and configuration for the service
+//	          example: {"state":{},"config":{"enabled":false,"system_id":0}}
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+
+// swagger:operation PUT /1.0/services/{name} services services_put_service
+//
+//	Update service configuration
+//
+//	Updates a service's configuration.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Service name
+//	    required: true
+//	    type: string
+//	  - in: body
+//	    name: configuration
+//	    description: Service configuration
+//	    required: true
+//	    schema:
+//	      type: object
+//	      properties:
+//	        config:
+//	          type: object
+//	          description: The service configuration
+//	          example: {"enabled":true,"system_id":123}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -94,6 +206,28 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// swagger:operation POST /1.0/services/{name}/:reset services services_post_reset
+//
+//	Forcefully reset service
+//
+//	Forcefully resets the service.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Service name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiServicesEndpointReset(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
