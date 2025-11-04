@@ -1,9 +1,9 @@
-# Install Seed
-IncusOS depends on an "install seed" to automate the installation process. Most
-users should either use the web-based [IncusOS customizer](https://incusos-customizer.linuxcontainers.org/ui/)
-or the [flasher tool](flasher-tool.md) which provide a simple way to configure
-the install seed without requiring detailed understanding of the technical details
-below.
+# Installation seed
+IncusOS depends on an "install seed" to automate the installation process.
+
+That seed is normally automatically generated when [getting an image](../getting-started/download.md).
+
+For more advanced use, it's possible to provide your own seed data using the information below.
 
 ## Format and location
 The install seed is a simple tar archive consisting of one or more JSON or YAML

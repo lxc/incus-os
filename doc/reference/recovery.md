@@ -1,4 +1,4 @@
-# IncusOS System Recovery
+# System recovery
 
 IncusOS is designed to be fairly resilient to failures, but there may be times when
 your system misbehaves. Here are some suggestions that might be useful if you ever

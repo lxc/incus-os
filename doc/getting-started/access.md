@@ -1,46 +1,4 @@
-# Basic install steps
-This provides a brief, high-level overview of how one might install a stand-alone
-IncusOS server, add its Incus as a remote, and retrieve the encryption
-recovery key.
-
-## Install configuration
-First, generate an Incus client certificate/key pair if needed:
-
-    incus remote generate-certificate
-
-Using the web-based [IncusOS Customizer](https://incusos-customizer.linuxcontainers.org/ui/),
-provide your client certificate and download the resulting installation image.
-
-Alternatively, using the [flasher tool](flasher-tool.md), enable the Incus
-application and then provide this basic Incus preseed configuration, substituting
-your local client certificate (`~/.config/incus/client.crt`):
-
-```
-apply_defaults: true
-preseed:
-    certificates:
-        - name: demo
-          type: client
-          certificate: |
-            -----BEGIN CERTIFICATE-----
-            MIIB4TCCAWagAwIBAgIQVrBNb+LgEvX/aDNNOLM2iTAKBggqhkjOPQQDAzA4MRkw
-            FwYDVQQKExBMaW51eCBDb250YWluZXJzMRswGQYDVQQDDBJnaWJtYXRAZnV0dXJm
-            dXNpb24wHhcNMjUwNjA1MTgwODAwWhcNMzUwNjAzMTgwODAwWjA4MRkwFwYDVQQK
-            ExBMaW51eCBDb250YWluZXJzMRswGQYDVQQDDBJnaWJtYXRAZnV0dXJmdXNpb24w
-            djAQBgcqhkjOPQIBBgUrgQQAIgNiAAS8Tsj87gyhkR6gUoTa9dooWhwApI9MlsZS
-            M9HkNdgLG+0d2yU3JXru4AbCD+pslsL5mnSjbmF7BhqSAT0opQtyFMfB7hrCJkVB
-            nnebLNOqzrOVnxYqnD1HnfKo6RVmXpGjNTAzMA4GA1UdDwEB/wQEAwIFoDATBgNV
-            HSUEDDAKBggrBgEFBQcDAjAMBgNVHRMBAf8EAjAAMAoGCCqGSM49BAMDA2kAMGYC
-            MQC/Y4nAuV09z/zeh0aN+XV+kI9WLnITFprSHREIaES3r49cTkpoV8wFCwdLjbSb
-            NwECMQCx5H/H3hyXJen3uLbqRxTzw5jjx1M4dO4fru+VmoOKmTSmKVq3r2j449iD
-            GrzY7EQ=
-            -----END CERTIFICATE-----
-```
-
-Once you have your IncusOS install media, install it on your selected system.
-
-## Add remote IncusOS
-
+# Accessing the system
 After the install completes, you will be shown a list of IP addresses in the
 network configuration footer. Pick one and add IncusOS as a remote Incus
 server:

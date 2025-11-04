@@ -1,24 +1,39 @@
 # Contributing
+## Pull requests
 
-## Pull requests:
+Changes to this project should be proposed as pull requests on Github at:  
+<https://github.com/lxc/incus-os>
 
-Changes to this project should be proposed as pull requests on Github
-at: <https://github.com/lxc/incus-os>
+Proposed changes will then go through code review there and once acked, be merged in the main branch.
 
-Proposed changes will then go through code review there and once acked,
-be merged in the main branch.
+## Code of Conduct
 
+When contributing, you must adhere to the Code of Conduct, which is available at:  
+<https://github.com/lxc/incus-os/blob/main/CODE_OF_CONDUCT.md>
 
-## License and copyright:
+## License and copyright
 
-By default, any contribution to this project is made under the Apache
-2.0 license.
+By default, any contribution to this project is made under the Apache 2.0 license.
 
-The author of a change remains the copyright holder of their code
-(no copyright assignment).
+The author of a change remains the copyright holder of their code (no copyright assignment).
 
+## No Large Language Models (LLMs) or AI tools
 
-## Developer Certificate of Origin:
+All contributions to this project are expected to be done by human
+beings or through standard predictable tooling (e.g. scripts, formatters, ...).
+
+We expect all contributors to be able to reason about the code that they
+contribute and explain why they're taking a particular approach.
+
+LLMs and similar predictive tools have the annoying tendency of
+producing large amount of low quality code with subtle issues which end
+up taking the maintainers more time to debug than it would have taken to
+write the code by hand in the first place.
+
+Any attempt at hiding the use of LLMs or similar tools in IncusOS contributions
+will result in a revert of the affected changes and a ban from the project.
+
+## Developer Certificate of Origin
 
 To improve tracking of contributions to this project we use the DCO 1.1
 and use a "sign-off" procedure for all changes going into the branch.

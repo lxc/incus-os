@@ -1,120 +1,105 @@
 # IncusOS
-IncusOS is still in early alpha development. The instructions below are
-there to help try it out, mostly for testing purposes as new features get
-added.
+IncusOS is an immutable OS solely designed around safely and reliably
+running Incus. It uses modern security features like UEFI Secure Boot
+and TPM to provide a safe boot experience and seamless full disk
+encryption.
 
-## System Requirements
+Updates are applied atomically using an A/B scheme allowing for an easy
+revert in case of problems.
 
-IncusOS is designed to provide an extremely secure environment in which to
-run Incus. It requires a lot of modern system features and will not function
-properly on older unsupported systems.
+The system itself is completely locked down with no local or remote
+shell, only an authenticated REST API to access Incus and manage the OS
+through it.
 
-The installed system is only reachable through Incus; there is no local shell
-access or remote access through SSH. You will need to provide a trusted Incus
-client certificate when preparing your install media so you can connect to
-the system post install.
+IncusOS is ideal for anyone who's focused on building and running
+infrastructure on top of Incus and wants the underlying infrastructure
+to be reliable and easy to update.
 
-Minimum system requirements:
+All IncusOS servers are guaranteed to be running bit for bit the same
+software, eliminating any deployment variance and making it trivial to
+scale or re-deploy even large number of servers.
 
-- Modern x86_64 or arm64 system (5 years old at most)
-- Support for UEFI with Secure Boot
-- {abbr}`TPM (Trusted Platform Module)` 2.0 security module
-- At least 50GiB of storage
-- At least one wired network port
+## Core features
 
-## Installation
-ISO and raw images are distributed via the [Linux Containers {abbr}`CDN (Content Delivery Network)`](https://images.linuxcontainers.org/os/).
+Main design features:
 
-There are two more user-friendly methods to get an IncusOS install image: a
-web-based customization tool and a command line flasher tool.
+ - Boot safety (UEFI Secure Boot and TPM 2.0 measurements)
+ - Full disk encryption (TPM backed LUKS and ZFS encryption)
+ - Immutable (A/B partition scheme, all OS partitions read-only and signed)
+ - Locked down (API only management)
+ - Designed for modern Intel/AMD or ARM systems
 
-IncusOS doesn't feature a traditional installer, and relies on an [install seed](install-seed.md)
-to provide configuration details and defaults during install. This install
-seed can be manually crafted, or you can use either of the two utilities
-described below to automate the process.
+Storage features:
 
-After configuring your IncusOS image, you can then boot and IncusOS will
-automatically install itself. Upon reboot, IncusOS will automatically start
-up and will by default check for updates every six hours.
+ - Automatic local ZFS pool
+ - Support for complex ZFS pool creation on additional disks
+ - Fiber Channel & Multipath support
+ - NVME-over-TCP support
+ - iSCSI support
+ - Clustered LVM support (on top of Fiber Channel, NVME-over-TCP or iSCSI)
+ - Ceph support for software defined storage (Linstor coming soon)
 
-If the raw image is written to a sufficiently large writable medium (at least
-50GiB), such as a USB stick or hard drive, without any install seed IncusOS
-will automatically resize on first boot and start running directly from that
-media.
+Network features:
 
-### IncusOS customizer
+ - Automatic VLAN-aware bridging making it easy to attach instances to any interface
+ - Link aggregation support (both passive and negotiated)
+ - LLDP support
+ - Support for enterprise proxy servers (including Kerberos authentication)
+ - Robust NTP support
+ - Remote logging support through syslog (UDP, TCP, TLS)
+ - OVS/OVN support for software defined networking
+ - Native support for Tailscale (Netbird coming soon)
 
-The web-based [IncusOS customizer](https://incusos-customizer.linuxcontainers.org/ui/)
-is the most user-friendly way to get an IncusOS install image. The web page
-will let you make a few simple selections, then directly download an install
-image that's ready for immediate use.
 
-### Flasher tool
+Management features:
 
-A [flasher tool](flasher-tool.md) is provided for more advanced users who need
-to perform more customizations of the install seed than the web-based customizer
-supports. The flasher can be built by running `go build ./cmd/flasher-tool/`.
+ - Central management through Operations Center
+ - Backup/Restore of both the main OS config and individual application data
+ - Factory reset of either the whole OS or individual applications
+ - Flexible update management
 
-## Building locally
-You can build IncusOS locally. Only users specifically interested in the
-development and testing of new IncusOS features should need to do this.
-Building your own images requires a current version of `mkosi`, and should work
-on most Linux distributions, with Debian/Ubuntu being the most well-tested.
+## Technical details
+IncusOS is built on top of Debian 13 with our own Incus and kernel builds.
 
-After cloning the repository from GitHub, simply run:
+In addition to running Incus itself, IncusOS can also be used as the
+underlying OS to run Operations Center and Migration Manager, allowing
+for an easy migration from a VMware or similar environment over to
+Incus.
 
-    make
+We make extensive use of systemd's modern OS features to build our
+images, handle updates and take care of things like first boot
+partitioning and TPM backed disk encryption.
 
-By default the build will produce a raw image in the `mkosi.output/` directory,
-suitable for writing to a USB stick. It is also possible to build an ISO
-image if you need to boot from a (virtual) CD-ROM device:
 
-    make build-iso
+## Updates and release cadence
+We currently maintain two update channels for IncusOS:
 
-## Testing
-Currently all development and testing of IncusOS is done through Incus virtual machines.
-These instructions assume a functional Incus environment with virtual machine support.
+ - stable
+ - testing
 
-### Local builds
-To test a locally built raw image in an Incus virtual machine, run:
+All installations default to the `stable` channel which typically sees
+at least one weekly update to pick up the latest stable bugfix release
+of the Linux kernel as well as any relevant security issues.
 
-    make test
+The `testing` channel sees much more frequent builds, typically once a
+day.
 
-After IncusOS has completed its installation and is running in the virtual machine, to load
-applications run:
+IncusOS systems default to checking for updates every 6 hours and will
+automatically update Incus itself with a very short API downtime (no
+impact to running instances) and will stage any OS update to be booted
+upon reboot.
 
-    make test-applications
-
-To test the update process, build a new image and update to it with:
-
-    make
-    make test-update
-
-### Using official releases
-A script is available to test IncusOS using the public releases. It depends on
-the flasher tool being available to automate the download of the latest IncusOS
-release.
-
-Creating a new IncusOS virtual machine can be done with:
-
-    ./scripts/spawn-image NAME
-
-This will retrieve the most recent image from the Linux Containers CDN and
-create a virtual machine. It will also automatically load the relevant packages (currently
-just `incus`).
-
-The virtual machine will automatically check for updates every 6 hours with the OS updates
-applying on reboot.
+Configuration options are available to change the update frequency or
+disable automatic updates altogether as well as specifying scheduled
+downtime periods to apply the application updates.
 
 ```{toctree}
 :hidden:
 :titlesonly:
 
 self
-basic-install-steps
-flasher-tool
-secure-boot
-system-recovery
-install-seed
-rest-api
+Getting started </getting-started>
+Reference </reference>
+Contributing </contributing>
+Support </support>
 ```

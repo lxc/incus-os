@@ -1,5 +1,5 @@
-# Secure Boot details
-This document outlines how IncusOS utilizes Secure Boot. A basic understanding of Secure Boot concepts and how a TPM works is assumed.
+# System security
+IncusOS actively relies on both UEFI Secure Boot and TPM for its boot security and encryption.
 
 ## Assumptions
 
