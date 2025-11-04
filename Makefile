@@ -201,6 +201,11 @@ update-gomod:
 update-app-versions:
 	cd app-build && ./update-application-tags.py
 
+.PHONY: update-api
+update-api:
+	$(GO) install -v -x github.com/go-swagger/go-swagger/cmd/swagger@master
+	swagger generate spec -o doc/rest-api.yaml -w ./incus-osd/cmd/incus-osd -m
+
 .PHONY: doc-setup
 doc-setup:
 	@echo "Setting up documentation build environment"
@@ -219,6 +224,7 @@ doc: doc-setup doc-incremental
 doc-incremental:
 	@echo "Build the documentation"
 	. $(SPHINXENV) ; sphinx-build -c doc/ -b dirhtml doc/ doc/html/ -d doc/.sphinx/.doctrees -w doc/.sphinx/warnings.txt
+	cp doc/rest-api.yaml doc/html/
 
 .PHONY: doc-serve
 doc-serve:
