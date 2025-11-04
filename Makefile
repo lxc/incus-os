@@ -1,5 +1,6 @@
 GO ?= go
-SPHINXENV=.sphinx/venv/bin/activate
+SPHINXENV=doc/.sphinx/venv/bin/activate
+SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
 .PHONY: default
 default: build
@@ -218,11 +219,13 @@ update-gomod:
 .PHONY: doc-setup
 doc-setup:
 	@echo "Setting up documentation build environment"
-	python3 -m venv .sphinx/venv
-	. $(SPHINXENV) ; pip install --upgrade -r .sphinx/requirements.txt
-	mkdir -p .sphinx/deps/ .sphinx/themes/
-	wget -N -P .sphinx/_static/download https://linuxcontainers.org/static/img/favicon.ico https://linuxcontainers.org/static/img/containers.png https://linuxcontainers.org/static/img/containers.small.png
+	python3 -m venv doc/.sphinx/venv
+	. $(SPHINXENV) ; pip install --require-virtualenv --upgrade -r doc/.sphinx/requirements.txt --log doc/.sphinx/venv/pip_install.log
+	@test ! -f doc/.sphinx/venv/pip_list.txt || \
+        mv doc/.sphinx/venv/pip_list.txt doc/.sphinx/venv/pip_list.txt.bak
+	$(SPHINXPIPPATH) list --local --format=freeze > doc/.sphinx/venv/pip_list.txt
 	rm -Rf doc/html
+	rm -Rf doc/.sphinx/.doctrees
 
 .PHONY: doc
 doc: doc-setup doc-incremental
@@ -230,7 +233,7 @@ doc: doc-setup doc-incremental
 .PHONY: doc-incremental
 doc-incremental:
 	@echo "Build the documentation"
-	. $(SPHINXENV) ; sphinx-build -c .sphinx/ -b dirhtml doc/ doc/html/ -w .sphinx/warnings.txt
+	. $(SPHINXENV) ; sphinx-build -c doc/ -b dirhtml doc/ doc/html/ -d doc/.sphinx/.doctrees -w doc/.sphinx/warnings.txt
 
 .PHONY: doc-serve
 doc-serve:
@@ -238,12 +241,12 @@ doc-serve:
 
 .PHONY: doc-spellcheck
 doc-spellcheck: doc
-	. $(SPHINXENV) ; python3 -m pyspelling -c .sphinx/.spellcheck.yaml
+	. $(SPHINXENV) ; python3 -m pyspelling -c doc/.sphinx/spellingcheck.yaml
 
 .PHONY: doc-linkcheck
 doc-linkcheck: doc-setup
-	. $(SPHINXENV) ; sphinx-build -c .sphinx/ -b linkcheck doc/ doc/html/
+	. $(SPHINXENV) ; LOCAL_SPHINX_BUILD=True sphinx-build -c doc/ -b linkcheck doc/ doc/html/ -d doc/.sphinx/.doctrees
 
 .PHONY: doc-lint
 doc-lint:
-	.sphinx/.markdownlint/doc-lint.sh
+	doc/.sphinx/.markdownlint/doc-lint.sh

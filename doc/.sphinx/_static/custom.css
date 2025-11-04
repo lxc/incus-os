@@ -26,9 +26,9 @@ table.docutils td, table.docutils th, table.docutils td:last-child, table.docuti
     border-left: none;
 }
 
-/* center align table cells with ":-:" */
-td.text-center {
-    text-align: center;
+/* Allow to centre text horizontally in table data cells */
+table.align-center {
+    text-align: center !important;
 }
 
 /** No rounded corners **/
@@ -169,8 +169,12 @@ details summary {
     color: var(--color-link);
 }
 
-/** Hide the line above the search (looks strange without the
-    version switcher) **/
-.sidebar-search {
-    border-top: 0
+.rst-versions .rst-current-version {
+    color: var(--color-version-popup);
+    font-weight: bolder;
+}
+
+/** Hide Expand all options **/
+#expand-options {
+    display: none;
 }
