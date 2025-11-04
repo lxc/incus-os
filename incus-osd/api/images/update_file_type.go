@@ -16,6 +16,9 @@ const (
 	// UpdateFileTypeImageManifest represents an image manifest.
 	UpdateFileTypeImageManifest UpdateFileType = "image-manifest"
 
+	// UpdateFileTypeChangelog represents a changelog.
+	UpdateFileTypeChangelog UpdateFileType = "changelog"
+
 	// UpdateFileTypeUpdateEFI represents the EFI part of an OS update.
 	UpdateFileTypeUpdateEFI UpdateFileType = "update-efi"
 
@@ -41,6 +44,7 @@ var UpdateFileTypes = map[UpdateFileType]struct{}{
 	UpdateFileTypeImageRaw:                 {},
 	UpdateFileTypeImageISO:                 {},
 	UpdateFileTypeImageManifest:            {},
+	UpdateFileTypeChangelog:                {},
 	UpdateFileTypeUpdateEFI:                {},
 	UpdateFileTypeUpdateUsr:                {},
 	UpdateFileTypeUpdateUsrVerity:          {},

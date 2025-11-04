@@ -75,6 +75,12 @@ func (c *cmdPromote) run(cmd *cobra.Command, args []string) error {
 
 	image.Channels = append(image.Channels, args[2])
 
+	// Generate changelog(s).
+	err = generateChangelog(&image, args[2], filepath.Join(args[0], args[1]))
+	if err != nil {
+		return err
+	}
+
 	// Write the updated data.
 	_, err = meta.Seek(0, io.SeekStart)
 	if err != nil {

@@ -181,6 +181,12 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		})
 	}
 
+	// Generate changelog.
+	err = generateChangelog(&metaUpdate, metaUpdate.Channels[0], filepath.Join(targetPath, releaseName))
+	if err != nil {
+		return err
+	}
+
 	// Write the update metadata.
 	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json")) //nolint:gosec
 	if err != nil {
@@ -296,6 +302,21 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case strings.Contains(assetName, ".usr-x86-64."), strings.Contains(assetName, ".usr-arm64."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsr
+		case strings.HasSuffix(assetName, "debug.manifest.json"):
+			assetComponent = apiupdate.UpdateFileComponentDebug
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "incus.manifest.json"):
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "migration-manager.manifest.json"):
+			assetComponent = apiupdate.UpdateFileComponentMigrationManager
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "operations-center.manifest.json"):
+			assetComponent = apiupdate.UpdateFileComponentOperationsCenter
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, ".manifest.json"):
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeImageManifest
 		default:
 			continue
 		}

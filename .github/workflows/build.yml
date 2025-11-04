@@ -90,6 +90,8 @@ jobs:
 
           mkdir upload
 
+          ./incus-osd/generate-manifests ./
+
           mv incus-osd/flasher-tool upload/
 
           mv mkosi.output/debug.raw upload/
