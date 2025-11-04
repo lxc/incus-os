@@ -7,6 +7,7 @@ seed can be manually crafted, or you can use either of the two utilities
 described below to automate the process.
 
 There are two more user-friendly methods to get an IncusOS install image:
+
 - A web-based customization tool
 - A command line flasher tool
 

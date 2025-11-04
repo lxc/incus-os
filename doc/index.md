@@ -23,40 +23,39 @@ scale or re-deploy even large number of servers.
 
 Main design features:
 
- - Boot safety (UEFI Secure Boot and TPM 2.0 measurements)
- - Full disk encryption (TPM backed LUKS and ZFS encryption)
- - Immutable (A/B partition scheme, all OS partitions read-only and signed)
- - Locked down (API only management)
- - Designed for modern Intel/AMD or ARM systems
+- Boot safety (UEFI Secure Boot and TPM 2.0 measurements)
+- Full disk encryption (TPM backed LUKS and ZFS encryption)
+- Immutable (A/B partition scheme, all OS partitions read-only and signed)
+- Locked down (API only management)
+- Designed for modern Intel/AMD or ARM systems
 
 Storage features:
 
- - Automatic local ZFS pool
- - Support for complex ZFS pool creation on additional disks
- - Fiber Channel & Multipath support
- - NVME-over-TCP support
- - iSCSI support
- - Clustered LVM support (on top of Fiber Channel, NVME-over-TCP or iSCSI)
- - Ceph support for software defined storage (Linstor coming soon)
+- Automatic local ZFS pool
+- Support for complex ZFS pool creation on additional disks
+- Fiber Channel & Multipath support
+- NVME-over-TCP support
+- iSCSI support
+- Clustered LVM support (on top of Fiber Channel, NVME-over-TCP or iSCSI)
+- Ceph support for software defined storage (Linstor coming soon)
 
 Network features:
 
- - Automatic VLAN-aware bridging making it easy to attach instances to any interface
- - Link aggregation support (both passive and negotiated)
- - LLDP support
- - Support for enterprise proxy servers (including Kerberos authentication)
- - Robust NTP support
- - Remote logging support through syslog (UDP, TCP, TLS)
- - OVS/OVN support for software defined networking
- - Native support for Tailscale (Netbird coming soon)
-
+- Automatic VLAN-aware bridging making it easy to attach instances to any interface
+- Link aggregation support (both passive and negotiated)
+- LLDP support
+- Support for enterprise proxy servers (including Kerberos authentication)
+- Robust NTP support
+- Remote logging support through syslog (UDP, TCP, TLS)
+- OVS/OVN support for software defined networking
+- Native support for Tailscale (Netbird coming soon)
 
 Management features:
 
- - Central management through Operations Center
- - Backup/Restore of both the main OS config and individual application data
- - Factory reset of either the whole OS or individual applications
- - Flexible update management
+- Central management through Operations Center
+- Backup/Restore of both the main OS config and individual application data
+- Factory reset of either the whole OS or individual applications
+- Flexible update management
 
 ## Technical details
 IncusOS is built on top of Debian 13 with our own Incus and kernel builds.
@@ -70,12 +69,11 @@ We make extensive use of systemd's modern OS features to build our
 images, handle updates and take care of things like first boot
 partitioning and TPM backed disk encryption.
 
-
 ## Updates and release cadence
 We currently maintain two update channels for IncusOS:
 
- - stable
- - testing
+- stable
+- testing
 
 All installations default to the `stable` channel which typically sees
 at least one weekly update to pick up the latest stable bugfix release

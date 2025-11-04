@@ -6,7 +6,7 @@ properly on older unsupported systems.
 Minimum system requirements:
 
 - Modern Intel/AMD (`x86_64`) or ARM (`aarch64`) system
-  - For `x86_64`, the CPU must support `x86_64_v3`
+   - For `x86_64`, the CPU must support `x86_64_v3`
 - Support for UEFI with Secure Boot
 - {abbr}`TPM (Trusted Platform Module)` 2.0 security module
 - At least 4GiB of RAM (for system use only)
