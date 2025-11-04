@@ -3,6 +3,21 @@ import os
 import subprocess
 import yaml
 
+from git import Repo
+
+# Download and link swagger-ui files
+if not os.path.isdir('.sphinx/deps/swagger-ui'):
+    Repo.clone_from('https://github.com/swagger-api/swagger-ui', '.sphinx/deps/swagger-ui', depth=1)
+
+os.makedirs('.sphinx/_static/swagger-ui/', exist_ok=True)
+
+if not os.path.islink('.sphinx/_static/swagger-ui/swagger-ui-bundle.js'):
+    os.symlink('../../deps/swagger-ui/dist/swagger-ui-bundle.js', '.sphinx/_static/swagger-ui/swagger-ui-bundle.js')
+if not os.path.islink('.sphinx/_static/swagger-ui/swagger-ui-standalone-preset.js'):
+    os.symlink('../../deps/swagger-ui/dist/swagger-ui-standalone-preset.js', '.sphinx/_static/swagger-ui/swagger-ui-standalone-preset.js')
+if not os.path.islink('.sphinx/_static/swagger-ui/swagger-ui.css'):
+    os.symlink('../../deps/swagger-ui/dist/swagger-ui.css', '.sphinx/_static/swagger-ui/swagger-ui.css')
+
 # Project config.
 project = "IncusOS"
 author = "IncusOS contributors"
