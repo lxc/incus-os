@@ -212,11 +212,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Install Go
-        uses: actions/setup-go@v6
         with:
-          go-version: stable
+          fetch-tags: true
 
       - name: Install dependencies
         run: |
