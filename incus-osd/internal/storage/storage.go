@@ -88,7 +88,7 @@ type smartOutput struct {
 	} `json:"smart_status"`
 }
 
-// GetUnderlyingDevice figures out and returns the underlying device that Incus OS is running from.
+// GetUnderlyingDevice figures out and returns the underlying device that IncusOS is running from.
 func GetUnderlyingDevice() (string, error) {
 	// We need to find a file that's on a device mapper device and not on overlayfs.
 	var rootDev string

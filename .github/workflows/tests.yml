@@ -122,7 +122,7 @@ jobs:
           make generate-test-certs
           make
 
-      - name: Start Incus OS
+      - name: Start IncusOS
         run: |
           qemu-img convert -f raw -O qcow2 $(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
           incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2

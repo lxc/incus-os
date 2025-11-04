@@ -1,6 +1,6 @@
 # Install Seed
-Incus OS depends on an "install seed" to automate the installation process. Most
-users should either use the web-based [Incus OS customizer](https://incusos-customizer.linuxcontainers.org/ui/)
+IncusOS depends on an "install seed" to automate the installation process. Most
+users should either use the web-based [IncusOS customizer](https://incusos-customizer.linuxcontainers.org/ui/)
 or the [flasher tool](flasher-tool.md) which provide a simple way to configure
 the install seed without requiring detailed understanding of the technical details
 below.
@@ -8,7 +8,7 @@ below.
 ## Format and location
 The install seed is a simple tar archive consisting of one or more JSON or YAML
 configuration files. The tar file is written directly to the start of the second
-partition of the install image. At runtime, Incus OS will attempt to read the
+partition of the install image. At runtime, IncusOS will attempt to read the
 install seed from the second partition and use any data present during the
 install process.
 
@@ -26,7 +26,7 @@ install, but we cannot do this with a user-provided seed.)
 The following configuration files are currently recognized:
 
 ### `install.{json,yml,yaml}`
-The presence of this file, even if empty, will trigger Incus OS to start the
+The presence of this file, even if empty, will trigger IncusOS to start the
 installation process.
 
 The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/install.go):
@@ -38,11 +38,11 @@ The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus
   install media.
 
 - `Target`: An optional selector used to determine the install target device.
-  If not specified, Incus OS will expect a single unused drive to be present
+  If not specified, IncusOS will expect a single unused drive to be present
   during install.
 
 ### `applications.{json,yml,yaml}`
-This file defines what applications should be installed after Incus OS is up and
+This file defines what applications should be installed after IncusOS is up and
 running.
 
 The structure is defined in [`api/seed/applications.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/applications.go):
@@ -63,8 +63,8 @@ and references Incus' [`InitPreseed` API](https://github.com/lxc/incus/blob/main
   install.
 
 ### `network.{json,yml,yaml}`
-This file defines what network configuration should be applied when Incus OS
-boots. If not specified, Incus OS will attempt automatic {abbr}`DHCP (Dynamic Host Configuration Protocol)`/{abbr}`SLAAC (Stateless Address Configuration)`
+This file defines what network configuration should be applied when IncusOS
+boots. If not specified, IncusOS will attempt automatic {abbr}`DHCP (Dynamic Host Configuration Protocol)`/{abbr}`SLAAC (Stateless Address Configuration)`
 configuration on each network interface.
 
 The structure used is the [network API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
@@ -83,6 +83,6 @@ and references Operations Center's [`system` API](https://github.com/FuturFusion
 
 ### `provider.{json,yml,yaml}`
 This file provides preseed information to configure a given provider, which is used
-to fetch Incus OS updates and applications.
+to fetch IncusOS updates and applications.
 
 The structure used is the [provider API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_provider.go).

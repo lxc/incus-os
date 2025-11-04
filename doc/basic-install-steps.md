@@ -1,6 +1,6 @@
 # Basic install steps
 This provides a brief, high-level overview of how one might install a stand-alone
-Incus OS server, add its Incus as a remote, and retrieve the encryption
+IncusOS server, add its Incus as a remote, and retrieve the encryption
 recovery key.
 
 ## Install configuration
@@ -8,7 +8,7 @@ First, generate an Incus client certificate/key pair if needed:
 
     incus remote generate-certificate
 
-Using the web-based [Incus OS Customizer](https://incusos-customizer.linuxcontainers.org/ui/),
+Using the web-based [IncusOS Customizer](https://incusos-customizer.linuxcontainers.org/ui/),
 provide your client certificate and download the resulting installation image.
 
 Alternatively, using the [flasher tool](flasher-tool.md), enable the Incus
@@ -37,12 +37,12 @@ preseed:
             -----END CERTIFICATE-----
 ```
 
-Once you have your Incus OS install media, install it on your selected system.
+Once you have your IncusOS install media, install it on your selected system.
 
-## Add remote Incus OS
+## Add remote IncusOS
 
 After the install completes, you will be shown a list of IP addresses in the
-network configuration footer. Pick one and add Incus OS as a remote Incus
+network configuration footer. Pick one and add IncusOS as a remote Incus
 server:
 
 ```
@@ -88,7 +88,7 @@ $ incus list IncusOS:
 
 ## Fetching the encryption recovery key
 
-Incus OS will warn you if you haven't retrieved the encryption recovery key.
+IncusOS will warn you if you haven't retrieved the encryption recovery key.
 You can do so with the following command. Make sure to store the key someplace
 safe!
 

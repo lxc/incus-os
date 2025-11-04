@@ -22,7 +22,7 @@ INCUSOS_SEED_TAR=test/seed.install.tar INCUSOS_IMAGE_FORMAT=iso incus-osd/flashe
 IMG_NAME=$(ls IncusOS_*.iso | grep -v usr | grep -v esp | sort | tail -1)
 
 # Create an instance
-echo "=> Creating an Incus OS instance"
+echo "=> Creating an IncusOS instance"
 incus create --vm --empty "${1}" \
     -c security.secureboot=false \
     -c limits.cpu=4 \
@@ -31,7 +31,7 @@ incus create --vm --empty "${1}" \
 incus config device add "${1}" vtpm tpm
 incus config device add "${1}" boot-media disk source="$(pwd)/${IMG_NAME}" boot.priority=10
 
-echo "=> Starting Incus OS for installation"
+echo "=> Starting IncusOS for installation"
 incus start "${1}" --console
 sleep 5
 incus console "${1}"
@@ -43,5 +43,5 @@ incus stop -f "${1}"
 incus config device remove "${1}" boot-media
 
 # Start the installed system
-echo "=> Starting installed Incus OS"
+echo "=> Starting installed IncusOS"
 incus start "${1}" --console

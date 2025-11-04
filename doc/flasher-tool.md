@@ -1,6 +1,6 @@
 # Flasher tool
 The [flasher tool](https://github.com/lxc/incus-os/tree/main/incus-osd/cmd/flasher-tool)
-is a user-friendly way to provide install configuration for Incus OS.
+is a user-friendly way to provide install configuration for IncusOS.
 
 ## Usage
 
@@ -17,7 +17,7 @@ latest release.
 Once downloaded, you will be presented with an interactive menu you can use to
 customize the install options.
 
-After writing the image and exiting, you can then install Incus OS from the
+After writing the image and exiting, you can then install IncusOS from the
 resulting image.
 
 ## Environment variables
@@ -25,11 +25,11 @@ resulting image.
 Three special environment variables are recognized by the flasher tool, which can be
 used to provide defaults:
 
-- `INCUSOS_IMAGE`: Specifies a local Incus OS install image to work with, and will
+- `INCUSOS_IMAGE`: Specifies a local IncusOS install image to work with, and will
   disable checking the Linux Containers CDN for a newer version.
 
 - `INCUSOS_IMAGE_FORMAT`: When downloading from the Linux Containers CDN, specifies
-  the Incus OS install image format (`iso` or `img`) to fetch, and will disable
+  the IncusOS install image format (`iso` or `img`) to fetch, and will disable
   prompting the user for this information.
 
 - `INCUSOS_SEED_TAR`: Specifies a user-created [install seed](install-seed.md)

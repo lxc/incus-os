@@ -38,7 +38,7 @@ var cdromMappedDevice = "/dev/mapper/sr0"
 
 var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
 
-// CheckSystemRequirements verifies that the system meets the minimum requirements for running Incus OS.
+// CheckSystemRequirements verifies that the system meets the minimum requirements for running IncusOS.
 func CheckSystemRequirements(ctx context.Context) error {
 	// Check if Secure Boot is enabled.
 	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
