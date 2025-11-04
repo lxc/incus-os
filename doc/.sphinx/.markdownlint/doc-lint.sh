@@ -15,7 +15,7 @@ for fn in $(find doc/ -name '*.md'); do
     sed -E "s/(\(.+\)=)/\1\n/" "$fn" > ".tmp/$fn";
 done
 
-mdl .tmp/doc -s.sphinx/.markdownlint/style.rb -u.sphinx/.markdownlint/rules.rb --ignore-front-matter > .tmp/errors.txt || true
+mdl .tmp/doc -sdoc/.sphinx/.markdownlint/style.rb -udoc/.sphinx/.markdownlint/rules.rb --ignore-front-matter > .tmp/errors.txt || true
 
 if [ ! -s ".tmp/errors.txt" ]; then
     echo "Passed!"

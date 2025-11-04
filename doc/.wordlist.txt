@@ -6,8 +6,10 @@ dbx
 DHCP
 ECDSA
 FAT
+Furo
 GiB
 Incus
+IncusOS
 ISO
 JSON
 KEK

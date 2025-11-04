@@ -1,3 +1,4 @@
+jobs: 2
 matrix:
 - name: Markdown files
   aspell:
@@ -5,8 +6,8 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .sphinx/wordlist.txt
-    output: .sphinx/.wordlist.dic
+    - doc/.wordlist.txt
+    output: doc/.sphinx/.wordlist.dic
   sources:
   - doc/html/**/*.html
   pipeline:
@@ -22,3 +23,7 @@ matrix:
       - link
       - title
       - div.relatedlinks
+      - span.guilabel
+      - div.visually-hidden
+      - img
+      - a.p-navigation__link
