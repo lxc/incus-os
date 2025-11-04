@@ -20,14 +20,14 @@ func (s *Server) apiSystemBackup(w http.ResponseWriter, r *http.Request) {
 	// Make sure we have the current state written to disk prior to backup.
 	err := s.state.Save()
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
 
 	archive, err := backup.GetOSBackup()
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -36,7 +36,7 @@ func (s *Server) apiSystemBackup(w http.ResponseWriter, r *http.Request) {
 
 	_, err = w.Write(archive)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -56,7 +56,7 @@ func (s *Server) apiSystemRestore(w http.ResponseWriter, r *http.Request) {
 
 	err := backup.ApplyOSBackup(r.Context(), s.state, r.Body, skip)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}

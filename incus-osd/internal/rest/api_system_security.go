@@ -3,7 +3,6 @@ package rest
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"slices"
 
@@ -30,7 +29,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Get Secure Boot state (we always expect this to be true).
 		s.state.System.Security.State.SecureBootEnabled, err = secureboot.Enabled()
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -44,7 +43,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Get zpool encryption keys.
 		s.state.System.Security.State.PoolRecoveryKeys, err = zfs.GetZpoolEncryptionKeys()
 		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+			_ = response.InternalError(err).Render(w)
 
 			return
 		}
@@ -59,16 +58,9 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+		securityStruct := &api.SystemSecurity{}
 
-			return
-		}
-
-		securityStruct := api.SystemSecurity{}
-
-		err = json.Unmarshal(b, &securityStruct)
+		err := json.NewDecoder(r.Body).Decode(securityStruct)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
 
@@ -86,7 +78,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
 				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
 				if err != nil {
-					_ = response.BadRequest(err).Render(w)
+					_ = response.InternalError(err).Render(w)
 
 					return
 				}
@@ -98,7 +90,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
 				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
 				if err != nil {
-					_ = response.BadRequest(err).Render(w)
+					_ = response.InternalError(err).Render(w)
 
 					return
 				}

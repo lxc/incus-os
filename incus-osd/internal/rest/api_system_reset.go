@@ -36,7 +36,7 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 
 	err = reset.PerformOSFactoryReset(r.Context(), resetData)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}

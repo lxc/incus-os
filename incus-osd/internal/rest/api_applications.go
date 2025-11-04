@@ -86,7 +86,7 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -94,7 +94,7 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 	// Do the factory reset.
 	err = app.FactoryReset(r.Context())
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -124,7 +124,7 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -132,7 +132,7 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	// Trigger the restart.
 	err = app.Restart(r.Context(), s.state.Applications[name].State.Version)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -162,7 +162,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -177,7 +177,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	// how large the archive might be and we don't want to DOS ourselves.
 	err = app.GetBackup(io.Discard, complete == "true")
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -190,7 +190,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 
 	err = app.GetBackup(w, complete == "true")
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -218,7 +218,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -226,7 +226,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	// Restore the application's backup.
 	err = app.RestoreBackup(r.Context(), r.Body)
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -238,7 +238,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 
 	err = s.state.Save()
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
