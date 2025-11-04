@@ -2,14 +2,14 @@
 ## Pull requests
 
 Changes to this project should be proposed as pull requests on Github at:  
-<https://github.com/lxc/incus-os>
+[`https://github.com/lxc/incus-os`](https://github.com/lxc/incus-os)
 
-Proposed changes will then go through code review there and once acked, be merged in the main branch.
+Proposed changes will then go through code review there and be merged in the main branch.
 
 ## Code of Conduct
 
 When contributing, you must adhere to the Code of Conduct, which is available at:  
-<https://github.com/lxc/incus-os/blob/main/CODE_OF_CONDUCT.md>
+[`https://github.com/lxc/incus-os/blob/main/CODE_OF_CONDUCT.md`](https://github.com/lxc/incus-os/blob/main/CODE_OF_CONDUCT.md)
 
 ## License and copyright
 

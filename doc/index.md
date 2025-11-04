@@ -53,7 +53,7 @@ Network features:
 Management features:
 
 - Central management through Operations Center
-- Backup/Restore of both the main OS config and individual application data
+- Backup/Restore of both the main OS configuration and individual application data
 - Factory reset of either the whole OS or individual applications
 - Flexible update management
 
@@ -76,7 +76,7 @@ We currently maintain two update channels for IncusOS:
 - testing
 
 All installations default to the `stable` channel which typically sees
-at least one weekly update to pick up the latest stable bugfix release
+at least one weekly update to pick up the latest stable bug fix release
 of the Linux kernel as well as any relevant security issues.
 
 The `testing` channel sees much more frequent builds, typically once a
