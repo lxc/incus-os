@@ -13,6 +13,71 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
+// swagger:operation GET /1.0/system/security system system_get_security
+//
+//	Get security information
+//
+//	Returns information about the system's security state, such as Secure Boot and TPM status, encryption recovery keys, etc.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: State and configuration for the system security
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: json
+//	          description: State and configuration for the system security
+//	          example: {"config":{"encryption_recovery_keys":["fkrjjenn-tbtjbjgh-jtvvchjr-ctienevu-crknfkvi-vjlvblhl-kbneribu-htjtldch"]},"state":{"encryption_recovery_keys_retrieved":true,"encrypted_volumes":[{"volume":"root","state":"unlocked (TPM)"},{"volume":"swap","state":"unlocked (TPM)"}],"secure_boot_enabled":true,"secure_boot_certificates":[{"type":"PK","fingerprint":"26dce4dbb3de2d72bd16ae91a85cfeda84535317d3ee77e0d4b2d65e714cf111","subject":"CN=Incus OS - Secure Boot PK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"KEK","fingerprint":"9a42866f496834bde7e1b26a862b1e1b6dea7b78b91a948aecfc4e6ef79ea6c1","subject":"CN=Incus OS - Secure Boot KEK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"21b6f423cf80fe6c436dfea0683460312f276debe2a14285bfdc22da2d00fc20","subject":"CN=Incus OS - Secure Boot 2025 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"2243c49fcf6f84fe670f100ecafa801389dc207536cb9ca87aa2c062ddebfde5","subject":"CN=Incus OS - Secure Boot 2026 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"}],"tpm_status":"ok","pool_recovery_keys":{"local":"F7zrtdHEaivKqofZbVFs2EeANyK77DbLi6Z8sqYVhr0="}}}
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+
+// swagger:operation PUT /1.0/system/security system system_put_security
+//
+//	Update system security configuration
+//
+//	Updates list of encryption recovery keys.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: Security configuration
+//	    required: true
+//	    schema:
+//	      type: object
+//	      properties:
+//	        config:
+//	          type: object
+//	          description: The security configuration
+//	          example: {"encryption_recovery_keys":["my-super-secret-passphrase"]}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -52,19 +117,15 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
 	case http.MethodPut:
 		// Update the list of encryption recovery keys.
-		if r.ContentLength <= 0 {
-			_ = response.BadRequest(errors.New("no security configuration provided")).Render(w)
-
-			return
-		}
-
 		securityStruct := &api.SystemSecurity{}
 
-		err := json.NewDecoder(r.Body).Decode(securityStruct)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+		if r.ContentLength > 0 {
+			err := json.NewDecoder(r.Body).Decode(securityStruct)
+			if err != nil {
+				_ = response.BadRequest(err).Render(w)
 
-			return
+				return
+			}
 		}
 
 		if len(securityStruct.Config.EncryptionRecoveryKeys) == 0 {
@@ -106,6 +167,20 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	_ = s.state.Save()
 }
 
+// swagger:operation POST /1.0/system/security/:tpm-rebind system system_post_security_tpm_rebind
+//
+//	Reset TPM bindings
+//
+//	Forcibly resets TPM encryption bindings; intended only for use if it was required to enter a recovery passphrase to boot the system.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemSecurityTPMRebind(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

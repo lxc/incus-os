@@ -27,6 +27,8 @@ mkosi.packages/initrd-tmpfs-root*
 # Sphinx
 doc/html/
 doc/.sphinx/.doctrees/
+doc/.sphinx/_static/swagger-ui/
+doc/.sphinx/deps/
 doc/.sphinx/venv/
 doc/.sphinx/warnings.txt
 doc/.sphinx/.wordlist.dic

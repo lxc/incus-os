@@ -11,6 +11,40 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
+// swagger:operation GET /1.0/applications applications applications_get
+//
+//	Get currently installed applications
+//
+//	Returns a list of currently installed applications (URLs).
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: API endpoints
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: array
+//	          description: List of applications
+//	          items:
+//	            type: string
+//	          example: ["/1.0/applications/incus"]
 func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -41,6 +75,46 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 	_ = response.SyncResponse(true, urls).Render(w)
 }
 
+// swagger:operation GET /1.0/applications/{name} applications applications_get_application
+//
+//	Get application-specific information
+//
+//	Returns application-specific state and configuration information.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    description: State and configuration for the application
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: json
+//	          description: State and configuration for the application
+//	          example: {"state":{"initialized":true,"version":"202511041601"},"config":{}}
+//	  "404":
+//	    $ref: "#/responses/NotFound"
 func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -64,6 +138,28 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 	_ = response.SyncResponse(true, app).Render(w)
 }
 
+// swagger:operation POST /1.0/applications/{name}/:factory-reset applications applications_post_reset
+//
+//	Perform a factory reset of the application
+//
+//	Factory reset the application. This is a DESTRUCTIVE action and will wipe any local application configuration.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -102,6 +198,28 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+// swagger:operation POST /1.0/applications/{name}/:restart applications applications_post_restart
+//
+//	Restart an application
+//
+//	Triggers a restart of the application.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -140,6 +258,36 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+// swagger:operation POST /1.0/applications/{name}/:backup applications applications_post_backup
+//
+//	Generate an application backup
+//
+//	Generate and return a `gzip` compressed tar archive backup for the application.
+//
+//	---
+//	produces:
+//	  - application/json
+//	  - application/gzip
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	  - in: query
+//	    name: complete
+//	    description: If `true`, a full backup will be generated which may be quite large depending on what artifacts or updates are locally cached by the application
+//	    required: false
+//	    type: boolean
+//	responses:
+//	  "200":
+//	    description: gzip'ed tar archive
+//	    schema:
+//	      type: file
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -196,6 +344,38 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// swagger:operation POST /1.0/applications/{name}/:restore applications applications_post_restore
+//
+//	Restore an application backup
+//
+//	Restore a `gzip` compressed tar archive backup for the application. After a successful restore, the application will be restarted.
+//
+//	Remember to properly set the `Content-Type: application/gzip` HTTP header.
+//
+//	---
+//	consumes:
+//	  - application/gzip
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	  - in: body
+//	    name: gzip tar archive
+//	    description: Application backup to restore
+//	    required: true
+//	    schema:
+//	      type: file
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
