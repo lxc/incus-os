@@ -220,7 +220,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 //	    required: true
 //	    schema:
 //	      type: object
-//	      example: {"id":"/dev/sdb"}
+//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
