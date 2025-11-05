@@ -100,22 +100,24 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 
 				// #nosec G304
 				priorManifestFileGz, err := os.Open(filepath.Join(targetPath, "../", priorVersion, priorFilename))
-				if err != nil {
+				if err != nil && !os.IsNotExist(err) {
 					return err
 				}
 
-				defer func() { _ = priorManifestFileGz.Close() }() //nolint:revive
+				if err == nil {
+					defer func() { _ = priorManifestFileGz.Close() }() //nolint:revive
 
-				priorManifestFile, err := gzip.NewReader(priorManifestFileGz)
-				if err != nil {
-					return err
-				}
+					priorManifestFile, err := gzip.NewReader(priorManifestFileGz)
+					if err != nil {
+						return err
+					}
 
-				defer func() { _ = priorManifestFile.Close() }() //nolint:revive
+					defer func() { _ = priorManifestFile.Close() }() //nolint:revive
 
-				err = json.NewDecoder(priorManifestFile).Decode(&priorManifest)
-				if err != nil {
-					return err
+					err = json.NewDecoder(priorManifestFile).Decode(&priorManifest)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
