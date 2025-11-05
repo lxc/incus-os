@@ -1934,24 +1934,119 @@ definitions:
         x-go-package: github.com/lxc/incus/v6/shared/api
     Instance:
         properties:
-            last_update_from_source:
+            architecture:
+                description: Architecture name
+                example: x86_64
+                type: string
+                x-go-name: Architecture
+            config:
+                description: Instance configuration (see doc/instances.md)
+                example:
+                    security.nesting: "true"
+                type: object
+                x-go-name: Config
+            created_at:
+                description: Instance creation timestamp
+                example: "2021-03-23T20:00:00-04:00"
                 format: date-time
                 type: string
-                x-go-name: LastUpdateFromSource
-            overrides:
-                $ref: '#/definitions/InstanceOverride'
-            properties:
-                $ref: '#/definitions/InstanceProperties'
-            source:
-                description: The originating source name for this instance
-                example: MySource
+                x-go-name: CreatedAt
+            description:
+                description: Instance description
+                example: My test instance
                 type: string
-                x-go-name: Source
-            source_type:
-                $ref: '#/definitions/SourceType'
-        title: Instance defines a VM instance to be migrated.
+                x-go-name: Description
+            devices:
+                additionalProperties:
+                    additionalProperties:
+                        type: string
+                    type: object
+                description: Instance devices (see doc/instances.md)
+                example:
+                    root:
+                        path: /
+                        pool: default
+                        type: disk
+                type: object
+                x-go-name: Devices
+            ephemeral:
+                description: Whether the instance is ephemeral (deleted on shutdown)
+                example: false
+                type: boolean
+                x-go-name: Ephemeral
+            expanded_config:
+                description: Expanded configuration (all profiles and local config merged)
+                example:
+                    security.nesting: "true"
+                type: object
+                x-go-name: ExpandedConfig
+            expanded_devices:
+                additionalProperties:
+                    additionalProperties:
+                        type: string
+                    type: object
+                description: Expanded devices (all profiles and local devices merged)
+                example:
+                    root:
+                        path: /
+                        pool: default
+                        type: disk
+                type: object
+                x-go-name: ExpandedDevices
+            last_used_at:
+                description: Last start timestamp
+                example: "2021-03-23T20:00:00-04:00"
+                format: date-time
+                type: string
+                x-go-name: LastUsedAt
+            location:
+                description: What cluster member this instance is located on
+                example: server01
+                type: string
+                x-go-name: Location
+            name:
+                description: Instance name
+                example: foo
+                type: string
+                x-go-name: Name
+            profiles:
+                description: List of profiles applied to the instance
+                example:
+                    - default
+                items:
+                    type: string
+                type: array
+                x-go-name: Profiles
+            project:
+                description: Instance project name
+                example: foo
+                type: string
+                x-go-name: Project
+            restore:
+                description: If set, instance will be restored to the provided snapshot name
+                example: snap0
+                type: string
+                x-go-name: Restore
+            stateful:
+                description: Whether the instance currently has saved state on disk
+                example: false
+                type: boolean
+                x-go-name: Stateful
+            status:
+                description: Instance status (see instance_state)
+                example: Running
+                type: string
+                x-go-name: Status
+            status_code:
+                $ref: '#/definitions/StatusCode'
+            type:
+                description: The type of instance (container or virtual-machine)
+                example: container
+                type: string
+                x-go-name: Type
+        title: Instance represents an instance.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     InstanceBackup:
         properties:
             created_at:
@@ -3326,47 +3421,73 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
+        description: Network represents a network
         properties:
-            bridge_name:
-                description: Name of the parent bridge to use with a VLAN.
-                example: br0
+            config:
+                description: Network configuration map (refer to doc/networks.md)
+                example:
+                    ipv4.address: 10.0.0.1/24
+                    ipv4.nat: "true"
+                    ipv6.address: none
+                type: object
+                x-go-name: Config
+            description:
+                description: Description of the profile
+                example: My new bridge
                 type: string
-                x-go-name: BridgeName
-            identifier:
-                description: The identifier of the network
-                example: network-23
-                type: string
-                x-go-name: Identifier
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
-                type: string
-                x-go-name: Location
+                x-go-name: Description
+            locations:
+                description: Cluster members on which the network has been defined
+                example:
+                    - server01
+                    - server02
+                    - server03
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: Locations
+            managed:
+                description: Whether this is a managed network
+                example: true
+                readOnly: true
+                type: boolean
+                x-go-name: Managed
             name:
-                description: Name of the network on the target.
-                example: '"vmware"'
+                description: The network name
+                example: mybr0
                 readOnly: true
                 type: string
                 x-go-name: Name
-            properties:
-                description: Additional properties of the network.
-                type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+            project:
+                description: Project name
+                example: project1
                 type: string
-                x-go-name: Source
+                x-go-name: Project
+            status:
+                description: The state of the network (for managed network in clusters)
+                example: Created
+                readOnly: true
+                type: string
+                x-go-name: Status
             type:
-                $ref: '#/definitions/NetworkType'
-            vlan_id:
-                description: Name of the VLAN ID to use with a VLAN network.
-                example: "1"
+                description: The network type
+                example: bridge
+                readOnly: true
                 type: string
-                x-go-name: VlanID
-        title: Network defines the network config for use by the migration manager.
+                x-go-name: Type
+            used_by:
+                description: List of URLs of objects using this profile
+                example:
+                    - /1.0/profiles/default
+                    - /1.0/instances/c1
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: UsedBy
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkACL:
         properties:
             config:
@@ -7505,25 +7626,20 @@ definitions:
     SystemCertificatePost:
         description: |-
             SystemCertificatePost represents the fields available for an update of the
-            system certificate (server certificate), key, and CA.
+            system certificate (server certificate) and key.
         properties:
-            ca:
-                description: The new certificate CA (X509 PEM encoded) for the system (server CA).
-                example: X509 PEM certificate CA
-                type: string
-                x-go-name: CA
             certificate:
                 description: The new certificate (X509 PEM encoded) for the system (server certificate).
                 example: X509 PEM certificate
                 type: string
-                x-go-name: Cert
+                x-go-name: Certificate
             key:
                 description: The new certificate key (X509 PEM encoded) for the system (server key).
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: Key
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     SystemNetwork:
         properties:
             config:
@@ -7971,6 +8087,9 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     SystemSecurityOpenFGA:
+        description: |-
+            SystemSecurityOpenFGA is the OpenFGA related part of the system's security
+            configuration.
         properties:
             api_token:
                 description: API token used for communication with the OpenFGA system.
@@ -7984,9 +8103,8 @@ definitions:
                 description: ID of the OpenFGA store.
                 type: string
                 x-go-name: StoreID
-        title: SystemSecurityOpenFGA is the OpenFGA related part of the system's security configuration.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     SystemSecurityPut:
         description: |-
             SystemSecurityPut represents the fields available for an update of the
@@ -9950,7 +10068,7 @@ paths:
                   required: true
                   schema:
                     example:
-                        id: /dev/sdb
+                        id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk
                     type: object
             produces:
                 - application/json
