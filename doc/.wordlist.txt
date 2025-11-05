@@ -9,6 +9,7 @@ decrypt
 DHCP
 DNS
 ECDSA
+EOF
 FAT
 formatters
 Furo
@@ -35,12 +36,14 @@ Multipath
 Netbird
 NTP
 NVMe
+OCI
 OEM
 OVN
 OVS
 parsable
 PCR
 PCRs
+PEM
 PK
 preseed
 Proxmox
@@ -58,10 +61,12 @@ TLS
 TPM
 UDP
 UEFI
+UI
 UKI
 USBIP
 VLAN
 VLANs
 VMware
 YAML
+Zabbly
 ZFS
