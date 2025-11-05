@@ -118,7 +118,7 @@ func main() {
 }
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
-	// Verify that the system meets minimum requirements for running Incus OS.
+	// Verify that the system meets minimum requirements for running IncusOS.
 	err := install.CheckSystemRequirements(ctx)
 	if err != nil {
 		modal := t.AddModal(s.OS.Name)

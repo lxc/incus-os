@@ -24,8 +24,9 @@ fi
 
 ## Postprocessing
 
-filtered_errors="$(grep -vxFf .sphinx/.markdownlint/exceptions.txt .tmp/errors.txt)"
-if [ "$(echo "$filtered_errors" | wc -l)" = "2" ]; then
+sed '/^$/Q' -i .tmp/errors.txt
+filtered_errors="$(grep -vxFf doc/.sphinx/.markdownlint/exceptions.txt .tmp/errors.txt || true)"
+if [ -z "$filtered_errors" ]; then
     echo "Passed!"
     exit 0
 else

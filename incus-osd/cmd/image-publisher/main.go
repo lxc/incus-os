@@ -15,11 +15,11 @@ type cmdGlobal struct {
 func main() {
 	app := &cobra.Command{}
 	app.Use = "image-publisher"
-	app.Short = "Maintains an Incus OS update server"
+	app.Short = "Maintains an IncusOS update server"
 	app.Long = `Description:
-  Maintain an Incus OS update server
+  Maintain an IncusOS update server
 
-  This tool handles publishing, promotion and cleanup of Incus OS updates.
+  This tool handles publishing, promotion and cleanup of IncusOS updates.
 `
 	app.SilenceUsage = true
 	app.CompletionOptions = cobra.CompletionOptions{DisableDefaultCmd: true}

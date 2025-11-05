@@ -20,7 +20,7 @@ dzfuFuN/tMIqY355bBYk3m6/UAIK5Pum/Q==
 -----END CERTIFICATE-----
 `
 
-// Application represents an application to be installed on top of Incus OS.
+// Application represents an application to be installed on top of IncusOS.
 type Application interface {
 	Name() string
 	Version() string

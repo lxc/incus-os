@@ -1,5 +1,5 @@
 [Unit]
-Description=Incus OS - management daemon
+Description=IncusOS - management daemon
 Documentation=https://github.com/lxc/incus-os/
 After=systemd-udevd.service
 Before=network-pre.target
