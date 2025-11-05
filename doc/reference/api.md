@@ -1,7 +1,9 @@
 # REST API
 
-**WARNING** The IncusOS debug API endpoints have no guarantee of API stability, and should not be used
+```{warning}
+The IncusOS debug API endpoints have no guarantee of API stability, and should not be used
 in normal day-to-day operations.
+```
 
 <link rel="stylesheet" type="text/css" href="../../_static/swagger-ui/swagger-ui.css" ></link>
 <link rel="stylesheet" type="text/css" href="../../_static/swagger-override.css" ></link>
