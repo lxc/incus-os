@@ -5,7 +5,9 @@ customizer
 db
 dbx
 DCO
+decrypt
 DHCP
+DNS
 ECDSA
 FAT
 formatters
@@ -14,6 +16,7 @@ GiB
 Github
 Incus
 IncusOS
+IPv
 iSCSI
 ISO
 JSON
@@ -24,7 +27,10 @@ LLDP
 LLMs
 LUKS
 LVM
+MAC
+MACs
 MOK
+MTU
 Multipath
 Netbird
 NTP
@@ -32,11 +38,13 @@ NVMe
 OEM
 OVN
 OVS
+parsable
 PCR
 PCRs
 PK
 preseed
 Proxmox
+raidz
 RSA
 SLAAC
 struct
@@ -53,6 +61,7 @@ UEFI
 UKI
 USBIP
 VLAN
+VLANs
 VMware
 YAML
 ZFS
