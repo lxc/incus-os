@@ -40,7 +40,7 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 }
 ```
 
-Get the local pool encryption keys for safe storage:
+Get the local pool encryption keys for safe storage (base64 encoded):
 
 ```
 $ incus admin os system show security
@@ -77,7 +77,7 @@ Wipe local drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified 
 
 ## Importing encryption key for an existing local pool
 
-If importing an existing local storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Import the raw base64-encoded encryption key for storage pool `mypool` by running
+If importing an existing local storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Import the raw base64 encoded encryption key for storage pool `mypool` by running
 
 ```
 incus admin os system import-storage-encryption-key -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
