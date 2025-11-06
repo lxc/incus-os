@@ -1,10 +1,26 @@
 # Accessing the system
+
+```{note}
+These instructions assume IncusOS deployed with the Incus application.
+
+When using it with Operations Center or Migration Manager, use their respective command line client or web UI instead.
+```
+
+## Getting the IP address
+The first step in accessing an IncusOS system is by finding its IP address.
+This can be done by looking at the bottom of the screen on the running system.
+
+![IncusOS running screen](../images/incusos-started.png)
+
+The documentation below uses `192.0.2.100` as the IP address of the IncusOS system.
+
+## From the command line
 After the install completes, you will be shown a list of IP addresses in the
 network configuration footer. Pick one and add IncusOS as a remote Incus
 server:
 
 ```
-$ incus remote add IncusOS 10.234.136.23
+$ incus remote add IncusOS 192.0.2.100
 Certificate fingerprint: 80d569e9244a421f3a3d60d46631eb717f8a0a480f2f23ee729a4c1c016875f7
 ok (y/n/[fingerprint])? y
 
@@ -44,11 +60,30 @@ $ incus list IncusOS:
 
 ```
 
+## From the web
+The Incus UI is also available for web access.
+
+For this to work, the client certificate provided at image creation time
+must be imported as a user certificate in your web browser.
+
+The exact process to do this varies between browsers and operating
+systems, but generally involves generating a PKCS#12 certificate from
+the separate `client.crt` and `client.key`, then importing that in the
+web browser's certificate store.
+
+Once this is done, you can access the UI at `https://192.0.2.100:8443`
+
+![Incus UI with running instances](../images/incus-webui-instances.png)
+
 ## Fetching the encryption recovery key
 
 IncusOS will warn you if you haven't retrieved the encryption recovery key.
 You can do so with the following command. Make sure to store the key someplace
 safe!
+
+```{note}
+This step is currently only possible through the command line client.
+```
 
 ```
 $ incus query IncusOS:/os/1.0/system/security
