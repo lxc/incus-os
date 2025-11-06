@@ -1,5 +1,6 @@
 backend
 CDN
+CDROM
 Ceph
 customizations
 customizer
@@ -43,6 +44,7 @@ NTP
 NVMe
 OCI
 OEM
+OVMF
 OVN
 OVS
 parsable
@@ -51,8 +53,10 @@ PCRs
 PEM
 PK
 PKCS
+Pre
 preseed
 Proxmox
+Proxmox's
 raidz
 RSA
 SLAAC
@@ -70,6 +74,7 @@ UDP
 UEFI
 UI
 UKI
+Uncheck
 USBIP
 VLAN
 VLANs
