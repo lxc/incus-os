@@ -2,6 +2,12 @@
 
 Each IncusOS application shares a common API that can be used to restart it if needed as well as perform backup, restore, and reset operations.
 
+## Getting the application state
+
+```
+incus admin os application show <name>
+```
+
 ## Restarting the application
 
 If needed, an application can be restarted by running
