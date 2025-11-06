@@ -36,7 +36,7 @@ The following "skip" options can be set when restoring a backup:
 
 ### Examples
 
-Restore the back up by running
+Restore the backup by running
 
 ```
 incus admin os system restore backup.tar.gz
