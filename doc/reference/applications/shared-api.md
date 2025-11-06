@@ -10,7 +10,9 @@ If needed, an application can be restarted by running
 incus admin os application restart <name>
 ```
 
-Note: It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application.
+```{note}
+It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application.
+```
 
 ## Backing up the application
 
@@ -44,7 +46,9 @@ Restore the backup by running
 incus admin os application restore <name> backup.tar.gz
 ```
 
-Note: It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application after performing the restoration.
+```{note}
+It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application after performing the restoration.
+```
 
 ## Factory reset
 
@@ -58,4 +62,6 @@ Reset the application by running
 incus admin os application factory-reset <name>
 ```
 
-Note: It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application after resetting the application.
+```{note}
+It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application after resetting the application.
+```

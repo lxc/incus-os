@@ -13,6 +13,7 @@ EOF
 FAT
 formatters
 Furo
+FuturFusion
 GiB
 Github
 Incus

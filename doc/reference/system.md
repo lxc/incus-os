@@ -1,4 +1,11 @@
 # System configuration
+IncusOS runs a management daemon which is responsible not just of
+starting and stopping the various applications and services but also of
+correctly bringing up system networking and storage, handle updates and
+manage encryption keys.
+
+Those core system functions each have their own state and configuration
+as well as relevant actions.
 
 ```{toctree}
 :maxdepth: 1

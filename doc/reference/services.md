@@ -1,4 +1,9 @@
 # Services
+IncusOS system services are optional system-wide features, typically
+used to integrate with an external system.
+
+The majority of services today are centered around connecting to
+external storage or networking.
 
 ```{toctree}
 :maxdepth: 1
