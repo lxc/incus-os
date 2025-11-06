@@ -76,6 +76,7 @@ UI
 UKI
 Uncheck
 USBIP
+VirtualBox
 VLAN
 VLANs
 VPN
