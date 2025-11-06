@@ -2,8 +2,10 @@ backend
 CDN
 CDROM
 Ceph
+CPUs
 customizations
 customizer
+datastore
 db
 dbx
 DCO
@@ -12,6 +14,7 @@ DHCP
 DNS
 ECDSA
 EOF
+ESXi
 FAT
 fibre
 formatters
@@ -37,8 +40,8 @@ MAC
 MACs
 MOK
 MTU
-Multipath
 multipath
+Multipath
 Netbird
 NTP
 NVMe
@@ -78,8 +81,9 @@ Uncheck
 USBIP
 VLAN
 VLANs
-VPN
 VMware
+VPN
+vSphere
 WWN
 YAML
 Zabbly
