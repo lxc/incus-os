@@ -6,6 +6,14 @@ These instructions assume IncusOS deployed with the Incus application.
 When using it with Operations Center or Migration Manager, use their respective command line client or web UI instead.
 ```
 
+## Getting the IP address
+The first step in accessing an IncusOS system is by finding its IP address.
+This can be done by looking at the bottom of the screen on the running system.
+
+![IncusOS running screen](../images/incusos-started.png)
+
+The documentation below uses `192.0.2.100` as the IP address of the IncusOS system.
+
 ## From the command line
 After the install completes, you will be shown a list of IP addresses in the
 network configuration footer. Pick one and add IncusOS as a remote Incus
@@ -27,11 +35,6 @@ $ incus remote list
 | local (current) | unix://                            | incus         | file access | NO     | YES    | NO     |
 +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
 
-```
-
-```{note}
-192.0.2.100 is used here as the example IP address of the IncusOS system.
-The current IP address can be found at the bottom of the screen on the running system.
 ```
 
 Once the remote is added, you can interact with it like any other Incus server:
@@ -70,10 +73,7 @@ web browser's certificate store.
 
 Once this is done, you can access the UI at `https://192.0.2.100:8443`
 
-```{note}
-192.0.2.100 is used here as the example IP address of the IncusOS system.
-The current IP address can be found at the bottom of the screen on the running system.
-```
+![Incus UI with running instances](../images/incus-webui-instances.png)
 
 ## Fetching the encryption recovery key
 
