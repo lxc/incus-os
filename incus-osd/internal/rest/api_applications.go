@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -264,7 +265,11 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 //
 //	Generate and return a `gzip` compressed tar archive backup for the application.
 //
+//	A full backup may be quite large depending on what artifacts or updates are locally cached by the application.
+//
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
 //	  - application/gzip
@@ -274,11 +279,13 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 //	    description: Application name
 //	    required: true
 //	    type: string
-//	  - in: query
-//	    name: complete
-//	    description: If `true`, a full backup will be generated which may be quite large depending on what artifacts or updates are locally cached by the application
+//	  - in: body
+//	    name: configuration
+//	    description: Backup configuration
 //	    required: false
-//	    type: boolean
+//	    schema:
+//	      type: object
+//	      example: {"complete":true}
 //	responses:
 //	  "200":
 //	    description: gzip'ed tar archive
@@ -315,7 +322,20 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	complete := r.FormValue("complete")
+	type backupStruct struct {
+		Complete bool `json:"complete"`
+	}
+
+	config := &backupStruct{}
+
+	if r.ContentLength > 0 {
+		err := json.NewDecoder(r.Body).Decode(config)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+	}
 
 	// Once we begin streaming the tar archive back to the user,
 	// we can no longer return a nice error message if something
@@ -323,7 +343,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	// to /dev/null. If any error is reported, we can return it to the
 	// user. We can't buffer in-memory or on-disk since we don't know
 	// how large the archive might be and we don't want to DOS ourselves.
-	err = app.GetBackup(io.Discard, complete == "true")
+	err = app.GetBackup(io.Discard, config.Complete)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -336,7 +356,7 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	// to the user, since we will have already begun streaming
 	// the tar archive to them.
 
-	err = app.GetBackup(w, complete == "true")
+	err = app.GetBackup(w, config.Complete)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
