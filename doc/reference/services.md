@@ -14,5 +14,8 @@ LVM </reference/services/lvm>
 Multipath </reference/services/multipath>
 NVMe </reference/services/nvme>
 OVN </reference/services/ovn>
+Tailscale </reference/services/tailscale>
 USBIP </reference/services/usbip>
+
+Shared API </reference/services/shared-api>
 ```
