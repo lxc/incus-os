@@ -79,6 +79,7 @@ UI
 UKI
 Uncheck
 USBIP
+VirtIO
 VirtualBox
 VLAN
 VLANs
