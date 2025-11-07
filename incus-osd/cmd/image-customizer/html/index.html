@@ -152,7 +152,38 @@
                                 <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
                             </div>
                         </div>
+
+                        <hr>
+
+                        <div>
+                            <h3>Network configuration (optional)</h3>
+
+                            <p>
+                                By default IncusOS will run both DHCPv4
+                                and SLAAC on every interface it can find
+                                on the system, hoping that one of them
+                                will provide enough connectivity to
+                                allow the user to connect and apply the
+                                final network configuration.
+                            </p>
+
+                            <p>
+                                For cases where this approach doesn't
+                                work, such as environments requiring
+                                static IP addresses, the use of a
+                                proxy server or using link aggregation
+                                or VLANs, a full network configuration
+                                can be provided instead.
+                            </p>
+
+                            <p>Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/">found here</a>.</p>
+
+                            <div class="mb-3">
+                                <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
+                            </div>
+                        </div>
                     </form>
+
                     <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
                 </div>
             </div>
