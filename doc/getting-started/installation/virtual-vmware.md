@@ -6,6 +6,14 @@ IncusOS can be easily installed in a VMware virtual machine when running with vS
 IncusOS requires the use of a virtual TPM device, this appears to require the use of vSphere and won't work on standalone ESXi.
 ```
 
+## Configure networking
+
+Because IncusOS needs runs nested container and virtual machines, the
+VMware network security policy must be pretty relaxed to allow for the
+virtual machine to run its internal bridge.
+
+![Network configuration](../../images/vsphere-network.png)
+
 ## Get and import install media
 
 Follow the instructions to [get an IncusOS image](../download.md). This document will assume an ISO image is used.
