@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -170,6 +171,8 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 
 	err := yaml.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024)).Decode(&req)
 	if err != nil {
+		slog.Warn("image request: bad JSON", "client", r.RemoteAddr, "err", err)
+
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.BadRequest(err).Render(w)
 
@@ -208,6 +211,8 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	slog.Info("image request: created", "client", r.RemoteAddr, "type", req.Type, "architecture", req.Architecture)
 }
 
 func apiImage(w http.ResponseWriter, r *http.Request) {
@@ -266,6 +271,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 
 	metaFile, err := os.Open(filepath.Join(os.Args[1], "index.json"))
 	if err != nil {
+		slog.Warn("image retrieve: bad index", "client", r.RemoteAddr, "err", err)
+
 		_ = response.InternalError(err).Render(w)
 
 		return
@@ -275,6 +282,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(metaFile).Decode(&metaIndex)
 	if err != nil {
+		slog.Warn("image retrieve: bad index", "client", r.RemoteAddr, "err", err)
+
 		_ = response.InternalError(err).Render(w)
 
 		return
@@ -301,6 +310,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if imageFilePath == "" {
+		slog.Warn("image retrieve: image not found", "client", r.RemoteAddr)
+
 		_ = response.InternalError(errors.New("couldn't find matching image")).Render(w)
 
 		return
@@ -312,6 +323,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	// Open the image file.
 	imageFile, err := os.Open(imageFilePath) //nolint:gosec
 	if err != nil {
+		slog.Warn("image retrieve: bad image", "client", r.RemoteAddr, "err", err)
+
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.InternalError(err).Render(w)
 
@@ -323,6 +336,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	// Setup gzip seeking decompressor.
 	rc, err := gzran.NewReader(imageFile)
 	if err != nil {
+		slog.Warn("image retrieve: bad image", "client", r.RemoteAddr, "err", err)
+
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.InternalError(err).Render(w)
 
@@ -393,6 +408,8 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	slog.Info("image retrieve: retrieved", "client", r.RemoteAddr, "type", req.Type, "architecture", req.Architecture)
 }
 
 func writeSeed(writer io.Writer, seeds apiImagesPostSeeds) (int, error) {
