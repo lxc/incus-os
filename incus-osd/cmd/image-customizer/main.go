@@ -124,6 +124,8 @@ func apiRoot(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.Header.Get("User-Agent"), "Gecko") {
 		// Redirect to UI.
 		http.Redirect(w, r, "/ui/", http.StatusMovedPermanently)
+
+		return
 	}
 
 	if r.URL.Path != "/" {
