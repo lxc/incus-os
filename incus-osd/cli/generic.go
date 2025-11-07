@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -247,10 +248,20 @@ type cmdGenericRun struct {
 	defaultData   string
 	hasFileInput  bool
 	hasFileOutput bool
+	extraArgs     []cmdGenericRunArgs
 
 	flagData string
 
 	os *cmdAdminOS
+}
+
+type cmdGenericRunArgs struct {
+	shortFlag    string
+	longFlag     string
+	description  string
+	defaultValue string
+
+	data string
 }
 
 func (c *cmdGenericRun) command() *cobra.Command {
@@ -283,6 +294,10 @@ func (c *cmdGenericRun) command() *cobra.Command {
 
 	if c.hasData {
 		cmd.Flags().StringVarP(&c.flagData, "data", "d", "", "Command data``")
+	}
+
+	for i := range c.extraArgs {
+		cmd.Flags().StringVarP(&c.extraArgs[i].data, c.extraArgs[i].longFlag, c.extraArgs[i].shortFlag, c.extraArgs[i].defaultValue, c.extraArgs[i].description)
 	}
 
 	cmd.RunE = c.run
@@ -340,17 +355,29 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Use cluster target if specified.
-	apiURL := "/os/1.0/" + c.endpoint
+	apiURL, err := url.Parse("/os/1.0/" + c.endpoint)
+	if err != nil {
+		return err
+	}
 
 	if c.entity != "" {
-		apiURL += "/" + resource
+		apiURL = apiURL.JoinPath(resource)
 	}
 
-	apiURL += "/:" + c.action
+	apiURL = apiURL.JoinPath("/:" + c.action)
 
+	values := apiURL.Query()
 	if c.os.flagTarget != "" {
-		apiURL = apiURL + "?target=" + c.os.flagTarget
+		values.Set("target", c.os.flagTarget)
 	}
+
+	for i := range c.extraArgs {
+		if c.extraArgs[i].data != "" {
+			values.Set(c.extraArgs[i].longFlag, c.extraArgs[i].data)
+		}
+	}
+
+	apiURL.RawQuery = values.Encode()
 
 	// Set default data.
 	var inData any
@@ -392,7 +419,7 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Run the command.
-	_, _, err = doQuery(c.os.args.DoHTTP, remote, "POST", apiURL, inData, outData, "")
+	_, _, err = doQuery(c.os.args.DoHTTP, remote, "POST", apiURL.String(), inData, outData, "")
 	if err != nil {
 		return err
 	}

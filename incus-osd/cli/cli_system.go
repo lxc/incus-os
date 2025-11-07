@@ -68,6 +68,13 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		endpoint:     "system",
 		hasFileInput: true,
 		confirm:      "restore the system state to provided backup",
+		extraArgs: []cmdGenericRunArgs{
+			{
+				shortFlag:   "s",
+				longFlag:    "skip",
+				description: "Comma-separated list of items to skip",
+			},
+		},
 	}
 	cmd.AddCommand(restoreCmd.command())
 
