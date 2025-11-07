@@ -32,6 +32,7 @@ ISO
 JSON
 KEK
 Kerberos
+libvirt
 Linstor
 LLDP
 LLMs
