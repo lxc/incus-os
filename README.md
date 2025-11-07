@@ -1,49 +1,38 @@
-![Daily API tests](https://github.com/lxc/incus-os/actions/workflows/daily.yml/badge.svg)
-
 # Introduction
-IncusOS is a minimal immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
-It's based on [Debian](https://www.debian.org) trixie and built using [mkosi](https://github.com/systemd/mkosi).
+[IncusOS](https://linuxcontainers.org/incus-os) is an immutable OS image dedicated to running [Incus](https://linuxcontainers.org/incus).
+It's based on [Debian](https://www.debian.org) 13 and built using [mkosi](https://github.com/systemd/mkosi).
+
 IncusOS can be installed on modern amd64 (x86_64) and arm64 systems.
 
 This aims at providing a very fast, safe and reliable way to run an Incus server.
+It's got a strong focus on security, actively relying on UEFI Secure Boot and TPM 2.0 for boot security and disk encryption.
 
-# Security features
-IncusOS is designed to run on systems using UEFI with Secure Boot enabled.
-On first boot, it will automatically add the relevant Secure Boot keys
-(requires the system be in setup mode).
+You can read more about how to get started with IncusOS
+[here](https://linuxcontainers.org/incus-os/docs/main/getting-started/)
+including detailed instructions for physical installation or for running
+IncusOS on a variety of virtual machine platforms.
 
-This ensures that only our signed image can be booted on the system.
-The image then uses dm-verity to validate every bit that's read from disk.
+The full documentation for IncusOS can be [found here](https://linuxcontainers.org/incus-os/docs/main).
 
-All throughout boot, artifacts get measured through the TPM with the TPM
-state used to manage disk encryption.
+# Development
+This repository includes all the sources used to build the production IncusOS images.
 
-This effectively ensures that the system can only boot valid IncusOS
-images, that nothing can be altered on the system and that any
-re-configuration of the system requires the use of a recovery key to
-access the persistent storage.
+Builds are triggered by pushing a new tag to this repository which kicks
+in a full image build, that then gets downloaded and validated by our
+publishing server. The image is then made available in the `testing`
+channel until it's manually validated and promoted to the `stable`
+channel.
 
-When updating, IncusOS uses an A/B update mechanism to reboot onto the
-newer version while keeping the previous version available should a
-revert be needed.
+The most recent image build logs can be found here: https://github.com/lxc/incus-os/actions/workflows/build.yml  
+With the resulting images being published to: https://images.linuxcontainers.org/os/
 
-# Status
-IncusOS is still in early alpha development, which means it comes with some
-important caveats:
+A daily test is also run, exercising most of the API endpoints and
+running tests that would be impractical (too slow) to run for every pull
+request.
 
-  * There can and will be breaking changes, which may ultimately require a
-  fresh reinstall. Therefore, DO NOT use IncusOS with any kind of important
-  data.
-  
-  * Currently all development and testing of IncusOS is done through Incus
-  VMs. While it should be possible to run IncusOS on physical hardware or
-  other virtualization solutions (ie, Proxmox), support will be limited.
-  
-  * IncusOS is intentionally opinionated and requires modern hardware to
-  enable its various security features. IncusOS will never be installable
-  on systems without UEFI Secure Boot and a TPM.
+[![Daily API tests](https://github.com/lxc/incus-os/actions/workflows/daily.yml/badge.svg)](https://github.com/lxc/incus-os/actions/workflows/daily.yml)
 
-# Documentation
-More detailed documentation is available in the `doc/` directory, including
-a [brief example](doc/basic-install-steps.md) of how to configure and then
-connect to Incus post-install.
+# Contributing
+This repository is released under the terms of the Apache 2.0 license.
+
+Detailed contribution guidelines can be found in [our documentation](https://linuxcontainers.org/incus-os/docs/main/contributing/).
