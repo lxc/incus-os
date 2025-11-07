@@ -1,4 +1,13 @@
 # Installing IncusOS
+IncusOS is designed to run on modern physical hardware as that's the
+optimal environment to run an Incus server.
+
+But we also support having it run inside of a virtual machine, making it
+easier to evaluate or debug. In general, any physical or virtual
+environment which matches our [hardware requirements](requirements.md)
+should do fine. That said we recommend using generic storage and network
+adapters whenever possible, with NVMe, VirtIO or Intel virtual devices
+usually being preferred.
 
 ```{toctree}
 :maxdepth: 1
