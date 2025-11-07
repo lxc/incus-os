@@ -28,7 +28,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 		}
 
 		for addressIndex, address := range iface.Addresses {
-			err := validateAddress(address)
+			err := validateAddressWithCIDR(address)
 			if err != nil {
 				return fmt.Errorf("interface %d address %d %s", index, addressIndex, err.Error())
 			}
@@ -40,7 +40,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 		}
 
 		for routeIndex, route := range iface.Routes {
-			err := validateAddress(route.To)
+			err := validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("interface %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -83,7 +83,7 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 		}
 
 		for addressIndex, address := range bond.Addresses {
-			err := validateAddress(address)
+			err := validateAddressWithCIDR(address)
 			if err != nil {
 				return fmt.Errorf("bond %d address %d %s", index, addressIndex, err.Error())
 			}
@@ -95,7 +95,7 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 		}
 
 		for routeIndex, route := range bond.Routes {
-			err := validateAddress(route.To)
+			err := validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("bond %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -155,7 +155,7 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 		}
 
 		for addressIndex, address := range vlan.Addresses {
-			err := validateAddress(address)
+			err := validateAddressWithCIDR(address)
 			if err != nil {
 				return fmt.Errorf("vlan %d address %d %s", index, addressIndex, err.Error())
 			}
@@ -167,7 +167,7 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 		}
 
 		for routeIndex, route := range vlan.Routes {
-			err := validateAddress(route.To)
+			err := validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("vlan %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -275,9 +275,26 @@ func validateAddress(address string) error {
 		return nil
 	}
 
-	addressishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+(/\d+)?$`)
+	addressishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+$`)
 	if !addressishRegex.MatchString(address) {
 		return fmt.Errorf("invalid IP address '%s'", address)
+	}
+
+	return nil
+}
+
+func validateAddressWithCIDR(address string) error {
+	if address == "" {
+		return errors.New("has empty address")
+	}
+
+	if address == "dhcp4" || address == "dhcp6" || address == "slaac" {
+		return nil
+	}
+
+	addressishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+/\d+$`)
+	if !addressishRegex.MatchString(address) {
+		return fmt.Errorf("invalid IP address '%s', must provide a CIDR mask", address)
 	}
 
 	return nil

@@ -166,6 +166,14 @@ interfaces:
     hwaddr: eth0
 `
 
+var badNetworkdConfig4 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - 192.168.0.100
+    hwaddr: eth0
+`
+
 func TestBadNetworkConfig(t *testing.T) {
 	t.Parallel()
 
@@ -197,6 +205,16 @@ func TestBadNetworkConfig(t *testing.T) {
 
 		err = ValidateNetworkConfiguration(&cfg, false)
 		require.EqualError(t, err, "duplicate interface/bond/vlan name: iface")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Unmarshal([]byte(badNetworkdConfig4), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg, false)
+		require.EqualError(t, err, "interface 0 address 0 invalid IP address '192.168.0.100', must provide a CIDR mask")
 	}
 }
 

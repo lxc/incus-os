@@ -2,6 +2,7 @@ backend
 CDN
 CDROM
 Ceph
+CIDR
 CPUs
 customizations
 customizer
