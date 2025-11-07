@@ -47,6 +47,25 @@ Configure two network interfaces, one with IPv4 and the other with IPv6:
 }
 ```
 
+Configure a network interface with two static IP addresses. When specifying a static IP address, it must include a CIDR mask.
+
+```
+{
+    "interfaces": [
+        {"name": "enp5s0",
+         "hwaddr": "enp5s0",
+         "addresses": ["10.234.136.100/24", "fd42:3cfb:8972:3990::100/64"],
+         "routes": [
+             {"to":"0.0.0.0/0", "via":"10.234.136.1"},
+             {"to":"::/0", "via":"fd42:3cfb:8972:3990::1"}
+         ]}
+    ],
+    "dns": {
+        "nameservers": ["10.234.136.1"]
+    }
+}
+```
+
 Configure a VLAN with ID 123 on top of an active-backup bond composed of two interfaces with MTU of 9000 and LLDP enabled:
 
 ```
