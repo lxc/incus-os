@@ -134,6 +134,15 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		os.Exit(1) //nolint:revive
 	}
 
+	// Warn the user if we failed to read any configuration fields from state.
+	if len(s.UnrecognizedFields) > 0 {
+		slog.ErrorContext(ctx, "Failed to fully parse existing state; no changes will be written to disk")
+	}
+
+	for _, field := range s.UnrecognizedFields {
+		slog.WarnContext(ctx, "Failed to parse state field '"+field+"', skipping")
+	}
+
 	// Check if we should try to install to a local disk.
 	if s.ShouldPerformInstall {
 		inst, err := install.NewInstall(t)

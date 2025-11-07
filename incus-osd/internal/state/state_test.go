@@ -165,6 +165,28 @@ System.Update.Config.Channel: stable
 System.Update.Config.CheckFrequency: 6h0m0s
 `
 
+var unrecognizedFieldConfig = `#Version: 5
+Applications[incus].State.Initialized: true
+Applications[incus].State.Version: 202506241635
+OS.Name: IncusOS
+OS.RunningRelease: 202506241635
+OS.NextRelease: 202506241635
+System.Security.Config.FooBar: BizBaz
+`
+
+// Test decoding state with an unrecognized field.
+func TestUnrecognizedField(t *testing.T) {
+	t.Parallel()
+
+	var s state.State
+
+	err := state.Decode([]byte(unrecognizedFieldConfig), nil, &s)
+	require.NoError(t, err)
+
+	require.Len(t, s.UnrecognizedFields, 1)
+	require.Equal(t, "System.Security.Config.FooBar", s.UnrecognizedFields[0])
+}
+
 // Test basic custom decoding/encoding of state.
 func TestCustomEncoding(t *testing.T) {
 	t.Parallel()

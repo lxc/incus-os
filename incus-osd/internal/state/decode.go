@@ -1,11 +1,14 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 )
+
+var errUnrecognizedConfigField = errors.New("unrecognized configuration field")
 
 // Decode reconstitutes a given state. Optionally, if provided, a list of upgrade functions will be
 // applied before decoding the state.
@@ -59,7 +62,13 @@ func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 
 		err := decodeHelper(reflect.ValueOf(s), strings.Split(parts[0], "."), parts[1])
 		if err != nil {
-			return err
+			if !errors.Is(err, errUnrecognizedConfigField) {
+				return err
+			}
+
+			// Collect a list of any unrecognized configuration fields. Typically this shouldn't
+			// happen, but it may if booting into the recovery OS image after a state version upgrade.
+			s.UnrecognizedFields = append(s.UnrecognizedFields, parts[0])
 		}
 	}
 
@@ -88,7 +97,7 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 		field := reflect.Indirect(v).FieldByName(parts[0])
 
 		if !field.IsValid() {
-			return fmt.Errorf("invalid field '%s' for struct '%s'", key, v.Type())
+			return errUnrecognizedConfigField
 		}
 
 		// Do additional processing, if needed.
