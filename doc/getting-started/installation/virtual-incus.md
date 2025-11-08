@@ -64,7 +64,7 @@ Add a TPM device.
 
 IncusOS depends on Secure Boot and a v2.0 TPM. When configuring the virtual machine, make the following selections:
 
-* Set `security.secureboot=false` to disable loading of default Secure Boot keys
+* Set `security.secureboot=false` to disable loading of the default Secure Boot keys (Microsoft) allowing IncusOS to enroll its own
 
 * Add a virtual TPM device
 
