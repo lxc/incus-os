@@ -1,6 +1,7 @@
 package state
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -47,6 +48,13 @@ func LoadOrCreate(path string) (*State, error) {
 
 // Save writes out the current state struct into its on-disk storage.
 func (s *State) Save() error {
+	// If we failed to fully load the existing state, refuse to save any changes to prevent accidental data loss.
+	if len(s.UnrecognizedFields) > 0 {
+		slog.Error("Refusing to save state because we previously failed to properly load the existing state")
+
+		return nil
+	}
+
 	body, err := Encode(s)
 	if err != nil {
 		return err

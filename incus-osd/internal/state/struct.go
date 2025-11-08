@@ -28,7 +28,8 @@ type OS struct {
 type State struct {
 	path string
 
-	StateVersion int `json:"-"`
+	StateVersion       int      `json:"-"`
+	UnrecognizedFields []string `json:"-"`
 
 	ShouldPerformInstall bool `json:"-"`
 
