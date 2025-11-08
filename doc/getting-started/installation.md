@@ -13,10 +13,7 @@ usually being preferred.
 For virtual machines, storage drives should be configured to use the `VirtIO-scsi` driver. Using `VirtIO-blk` does not work as the resulting drives will not appear to IncusOS in the same way as physical drives do.
 ```
 
-## Unsupported platforms
-So far we're aware that IncusOS cannot be installed on top of Microsoft
-Hyper-V due to that virtualization platform not supporting custom Secure
-Boot keys.
+## Supported platforms
 
 ```{toctree}
 :maxdepth: 1
@@ -28,3 +25,9 @@ Installing on Proxmox </getting-started/installation/virtual-proxmox>
 Installing on VirtualBox </getting-started/installation/virtual-virtualbox>
 Installing on VMware </getting-started/installation/virtual-vmware>
 ```
+
+## Unsupported platforms
+
+So far we're aware that IncusOS cannot be installed on top of Microsoft
+Hyper-V due to that virtualization platform not supporting custom Secure
+Boot keys.
