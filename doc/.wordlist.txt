@@ -14,6 +14,7 @@ decrypt
 DHCP
 DNS
 ECDSA
+EFI
 EOF
 ESXi
 FAT
