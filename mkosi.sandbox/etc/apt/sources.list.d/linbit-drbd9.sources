@@ -1,0 +1,7 @@
+Enabled: yes
+Types: deb
+URIs: http://packages.linbit.com/public
+Suites: proxmox-9
+Architectures: amd64
+Components: drbd-9
+Signed-By: /etc/apt/keyrings/linbit.asc

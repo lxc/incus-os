@@ -1,0 +1,6 @@
+Enabled: yes
+Types: deb
+URIs: http://packages.linbit.com/public
+Suites: trixie
+Components: misc
+Signed-By: /etc/apt/keyrings/linbit.asc
