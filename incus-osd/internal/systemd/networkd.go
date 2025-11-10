@@ -284,6 +284,48 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		}
 	}
 
+	// Report any unused additional physical interface.
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+
+	for _, i := range ifaces {
+		// Managed interfaces.
+		if strings.HasPrefix(i.Name, "_") {
+			continue
+		}
+
+		// Internal OS interfaces.
+		if slices.Contains([]string{"lo"}, i.Name) {
+			continue
+		}
+
+		// Already included in state.
+		_, exists := n.State.Interfaces[i.Name]
+		if exists {
+			continue
+		}
+
+		// Check that it's not a virtual device.
+		target, err := os.Readlink("/sys/class/net/" + i.Name)
+		if err != nil {
+			return err
+		}
+
+		if strings.Contains(target, "/virtual/") {
+			continue
+		}
+
+		// Generate an entry.
+		iState, err := getInterfaceState(ctx, "physical", i.Name, i.HardwareAddr.String(), "", nil)
+		if err != nil {
+			return err
+		}
+
+		n.State.Interfaces[i.Name] = iState
+	}
+
 	return nil
 }
 
@@ -383,7 +425,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 	switch ifaceType {
 	case "interface", "bond_member":
 		underlyingDevice = "_p" + strings.ToLower(strings.ReplaceAll(hwaddr, ":", ""))
-	case "bond":
+	case "bond", "physical":
 		underlyingDevice = iface
 	case "vlan":
 		if hwaddr == "" {
@@ -395,13 +437,17 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 		return api.SystemNetworkInterfaceState{}, errors.New("unknown interface type '" + ifaceType + "' for interface " + iface)
 	}
 
-	// #nosec G304
-	contents, err := os.ReadFile("/sys/class/net/" + underlyingDevice + "/speed")
-	if err != nil {
-		return api.SystemNetworkInterfaceState{}, err
-	}
+	var speed string
 
-	speed := strings.TrimSuffix(string(contents), "\n")
+	if interfaceState != "off" {
+		// #nosec G304
+		contents, err := os.ReadFile("/sys/class/net/" + underlyingDevice + "/speed")
+		if err != nil {
+			return api.SystemNetworkInterfaceState{}, err
+		}
+
+		speed = strings.TrimSuffix(string(contents), "\n")
+	}
 
 	// Fetch any LLDP info.
 	lldp := []api.SystemNetworkLLDPState{}
