@@ -10,5 +10,7 @@ type ServiceTailscale struct {
 		AuthKey          string   `json:"auth_key"          yaml:"auth_key"`
 		AcceptRoutes     bool     `json:"accept_routes"     yaml:"accept_routes"`
 		AdvertisedRoutes []string `json:"advertised_routes" yaml:"advertised_routes"`
+		ServeEnabled     bool     `json:"serve_enabled"     yaml:"serve_enabled"`
+		ServePort        int16    `json:"serve_port"        yaml:"serve_port"`
 	} `json:"config" yaml:"config"`
 }
