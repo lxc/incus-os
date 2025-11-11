@@ -20,8 +20,8 @@ The following configuration options can be set:
 
 * `serve_enabled`: If `true`, expose `localhost:8443` (typically the Incus application) via [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve)
 
-* `serve_port`: TCP port to expose the https server to, for example `443` would expose the Incus application on: `https://{hostname}.{tailnet}.ts.net:443/`
+* `serve_port`: TCP port to expose the HTTPS server to, for example `443` would expose the Incus application on: `https://{hostname}.{tailnet}.ts.net:443/`
 
 ```{warning}
-Serve requires provisioning HTTPS certificates on the dashboard([documentation](https://tailscale.com/kb/1153/enabling-https#configure-https))
+Enabling Tailscale Serve requires provisioning HTTPS certificates on the dashboard beforehand ([documentation](https://tailscale.com/kb/1153/enabling-https#configure-https))
 ```
