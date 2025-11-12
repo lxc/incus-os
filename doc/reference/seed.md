@@ -31,13 +31,13 @@ installation process.
 
 The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/install.go):
 
-- `ForceInstall`: If true, will install to target device even if partitions
+- `force_install`: If true, will install to target device even if partitions
   already exist. WARNING: THIS CAN CAUSE DATA LOSS!
 
-- `ForceReboot`: If true, reboot after install without waiting for removal of
+- `force_reboot`: If true, reboot after install without waiting for removal of
   install media.
 
-- `Target`: An optional selector used to determine the install target device.
+- `target`: An optional selector used to determine the install target device.
   If not specified, IncusOS will expect a single unused drive to be present
   during install.
 
@@ -47,7 +47,7 @@ running.
 
 The structure is defined in [`api/seed/applications.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/applications.go):
 
-- `Applications`: Holds an array of applications to install. Currently the
+- `applications`: Holds an array of applications to install. Currently the
   only supported application are `incus`, `migration-manager`, and `operations-center`.
 
 ### `incus.{json,yml,yaml}`
@@ -56,10 +56,10 @@ This file provides preseed information for Incus.
 The structure is defined in [`api/seed/incus.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/incus.go)
 and references Incus' [`InitPreseed` API](https://github.com/lxc/incus/blob/main/shared/api/init.go):
 
-- `ApplyDefaults`: If true, automatically apply a set of reasonable defaults
+- `apply_defaults`: If true, automatically apply a set of reasonable defaults
   when installing Incus.
 
-- `Preseed`: Additional preseed information to be passed to Incus during
+- `preseed`: Additional preseed information to be passed to Incus during
   install.
 
 ### `network.{json,yml,yaml}`
