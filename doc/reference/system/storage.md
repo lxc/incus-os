@@ -4,6 +4,12 @@ IncusOS allows for the configuration of complex local ZFS storage pools. Each po
 
 It is also possible to add, remove, and replace devices from an existing local storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
+```{note}
+Unencrypted ZFS storage pools are not supported. IncusOS will only create encrypted pools, and will refuse to import any existing unencrypted pool.
+
+This prevents the accidental leakage of sensitive data from an encrypted pool to an unencrypted one.
+```
+
 ## Configuration options
 
 The following configuration options can be set:
