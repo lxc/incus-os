@@ -9,7 +9,7 @@ The system-level backup doesn't include information from any installed applicati
 ## Backup
 
 ```{important}
-An IncusOS backup will contain its current state as well as copies of the encryption key(s) for any local storage pool(s). As such, the backup should not be stored in any publicly-accessible location.
+An IncusOS backup will contain its current state as well as copies of the encryption key(s) for any storage pool(s). As such, the backup should not be stored in any publicly-accessible location.
 ```
 
 Create the backup by running
@@ -30,7 +30,7 @@ The following "skip" options can be set when restoring a backup:
 
 * `encryption-recovery-keys`: Don't overwrite any existing main system drive encryption recovery keys.
 
-* `local-data-encryption-key`: Don't overwrite the local storage pool's encryption key.
+* `local-data-encryption-key`: Don't overwrite the `local` storage pool's encryption key.
 
 * `network-macs`: Don't use any hard-coded MACs from the backup, but rather attempt to determine the proper MACs from the existing interfaces.
 
@@ -47,7 +47,7 @@ incus admin os system restore backup.tar.gz
 ```{warning}
 A factory reset will erase all data on the main system drive. This includes any installed applications, their configuration and the system-level state and configuration.
 
-User-created local storage pools will be untouched, but will be unable to be imported when the system reboots. Be certain you have a copy of each local storage pool's encryption key __before__ performing the factory reset.
+User-created storage pools will be untouched, but will be unable to be imported when the system reboots. Be certain you have a copy of each storage pool's encryption key __before__ performing the factory reset.
 ```
 
 ### Configuration options
