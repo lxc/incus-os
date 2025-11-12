@@ -283,7 +283,7 @@ func (*images) tryRequest(req *http.Request) (*http.Response, error) {
 		time.Sleep(time.Second)
 	}
 
-	return nil, err
+	return nil, errors.New("http request timed out after five seconds: %s" + err.Error())
 }
 
 // An application from the images provider.
@@ -325,7 +325,7 @@ func (a *imagesApplication) Download(ctx context.Context, targetPath string, pro
 		// Download the application.
 		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
 	}
 
@@ -372,7 +372,7 @@ func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, 
 		// Download the application.
 		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
 	}
 
@@ -448,7 +448,7 @@ func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath st
 		// Download the application.
 		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
 	}
 

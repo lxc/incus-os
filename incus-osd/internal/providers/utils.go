@@ -15,19 +15,16 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
-		return err
+		return errors.New("unable to create http request: " + err.Error())
 	}
 
 	// Get a reader for the release asset.
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return errors.New("unable to get http response: " + err.Error())
 	}
 
 	defer resp.Body.Close()
-
-	// Get the release asset size.
-	srcSize := float64(resp.ContentLength)
 
 	// Setup a sha256 hasher.
 	h := sha256.New()
@@ -38,7 +35,7 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 	// Setup a gzip reader to decompress during streaming.
 	body, err := gzip.NewReader(tr)
 	if err != nil {
-		return err
+		return errors.New("gzip error reading body: " + err.Error())
 	}
 
 	defer body.Close()
@@ -62,12 +59,12 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 				break
 			}
 
-			return err
+			return errors.New("io.CopyN() error: " + err.Error())
 		}
 
 		// Update progress every 24MiB.
 		if progressFunc != nil && count%6 == 0 {
-			progressFunc(float64(count*4*1024*1024) / srcSize)
+			progressFunc(float64(count*4*1024*1024) / float64(resp.ContentLength))
 		}
 
 		count++
