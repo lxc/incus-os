@@ -81,6 +81,8 @@ UEFI
 UI
 UKI
 Uncheck
+Unencrypted
+unencrypted
 USBIP
 VirtIO
 VirtualBox
