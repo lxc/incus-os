@@ -170,15 +170,6 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	// Ensure each device passed to `zpool create` is of the "by-id" format to be more resilient against changing device names.
 	for i, dev := range zpool.Devices {
-		isRemote, err := storage.IsRemoteDevice(dev)
-		if err != nil {
-			return err
-		}
-
-		if isRemote {
-			return errors.New("cannot use remote device " + dev + " as part of local zpool")
-		}
-
 		zpool.Devices[i], err = storage.DeviceToID(ctx, dev)
 		if err != nil {
 			return err
@@ -186,15 +177,6 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 	}
 
 	for i, dev := range zpool.Cache {
-		isRemote, err := storage.IsRemoteDevice(dev)
-		if err != nil {
-			return err
-		}
-
-		if isRemote {
-			return errors.New("cannot use remote device " + dev + " as part of local zpool")
-		}
-
 		zpool.Cache[i], err = storage.DeviceToID(ctx, dev)
 		if err != nil {
 			return err
@@ -202,15 +184,6 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 	}
 
 	for i, dev := range zpool.Log {
-		isRemote, err := storage.IsRemoteDevice(dev)
-		if err != nil {
-			return err
-		}
-
-		if isRemote {
-			return errors.New("cannot use remote device " + dev + " as part of local zpool")
-		}
-
 		zpool.Log[i], err = storage.DeviceToID(ctx, dev)
 		if err != nil {
 			return err
@@ -446,7 +419,7 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	return nil
 }
 
-func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, currentDevices []string, newDevices []string) error { //nolint:revive
+func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, currentDevices []string, newDevices []string) error {
 	// Compare the two lists of devices and apply updates as needed.
 	for idx := range currentDevices {
 		if newDevices[idx] == "" { //nolint:nestif
@@ -475,15 +448,6 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 			}
 		} else if newDevices[idx] != currentDevices[idx] {
 			// The update contains a different device -> replace the existing device in the pool.
-			isRemote, err := storage.IsRemoteDevice(newDevices[idx])
-			if err != nil {
-				return err
-			}
-
-			if isRemote {
-				return errors.New("cannot use remote device " + newDevices[idx] + " as part of local zpool")
-			}
-
 			actualDevOld, err := storage.DeviceToID(ctx, currentDevices[idx])
 			if err != nil {
 				return err
@@ -525,15 +489,6 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 			args := []string{"add", zpoolName, "mirror"}
 
 			for _, dev := range newDevices[len(currentDevices):] {
-				isRemote, err := storage.IsRemoteDevice(dev)
-				if err != nil {
-					return err
-				}
-
-				if isRemote {
-					return errors.New("cannot use remote device " + dev + " as part of local zpool")
-				}
-
 				actualDev, err := storage.DeviceToID(ctx, dev)
 				if err != nil {
 					return err
@@ -549,15 +504,6 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 		}
 	} else {
 		for idx := len(currentDevices); idx < len(newDevices); idx++ {
-			isRemote, err := storage.IsRemoteDevice(newDevices[idx])
-			if err != nil {
-				return err
-			}
-
-			if isRemote {
-				return errors.New("cannot use remote device " + newDevices[idx] + " as part of local zpool")
-			}
-
 			args := []string{}
 
 			if vdevName == "" || vdevName == "log" || vdevName == "cache" {
