@@ -71,7 +71,7 @@ Configure a VLAN with ID 123 on top of an active-backup bond composed of two int
 ```
 {
     "bonds": [
-        {"name:", "management",
+        {"name": "management",
          "mode": "active-backup",
          "mtu": 9000,
          "lldp": true,
