@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,6 +25,13 @@ import (
 func LoadPools(ctx context.Context, s *state.State) error {
 	// Import all local ZFS pools.
 	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "-a")
+	if err != nil {
+		return err
+	}
+
+	// Immediately export any unencrypted pool. There doesn't seem to be a nice
+	// way to selectively import just encrypted pools.
+	err = exportUnencryptedPools(ctx)
 	if err != nil {
 		return err
 	}
@@ -57,6 +65,36 @@ func LoadPools(ctx context.Context, s *state.State) error {
 		err := CreateZpool(ctx, zpool, s)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+// Helper function to export any unencrypted pools.
+func exportUnencryptedPools(ctx context.Context) error {
+	pools, err := subprocess.RunCommandContext(ctx, "zpool", "list", "-H", "-o", "name")
+	if err != nil {
+		return err
+	}
+
+	for pool := range strings.SplitSeq(pools, "\n") {
+		if pool == "" {
+			continue
+		}
+
+		encryptionStatus, err := subprocess.RunCommandContext(ctx, "zfs", "get", "encryption", "-H", "-o", "value", pool)
+		if err != nil {
+			return err
+		}
+
+		if strings.TrimSpace(encryptionStatus) == "off" {
+			_, err := subprocess.RunCommandContext(ctx, "zpool", "export", pool)
+			if err != nil {
+				return err
+			}
+
+			slog.WarnContext(ctx, "Refusing to import unencrypted ZFS pool '"+pool+"'")
 		}
 	}
 
