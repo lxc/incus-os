@@ -24,6 +24,7 @@ Furo
 FuturFusion
 GiB
 Github
+HTTPS
 Incus
 IncusOS
 IPs

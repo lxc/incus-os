@@ -33,3 +33,9 @@ doc/.sphinx/venv/
 doc/.sphinx/warnings.txt
 doc/.sphinx/.wordlist.dic
 doc/__pycache__
+
+# MacOS
+.DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride

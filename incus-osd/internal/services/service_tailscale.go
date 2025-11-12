@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
@@ -132,6 +133,22 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 	_, err := subprocess.RunCommandContext(ctx, "tailscale", "set", "--advertise-routes", strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","), "--accept-routes="+strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes))
 	if err != nil {
 		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "tailscale", "serve", "reset")
+	if err != nil {
+		return err
+	}
+
+	if n.state.Services.Tailscale.Config.ServeEnabled {
+		// Timeout since there this command is interactive when the tailnet admin has not provisioned HTTPS
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		_, err = subprocess.RunCommandContext(ctx, "tailscale", "serve", "--bg", "--https="+strconv.Itoa(int(n.state.Services.Tailscale.Config.ServePort)), "https+insecure://localhost:8443")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
