@@ -18,7 +18,7 @@ type Update struct {
 	Channels    []string       `json:"channels"`
 	Files       []UpdateFile   `json:"files"`
 	Origin      string         `json:"origin"`
-	PublishedAt time.Time      `json:"published_at"`
+	PublishedAt time.Time      `json:"published_at"` // In UTC.
 	Severity    UpdateSeverity `json:"severity"`
 	Version     string         `json:"version"`
 }
