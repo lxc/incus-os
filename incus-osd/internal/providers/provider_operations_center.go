@@ -518,7 +518,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 		// Download the application.
 		err = downloadAsset(ctx, a.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}
 	}
 
@@ -564,7 +564,7 @@ func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPat
 		// Download the application.
 		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}
 	}
 
@@ -637,7 +637,7 @@ func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, tar
 		// Download the application.
 		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}
 	}
 
