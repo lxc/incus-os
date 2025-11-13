@@ -91,7 +91,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		Channels:    []string{updateChannel},
 		Files:       []apiupdate.UpdateFile{},
 		Origin:      updateOrigin,
-		PublishedAt: time.Now(),
+		PublishedAt: time.Now().UTC(),
 		Severity:    apiupdate.UpdateSeverity(updateSeverity),
 		Version:     releaseName,
 	}
