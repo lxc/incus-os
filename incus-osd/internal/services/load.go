@@ -11,7 +11,7 @@ import (
 // Supported returns the list of all valid services for this system.
 // The list is sorted in recommended startup order to handle service dependencies.
 func Supported(s *state.State) []string {
-	services := []string{"ceph", "iscsi", "nvme", "multipath", "lvm", "ovn", "tailscale", "usbip"}
+	services := []string{"ceph", "iscsi", "linstor", "nvme", "multipath", "lvm", "ovn", "tailscale", "usbip"}
 	supported := make([]string, 0, len(services))
 
 	for _, service := range services {
@@ -53,6 +53,8 @@ func loadByName(s *state.State, name string) (Service, error) {
 		srv = &Ceph{state: s}
 	case "iscsi":
 		srv = &ISCSI{state: s}
+	case "linstor":
+		srv = &Linstor{state: s}
 	case "lvm":
 		srv = &LVM{state: s}
 	case "multipath":
