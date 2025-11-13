@@ -1,0 +1,11 @@
+[Unit]
+Description=Print incus-osd journal errors
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+Environment=MSG="IncusOS failed to start. journal contents follow:"
+Environment=TTYS="/dev/tty1 /dev/ttyS0"
+
+ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY || true; journalctl -b 0 -u incus-osd > $TTY || true; done"
