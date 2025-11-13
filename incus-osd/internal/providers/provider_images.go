@@ -27,13 +27,13 @@ type images struct {
 	serverURL string
 	updateCA  string
 
-	lastCheck    time.Time
+	lastCheck    time.Time // In system's timezone.
 	latestUpdate *apiupdate.UpdateFull
 }
 
 func (p *images) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.lastCheck = time.Time{}
+	p.lastCheck = time.Now()
 
 	return nil
 }
