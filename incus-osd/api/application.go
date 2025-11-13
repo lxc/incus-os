@@ -4,6 +4,9 @@ import (
 	"time"
 )
 
+// ApplicationConfig represents additional configuration for an application.
+type ApplicationConfig struct{}
+
 // Application represents the state and configuration of a generic application.
 type Application struct {
 	State struct {
@@ -12,5 +15,5 @@ type Application struct {
 		LastRestored *time.Time `json:"last_restored,omitempty" yaml:"last_restored,omitempty"`
 	} `json:"state" yaml:"state"`
 
-	Config struct{} `json:"config" yaml:"config"`
+	Config ApplicationConfig `json:"config" yaml:"config"`
 }

@@ -7,14 +7,17 @@ type ServiceNVMETarget struct {
 	Port      int    `json:"port"      yaml:"port"`
 }
 
+// ServiceNVMEConfig represents additional configuration for the NVME service.
+type ServiceNVMEConfig struct {
+	Enabled bool                `json:"enabled" yaml:"enabled"`
+	Targets []ServiceNVMETarget `json:"targets" yaml:"targets"`
+}
+
 // ServiceNVME represents the state and configuration of the NVME service.
 type ServiceNVME struct {
 	State ServiceNVMEState `incusos:"-" json:"state" yaml:"state"`
 
-	Config struct {
-		Enabled bool                `json:"enabled" yaml:"enabled"`
-		Targets []ServiceNVMETarget `json:"targets" yaml:"targets"`
-	} `json:"config" yaml:"config"`
+	Config ServiceNVMEConfig `json:"config" yaml:"config"`
 }
 
 // ServiceNVMEState represents the state for the NVME service.
