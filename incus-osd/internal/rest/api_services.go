@@ -43,7 +43,7 @@ import (
 //	          description: List of services
 //	          items:
 //	            type: string
-//	          example: ["/1.0/services/ceph","/1.0/services/iscsi","/1.0/services/lvm","/1.0/services/multipath","/1.0/services/nvme","/1.0/services/ovn","/1.0/services/tailscale","/1.0/services/usbip"]
+//	          example: ["/1.0/services/ceph","/1.0/services/iscsi","/1.0/services/linstor","/1.0/services/lvm","/1.0/services/multipath","/1.0/services/nvme","/1.0/services/ovn","/1.0/services/tailscale","/1.0/services/usbip"]
 func (s *Server) apiServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
