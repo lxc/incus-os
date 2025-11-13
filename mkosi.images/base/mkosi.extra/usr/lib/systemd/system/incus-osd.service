@@ -4,6 +4,7 @@ Documentation=https://github.com/lxc/incus-os/
 After=systemd-udevd.service
 Before=network-pre.target
 Wants=network-pre.target
+OnFailure=print-incus-osd-journal-errors.service
 
 [Service]
 ExecStart=/usr/local/bin/incus-osd
