@@ -579,7 +579,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Save when we last performed an update check.
-		s.System.Update.State.LastCheck = time.Now().UTC()
+		s.System.Update.State.LastCheck = time.Now()
 		s.System.Update.State.Status = "Running update check"
 
 		// Check maintenance window, except if we're performing a startup or manual check.

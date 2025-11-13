@@ -59,14 +59,14 @@ type operationsCenter struct {
 	serverURL         string
 	serverToken       string
 
-	lastCheck    time.Time
+	lastCheck    time.Time // In system's timezone.
 	latestUpdate *operationsCenterUpdate
 	releaseMu    sync.Mutex
 }
 
 func (p *operationsCenter) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.lastCheck = time.Time{}
+	p.lastCheck = time.Now()
 
 	return nil
 }
