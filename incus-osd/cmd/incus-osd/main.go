@@ -390,15 +390,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Perform an initial blocking check for updates before proceeding.
 	updateChecker(ctx, s, t, p, true, false)
 
-	// Ensure any local ZFS pools are available.
-	slog.InfoContext(ctx, "Bringing up the local storage")
-
-	err = zfs.LoadPools(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	// Run services startup actions.
+	// Run services startup actions. This must be done before bringing up any storage pools.
 	for _, srvName := range services.Supported(s) {
 		srv, err := services.Load(ctx, s, srvName)
 		if err != nil {
@@ -417,7 +409,15 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		}
 	}
 
-	// Run application startup actions.
+	// Ensure any locally-defined pools are available.
+	slog.InfoContext(ctx, "Bringing up the local storage")
+
+	err = zfs.LoadPools(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Run application startup actions. Must be done after storage pools are loaded.
 	for appName := range s.Applications {
 		err := startInitializeApplication(ctx, s, appName)
 		if err != nil {

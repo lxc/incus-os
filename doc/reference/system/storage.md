@@ -1,8 +1,10 @@
 # Storage
 
-IncusOS allows for the configuration of complex local ZFS storage pools. Each pool is automatically encrypted with a randomly generated key to protect data stored in the pool. The encryption keys can be retrieved from the system's security state.
+IncusOS allows for the configuration of complex ZFS storage pools. Each pool is automatically encrypted with a randomly generated key to protect data stored in the pool. The encryption keys can be retrieved from the system's security state.
 
-It is also possible to add, remove, and replace devices from an existing local storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
+When creating a storage pool, IncusOS can use local devices, or remote devices made available via a [service](../services.md), such as iSCSI.
+
+It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
 ```{note}
 Unencrypted ZFS storage pools are not supported. IncusOS will only create encrypted pools, and will refuse to import any existing unencrypted pool.
@@ -14,11 +16,11 @@ This prevents the accidental leakage of sensitive data from an encrypted pool to
 
 The following configuration options can be set:
 
-* `pools`: An array of zero or more user-defined local storage pool definitions.
+* `pools`: An array of zero or more user-defined storage pool definitions.
 
 ### Examples
 
-Create a local storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device:
+Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device:
 
 ```
 {
@@ -46,7 +48,7 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 }
 ```
 
-Get the local pool encryption keys for safe storage (base64 encoded):
+Get the pool encryption keys for safe storage (base64 encoded):
 
 ```
 $ incus admin os system show security
@@ -57,33 +59,33 @@ state:
     mypool: zh9gkAgGsKenO48y7dwNg6aBFaD6OoedgSlSsivEq0Q=
 ```
 
-## Deleting a local storage pool
+## Deleting a storage pool
 
 ```{warning}
 Deleting a storage pool will result in the unrecoverable loss of all data in that pool.
 ```
 
-Delete the local storage pool `mypool` by running
+Delete the storage pool `mypool` by running
 
 ```
 incus admin os system delete-storage-pool -d '{"name":"mypool"}'
 ```
 
-## Wiping a local drive
+## Wiping a drive
 
 ```{warning}
 Wiping a drive will result in the unrecoverable loss of all data on that drive.
 ```
 
-Wipe local drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its ID, by running
+Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its ID, by running
 
 ```
 ./incus admin os system wipe-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
 ```
 
-## Importing encryption key for an existing local pool
+## Importing encryption key for an existing pool
 
-If importing an existing local storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Import the raw base64 encoded encryption key for storage pool `mypool` by running
+If importing an existing storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Import the raw base64 encoded encryption key for storage pool `mypool` by running
 
 ```
 incus admin os system import-storage-encryption-key -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'

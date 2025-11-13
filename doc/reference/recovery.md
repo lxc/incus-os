@@ -14,8 +14,8 @@ went wrong with the latest update -- please report a bug!
 ## Encryption recovery key(s)
 
 IncusOS binds encryption of the install drive to the system's TPM state and stores any
-additional local pool encryption keys on that encrypted drive. You can retrieve an
-encryption recovery passphrase for the install drive as well as any local pool encryption
+additional pool encryption keys on that encrypted drive. You can retrieve an
+encryption recovery passphrase for the install drive as well as any pool encryption
 keys via the API. (You did do that and saved those somewhere safe _before_ we ended up here,
 right?)
 
@@ -32,7 +32,7 @@ machine and unlock them to access/migrate any data they contain.
 If your install drive fails, sorry but there's not much that can be done other than a
 new install. :(
 
-If a drive in a local storage pool fails, and the pool has sufficient redundancy, you can
+If a drive in a storage pool fails, and the pool has sufficient redundancy, you can
 remove the failed drive and replace it with a new one via the API. The underling pool driver
 will begin data recovery process(es), which you can monitor via querying the status of the
 storage endpoint.
