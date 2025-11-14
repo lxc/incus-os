@@ -3410,47 +3410,73 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
+        description: Network represents a network
         properties:
-            bridge_name:
-                description: Name of the parent bridge to use with a VLAN.
-                example: br0
+            config:
+                description: Network configuration map (refer to doc/networks.md)
+                example:
+                    ipv4.address: 10.0.0.1/24
+                    ipv4.nat: "true"
+                    ipv6.address: none
+                type: object
+                x-go-name: Config
+            description:
+                description: Description of the profile
+                example: My new bridge
                 type: string
-                x-go-name: BridgeName
-            identifier:
-                description: The identifier of the network
-                example: network-23
-                type: string
-                x-go-name: Identifier
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
-                type: string
-                x-go-name: Location
+                x-go-name: Description
+            locations:
+                description: Cluster members on which the network has been defined
+                example:
+                    - server01
+                    - server02
+                    - server03
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: Locations
+            managed:
+                description: Whether this is a managed network
+                example: true
+                readOnly: true
+                type: boolean
+                x-go-name: Managed
             name:
-                description: Name of the network on the target.
-                example: '"vmware"'
+                description: The network name
+                example: mybr0
                 readOnly: true
                 type: string
                 x-go-name: Name
-            properties:
-                description: Additional properties of the network.
-                type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+            project:
+                description: Project name
+                example: project1
                 type: string
-                x-go-name: Source
+                x-go-name: Project
+            status:
+                description: The state of the network (for managed network in clusters)
+                example: Created
+                readOnly: true
+                type: string
+                x-go-name: Status
             type:
-                $ref: '#/definitions/NetworkType'
-            vlan_id:
-                description: Name of the VLAN ID to use with a VLAN network.
-                example: "1"
+                description: The network type
+                example: bridge
+                readOnly: true
                 type: string
-                x-go-name: VlanID
-        title: Network defines the network config for use by the migration manager.
+                x-go-name: Type
+            used_by:
+                description: List of URLs of objects using this profile
+                example:
+                    - /1.0/profiles/default
+                    - /1.0/instances/c1
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: UsedBy
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkACL:
         properties:
             config:
@@ -6725,18 +6751,18 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerPut:
+        description: ServerPut represents the modifiable fields of a server configuration
         properties:
-            public_connection_url:
-                description: |-
-                    Public URL, hostname or IP address of the server endpoint for user facing
-                    communication with the server. Only required, if it differs from
-                    connection_url, e.g. because the server is behind a reverse proxy.
-                example: https://incus.local:6443
-                type: string
-                x-go-name: PublicConnectionURL
-        title: ServerPut defines the updateable part of a server running Hypervisor OS.
+            config:
+                additionalProperties:
+                    type: string
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :6443
+                type: object
+                x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     ServerSelfUpdate:
         properties:
             connection_url:
@@ -7683,6 +7709,9 @@ definitions:
                 $ref: '#/definitions/SystemNetworkNTP'
             proxy:
                 $ref: '#/definitions/SystemNetworkProxy'
+            timezone:
+                type: string
+                x-go-name: Timezone
             vlans:
                 items:
                     $ref: '#/definitions/SystemNetworkVLAN'
@@ -8001,17 +8030,20 @@ definitions:
     SystemSecurity:
         properties:
             config:
-                properties:
-                    encryption_recovery_keys:
-                        items:
-                            type: string
-                        type: array
-                        x-go-name: EncryptionRecoveryKeys
-                type: object
-                x-go-name: Config
+                $ref: '#/definitions/SystemSecurityConfig'
             state:
                 $ref: '#/definitions/SystemSecurityState'
         title: SystemSecurity defines a struct to hold information about the system's security state.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemSecurityConfig:
+        properties:
+            encryption_recovery_keys:
+                items:
+                    type: string
+                type: array
+                x-go-name: EncryptionRecoveryKeys
+        title: SystemSecurityConfig holds additional security configuration settings.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemSecurityEncryptedVolume:
@@ -9561,6 +9593,7 @@ paths:
                                               lldp: false
                                               name: enp5s0
                                               required_for_online: "no"
+                                        timezone: UTC
                                     state:
                                         interfaces:
                                             enp5s0:
@@ -9624,6 +9657,7 @@ paths:
                                       lldp: true
                                       name: enp5s0
                                       required_for_online: "yes"
+                                timezone: America/New_York
                             type: object
                     type: object
             produces:
