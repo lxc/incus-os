@@ -216,8 +216,8 @@ func (*Linstor) Struct() any {
 
 // Supported returns whether the system can use Linstor.
 func (n *Linstor) Supported() bool {
-	// Only the Incus application includes the binaries needed for Linstor.
-	_, ok := n.state.Applications["incus"]
+	// Linstor requires incus-linstor to be installed.
+	_, ok := n.state.Applications["incus-linstor"]
 
 	return ok
 }
