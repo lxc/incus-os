@@ -10,11 +10,14 @@ type SystemSecurityState struct {
 	PoolRecoveryKeys                map[string]string                     `json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
 }
 
+// SystemSecurityConfig holds additional security configuration settings.
+type SystemSecurityConfig struct {
+	EncryptionRecoveryKeys []string `json:"encryption_recovery_keys" yaml:"encryption_recovery_keys"`
+}
+
 // SystemSecurity defines a struct to hold information about the system's security state.
 type SystemSecurity struct {
-	Config struct {
-		EncryptionRecoveryKeys []string `json:"encryption_recovery_keys" yaml:"encryption_recovery_keys"`
-	} `json:"config" yaml:"config"`
+	Config SystemSecurityConfig `json:"config" yaml:"config"`
 
 	State SystemSecurityState `incusos:"-" json:"state" yaml:"state"`
 }

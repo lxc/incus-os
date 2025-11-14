@@ -6,11 +6,17 @@ type ServiceUSBIPTarget struct {
 	BusID   string `json:"bus_id"  yaml:"bus_id"`
 }
 
+// ServiceUSBIPConfig represents additional configuration for the USBIP service.
+type ServiceUSBIPConfig struct {
+	Targets []ServiceUSBIPTarget `json:"targets" yaml:"targets"`
+}
+
+// ServiceUSBIPState represents state for the USBIP service.
+type ServiceUSBIPState struct{}
+
 // ServiceUSBIP represents the state and configuration of the USBIP service.
 type ServiceUSBIP struct {
-	State struct{} `incusos:"-" json:"state" yaml:"state"`
+	State ServiceUSBIPState `incusos:"-" json:"state" yaml:"state"`
 
-	Config struct {
-		Targets []ServiceUSBIPTarget `json:"targets" yaml:"targets"`
-	} `json:"config" yaml:"config"`
+	Config ServiceUSBIPConfig `json:"config" yaml:"config"`
 }

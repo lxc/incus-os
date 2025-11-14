@@ -292,14 +292,14 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 	newState.OS = (*oldState).OS
 
 	// Clear any stale state from the new struct.
-	newState.Services.Ceph.State = struct{}{}
+	newState.Services.Ceph.State = api.ServiceCephState{}
 	newState.Services.ISCSI.State = api.ServiceISCSIState{}
 	newState.Services.LVM.State = api.ServiceLVMState{}
 	newState.Services.Multipath.State = api.ServiceMultipathState{}
 	newState.Services.NVME.State = api.ServiceNVMEState{}
-	newState.Services.OVN.State = struct{}{}
-	newState.Services.USBIP.State = struct{}{}
-	newState.System.Logging.State = struct{}{}
+	newState.Services.OVN.State = api.ServiceOVNState{}
+	newState.Services.USBIP.State = api.ServiceUSBIPState{}
+	newState.System.Logging.State = api.SystemLoggingState{}
 	newState.System.Network.State = api.SystemNetworkState{}
 	newState.System.Provider.State = api.SystemProviderState{}
 	newState.System.Security.State = api.SystemSecurityState{}

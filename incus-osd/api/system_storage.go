@@ -1,15 +1,21 @@
 package api
 
+// SystemStorageConfig represents additional configuration for the system's local storage.
+type SystemStorageConfig struct {
+	Pools []SystemStoragePool `json:"pools,omitempty" yaml:"pools,omitempty"`
+}
+
+// SystemStorageState represents additional state for the system's local storage.
+type SystemStorageState struct {
+	Drives []SystemStorageDrive `json:"drives" yaml:"drives"`
+	Pools  []SystemStoragePool  `json:"pools"  yaml:"pools"`
+}
+
 // SystemStorage defines a struct to hold information about the system's local storage.
 type SystemStorage struct {
-	Config struct {
-		Pools []SystemStoragePool `json:"pools,omitempty" yaml:"pools,omitempty"`
-	} `json:"config" yaml:"config"`
+	Config SystemStorageConfig `json:"config" yaml:"config"`
 
-	State struct {
-		Drives []SystemStorageDrive `json:"drives" yaml:"drives"`
-		Pools  []SystemStoragePool  `json:"pools"  yaml:"pools"`
-	} `incusos:"-" json:"state" yaml:"state"`
+	State SystemStorageState `incusos:"-" json:"state" yaml:"state"`
 }
 
 // SystemStoragePool defines a struct that is used to create or update a storage pool and return its current state.

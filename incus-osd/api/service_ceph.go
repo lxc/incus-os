@@ -13,12 +13,18 @@ type ServiceCephKeyring struct {
 	Key string `json:"key" yaml:"key"`
 }
 
+// ServiceCephConfig represents additional configuration for the Ceph service.
+type ServiceCephConfig struct {
+	Enabled  bool                          `json:"enabled"  yaml:"enabled"`
+	Clusters map[string]ServiceCephCluster `json:"clusters" yaml:"clusters"`
+}
+
+// ServiceCephState represents state for the Ceph service.
+type ServiceCephState struct{}
+
 // ServiceCeph represents the state and configuration of the Ceph service.
 type ServiceCeph struct {
-	State struct{} `incusos:"-" json:"state" yaml:"state"`
+	State ServiceCephState `incusos:"-" json:"state" yaml:"state"`
 
-	Config struct {
-		Enabled  bool                          `json:"enabled"  yaml:"enabled"`
-		Clusters map[string]ServiceCephCluster `json:"clusters" yaml:"clusters"`
-	} `json:"config" yaml:"config"`
+	Config ServiceCephConfig `json:"config" yaml:"config"`
 }

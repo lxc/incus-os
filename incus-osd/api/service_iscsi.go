@@ -7,14 +7,17 @@ type ServiceISCSITarget struct {
 	Port    int    `json:"port"    yaml:"port"`
 }
 
+// ServiceISCSIConfig represents additional configuration for the ISCSI service.
+type ServiceISCSIConfig struct {
+	Enabled bool                 `json:"enabled" yaml:"enabled"`
+	Targets []ServiceISCSITarget `json:"targets" yaml:"targets"`
+}
+
 // ServiceISCSI represents the state and configuration of the ISCSI service.
 type ServiceISCSI struct {
 	State ServiceISCSIState `incusos:"-" json:"state" yaml:"state"`
 
-	Config struct {
-		Enabled bool                 `json:"enabled" yaml:"enabled"`
-		Targets []ServiceISCSITarget `json:"targets" yaml:"targets"`
-	} `json:"config" yaml:"config"`
+	Config ServiceISCSIConfig `json:"config" yaml:"config"`
 }
 
 // ServiceISCSIState represents the state for the ISCSI service.
