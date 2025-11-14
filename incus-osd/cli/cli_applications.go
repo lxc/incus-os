@@ -16,6 +16,16 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS applications"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS applications")
 
+	// Add.
+	addCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "add",
+		description: "Add an application",
+		endpoint:    "applications",
+		hasData:     true,
+	}
+	cmd.AddCommand(addCmd.command())
+
 	// Backup.
 	backupCmd := cmdGenericRun{
 		os:            c.os,
