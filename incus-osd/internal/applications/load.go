@@ -19,6 +19,10 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 		app = &debug{common: common{state: s}}
 	case "incus":
 		app = &incus{common: common{state: s}}
+	case "incus-ceph":
+		app = &incusCeph{common: common{state: s}}
+	case "incus-linstor":
+		app = &incusLinstor{common: common{state: s}}
 	case "migration-manager":
 		app = &migrationManager{common: common{state: s}}
 	case "operations-center":
