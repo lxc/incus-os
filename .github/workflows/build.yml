@@ -96,6 +96,8 @@ jobs:
 
           mv mkosi.output/debug.raw upload/
           mv mkosi.output/incus.raw upload/
+          mv mkosi.output/incus-ceph.raw upload/
+          mv mkosi.output/incus-linstor.raw upload/
           mv mkosi.output/migration-manager.raw upload/
           mv mkosi.output/operations-center.raw upload/
 
