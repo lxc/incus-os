@@ -15,6 +15,8 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	var app Application
 
 	switch name {
+	case "debug":
+		app = &debug{common: common{state: s}}
 	case "incus":
 		app = &incus{common: common{state: s}}
 	case "migration-manager":
