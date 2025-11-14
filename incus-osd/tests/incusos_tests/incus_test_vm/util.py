@@ -19,17 +19,18 @@ def _prepare_test_image(image, seed):
     shutil.copy(image, test_image)
 
     # Inject seed data, if any.
-    with open(test_image, "rb+") as f:
-        f.seek(4196352*512)
+    if seed is not None:
+        with open(test_image, "rb+") as f:
+            f.seek(4196352*512)
 
-        with tarfile.open(mode="w", fileobj=f) as tar:
-            for filename, contents in seed.items():
-                raw = contents.encode("utf-8")
-                buf = io.BytesIO(raw)
-                ti = tarfile.TarInfo(name=filename)
-                ti.size = len(raw)
+            with tarfile.open(mode="w", fileobj=f) as tar:
+                for filename, contents in seed.items():
+                    raw = contents.encode("utf-8")
+                    buf = io.BytesIO(raw)
+                    ti = tarfile.TarInfo(name=filename)
+                    ti.size = len(raw)
 
-                tar.addfile(ti, buf)
+                    tar.addfile(ti, buf)
 
     # Return the path of the customized install image and IncusOS version.
     return test_image, basename.replace("IncusOS_", "").replace(ext, "")
