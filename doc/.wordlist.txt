@@ -46,7 +46,9 @@ MOK
 MTU
 multipath
 Multipath
+NAT'ed
 Netbird
+NICs
 NTP
 NVMe
 OCI
@@ -62,6 +64,7 @@ PK
 PKCS
 Pre
 preseed
+proxied
 Proxmox
 Proxmox's
 raidz
@@ -84,6 +87,7 @@ UKI
 Uncheck
 Unencrypted
 unencrypted
+unmanaged
 USBIP
 VirtIO
 VirtualBox

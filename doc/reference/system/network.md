@@ -6,6 +6,10 @@ Before applying any new/updated network configuration, basic validation checks a
 
 Be aware that changing network configuration may result in a brief period of time when the system is unreachable over the network.
 
+```{note}
+IncusOS automatically configures each interface and bond as a network bridge. This allows for easy out-of-the-box configuration of bridged NICs for containers and virtual machines.
+```
+
 ## Configuration options
 
 Interfaces, bonds, and VLANs have a significant number of fields, which are largely self-descriptive and can be viewed in the [API definition](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
