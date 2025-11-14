@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="icon" href="/ui/img/favicon.ico">
-        <title>IncusOS downloader</title>
+        <title>IncusOS image downloader</title>
 
         <!-- Bootstrap core CSS -->
         <link href="/ui/css/bootstrap.min.css" rel="stylesheet">
@@ -150,6 +150,7 @@
                             <div class="mb-3">
                                 <label class="form-label" for="applicationClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
                                 <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
+                                <p><b>Tip:</b> If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest <a href="https://github.com/lxc/incus/releases/latest/">Incus release</a> on GitHub. Select the <code>bin.&lt;os&gt;.incus.&lt;arch&gt;</code> binary that is correct for your operating system and architecture.</p>
                             </div>
                         </div>
 

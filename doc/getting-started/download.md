@@ -17,6 +17,10 @@ You can get yours by running
 
     incus remote get-client-certificate
 
+```{tip}
+If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest [Incus release](https://github.com/lxc/incus/releases/latest/) on GitHub. Select the `bin.<os>.incus.<arch>` binary that is correct for your operating system and architecture.
+```
+
 ## IncusOS customizer
 
 The web-based [IncusOS customizer](https://incusos-customizer.linuxcontainers.org/ui/)
