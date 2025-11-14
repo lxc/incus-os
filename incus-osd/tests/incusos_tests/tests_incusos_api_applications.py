@@ -175,3 +175,110 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/operations-center/test-file")
+
+def TestIncusOSAPIApplicationsIncusCeph(install_image):
+    test_name = "incusos-api-applications-incus-ceph"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"incus-ceph"}]}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version, application="incus-ceph")
+
+        # Test top-level /1.0/applications endpoint.
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        # Expect to see both incus and incus-linstor applications
+        if len(result["metadata"]) != 2:
+            raise Exception("expected exactly two applications")
+
+        if "/1.0/applications/incus-ceph" not in result["metadata"]:
+            raise Exception("expected the incus-ceph application to be installed")
+
+        if "/1.0/applications/incus" not in result["metadata"]:
+            raise Exception("expected the incus application to be installed")
+
+        # Get current application state
+        result = vm.APIRequest("/1.0/applications/incus-ceph")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        state = result["metadata"]["state"]
+        if not state["initialized"]:
+            raise Exception("incus-ceph application isn't initialized")
+
+        if state["version"] != incusos_version:
+            raise Exception("incus-ceph application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+
+def TestIncusOSAPIApplicationsIncusLinstor(install_image):
+    test_name = "incusos-api-applications-incus-linstor"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version)
+
+        # Test top-level /1.0/applications endpoint.
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise Exception("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus":
+            raise Exception("expected the incus application to be installed")
+
+        # Get current application state
+        result = vm.APIRequest("/1.0/applications/incus")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        state = result["metadata"]["state"]
+        if not state["initialized"]:
+            raise Exception("incus application isn't initialized")
+
+        if state["version"] != incusos_version:
+            raise Exception("incus application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+
+        # Install incus-linstor via REST API
+        result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"incus-linstor"}""")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus-linstor release="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version="+incusos_version)
+
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        # Expect to see both incus and incus-linstor applications
+        if len(result["metadata"]) != 2:
+            raise Exception("expected exactly two applications")
+
+        if "/1.0/applications/incus-linstor" not in result["metadata"]:
+            raise Exception("expected the incus-linstor application to be installed")
+
+        if "/1.0/applications/incus" not in result["metadata"]:
+            raise Exception("expected the incus application to be installed")
+
+        # Get current application state
+        result = vm.APIRequest("/1.0/applications/incus-linstor")
+        if result["status_code"] != 200:
+            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        state = result["metadata"]["state"]
+        if not state["initialized"]:
+            raise Exception("incus-linstor application isn't initialized")
+
+        if state["version"] != incusos_version:
+            raise Exception("incus-linstor application version mismatch (%s vs %s)" % (state["version"], incusos_version))
