@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 from .incus_test_vm import IncusTestVM, util
 
 def TestSeedApplictionsEmpty(install_image):
@@ -109,3 +112,25 @@ def TestSeedApplictionsOperationsCenter(install_image):
 
     with IncusTestVM(test_name, test_image) as vm:
         vm.WaitSystemReady(incusos_version, application="operations-center")
+
+def TestExternalSeedApplictionsMigrationManager(install_image):
+    test_name = "external-seed-applications-migration-manager"
+    test_seed = None
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
+        # Create and populate a user-provided ISO with seed files on it
+        with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
+            with open(os.path.join(tmp_dir, "install.json"), "w") as seed:
+                seed.write("{}")
+
+            with open(os.path.join(tmp_dir, "applications.json"), "w") as seed:
+                seed.write("""{"applications":[{"name":"migration-manager"}]}""")
+
+            util._create_user_media(seed_img, tmp_dir, "iso", 0, "SEED_DATA")
+
+        with IncusTestVM(test_name, test_image) as vm:
+            vm.AttachISO(seed_img.name, "seed")
+
+            vm.WaitSystemReady(incusos_version, application="migration-manager", remove_devices=["seed"])
