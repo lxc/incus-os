@@ -39,6 +39,11 @@ func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, 
 		config.Interfaces = defaultNetwork.Interfaces
 	}
 
+	// If no timezone was provided, default to UTC.
+	if config.Timezone == "" {
+		config.Timezone = "UTC"
+	}
+
 	return &config.SystemNetworkConfig, nil
 }
 
@@ -55,7 +60,9 @@ func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 		return nil, err
 	}
 
-	ret := &api.SystemNetworkConfig{}
+	ret := &api.SystemNetworkConfig{
+		Timezone: "UTC",
+	}
 
 	for _, i := range interfaces {
 		if i.Name == "lo" {
