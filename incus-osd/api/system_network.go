@@ -93,6 +93,7 @@ type SystemNetworkDNS struct {
 // SystemNetworkTime defines various time related configuration options (NTP servers, timezone, etc).
 type SystemNetworkTime struct {
 	NTPServers []string `json:"ntp_servers,omitempty" yaml:"ntp_servers,omitempty"`
+	Timezone   string   `json:"timezone,omitempty"    yaml:"timezone,omitempty"`
 }
 
 // SystemNetworkProxy defines proxy configuration.
