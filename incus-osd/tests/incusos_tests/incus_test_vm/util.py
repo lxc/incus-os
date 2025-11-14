@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import string
+import subprocess
 import tarfile
 
 def _get_random_string():
@@ -19,17 +20,29 @@ def _prepare_test_image(image, seed):
     shutil.copy(image, test_image)
 
     # Inject seed data, if any.
-    with open(test_image, "rb+") as f:
-        f.seek(4196352*512)
+    if seed is not None:
+        with open(test_image, "rb+") as f:
+            f.seek(4196352*512)
 
-        with tarfile.open(mode="w", fileobj=f) as tar:
-            for filename, contents in seed.items():
-                raw = contents.encode("utf-8")
-                buf = io.BytesIO(raw)
-                ti = tarfile.TarInfo(name=filename)
-                ti.size = len(raw)
+            with tarfile.open(mode="w", fileobj=f) as tar:
+                for filename, contents in seed.items():
+                    raw = contents.encode("utf-8")
+                    buf = io.BytesIO(raw)
+                    ti = tarfile.TarInfo(name=filename)
+                    ti.size = len(raw)
 
-                tar.addfile(ti, buf)
+                    tar.addfile(ti, buf)
 
     # Return the path of the customized install image and IncusOS version.
     return test_image, basename.replace("IncusOS_", "").replace(ext, "")
+
+def _create_user_media(f, d, media_type, media_size, media_label):
+    if media_type == "img":
+        f.truncate(media_size)
+        subprocess.run(["/sbin/sgdisk", "-n", "1", "-c", "1:" + media_label, f.name], capture_output=True, check=True)
+        subprocess.run(["/sbin/mkfs.vfat", "-S", "512", "--offset=2048", f.name], capture_output=True, check=True)
+
+        for entry in os.scandir(d):
+            subprocess.run(["mcopy", "-s", "-i", f.name+"@@1048576", entry.path, "::" + entry.path.removeprefix(d)], capture_output=True, check=True)
+    else:
+        subprocess.run(["mkisofs", "-V", media_label, "-joliet-long", "-rock", "-o", f.name, d], capture_output=True, check=True)
