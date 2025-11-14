@@ -77,7 +77,7 @@ func (*common) IsPrimary() bool {
 
 // IsRunning reports if the application is currently running.
 func (*common) IsRunning(_ context.Context) bool {
-	return true
+	return false
 }
 
 // WipeLocalData removes local data created by the application.

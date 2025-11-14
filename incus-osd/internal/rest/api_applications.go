@@ -2,12 +2,14 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"slices"
 	"time"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
@@ -46,34 +48,106 @@ import (
 //	          items:
 //	            type: string
 //	          example: ["/1.0/applications/incus"]
+
+// swagger:operation POST /1.0/applications applications applications_post
+//
+//	Add an application
+//
+//	Installs a new application on the system.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: application
+//	    description: Application to be installed
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name": "incus"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "409":
+//	    $ref: "#/responses/Conflict"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
+		// Get the list of services.
+		names := make([]string, 0, len(s.state.Applications))
+
+		for name := range s.state.Applications {
+			names = append(names, name)
+		}
+
+		slices.Sort(names)
+
+		endpoint, _ := url.JoinPath(getAPIRoot(r), "applications")
+
+		urls := []string{}
+
+		for _, application := range names {
+			appURL, _ := url.JoinPath(endpoint, application)
+			urls = append(urls, appURL)
+		}
+
+		_ = response.SyncResponse(true, urls).Render(w)
+
+	case http.MethodPost:
+		type applicationPost struct {
+			Name string `json:"name"`
+		}
+
+		app := &applicationPost{}
+
+		if r.ContentLength == 0 {
+			_ = response.BadRequest(nil).Render(w)
+
+			return
+		}
+
+		err := json.NewDecoder(r.Body).Decode(app)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		// Input validation.
+		if app.Name == "" {
+			_ = response.BadRequest(errors.New("missing application name")).Render(w)
+
+			return
+		}
+
+		_, exists := s.state.Applications[app.Name]
+		if exists {
+			_ = response.Conflict(nil).Render(w)
+
+			return
+		}
+
+		// Add the application to the state.
+		s.state.Applications[app.Name] = api.Application{}
+
+		// Trigger a manual update check to install the new application.
+		s.state.TriggerUpdate <- true
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
 		_ = response.NotImplemented(nil).Render(w)
 
 		return
 	}
-
-	// Get the list of services.
-	names := make([]string, 0, len(s.state.Applications))
-
-	for name := range s.state.Applications {
-		names = append(names, name)
-	}
-
-	slices.Sort(names)
-
-	endpoint, _ := url.JoinPath(getAPIRoot(r), "applications")
-
-	urls := []string{}
-
-	for _, application := range names {
-		appURL, _ := url.JoinPath(endpoint, application)
-		urls = append(urls, appURL)
-	}
-
-	_ = response.SyncResponse(true, urls).Render(w)
 }
 
 // swagger:operation GET /1.0/applications/{name} applications applications_get_application

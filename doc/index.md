@@ -37,7 +37,7 @@ Storage features:
 - NVME-over-TCP support
 - iSCSI support
 - Clustered LVM support (on top of Fiber Channel, NVME-over-TCP or iSCSI)
-- Ceph support for software defined storage (Linstor coming soon)
+- Ceph and Linstor support for software defined storage
 
 Network features:
 

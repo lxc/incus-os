@@ -20,6 +20,14 @@ type incus struct {
 	common
 }
 
+type incusCeph struct {
+	common
+}
+
+type incusLinstor struct {
+	common
+}
+
 // Start starts all the systemd units.
 func (*incus) Start(ctx context.Context, _ string) error {
 	// Refresh the system users.

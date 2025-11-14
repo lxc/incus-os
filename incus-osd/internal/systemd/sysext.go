@@ -32,7 +32,8 @@ func RefreshExtensions(ctx context.Context) error {
 		return err
 	}
 
-	return nil
+	// Reload the systemd daemon.
+	return ReloadDaemon(ctx)
 }
 
 // RemoveExtension removes the specified system extension layer.
@@ -44,13 +45,7 @@ func RemoveExtension(ctx context.Context, name string) error {
 	}
 
 	// Refresh the system extensions.
-	err = RefreshExtensions(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Reload the systemd daemon.
-	return ReloadDaemon(ctx)
+	return RefreshExtensions(ctx)
 }
 
 // VerifyExtensionCertificateFingerprint takes the filename of a sysext image and verifies its basic

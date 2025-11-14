@@ -10,6 +10,7 @@ external storage or networking.
 
 Ceph </reference/services/ceph>
 iSCSI </reference/services/iscsi>
+Linstor </reference/services/linstor>
 LVM </reference/services/lvm>
 Multipath </reference/services/multipath>
 NVMe </reference/services/nvme>
