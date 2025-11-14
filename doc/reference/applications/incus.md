@@ -23,3 +23,10 @@ Important seed fields include:
 * `apply_defaults`: If `true`, apply a reasonable set of defaults for configuring Incus.
 
 * `preseed`: A struct referencing Incus' `InitPreseed` configuration options. For details, please review Incus' [API](https://github.com/lxc/incus/blob/main/shared/api/init.go).
+
+## Additional features
+
+Two additional applications exist which extend the main Incus application:
+
+* `incus-ceph`: Adds Ceph client support
+* `incus-linstor`: Add Linstor satellite support
