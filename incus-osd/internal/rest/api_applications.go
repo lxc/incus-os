@@ -109,17 +109,13 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 		app := &applicationPost{}
 
-		if r.ContentLength == 0 {
-			_ = response.BadRequest(nil).Render(w)
+		if r.ContentLength > 0 {
+			err := json.NewDecoder(r.Body).Decode(app)
+			if err != nil {
+				_ = response.BadRequest(err).Render(w)
 
-			return
-		}
-
-		err := json.NewDecoder(r.Body).Decode(app)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
-
-			return
+				return
+			}
 		}
 
 		// Input validation.
