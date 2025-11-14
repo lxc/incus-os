@@ -1,5 +1,11 @@
 # REST API
 
+```{note}
+The IncusOS API is typically proxied through an installed application, such as [Incus](applications/incus.md).
+
+If interacting with the API manually, you will need to prefix `/os/` to correctly reach the IncusOS endpoints. For example, to get a list of applications you could run `curl https://1.2.3.4:8443/os/1.0/applications`.
+```
+
 ```{warning}
 The IncusOS debug API endpoints have no guarantee of API stability, and should not be used
 in normal day-to-day operations.
