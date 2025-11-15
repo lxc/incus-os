@@ -12,7 +12,7 @@ type Application struct {
 	State struct {
 		Initialized  bool       `json:"initialized"             yaml:"initialized"`
 		Version      string     `json:"version"                 yaml:"version"`
-		LastRestored *time.Time `json:"last_restored,omitempty" yaml:"last_restored,omitempty"`
+		LastRestored *time.Time `json:"last_restored,omitempty" yaml:"last_restored,omitempty"` // In system's timezone.
 	} `json:"state" yaml:"state"`
 
 	Config ApplicationConfig `json:"config" yaml:"config"`

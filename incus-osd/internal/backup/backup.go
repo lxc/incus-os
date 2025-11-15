@@ -12,6 +12,7 @@ import (
 	"slices"
 
 	"github.com/lxc/incus/v6/shared/revert"
+	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
@@ -347,6 +348,12 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 				return err
 			}
 		}
+	}
+
+	// Make sure we set the expected timezone.
+	_, err := subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", newState.System.Network.Config.Timezone)
+	if err != nil {
+		return err
 	}
 
 	// Now, replace the current state in-memory and write it to disk.

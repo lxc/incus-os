@@ -21,7 +21,7 @@ type SystemUpdateConfig struct {
 
 // SystemUpdateState holds information about the current update state.
 type SystemUpdateState struct {
-	LastCheck   time.Time `json:"last_check"   yaml:"last_check"`
+	LastCheck   time.Time `json:"last_check"   yaml:"last_check"` // In system's timezone.
 	Status      string    `json:"status"       yaml:"status"`
 	NeedsReboot bool      `json:"needs_reboot" yaml:"needs_reboot"`
 }
@@ -40,7 +40,7 @@ type SystemUpdateMaintenanceWindow struct {
 
 // IsCurrentlyActive returns true if the maintenance window is active.
 func (w *SystemUpdateMaintenanceWindow) IsCurrentlyActive() bool {
-	return w.IsActive(time.Now().UTC())
+	return w.IsActive(time.Now())
 }
 
 // IsActive returns true if the maintenance window will be active at the given point in time.

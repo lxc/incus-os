@@ -34,6 +34,8 @@ type SystemNetworkConfig struct {
 	Interfaces []SystemNetworkInterface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
 	Bonds      []SystemNetworkBond      `json:"bonds,omitempty"      yaml:"bonds,omitempty"`
 	VLANs      []SystemNetworkVLAN      `json:"vlans,omitempty"      yaml:"vlans,omitempty"`
+
+	Timezone string `json:"timezone,omitempty" yaml:"timezone,omitempty"`
 }
 
 // SystemNetworkInterface contains information about a network interface.
