@@ -42,6 +42,7 @@ LUKS
 LVM
 MAC
 MACs
+MacOS
 MOK
 MTU
 multipath
