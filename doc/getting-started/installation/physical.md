@@ -5,9 +5,9 @@
 Follow the instructions to [get an IncusOS image](../download.md).
 
 If installing the machine using a virtual CD-ROM drive, use the ISO format.
-If installing using a USB stick or a virtual USB drive, use the raw image format.
+If installing using a USB stick or a virtual USB drive, use the USB format.
 
-When using the raw image, make sure it's written directly to the device,
+When using the USB image, make sure it's written directly to the device,
 no changes should be made to the built-in partitions or data.
 
 Once ready, connect the USB stick or attach the virtual media and reboot the server into its firmware menu (BIOS).
