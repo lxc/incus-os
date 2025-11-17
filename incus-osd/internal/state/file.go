@@ -7,7 +7,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-var currentStateVersion = 5
+var currentStateVersion = 6
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.

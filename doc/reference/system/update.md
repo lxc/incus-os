@@ -20,7 +20,7 @@ The following configuration options can be set:
 
 ## Maintenance windows
 
-IncusOS supports defining maintenance windows that limit when the system will check for and apply updates. This can be useful to prevent updates from being installed during normal business hours or other inconvenient times. Each maintenance window consists of a start time and an end time (assumed to be UTC) and an optional start day of week and end day of week.
+IncusOS supports defining maintenance windows that limit when the system will check for and apply updates. This can be useful to prevent updates from being installed during normal business hours or other inconvenient times. Each maintenance window consists of a start time and an end time (assumed to be in the system's configured timezone) and an optional start day of week and end day of week.
 
 ### Examples
 

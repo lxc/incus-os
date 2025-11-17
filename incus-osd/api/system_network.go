@@ -28,7 +28,7 @@ type SystemNetwork struct {
 // SystemNetworkConfig represents the user modifiable network configuration.
 type SystemNetworkConfig struct {
 	DNS   *SystemNetworkDNS   `json:"dns,omitempty"   yaml:"dns,omitempty"`
-	NTP   *SystemNetworkNTP   `json:"ntp,omitempty"   yaml:"ntp,omitempty"`
+	Time  *SystemNetworkTime  `json:"time,omitempty"  yaml:"time,omitempty"`
 	Proxy *SystemNetworkProxy `json:"proxy,omitempty" yaml:"proxy,omitempty"`
 
 	Interfaces []SystemNetworkInterface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
@@ -90,9 +90,10 @@ type SystemNetworkDNS struct {
 	Nameservers   []string `json:"nameservers,omitempty"    yaml:"nameservers,omitempty"`
 }
 
-// SystemNetworkNTP defines static timeservers to use.
-type SystemNetworkNTP struct {
-	Timeservers []string `json:"timeservers,omitempty" yaml:"timeservers,omitempty"`
+// SystemNetworkTime defines various time related configuration options (NTP servers, timezone, etc).
+type SystemNetworkTime struct {
+	NTPServers []string `json:"ntp_servers,omitempty" yaml:"ntp_servers,omitempty"`
+	Timezone   string   `json:"timezone,omitempty"    yaml:"timezone,omitempty"`
 }
 
 // SystemNetworkProxy defines proxy configuration.

@@ -30,9 +30,9 @@ The following configuration options can be set:
 
 * `dns`: Optionally, configure custom DNS information for the system.
 
-* `ntp`: Optionally, configure custom NTP server(s) for the system.
-
 * `proxy`: Optionally, configure a proxy for the system.
+
+* `time`: Optionally, configure custom NTP server(s) and timezone for the system.
 
 ### Examples
 
@@ -93,7 +93,7 @@ Configure a VLAN with ID 123 on top of an active-backup bond composed of two int
 }
 ```
 
-Configure custom DNS and NTP for IncusOS:
+Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```
 {
@@ -103,8 +103,9 @@ Configure custom DNS and NTP for IncusOS:
         "search_domains": ["example.com", "example.org"],
         "nameservers": ["ns1.example.com", "ns2.example.com"]
     },
-    "ntp": {
-        "timeservers": ["ntp.example.com"]
+    "time": {
+        "ntp_servers": ["ntp.example.com"],
+        "timezone": "America/New_York"
     }
 }
 ```

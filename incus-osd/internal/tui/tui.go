@@ -267,7 +267,7 @@ func (t *TUI) redrawScreen() {
 	}
 
 	t.frame.AddText(t.state.OS.Name+" "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
-	t.frame.AddText(time.Now().UTC().Format("2006-01-02 15:04 UTC"), true, tview.AlignRight, tcell.ColorWhite)
+	t.frame.AddText(time.Now().Format("2006-01-02 15:04 MST"), true, tview.AlignRight, tcell.ColorWhite)
 
 	// Don't display footer during install.
 	if !t.state.ShouldPerformInstall {

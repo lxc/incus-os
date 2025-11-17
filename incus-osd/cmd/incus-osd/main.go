@@ -83,6 +83,15 @@ func main() {
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
+	// If this is the system's first boot, set the timezone.
+	if !s.ShouldPerformInstall && s.System.Network.Config == nil {
+		err := setTimezone(ctx)
+		if err != nil {
+			tui.EarlyError("unable to set timezone: " + err.Error())
+			os.Exit(1)
+		}
+	}
+
 	// Clear the reboot flag on startup.
 	s.System.Update.State.NeedsReboot = false
 
@@ -570,7 +579,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Save when we last performed an update check.
-		s.System.Update.State.LastCheck = time.Now().UTC()
+		s.System.Update.State.LastCheck = time.Now()
 		s.System.Update.State.Status = "Running update check"
 
 		// Check maintenance window, except if we're performing a startup or manual check.
@@ -990,4 +999,17 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 	_ = os.Remove(archiveFilepath)
 
 	return nil
+}
+
+func setTimezone(ctx context.Context) error {
+	// Get the network seed.
+	config, err := seed.GetNetwork(ctx, seed.GetSeedPath())
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
+	// Set the system's timezone from the seed data.
+	_, err = subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", config.Time.Timezone)
+
+	return err
 }

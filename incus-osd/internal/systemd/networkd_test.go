@@ -95,8 +95,8 @@ dns:
   nameservers:
     - ns1.example.org
     - ns2.example.org
-ntp:
-  timeservers:
+time:
+  ntp_servers:
     - pool.ntp.example.org
     - 10.10.10.10
 proxy:
@@ -315,9 +315,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Len(t, cfg.DNS.Nameservers, 2)
 		require.Equal(t, "ns1.example.org", cfg.DNS.Nameservers[0])
 		require.Equal(t, "ns2.example.org", cfg.DNS.Nameservers[1])
-		require.Len(t, cfg.NTP.Timeservers, 2)
-		require.Equal(t, "pool.ntp.example.org", cfg.NTP.Timeservers[0])
-		require.Equal(t, "10.10.10.10", cfg.NTP.Timeservers[1])
+		require.Len(t, cfg.Time.NTPServers, 2)
+		require.Equal(t, "pool.ntp.example.org", cfg.Time.NTPServers[0])
+		require.Equal(t, "10.10.10.10", cfg.Time.NTPServers[1])
 		require.Len(t, cfg.Proxy.Servers, 1)
 		require.Equal(t, "https://proxy.example.org", cfg.Proxy.Servers["example"].Host)
 		require.Equal(t, "anonymous", cfg.Proxy.Servers["example"].Auth)

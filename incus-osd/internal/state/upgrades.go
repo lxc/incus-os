@@ -148,4 +148,12 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V6: Rename SystemNetworkNTP struct to SystemNetworkTime.
+	func(lines []string) ([]string, error) {
+		for i := range lines {
+			lines[i] = strings.Replace(lines[i], "System.Network.Config.NTP.Timeservers", "System.Network.Config.Time.NTPServers", 1)
+		}
+
+		return lines, nil
+	},
 }
