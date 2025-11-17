@@ -10,6 +10,12 @@ const (
 	// UpdateFileComponentIncus represents an Incus application update.
 	UpdateFileComponentIncus UpdateFileComponent = "incus"
 
+	// UpdateFileComponentIncusCeph represents a Ceph application update for Incus.
+	UpdateFileComponentIncusCeph UpdateFileComponent = "incus-ceph"
+
+	// UpdateFileComponentIncusLinstor represents a Linstor application update for Incus.
+	UpdateFileComponentIncusLinstor UpdateFileComponent = "incus-linstor"
+
 	// UpdateFileComponentOperationsCenter represents an Operations Center application update.
 	UpdateFileComponentOperationsCenter UpdateFileComponent = "operations-center"
 
@@ -24,6 +30,8 @@ const (
 var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentOS:               {},
 	UpdateFileComponentIncus:            {},
+	UpdateFileComponentIncusCeph:        {},
+	UpdateFileComponentIncusLinstor:     {},
 	UpdateFileComponentMigrationManager: {},
 	UpdateFileComponentOperationsCenter: {},
 	UpdateFileComponentDebug:            {},
