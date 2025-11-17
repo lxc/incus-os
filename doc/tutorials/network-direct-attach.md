@@ -11,7 +11,7 @@ gibmat@futurfusion:~$ incus network list
 +----------+--------+---------+----------------+---------------------------+----------------------------+---------+---------+
 ```
 
-However, sometimes you may want to attach a container or virtual machine directly to the host's network. This is easily accomplished by assigning the `instances` role to the appropriate interfaces or bonds.
+However, sometimes you may want to attach a container or virtual machine directly to the host's network. This is easily accomplished by assigning the `instances` [role](../reference/system/network.md) to the appropriate interfaces or bonds.
 
 First, get the current IncusOS network configuration:
 
@@ -81,6 +81,20 @@ gibmat@futurfusion:~$ incus network list
 +----------+--------+---------+----------------+---------------------------+----------------------------+---------+---------+
 ```
 
+Create a managed network using that network interface:
+
+```
+gibmat@futurfusion:~$ incus network create enp5s0 parent=enp5s0 --type=physical
+gibmat@futurfusion:~$ incus network list
++----------+----------+---------+----------------+---------------------------+----------------------------+---------+---------+
+|   NAME   |   TYPE   | MANAGED |      IPV4      |           IPV6            |        DESCRIPTION         | USED BY |  STATE  |
++----------+----------+---------+----------------+---------------------------+----------------------------+---------+---------+
+| enp5s0   | physical | YES     |                |                           |                            | 0       | CREATED |
++----------+----------+---------+----------------+---------------------------+----------------------------+---------+---------+
+| incusbr0 | bridge   | YES     | 10.89.179.1/24 | fd42:e1a1:408f:710a::1/64 | Local network bridge (NAT) | 1       | CREATED |
++----------+----------+---------+----------------+---------------------------+----------------------------+---------+---------+
+```
+
 Now, you can configure an instance to directly connect to the host's physical network:
 
 ```
@@ -96,4 +110,10 @@ gibmat@futurfusion:~$ incus list
 +---------------+---------+-----------------------+------------------------------------------------+-----------+-----------+
 | debian-nat    | RUNNING | 10.89.179.217 (eth0)  | fd42:e1a1:408f:710a:1266:6aff:fef6:4995 (eth0) | CONTAINER | 0         |
 +---------------+---------+-----------------------+------------------------------------------------+-----------+-----------+
+```
+
+You can also make this network the default for all instances:
+
+```
+gibmat@futurfusion:~$ incus profile device set default eth0 network=enp5s0
 ```
