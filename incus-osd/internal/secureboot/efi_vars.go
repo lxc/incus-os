@@ -131,7 +131,7 @@ func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error)
 func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[string][]byte) (bool, error) {
 	existingCerts, err := GetCertificatesFromVar(varName)
 	if err != nil {
-		return false, fmt.Errorf("failed to read EFI variable '%s'", varName)
+		return false, fmt.Errorf("failed to read EFI variable %q: %w", varName, err)
 	}
 
 	for certFingerprint, certContents := range newCerts {
