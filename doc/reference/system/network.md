@@ -10,6 +10,17 @@ Be aware that changing network configuration may result in a brief period of tim
 IncusOS automatically configures each interface and bond as a network bridge. This allows for easy out-of-the-box configuration of bridged NICs for containers and virtual machines.
 ```
 
+## Roles
+
+Each interface, bond or VLAN can be assigned one or more _roles_, which are used by IncusOS to control how the network device is used:
+
+* `cluster`: The device is used for internal cluster communication
+* `instances`: The device should be made available for use by Incus containers or virtual machines
+* `management`: The device is used for management
+* `storage`: The device is used for network-attached storage connectivity
+
+By default, the `cluster` and `management` roles will be assigned.
+
 ## Configuration options
 
 Interfaces, bonds, and VLANs have a significant number of fields, which are largely self-descriptive and can be viewed in the [API definition](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
