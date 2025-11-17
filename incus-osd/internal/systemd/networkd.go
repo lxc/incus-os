@@ -625,8 +625,8 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 
 	// Generate systemd-timesyncd configuration if any timeservers are defined.
 	ntpCfg := ""
-	if networkCfg.NTP != nil {
-		ntpCfg = generateTimesyncContents(*networkCfg.NTP)
+	if networkCfg.Time != nil {
+		ntpCfg = generateTimesyncContents(*networkCfg.Time)
 
 		if ntpCfg != "" {
 			err := os.WriteFile(SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
@@ -637,7 +637,7 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 	}
 
 	// If there's no NTP configuration, remove the old config file that might exist.
-	if networkCfg.NTP == nil || ntpCfg == "" {
+	if networkCfg.Time == nil || ntpCfg == "" {
 		_ = os.Remove(SystemdTimesyncConfigFile)
 	}
 
@@ -992,7 +992,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -1076,7 +1076,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.NTP))
+%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -1174,7 +1174,7 @@ RouteMetric=100
 UseMTU=true
 
 [Network]
-%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.NTP))
+%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(v.Addresses)
 
@@ -1257,7 +1257,7 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 	return ret.String()
 }
 
-func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, dns *api.SystemNetworkDNS, ntp *api.SystemNetworkNTP) string {
+func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, dns *api.SystemNetworkDNS, timeCfg *api.SystemNetworkTime) string {
 	var ret strings.Builder
 
 	// Add any matching VLANs to the config.
@@ -1280,8 +1280,8 @@ func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, 
 	}
 
 	// If there are time servers defined, add them to the config.
-	if ntp != nil {
-		for _, ts := range ntp.Timeservers {
+	if timeCfg != nil {
+		for _, ts := range timeCfg.NTPServers {
 			_, _ = ret.WriteString(fmt.Sprintf("NTP=%s\n", ts))
 		}
 	}
@@ -1289,12 +1289,12 @@ func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, 
 	return ret.String()
 }
 
-func generateTimesyncContents(ntp api.SystemNetworkNTP) string {
-	if len(ntp.Timeservers) == 0 {
+func generateTimesyncContents(timeCfg api.SystemNetworkTime) string {
+	if len(timeCfg.NTPServers) == 0 {
 		return ""
 	}
 
-	return "[Time]\nFallbackNTP=" + strings.Join(ntp.Timeservers, " ") + "\n"
+	return "[Time]\nFallbackNTP=" + strings.Join(timeCfg.NTPServers, " ") + "\n"
 }
 
 func generateVLANContents(devName string, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) string {
