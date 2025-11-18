@@ -69,6 +69,7 @@ proxied
 Proxmox
 Proxmox's
 raidz
+resilver
 RSA
 SLAAC
 struct
