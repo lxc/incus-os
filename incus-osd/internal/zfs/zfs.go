@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lxc/incus/v6/shared/revert"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -702,4 +703,80 @@ func GetZpoolEncryptionKeys() (map[string]string, error) {
 	}
 
 	return ret, nil
+}
+
+// ImportExistingPool will import an existing but currently unmanaged ZFS pool.
+// After importing, it will save and then load the encryption key.
+func ImportExistingPool(ctx context.Context, pool string, key string) error {
+	reverter := revert.New()
+	defer reverter.Fail()
+
+	// Import the existing pool.
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", pool)
+	if err != nil {
+		return err
+	}
+
+	reverter.Add(func() {
+		_, _ = subprocess.RunCommandContext(ctx, "zpool", "export", "-f", pool)
+	})
+
+	// Make sure the pool is encrypted.
+	encryptionStatus, err := subprocess.RunCommandContext(ctx, "zfs", "get", "encryption", "-H", "-o", "value", pool)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(encryptionStatus) == "off" {
+		return errors.New("refusing to import unencrypted ZFS pool")
+	}
+
+	// Make sure the pool is uses a raw key.
+	keyFormat, err := subprocess.RunCommandContext(ctx, "zfs", "get", "keyformat", "-H", "-o", "value", pool)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(keyFormat) != "raw" {
+		return errors.New("refusing to import pool that doesn't use a raw encryption key")
+	}
+
+	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
+
+	// Decode encryption key into raw bytes.
+	rawKey, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return err
+	}
+
+	if len(rawKey) != 32 {
+		return fmt.Errorf("expected a 32 byte raw encryption key, got %d bytes", len(rawKey))
+	}
+
+	// Write the key file.
+	// #nosec G304
+	err = os.WriteFile(keyfilePath, rawKey, 0o0600)
+	if err != nil {
+		return err
+	}
+
+	reverter.Add(func() {
+		_ = os.Remove(keyfilePath)
+	})
+
+	// Make sure the new pool knows where to find the encryption key.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "set", "keylocation=file://"+keyfilePath, pool)
+	if err != nil {
+		return err
+	}
+
+	// Load the pool's encryption key.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
+	if err != nil {
+		return err
+	}
+
+	reverter.Success()
+
+	return nil
 }

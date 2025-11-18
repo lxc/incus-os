@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -627,46 +626,4 @@ func WipeDrive(ctx context.Context, drive string) error {
 	}
 
 	return errors.New("drive '" + drive + "' doesn't exist")
-}
-
-// SetEncryptionKey will save a local copy of the provided encryption key for the associated pool.
-// If a local copy of the encryption key already exists, return an error and refuse to continue.
-func SetEncryptionKey(ctx context.Context, pool string, key string) error {
-	if !PoolExists(ctx, pool) {
-		return errors.New("pool '" + pool + "' doesn't exist")
-	}
-
-	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
-
-	// Check if the key already exists.
-	_, err := os.Stat(keyfilePath)
-	if err == nil {
-		return errors.New("encryption key for '" + pool + "' already exists")
-	}
-
-	// Decode into raw bytes.
-	rawKey, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return err
-	}
-
-	if len(rawKey) != 32 {
-		return fmt.Errorf("expected a 32 byte raw encryption key, got %d bytes", len(rawKey))
-	}
-
-	// Write the key file.
-	// #nosec G304
-	err = os.WriteFile(keyfilePath, rawKey, 0o0600)
-	if err != nil {
-		return err
-	}
-
-	// Load the pool's encryption key.
-	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
-	if err != nil {
-		// Cleanup the invalid key.
-		_ = os.Remove(keyfilePath)
-	}
-
-	return err
 }
