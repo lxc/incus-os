@@ -432,20 +432,20 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterCertificatePut:
-        description: ClusterCertificatePut represents the certificate and key pair for all cluster members
         properties:
             cluster_certificate:
-                description: The new certificate (X509 PEM encoded) for the cluster
+                description: The new certificate (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate
                 type: string
                 x-go-name: ClusterCertificate
             cluster_certificate_key:
-                description: The new certificate key (X509 PEM encoded) for the cluster
+                description: The new certificate key (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: ClusterCertificateKey
+        title: ClusterCertificatePut represents the certificate and key pair for all cluster members.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterGroup:
         properties:
             config:
@@ -1934,24 +1934,119 @@ definitions:
         x-go-package: github.com/lxc/incus/v6/shared/api
     Instance:
         properties:
-            last_update_from_source:
+            architecture:
+                description: Architecture name
+                example: x86_64
+                type: string
+                x-go-name: Architecture
+            config:
+                description: Instance configuration (see doc/instances.md)
+                example:
+                    security.nesting: "true"
+                type: object
+                x-go-name: Config
+            created_at:
+                description: Instance creation timestamp
+                example: "2021-03-23T20:00:00-04:00"
                 format: date-time
                 type: string
-                x-go-name: LastUpdateFromSource
-            overrides:
-                $ref: '#/definitions/InstanceOverride'
-            properties:
-                $ref: '#/definitions/InstanceProperties'
-            source:
-                description: The originating source name for this instance
-                example: MySource
+                x-go-name: CreatedAt
+            description:
+                description: Instance description
+                example: My test instance
                 type: string
-                x-go-name: Source
-            source_type:
-                $ref: '#/definitions/SourceType'
-        title: Instance defines a VM instance to be migrated.
+                x-go-name: Description
+            devices:
+                additionalProperties:
+                    additionalProperties:
+                        type: string
+                    type: object
+                description: Instance devices (see doc/instances.md)
+                example:
+                    root:
+                        path: /
+                        pool: default
+                        type: disk
+                type: object
+                x-go-name: Devices
+            ephemeral:
+                description: Whether the instance is ephemeral (deleted on shutdown)
+                example: false
+                type: boolean
+                x-go-name: Ephemeral
+            expanded_config:
+                description: Expanded configuration (all profiles and local config merged)
+                example:
+                    security.nesting: "true"
+                type: object
+                x-go-name: ExpandedConfig
+            expanded_devices:
+                additionalProperties:
+                    additionalProperties:
+                        type: string
+                    type: object
+                description: Expanded devices (all profiles and local devices merged)
+                example:
+                    root:
+                        path: /
+                        pool: default
+                        type: disk
+                type: object
+                x-go-name: ExpandedDevices
+            last_used_at:
+                description: Last start timestamp
+                example: "2021-03-23T20:00:00-04:00"
+                format: date-time
+                type: string
+                x-go-name: LastUsedAt
+            location:
+                description: What cluster member this instance is located on
+                example: server01
+                type: string
+                x-go-name: Location
+            name:
+                description: Instance name
+                example: foo
+                type: string
+                x-go-name: Name
+            profiles:
+                description: List of profiles applied to the instance
+                example:
+                    - default
+                items:
+                    type: string
+                type: array
+                x-go-name: Profiles
+            project:
+                description: Instance project name
+                example: foo
+                type: string
+                x-go-name: Project
+            restore:
+                description: If set, instance will be restored to the provided snapshot name
+                example: snap0
+                type: string
+                x-go-name: Restore
+            stateful:
+                description: Whether the instance currently has saved state on disk
+                example: false
+                type: boolean
+                x-go-name: Stateful
+            status:
+                description: Instance status (see instance_state)
+                example: Running
+                type: string
+                x-go-name: Status
+            status_code:
+                $ref: '#/definitions/StatusCode'
+            type:
+                description: The type of instance (container or virtual-machine)
+                example: container
+                type: string
+                x-go-name: Type
+        title: Instance represents an instance.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     InstanceBackup:
         properties:
             created_at:
@@ -6429,73 +6524,75 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
     Server:
+        description: Server represents a server configuration
         properties:
-            cluster:
-                description: The cluster the server is part of.
-                example: one
+            api_extensions:
+                description: List of supported API extensions
+                example:
+                    - etag
+                    - patch
+                    - network
+                    - storage
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: APIExtensions
+            api_status:
+                description: Support status of the current API (one of "devel", "stable" or "deprecated")
+                example: stable
+                readOnly: true
                 type: string
-                x-go-name: Cluster
-            connection_url:
-                description: |-
-                    URL, hostname or IP address of the server endpoint used by Operations
-                    Center for its communication.
-                example: https://incus.local:6443
+                x-go-name: APIStatus
+            api_version:
+                description: API version number
+                example: "1.0"
+                readOnly: true
                 type: string
-                x-go-name: ConnectionURL
-            hardware_data:
-                $ref: '#/definitions/HardwareData'
-            last_seen:
-                description: |-
-                    LastSeen is the time, when this server has been seen for the last time
-                    by any sort of connection between the server and operations center
-                    in RFC3339 format.
-                example: "2024-11-12T16:15:00Z"
-                format: date-time
+                x-go-name: APIVersion
+            auth:
+                description: Whether the client is trusted (one of "trusted" or "untrusted")
+                example: untrusted
+                readOnly: true
                 type: string
-                x-go-name: LastSeen
-            last_updated:
-                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
-                example: "2024-11-12T16:15:00Z"
-                format: date-time
+                x-go-name: Auth
+            auth_methods:
+                description: List of supported authentication methods
+                example:
+                    - tls
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: AuthMethods
+            auth_user_method:
+                description: The current API user login method
+                example: unix
+                readOnly: true
                 type: string
-                x-go-name: LastUpdated
-            name:
-                description: Name or name of the server.
-                example: incus.local
+                x-go-name: AuthUserMethod
+            auth_user_name:
+                description: The current API user identifier
+                example: uid=201105
+                readOnly: true
                 type: string
-                x-go-name: Name
-            os_data:
-                $ref: '#/definitions/OSData'
-            public_connection_url:
-                description: |-
-                    Public URL, hostname or IP address of the server endpoint for user facing
-                    communication with the server. Only required, if it differs from
-                    connection_url, e.g. because the server is behind a reverse proxy.
-                example: https://incus.local:6443
-                type: string
-                x-go-name: PublicConnectionURL
-            server_status:
-                description: |-
-                    Status contains the status the server is currently in from the point of view of Operations Center.
-                    Possible values for status are: pending, ready
-                example: pending
-                type: string
-                x-go-name: Status
-                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerStatus
-            server_type:
-                description: Type defines the type of the server, which is normally one of "incus", "migration-manager", "operations-center".
-                example: incus
-                type: string
-                x-go-name: Type
-                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerType
-            version_data:
-                description: VersionData contains information about the servers version.
-                example: '...'
+                x-go-name: AuthUserName
+            config:
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :8443
                 type: object
-                x-go-name: VersionData
-        title: Server defines a server running Hypervisor OS.
+                x-go-name: Config
+            environment:
+                $ref: '#/definitions/ServerEnvironment'
+            public:
+                description: Whether the server is public-only (only public endpoints are implemented)
+                example: false
+                readOnly: true
+                type: boolean
+                x-go-name: Public
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     ServerEnvironment:
         properties:
             addresses:
@@ -6667,18 +6764,18 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerPut:
+        description: ServerPut represents the modifiable fields of a server configuration
         properties:
-            public_connection_url:
-                description: |-
-                    Public URL, hostname or IP address of the server endpoint for user facing
-                    communication with the server. Only required, if it differs from
-                    connection_url, e.g. because the server is behind a reverse proxy.
-                example: https://incus.local:6443
-                type: string
-                x-go-name: PublicConnectionURL
-        title: ServerPut defines the updateable part of a server running Hypervisor OS.
+            config:
+                additionalProperties:
+                    type: string
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :6443
+                type: object
+                x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     ServerSelfUpdate:
         properties:
             connection_url:
@@ -6736,16 +6833,8 @@ definitions:
                 readOnly: true
                 type: array
                 x-go-name: AuthMethods
-            config:
-                additionalProperties:
-                    type: string
-                description: Server configuration map (refer to doc/server.md)
-                example:
-                    core.https_address: :6443
-                type: object
-                x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     Source:
         properties:
             name:
@@ -9984,14 +10073,14 @@ paths:
             summary: Delete local pool
             tags:
                 - system
-    /1.0/system/storage/:import-encryption-key:
+    /1.0/system/storage/:import-pool:
         post:
             consumes:
                 - application/json
-            description: Sets the encryption key when importing an existing storage pool.
-            operationId: system_post_storage_import_encryption_key
+            description: Imports an existing encrypted ZFS storage pool and save its encryption key.
+            operationId: system_post_storage_import_pool
             parameters:
-                - description: Pool encryption information
+                - description: Existing pool information
                   in: body
                   name: configuration
                   required: true
@@ -10010,7 +10099,7 @@ paths:
                     $ref: '#/responses/BadRequest'
                 "500":
                     $ref: '#/responses/InternalServerError'
-            summary: Import an existing encryption key
+            summary: Import an existing encrypted storage pool
             tags:
                 - system
     /1.0/system/storage/:wipe-drive:
