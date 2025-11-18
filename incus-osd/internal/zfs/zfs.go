@@ -56,7 +56,7 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	}
 
 	// Create the "local" ZFS pool if it doesn't exist.
-	if !storage.PoolExists(ctx, "local") {
+	if !storage.PoolExists(ctx, "local") { //nolint:nestif
 		zpool := api.SystemStoragePool{
 			Name:    "local",
 			Type:    "zfs-raid0",
@@ -66,6 +66,32 @@ func LoadPools(ctx context.Context, s *state.State) error {
 		err := CreateZpool(ctx, zpool, s)
 		if err != nil {
 			return err
+		}
+	} else {
+		poolConfig, err := storage.GetZpoolMembers(ctx, "local")
+		if err != nil {
+			return err
+		}
+
+		// Check if the "local" pool is degraded and consists of two devices. If so, attempt to recover the pool
+		// if we're missing the partition on the main system drive (ie, the main disk died and IncusOS was reinstalled),
+		// otherwise display a warning to the user about the degraded state.
+		if poolConfig.State == "DEGRADED" && len(poolConfig.Devices) == 1 && len(poolConfig.DevicesDegraded) == 1 {
+			actualrootDev, err := storage.DeviceToID(ctx, "/dev/disk/by-partlabel/local-data")
+			if err != nil {
+				return err
+			}
+
+			if poolConfig.Devices[0] == actualrootDev {
+				slog.WarnContext(ctx, "Storage pool 'local' is degraded; the second non-system drive appears to be missing")
+			} else {
+				slog.InfoContext(ctx, "Attempting to recover storage pool 'local' using existing non-system drive")
+
+				_, err := subprocess.RunCommandContext(ctx, "zpool", "replace", "local", filepath.Base(poolConfig.DevicesDegraded[0]), actualrootDev)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
