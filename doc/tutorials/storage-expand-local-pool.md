@@ -290,7 +290,7 @@ If the main system drive fails, it is possible to recover the data from the "loc
 This will restore the pool to a good state, but because this is a fresh IncusOS install you must supply the encryption key for the previously-created "local" storage pool:
 
 ```
-incus admin os system storage import-storage-encryption-key -d '{"name":"local","type":"zfs","encryption_key":"QWJKYnRLGfyhj+OevRfgkdE6MW6PgAqR57tTi+8T+qA="}'
+incus admin os system storage import-storage-pool -d '{"name":"local","type":"zfs","encryption_key":"QWJKYnRLGfyhj+OevRfgkdE6MW6PgAqR57tTi+8T+qA="}'
 ```
 
 After this step, the data in the "local" pool will now be available and automatically unencrypted on each boot.
