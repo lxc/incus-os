@@ -16,9 +16,9 @@ The documentation below uses `192.0.2.100` as the IP address of the IncusOS syst
 
 ## Connecting to IncusOS
 
-````{tabs}
+`````{tabs}
 
-```{group-tab} Command line
+````{group-tab} Command line
 After the install completes, you will be shown a list of IP addresses in the
 network configuration footer. Pick one and add IncusOS as a remote Incus
 server:
@@ -57,25 +57,31 @@ Once the remote is added, you can interact with it like any other Incus server:
     +--------+---------+----------------------+------------------------------------------------+-----------+-----------+
     | trixie | RUNNING | 10.25.170.218 (eth0) | fd42:612d:f700:5f6e:1266:6aff:fe39:d31f (eth0) | CONTAINER | 0         |
     +--------+---------+----------------------+------------------------------------------------+-----------+-----------+
-```
+````
 
-```{group-tab} Web interface
+````{group-tab} Web interface
 The Incus UI is also available for web access.
 
 For this to work, the client certificate provided at image creation time
 must be imported as a user certificate in your web browser.
 
-The exact process to do this varies between browsers and operating
-systems, but generally involves generating a PKCS#12 certificate from
-the separate `client.crt` and `client.key`, then importing that in the
-web browser's certificate store.
+```{tip}
+The exact process of adding a user certificate varies between browsers
+and operating systems, but generally involves importing a PKCS#12 certificate
+into the web browser's certificate store.
 
-Once this is done, you can access the UI at `https://192.0.2.100:8443`
+A PKCS#12 certificate can be generated from the Incus client key/certificate
+pair by running
 
-![Incus UI with running instances](../images/incus-webui-instances.png)
+    openssl pkcs12 -export -inkey ~/.config/incus/client.key -in ~/.config/incus/client.crt -out ~/.config/incus/client.pfx
 ```
 
+Once the user certificate is imported, you can access the UI at `https://192.0.2.100:8443`
+
+![Incus UI with running instances](../images/incus-webui-instances.png)
 ````
+
+`````
 
 ## Fetching the encryption recovery key
 
