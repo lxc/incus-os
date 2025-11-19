@@ -28,5 +28,5 @@ Important seed fields include:
 
 Two additional applications exist which extend the main Incus application:
 
-* `incus-ceph`: Adds Ceph client support
-* `incus-linstor`: Add Linstor satellite support
+* `incus-ceph`: Adds [Ceph](../services/ceph.md) client support
+* `incus-linstor`: Adds [Linstor](../services/linstor.md) satellite support
