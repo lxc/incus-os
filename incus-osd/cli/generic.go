@@ -364,7 +364,9 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 		apiURL = apiURL.JoinPath(resource)
 	}
 
-	apiURL = apiURL.JoinPath("/:" + c.action)
+	if c.action != "" {
+		apiURL = apiURL.JoinPath("/:" + c.action)
+	}
 
 	values := apiURL.Query()
 	if c.os.flagTarget != "" {
