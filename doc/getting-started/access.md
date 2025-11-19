@@ -14,53 +14,52 @@ This can be done by looking at the bottom of the screen on the running system.
 
 The documentation below uses `192.0.2.100` as the IP address of the IncusOS system.
 
-## From the command line
+## Connecting to IncusOS
+
+````{tabs}
+
+```{group-tab} Command line
 After the install completes, you will be shown a list of IP addresses in the
 network configuration footer. Pick one and add IncusOS as a remote Incus
 server:
 
-```
-$ incus remote add IncusOS 192.0.2.100
-Certificate fingerprint: 80d569e9244a421f3a3d60d46631eb717f8a0a480f2f23ee729a4c1c016875f7
-ok (y/n/[fingerprint])? y
+    $ incus remote add IncusOS 192.0.2.100
+    Certificate fingerprint: 80d569e9244a421f3a3d60d46631eb717f8a0a480f2f23ee729a4c1c016875f7
+    ok (y/n/[fingerprint])? y
 
-$ incus remote list
-+-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
-|      NAME       |                URL                 |   PROTOCOL    |  AUTH TYPE  | PUBLIC | STATIC | GLOBAL |
-+-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
-| IncusOS         | https://10.234.136.23:8443         | incus         | tls         | NO     | NO     | NO     |
-+-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
-| images          | https://images.linuxcontainers.org | simplestreams | none        | YES    | NO     | NO     |
-+-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
-| local (current) | unix://                            | incus         | file access | NO     | YES    | NO     |
-+-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
-
-```
+    $ incus remote list
+    +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
+    |      NAME       |                URL                 |   PROTOCOL    |  AUTH TYPE  | PUBLIC | STATIC | GLOBAL |
+    +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
+    | IncusOS         | https://10.234.136.23:8443         | incus         | tls         | NO     | NO     | NO     |
+    +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
+    | images          | https://images.linuxcontainers.org | simplestreams | none        | YES    | NO     | NO     |
+    +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
+    | local (current) | unix://                            | incus         | file access | NO     | YES    | NO     |
+    +-----------------+------------------------------------+---------------+-------------+--------+--------+--------+
 
 Once the remote is added, you can interact with it like any other Incus server:
 
-```
-$ incus launch images:debian/trixie IncusOS:trixie
-Launching trixie
+    $ incus launch images:debian/trixie IncusOS:trixie
+    Launching trixie
 
-$ incus list
-+---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
-|     NAME      |  STATE  |          IPV4          |                       IPV6                       |      TYPE       | SNAPSHOTS |
-+---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
-| test-incus-os | RUNNING | 10.25.170.1 (incusbr0) | fd42:612d:f700:5f6e::1 (incusbr0)                | VIRTUAL-MACHINE | 0         |
-|               |         | 10.234.136.23 (enp5s0) | fd42:3cfb:8972:3990:1266:6aff:feab:9439 (enp5s0) |                 |           |
-+---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
+    $ incus list
+    +---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
+    |     NAME      |  STATE  |          IPV4          |                       IPV6                       |      TYPE       | SNAPSHOTS |
+    +---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
+    | test-incus-os | RUNNING | 10.25.170.1 (incusbr0) | fd42:612d:f700:5f6e::1 (incusbr0)                | VIRTUAL-MACHINE | 0         |
+    |               |         | 10.234.136.23 (enp5s0) | fd42:3cfb:8972:3990:1266:6aff:feab:9439 (enp5s0) |                 |           |
+    +---------------+---------+------------------------+--------------------------------------------------+-----------------+-----------+
 
-$ incus list IncusOS:
-+--------+---------+----------------------+------------------------------------------------+-----------+-----------+
-|  NAME  |  STATE  |         IPV4         |                      IPV6                      |   TYPE    | SNAPSHOTS |
-+--------+---------+----------------------+------------------------------------------------+-----------+-----------+
-| trixie | RUNNING | 10.25.170.218 (eth0) | fd42:612d:f700:5f6e:1266:6aff:fe39:d31f (eth0) | CONTAINER | 0         |
-+--------+---------+----------------------+------------------------------------------------+-----------+-----------+
-
+    $ incus list IncusOS:
+    +--------+---------+----------------------+------------------------------------------------+-----------+-----------+
+    |  NAME  |  STATE  |         IPV4         |                      IPV6                      |   TYPE    | SNAPSHOTS |
+    +--------+---------+----------------------+------------------------------------------------+-----------+-----------+
+    | trixie | RUNNING | 10.25.170.218 (eth0) | fd42:612d:f700:5f6e:1266:6aff:fe39:d31f (eth0) | CONTAINER | 0         |
+    +--------+---------+----------------------+------------------------------------------------+-----------+-----------+
 ```
 
-## From the web
+```{group-tab} Web interface
 The Incus UI is also available for web access.
 
 For this to work, the client certificate provided at image creation time
@@ -74,6 +73,9 @@ web browser's certificate store.
 Once this is done, you can access the UI at `https://192.0.2.100:8443`
 
 ![Incus UI with running instances](../images/incus-webui-instances.png)
+```
+
+````
 
 ## Fetching the encryption recovery key
 
