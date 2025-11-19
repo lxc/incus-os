@@ -109,13 +109,13 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 		app := &applicationPost{}
 
-		if r.ContentLength > 0 {
-			err := json.NewDecoder(r.Body).Decode(app)
-			if err != nil {
-				_ = response.BadRequest(err).Render(w)
+		counter := &countWrapper{ReadCloser: r.Body}
 
-				return
-			}
+		err := json.NewDecoder(counter).Decode(app)
+		if err != nil && counter.n > 0 {
+			_ = response.BadRequest(err).Render(w)
+
+			return
 		}
 
 		// Input validation.
@@ -398,13 +398,13 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 
 	config := &backupStruct{}
 
-	if r.ContentLength > 0 {
-		err := json.NewDecoder(r.Body).Decode(config)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+	counter := &countWrapper{ReadCloser: r.Body}
 
-			return
-		}
+	err = json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
 	}
 
 	// Once we begin streaming the tar archive back to the user,
