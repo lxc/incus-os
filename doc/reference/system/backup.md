@@ -54,7 +54,7 @@ User-created storage pools will be untouched, but will be unable to be imported 
 
 The following configuration options can be set when performing a factory reset:
 
-*`allow_tpm_reset_failure`: If `true`, ignore failures when resetting TPM state.
+* `allow_tpm_reset_failure`: If `true`, ignore failures when resetting TPM state.
 
 * `seeds`: A map of seeds to write to the seed partition just before rebooting the system. This can be useful to change/update existing seed data when the system configures itself after booting.
 
