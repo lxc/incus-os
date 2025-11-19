@@ -53,11 +53,7 @@ Then `exec` into the virtual machine, stop the main `incus-osd` service and run 
     mount -o bind /root/incus-osd /usr/local/bin/incus-osd
     systemctl start incus-osd
 
-There's no text editor in the base image, but it's easy to fetch the [micro](https://github.com/zyedidia/micro) text editor:
+When debugging, it's a good idea to install the `debug` application which contains a variety of useful tools, including a basic text editor (`nano`).
 
-    mkdir /tmp/micro/
-    curl -sLo /tmp/micro/micro.tar.gz https://github.com/zyedidia/micro/releases/download/v2.0.14/micro-2.0.14-linux64-static.tar.gz
-    tar -xzf /tmp/micro/micro.tar.gz -C /tmp/micro --strip-components=1
-    mv /tmp/micro/micro /root/micro
-    rm -rf /tmp/micro
-    export EDITOR=/root/micro
+    incus exec test-incus-os bash
+    curl --unix-socket /run/incus-os/unix.socket socket/1.0/applications -X POST -d '{"name": "debug"}'
