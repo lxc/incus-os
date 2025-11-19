@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lxc/incus/v6/shared/revert"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -20,32 +21,26 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 )
 
-// LoadPools will import all ZFS pools on the local system and attempt to load their
-// corresponding encryption keys. If the "local" pool doesn't exist, it will also
+// LoadPools will import all managed ZFS pools on the local system and attempt to load
+// their corresponding encryption keys. If the "local" pool doesn't exist, it will also
 // be created as an encrypted ZFS pool in the partition labeled "local-data".
 func LoadPools(ctx context.Context, s *state.State) error {
-	// Import all local ZFS pools.
-	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "-a")
-	if err != nil {
-		return err
-	}
-
-	// Immediately export any unencrypted pool. There doesn't seem to be a nice
-	// way to selectively import just encrypted pools.
-	err = exportUnencryptedPools(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Load any encryption keys we know about. Don't do a `zfs load-key -a`, since if
-	// someone needs to manually import an existing encrypted pool this will cause
-	// IncusOS to hang on boot because we won't have that encryption key stored locally yet.
+	// Get pools for which we have an encryption key stored locally.
 	pools, err := getPoolsWithKnownKeys()
 	if err != nil {
 		return err
 	}
 
+	// For each pool we manage, import the pool and load its encryption key.
 	for _, pool := range pools {
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "import", pool)
+		if err != nil {
+			// If the pool is already imported, don't return an error.
+			if !strings.Contains(err.Error(), "cannot import '"+pool+"': a pool with that name already exists") {
+				return err
+			}
+		}
+
 		_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
 		if err != nil {
 			// If the pool's encryption key has already been loaded, don't return an error.
@@ -55,42 +50,27 @@ func LoadPools(ctx context.Context, s *state.State) error {
 		}
 	}
 
-	// Create the "local" ZFS pool if it doesn't exist.
-	if !storage.PoolExists(ctx, "local") { //nolint:nestif
-		zpool := api.SystemStoragePool{
-			Name:    "local",
-			Type:    "zfs-raid0",
-			Devices: []string{"/dev/disk/by-partlabel/local-data"},
-		}
-
-		err := CreateZpool(ctx, zpool, s)
+	// If the "local" pool isn't automatically imported, this is a first boot and we either
+	// need to create a fresh "local" pool or attempt to recover an existing pool.
+	if !storage.PoolExists(ctx, "local") {
+		_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "local")
 		if err != nil {
-			return err
-		}
-	} else {
-		poolConfig, err := storage.GetZpoolMembers(ctx, "local")
-		if err != nil {
-			return err
-		}
+			// Failed to import the pool, so create a fresh one.
+			zpool := api.SystemStoragePool{
+				Name:    "local",
+				Type:    "zfs-raid0",
+				Devices: []string{"/dev/disk/by-partlabel/local-data"},
+			}
 
-		// Check if the "local" pool is degraded and consists of two devices. If so, attempt to recover the pool
-		// if we're missing the partition on the main system drive (ie, the main disk died and IncusOS was reinstalled),
-		// otherwise display a warning to the user about the degraded state.
-		if poolConfig.State == "DEGRADED" && len(poolConfig.Devices) == 1 && len(poolConfig.DevicesDegraded) == 1 {
-			actualrootDev, err := storage.DeviceToID(ctx, "/dev/disk/by-partlabel/local-data")
+			err := CreateZpool(ctx, zpool, s)
 			if err != nil {
 				return err
 			}
-
-			if poolConfig.Devices[0] == actualrootDev {
-				slog.WarnContext(ctx, "Storage pool 'local' is degraded; the second non-system drive appears to be missing")
-			} else {
-				slog.InfoContext(ctx, "Attempting to recover storage pool 'local' using existing non-system drive")
-
-				_, err := subprocess.RunCommandContext(ctx, "zpool", "replace", "local", filepath.Base(poolConfig.DevicesDegraded[0]), actualrootDev)
-				if err != nil {
-					return err
-				}
+		} else {
+			// We were able to import the existing "local" pool.
+			err := recoverLocalPool(ctx)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -98,34 +78,55 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	return nil
 }
 
-// Helper function to export any unencrypted pools.
-func exportUnencryptedPools(ctx context.Context) error {
-	pools, err := subprocess.RunCommandContext(ctx, "zpool", "list", "-H", "-o", "name")
+func recoverLocalPool(ctx context.Context) error {
+	poolConfig, err := storage.GetZpoolMembers(ctx, "local")
 	if err != nil {
 		return err
 	}
 
-	for pool := range strings.SplitSeq(pools, "\n") {
-		if pool == "" {
-			continue
-		}
-
-		encryptionStatus, err := subprocess.RunCommandContext(ctx, "zfs", "get", "encryption", "-H", "-o", "value", pool)
+	// Check if the "local" pool is degraded and consists of two devices. If so, attempt to recover the pool
+	// if we're missing the partition on the main system drive (ie, the main disk died and IncusOS was reinstalled),
+	// otherwise display a warning to the user about the degraded state.
+	if poolConfig.State == "DEGRADED" && len(poolConfig.Devices) == 1 && len(poolConfig.DevicesDegraded) == 1 { //nolint:nestif
+		actualrootDev, err := storage.DeviceToID(ctx, "/dev/disk/by-partlabel/local-data")
 		if err != nil {
 			return err
 		}
 
-		if strings.TrimSpace(encryptionStatus) == "off" {
-			_, err := subprocess.RunCommandContext(ctx, "zpool", "export", pool)
+		if poolConfig.Devices[0] == actualrootDev {
+			slog.WarnContext(ctx, "Storage pool 'local' is degraded; the second non-system drive appears to be missing")
+		} else {
+			slog.InfoContext(ctx, "Attempting to recover storage pool 'local' using existing non-system drive")
+
+			_, err := subprocess.RunCommandContext(ctx, "zpool", "replace", "local", filepath.Base(poolConfig.DevicesDegraded[0]), actualrootDev)
 			if err != nil {
 				return err
 			}
 
-			slog.WarnContext(ctx, "Refusing to import unencrypted ZFS pool '"+pool+"'")
+			// Need to wait for the resilver to finish before exporting the pool. Otherwise, the pool
+			// will still be in a degraded state when it's imported again.
+			for {
+				poolConfig, err = storage.GetZpoolMembers(ctx, "local")
+				if err != nil {
+					return err
+				}
+
+				if poolConfig.State == "ONLINE" {
+					break
+				}
+
+				time.Sleep(1 * time.Second)
+			}
 		}
+	} else {
+		slog.WarnContext(ctx, "Storage pool 'local' is missing its encryption key")
 	}
 
-	return nil
+	// Export the "local" pool. This keeps the logic for allowing the user to set the encryption recovery key
+	// via the import-pool API simple.
+	_, err = subprocess.RunCommandContext(ctx, "zpool", "export", "local")
+
+	return err
 }
 
 // Helper function to return a list of ZFS pools that have a corresponding known encryption key saved locally.
@@ -702,4 +703,80 @@ func GetZpoolEncryptionKeys() (map[string]string, error) {
 	}
 
 	return ret, nil
+}
+
+// ImportExistingPool will import an existing but currently unmanaged ZFS pool.
+// After importing, it will save and then load the encryption key.
+func ImportExistingPool(ctx context.Context, pool string, key string) error {
+	reverter := revert.New()
+	defer reverter.Fail()
+
+	// Import the existing pool.
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", pool)
+	if err != nil {
+		return err
+	}
+
+	reverter.Add(func() {
+		_, _ = subprocess.RunCommandContext(ctx, "zpool", "export", "-f", pool)
+	})
+
+	// Make sure the pool is encrypted.
+	encryptionStatus, err := subprocess.RunCommandContext(ctx, "zfs", "get", "encryption", "-H", "-o", "value", pool)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(encryptionStatus) == "off" {
+		return errors.New("refusing to import unencrypted ZFS pool")
+	}
+
+	// Make sure the pool is uses a raw key.
+	keyFormat, err := subprocess.RunCommandContext(ctx, "zfs", "get", "keyformat", "-H", "-o", "value", pool)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(keyFormat) != "raw" {
+		return errors.New("refusing to import pool that doesn't use a raw encryption key")
+	}
+
+	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
+
+	// Decode encryption key into raw bytes.
+	rawKey, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return err
+	}
+
+	if len(rawKey) != 32 {
+		return fmt.Errorf("expected a 32 byte raw encryption key, got %d bytes", len(rawKey))
+	}
+
+	// Write the key file.
+	// #nosec G304
+	err = os.WriteFile(keyfilePath, rawKey, 0o0600)
+	if err != nil {
+		return err
+	}
+
+	reverter.Add(func() {
+		_ = os.Remove(keyfilePath)
+	})
+
+	// Make sure the new pool knows where to find the encryption key.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "set", "keylocation=file://"+keyfilePath, pool)
+	if err != nil {
+		return err
+	}
+
+	// Load the pool's encryption key.
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "load-key", pool)
+	if err != nil {
+		return err
+	}
+
+	reverter.Success()
+
+	return nil
 }

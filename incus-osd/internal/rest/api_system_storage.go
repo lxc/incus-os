@@ -263,11 +263,11 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 	_ = response.EmptySyncResponse.Render(w)
 }
 
-// swagger:operation POST /1.0/system/storage/:import-encryption-key system system_post_storage_import_encryption_key
+// swagger:operation POST /1.0/system/storage/:import-pool system system_post_storage_import_pool
 //
-//	Import an existing encryption key
+//	Import an existing encrypted storage pool
 //
-//	Sets the encryption key when importing an existing storage pool.
+//	Imports an existing encrypted ZFS storage pool and save its encryption key.
 //
 //	---
 //	consumes:
@@ -277,7 +277,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 //	parameters:
 //	  - in: body
 //	    name: configuration
-//	    description: Pool encryption information
+//	    description: Existing pool information
 //	    required: true
 //	    schema:
 //	      type: object
@@ -289,7 +289,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *http.Request) {
+func (*Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -322,7 +322,7 @@ func (*Server) apiSystemStorageImportEncryptionKey(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err = storage.SetEncryptionKey(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
+	err = zfs.ImportExistingPool(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

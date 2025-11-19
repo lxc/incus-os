@@ -83,10 +83,10 @@ Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its
 ./incus admin os system wipe-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
 ```
 
-## Importing encryption key for an existing pool
+## Importing an existing encrypted pool
 
-If importing an existing storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Import the raw base64 encoded encryption key for storage pool `mypool` by running
+If importing an existing storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Because there is no way to prompt for an encryption passphrase, only ZFS pools using a raw encryption key can be imported. Specify the raw base64 encoded encryption key when importing storage pool `mypool` by running
 
 ```
-incus admin os system import-storage-encryption-key -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
+incus admin os system import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
 ```

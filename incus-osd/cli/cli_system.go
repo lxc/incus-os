@@ -142,9 +142,9 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 				// Import encryption key.
 				importEncryptionKeyCmd := cmdGenericRun{
 					os:          c.os,
-					name:        "import-storage-encryption-key",
-					description: "Import the storage encryption key",
-					action:      "import-encryption-key",
+					name:        "import-storage-pool",
+					description: "Import an existing encrypted storage pool",
+					action:      "import-pool",
 					endpoint:    "system/storage",
 					hasData:     true,
 				}
