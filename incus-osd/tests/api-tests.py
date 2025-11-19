@@ -10,29 +10,39 @@ import urllib.request
 
 from incusos_tests import IncusOSTests
 
-current_version = ""
-prior_version = ""
+current_release = None
+prior_stable_release = None
 urls = []
 
-# Fetch the current and immediate prior release information
+# Fetch the current and prior stable release information
 with urllib.request.urlopen("https://images.linuxcontainers.org/os/index.json") as url:
     versions = json.loads(url.read().decode())
 
-    if len(versions["updates"]) < 2:
-        raise Exception("need at least two published versions")
+    current_stable_release_version = ""
 
-    current_version = versions["updates"][0]["version"]
-    prior_version = versions["updates"][1]["version"]
+    for update in versions["updates"]:
+        if current_release is None:
+            current_release = update
 
-    for file in versions["updates"][0]["files"]:
+        if "stable" in update["channels"]:
+            if current_stable_release_version == "":
+                current_stable_release_version = update["version"]
+            else:
+                prior_stable_release = update
+                break
+
+    if prior_stable_release is None:
+        raise Exception("need at least two published stable releases")
+
+    for file in current_release["files"]:
         if file["architecture"] == "x86_64":
             if file["type"] == "image-raw" or file["type"] == "image-iso":
-                urls.append("https://images." + versions["updates"][0]["origin"] + "/os" + versions["updates"][0]["url"] + "/" + file["filename"])
+                urls.append("https://images." + current_release["origin"] + "/os" + current_release["url"] + "/" + file["filename"])
 
-    for file in versions["updates"][1]["files"]:
+    for file in prior_stable_release["files"]:
         if file["architecture"] == "x86_64":
             if file["type"] == "image-raw":
-                urls.append("https://images." + versions["updates"][1]["origin"] + "/os" + versions["updates"][1]["url"] + "/" + file["filename"])
+                urls.append("https://images." + prior_stable_release["origin"] + "/os" + prior_stable_release["url"] + "/" + file["filename"])
 
 # Download images if needed
 for url in urls:
@@ -51,9 +61,9 @@ for url in urls:
 
         os.remove(basename)
 
-prior_image_img = os.path.join(os.getcwd(), "IncusOS_" + prior_version + ".img")
-current_image_img = os.path.join(os.getcwd(), "IncusOS_" + current_version + ".img")
-current_image_iso = os.path.join(os.getcwd(), "IncusOS_" + current_version + ".iso")
+prior_image_img = os.path.join(os.getcwd(), "IncusOS_" + prior_stable_release["version"] + ".img")
+current_image_img = os.path.join(os.getcwd(), "IncusOS_" + current_release["version"] + ".img")
+current_image_iso = os.path.join(os.getcwd(), "IncusOS_" + current_release["version"] + ".iso")
 
 num_pass = 0
 num_fail = 0
