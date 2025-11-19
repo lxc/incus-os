@@ -1,6 +1,6 @@
 # Linstor
 
-The [Linstor](https://linbit.com/linstor/) service allows connecting a Linstor deployment.
+The [Linstor](https://linbit.com/linstor/) service allows connecting a Linstor deployment. In addition to Incus, the `incus-linstor` application must be installed to enable this service.
 
 ## Configuration options
 

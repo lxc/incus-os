@@ -7,9 +7,9 @@ The primary application is responsible for listening on the network and
 for handling user authentication. It then provides access to the IncusOS
 management API through its own API.
 
-IncusOS also supports additional (non-primary) applications which can
-extend the base system (for example for debugging) or provide additional
-features to another application.
+IncusOS also supports [additional](applications/non-primary.md) (non-primary)
+applications which can extend the base system (for example for debugging) or
+provide additional features to another application.
 
 ```{toctree}
 :maxdepth: 1
@@ -19,4 +19,6 @@ Migration Manager </reference/applications/migration-manager>
 Operations Center </reference/applications/operations-center>
 
 Shared API </reference/applications/shared-api>
+
+Non-primary applications </reference/applications/non-primary>
 ```

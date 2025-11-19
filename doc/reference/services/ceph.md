@@ -1,6 +1,6 @@
 # Ceph
 
-The [Ceph](https://ceph.io/) service allows connecting a Ceph storage cluster.
+The [Ceph](https://ceph.io/) service allows connecting a Ceph storage cluster. In addition to Incus, the `incus-ceph` application must be installed to enable this service.
 
 ## Configuration options
 
