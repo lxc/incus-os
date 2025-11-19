@@ -469,6 +469,14 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 				break
 			}
+
+			if zpoolName == "local" {
+				if isMemberDrive(poolConfig.Devices, deviceID+"-part11") || isMemberDrive(poolConfig.DevicesDegraded, deviceID+"-part11") {
+					driveZpool = zpoolName
+
+					break
+				}
+			}
 		}
 
 		// Populate SMART info if available.
