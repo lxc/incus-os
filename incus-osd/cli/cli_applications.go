@@ -19,7 +19,7 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	// Add.
 	addCmd := cmdGenericRun{
 		os:          c.os,
-		action:      "add",
+		name:        "add",
 		description: "Add an application",
 		endpoint:    "applications",
 		hasData:     true,

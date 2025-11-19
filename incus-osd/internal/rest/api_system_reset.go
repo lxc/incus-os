@@ -44,16 +44,16 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 
 	resetData := &api.SystemReset{}
 
-	if r.ContentLength > 0 {
-		err := json.NewDecoder(r.Body).Decode(resetData)
-		if err != nil {
-			_ = response.BadRequest(err).Render(w)
+	counter := &countWrapper{ReadCloser: r.Body}
 
-			return
-		}
+	err := json.NewDecoder(counter).Decode(resetData)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
 	}
 
-	err := reset.PerformOSFactoryReset(r.Context(), resetData)
+	err = reset.PerformOSFactoryReset(r.Context(), resetData)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

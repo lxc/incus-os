@@ -119,13 +119,13 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Update the list of encryption recovery keys.
 		securityStruct := &api.SystemSecurity{}
 
-		if r.ContentLength > 0 {
-			err := json.NewDecoder(r.Body).Decode(securityStruct)
-			if err != nil {
-				_ = response.BadRequest(err).Render(w)
+		counter := &countWrapper{ReadCloser: r.Body}
 
-				return
-			}
+		err := json.NewDecoder(counter).Decode(securityStruct)
+		if err != nil && counter.n > 0 {
+			_ = response.BadRequest(err).Render(w)
+
+			return
 		}
 
 		if len(securityStruct.Config.EncryptionRecoveryKeys) == 0 {

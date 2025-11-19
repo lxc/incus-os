@@ -177,6 +177,10 @@ func (c *cmdGenericList) command() *cobra.Command {
 	cmd.Long = cli.FormatSection("Description", "List "+c.entity)
 	cmd.Flags().StringVarP(&c.flagFormat, "format", "f", c.os.args.DefaultListFormat, "Format (csv|json|table|yaml|compact|markdown), use suffix \",noheader\" to disable headers and \",header\" to enable it if missing, e.g. csv,header``")
 
+	if c.os.args.SupportsTarget {
+		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
+	}
+
 	cmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 		return cli.ValidateFlagFormatForListOutput(cmd.Flag("format").Value.String())
 	}
@@ -364,7 +368,9 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 		apiURL = apiURL.JoinPath(resource)
 	}
 
-	apiURL = apiURL.JoinPath("/:" + c.action)
+	if c.action != "" {
+		apiURL = apiURL.JoinPath("/:" + c.action)
+	}
 
 	values := apiURL.Query()
 	if c.os.flagTarget != "" {
