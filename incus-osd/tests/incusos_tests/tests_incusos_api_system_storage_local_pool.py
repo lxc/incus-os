@@ -347,3 +347,46 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
 
                 if result["metadata"]["state"]["pools"][0]["name"] != "local":
                     raise Exception("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+
+def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
+    test_name = "incusos-api-system-storage-local-pool-recover"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
+        disk_img.truncate(50*1024*1024*1024)
+
+        encryption_key = ""
+
+        test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+        # First, configure an existing "local" pool
+        with IncusTestVM(test_name, test_image) as vm:
+            vm.AddDevice("disk1", "disk", "source="+disk_img.name)
+
+            vm.WaitSystemReady(incusos_version, source="/dev/sdc")
+
+            # Convert "local" pool to RAID1 and get its encryption key
+            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+            if result["status_code"] != 200:
+                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            result = vm.APIRequest("/1.0/system/security")
+            if result["status_code"] != 200:
+                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            encryption_key = result["metadata"]["state"]["pool_recovery_keys"]["local"]
+
+        # Second, install a new VM and recover the existing "local" pool
+        test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+        with IncusTestVM(test_name, test_image) as vm:
+            vm.AddDevice("disk1", "disk", "source="+disk_img.name)
+
+            vm.WaitSystemReady(incusos_version, source="/dev/sdc")
+            vm.WaitExpectedLog("incus-osd", "Attempting to recover storage pool 'local' using existing non-system drive")
+
+            # After the pool is recovered, re-import it via API
+            result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"local","type":"zfs","encryption_key":""" + '"' + encryption_key + '"}')
+            if result["status_code"] != 200:
+                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
