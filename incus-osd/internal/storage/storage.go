@@ -59,7 +59,7 @@ type zpoolStatusPartialParse struct {
 type zfsGetPartialParse struct {
 	Datasets map[string]struct {
 		Properties map[string]struct {
-			Value string `json:"value"`
+			Value any `json:"value"`
 		} `json:"properties"`
 	} `json:"datasets"`
 }
@@ -258,6 +258,11 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		return api.SystemStoragePool{}, err
 	}
 
+	zpoolKeyStatus, ok := zfsProperties.Datasets[zpoolName].Properties["keystatus"].Value.(string)
+	if !ok {
+		return api.SystemStoragePool{}, errors.New("bad type for keystatus field")
+	}
+
 	zpoolType := ""
 	zpoolAllocSpace := 0
 	zpoolTotalSpace := 0
@@ -331,6 +336,52 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		}
 	}
 
+	// Get ZFS datasets and fill in volumes.
+	zfsListOutput, err := subprocess.RunCommandContext(ctx, "zfs", "list", "-r", "-d1", zpoolName, "-o", "name,quota,used,incusos:use", "-j", "--json-int")
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zfsDatasets := zfsGetPartialParse{}
+
+	err = json.Unmarshal([]byte(zfsListOutput), &zfsDatasets)
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zpoolVolumes := []api.SystemStoragePoolVolume{}
+
+	for entryName, entry := range zfsDatasets.Datasets {
+		if entryName == zpoolName {
+			continue
+		}
+
+		vol := api.SystemStoragePoolVolume{Name: strings.TrimPrefix(entryName, zpoolName+"/")}
+
+		for propName, prop := range entry.Properties {
+			switch propName {
+			case "quota":
+				val, ok := prop.Value.(float64)
+				if ok {
+					vol.QuotaInBytes = int(val)
+				}
+			case "incusos:use":
+				val, ok := prop.Value.(string)
+				if ok {
+					vol.Use = val
+				}
+			case "used":
+				val, ok := prop.Value.(float64)
+				if ok {
+					vol.UsageInBytes = int(val)
+				}
+			default:
+			}
+		}
+
+		zpoolVolumes = append(zpoolVolumes, vol)
+	}
+
 	// Sort each list of devices to ensure consistent ordering of device names.
 	slices.Sort(zpoolDevices["devices"])
 	slices.Sort(zpoolDevices["log"])
@@ -342,7 +393,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	return api.SystemStoragePool{
 		Name:                      zpoolName,
 		State:                     zpoolJSON.Pools[zpoolName].State,
-		EncryptionKeyStatus:       zfsProperties.Datasets[zpoolName].Properties["keystatus"].Value,
+		EncryptionKeyStatus:       zpoolKeyStatus,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
@@ -353,6 +404,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		RawPoolSizeInBytes:        zpoolTotalSpace,
 		UsablePoolSizeInBytes:     zpoolDefSpace,
 		PoolAllocatedSpaceInBytes: zpoolAllocSpace,
+		Volumes:                   zpoolVolumes,
 	}, nil
 }
 
