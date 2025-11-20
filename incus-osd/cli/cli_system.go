@@ -128,8 +128,18 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			description: "Storage configuration",
 			isWritable:  true,
 			extraCommands: func() []*cobra.Command {
+				// Create storage volume.
+				createVolumeCmd := cmdGenericRun{
+					os:          c.os,
+					name:        "create-volume",
+					description: "Create a storage volume",
+					action:      "create-volume",
+					endpoint:    "system/storage",
+					hasData:     true,
+				}
+
 				// Delete storage pool.
-				deleteCmd := cmdGenericRun{
+				deletePoolCmd := cmdGenericRun{
 					os:          c.os,
 					name:        "delete",
 					description: "Delete the storage pool",
@@ -139,8 +149,19 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					confirm:     "delete the storage pool",
 				}
 
-				// Import encryption key.
-				importEncryptionKeyCmd := cmdGenericRun{
+				// Delete storage volume.
+				deleteVolumeCmd := cmdGenericRun{
+					os:          c.os,
+					name:        "delete-volume",
+					description: "Delete the storage volume",
+					action:      "delete-volume",
+					endpoint:    "system/storage",
+					hasData:     true,
+					confirm:     "delete the storage volume",
+				}
+
+				// Import storage pool.
+				importPoolCmd := cmdGenericRun{
 					os:          c.os,
 					name:        "import-storage-pool",
 					description: "Import an existing encrypted storage pool",
@@ -159,7 +180,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					confirm:     "wipe the drive",
 				}
 
-				return []*cobra.Command{deleteCmd.command(), importEncryptionKeyCmd.command(), wipeDriveCmd.command()}
+				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), importPoolCmd.command(), wipeDriveCmd.command()}
 			},
 		},
 		{
