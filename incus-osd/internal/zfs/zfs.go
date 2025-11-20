@@ -793,3 +793,15 @@ func CreateDataset(ctx context.Context, poolName string, name string, properties
 
 	return err
 }
+
+// DestroyDataset removes a dataset from the specified pool.
+func DestroyDataset(ctx context.Context, poolName string, name string, force bool) error {
+	args := []string{"destroy", poolName + "/" + name}
+	if force {
+		args = append(args, "-R")
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "zfs", args...)
+
+	return err
+}
