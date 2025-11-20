@@ -76,6 +76,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/system/security", s.apiSystemSecurity)
 	router.HandleFunc("/1.0/system/security/:tpm-rebind", s.apiSystemSecurityTPMRebind)
 	router.HandleFunc("/1.0/system/storage", s.apiSystemStorage)
+	router.HandleFunc("/1.0/system/storage/:create-volume", s.apiSystemStorageCreateVolume)
 	router.HandleFunc("/1.0/system/storage/:delete-pool", s.apiSystemStorageDeletePool)
 	router.HandleFunc("/1.0/system/storage/:import-pool", s.apiSystemStorageImportPool)
 	router.HandleFunc("/1.0/system/storage/:wipe-drive", s.apiSystemStorageWipeDrive)
