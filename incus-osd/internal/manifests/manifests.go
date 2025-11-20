@@ -50,6 +50,7 @@ type IncusOSManifest struct {
 	IncusOSCommit string             `json:"incusos_commit"`
 	MkosiVersion  string             `json:"mkosi_version"`
 	Artifacts     []IncusOSArtifacts `json:"artifacts,omitempty"`
+	InitrdModules []string           `json:"initrd_modules,omitempty"`
 }
 
 // IncusOSArtifacts represents information about an artifact produced outside of the main mkosi build logic.
@@ -103,13 +104,21 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 		manifest := ret[manifestName]
 		manifest.IncusOSCommit = incusosCommit
 		manifest.MkosiVersion = mkosiVersion
+
+		if manifestName == "base" {
+			manifest.InitrdModules, err = getInitrdModuleInfo(filepath.Join(root, "mkosi.output/"))
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		ret[manifestName] = manifest
 	}
 
 	// Insert artifact information, if it exists, for each manifest.
 	for manifestName := range ret {
 		// #nosec G304
-		content, err := os.ReadFile(filepath.Join(root, manifestName+".json"))
+		content, err := os.ReadFile(filepath.Join(root, "app-build/", manifestName+".json"))
 		if err != nil {
 			// No artifacts were injected for this image.
 			continue
@@ -125,7 +134,7 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 		// Special case to inject migration-manager-worker mkosi manifest.
 		if manifestName == "migration-manager" {
 			// #nosec G304
-			content, err := os.ReadFile(filepath.Join(root, "migration-manager/worker/mkosi.output/migration-manager-worker.manifest"))
+			content, err := os.ReadFile(filepath.Join(root, "app-build/", "migration-manager/worker/mkosi.output/migration-manager-worker.manifest"))
 			if err == nil {
 				var m MkosiManifest
 
