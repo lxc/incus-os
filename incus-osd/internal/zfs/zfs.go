@@ -780,3 +780,16 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 
 	return nil
 }
+
+// CreateDataset creates a new dataset in the specified pool and applies some optional properties.
+func CreateDataset(ctx context.Context, poolName string, name string, properties map[string]string) error {
+	args := []string{"create", poolName + "/" + name}
+
+	for k, v := range properties {
+		args = append(args, "-o", k+"="+v)
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "zfs", args...)
+
+	return err
+}
