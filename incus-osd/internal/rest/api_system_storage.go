@@ -433,3 +433,78 @@ func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Reque
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/storage/:delete-volume system system_post_storage_delete_volume
+//
+//	Delete a volume
+//
+//	Deletes a storage pool volume.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The volume to be deleted
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"pool":"local", "name":"my-volume", "force":true}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	type deleteStruct struct {
+		Pool  string `json:"pool"`
+		Name  string `json:"name"`
+		Force bool   `json:"force"`
+	}
+
+	config := &deleteStruct{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if config.Pool == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
+
+		return
+	}
+
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no volume name provided")).Render(w)
+
+		return
+	}
+
+	// Delete the volume.
+	err = zfs.DestroyDataset(r.Context(), config.Pool, config.Name, config.Force)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
