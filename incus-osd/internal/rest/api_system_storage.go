@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -393,8 +394,20 @@ func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if strings.Contains(config.Pool, "/") {
+		_ = response.BadRequest(errors.New("invalid pool name provided")).Render(w)
+
+		return
+	}
+
 	if config.Name == "" {
 		_ = response.BadRequest(errors.New("no volume name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Name, "/") {
+		_ = response.BadRequest(errors.New("invalid volume name provided")).Render(w)
 
 		return
 	}
@@ -492,8 +505,20 @@ func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if strings.Contains(config.Pool, "/") {
+		_ = response.BadRequest(errors.New("invalid pool name provided")).Render(w)
+
+		return
+	}
+
 	if config.Name == "" {
 		_ = response.BadRequest(errors.New("no volume name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Name, "/") {
+		_ = response.BadRequest(errors.New("invalid volume name provided")).Render(w)
 
 		return
 	}
