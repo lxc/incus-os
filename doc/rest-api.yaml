@@ -400,37 +400,26 @@ definitions:
         x-go-package: github.com/lxc/incus/v6/shared/api
     Cluster:
         properties:
-            connection_url:
-                description: |-
-                    URL, hostname or IP address of the cluster endpoint.
-                    This is only user facing, e.g. the address of a load balancer infront of
-                    the cluster and not used by Operations Center for direct communication
-                    Operations Center relies on the connection URL of the cluster members.
-                example: https://incus.local:6443
+            enabled:
+                description: Whether clustering is enabled
+                example: true
+                type: boolean
+                x-go-name: Enabled
+            member_config:
+                description: List of member configuration keys (used during join)
+                example: []
+                items:
+                    $ref: '#/definitions/ClusterMemberConfigKey'
+                type: array
+                x-go-name: MemberConfig
+            server_name:
+                description: Name of the cluster member answering the request
+                example: server01
                 type: string
-                x-go-name: ConnectionURL
-            last_updated:
-                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
-                example: "2024-11-12T16:15:00Z"
-                format: date-time
-                type: string
-                x-go-name: LastUpdated
-            name:
-                description: A human-friendly name for this cluster.
-                example: MyCluster
-                type: string
-                x-go-name: Name
-            status:
-                description: |-
-                    Status contains the status the cluster is currently in from the point of view of Operations Center.
-                    Possible values for status are: pending, ready
-                example: pending
-                type: string
-                x-go-name: Status
-                x-go-type: github.com/FuturFusion/operations-center/shared/api.ClusterStatus
-        title: Cluster defines a cluster of servers running Hypervisor OS.
+                x-go-name: ServerName
+        title: Cluster represents high-level information about a cluster.
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     ClusterCertificatePut:
         properties:
             cluster_certificate:
@@ -3421,73 +3410,47 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
-        description: Network represents a network
         properties:
-            config:
-                description: Network configuration map (refer to doc/networks.md)
-                example:
-                    ipv4.address: 10.0.0.1/24
-                    ipv4.nat: "true"
-                    ipv6.address: none
-                type: object
-                x-go-name: Config
-            description:
-                description: Description of the profile
-                example: My new bridge
+            bridge_name:
+                description: Name of the parent bridge to use with a VLAN.
+                example: br0
                 type: string
-                x-go-name: Description
-            locations:
-                description: Cluster members on which the network has been defined
-                example:
-                    - server01
-                    - server02
-                    - server03
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: Locations
-            managed:
-                description: Whether this is a managed network
-                example: true
-                readOnly: true
-                type: boolean
-                x-go-name: Managed
+                x-go-name: BridgeName
+            identifier:
+                description: The identifier of the network
+                example: network-23
+                type: string
+                x-go-name: Identifier
+            location:
+                description: Full inventory location path of the network
+                example: /vcenter01/network/net0
+                type: string
+                x-go-name: Location
             name:
-                description: The network name
-                example: mybr0
+                description: Name of the network on the target.
+                example: '"vmware"'
                 readOnly: true
                 type: string
                 x-go-name: Name
-            project:
-                description: Project name
-                example: project1
+            properties:
+                description: Additional properties of the network.
+                type: object
+                x-go-name: Properties
+            source:
+                description: vCenter source for the network
+                example: vcenter01
                 type: string
-                x-go-name: Project
-            status:
-                description: The state of the network (for managed network in clusters)
-                example: Created
-                readOnly: true
-                type: string
-                x-go-name: Status
+                x-go-name: Source
             type:
-                description: The network type
-                example: bridge
-                readOnly: true
+                $ref: '#/definitions/NetworkType'
+            vlan_id:
+                description: Name of the VLAN ID to use with a VLAN network.
+                example: "1"
                 type: string
-                x-go-name: Type
-            used_by:
-                description: List of URLs of objects using this profile
-                example:
-                    - /1.0/profiles/default
-                    - /1.0/instances/c1
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: UsedBy
+                x-go-name: VlanID
+        title: Network defines the network config for use by the migration manager.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     NetworkACL:
         properties:
             config:
@@ -6771,11 +6734,11 @@ definitions:
                     type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :6443
+                    core.https_address: :8443
                 type: object
                 x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     ServerSelfUpdate:
         properties:
             connection_url:
@@ -6806,6 +6769,18 @@ definitions:
     ServerUntrusted:
         description: ServerUntrusted represents a server configuration for an untrusted client
         properties:
+            api_extensions:
+                description: List of supported API extensions
+                example:
+                    - etag
+                    - patch
+                    - network
+                    - storage
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: APIExtensions
             api_status:
                 description: Support status of the current API (one of "devel", "stable" or "deprecated")
                 example: stable
@@ -6833,8 +6808,20 @@ definitions:
                 readOnly: true
                 type: array
                 x-go-name: AuthMethods
+            config:
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :8443
+                type: object
+                x-go-name: Config
+            public:
+                description: Whether the server is public-only (only public endpoints are implemented)
+                example: false
+                readOnly: true
+                type: boolean
+                x-go-name: Public
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     Source:
         properties:
             name:
@@ -8066,9 +8053,6 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemSecurityOIDC:
-        description: |-
-            SystemSecurityOIDC is the OIDC related part of the system's security
-            configuration.
         properties:
             audience:
                 description: Audience the OIDC tokens should be verified against.
@@ -8079,7 +8063,7 @@ definitions:
                 type: string
                 x-go-name: Claim
             client_id:
-                description: CLient ID used for communication with the OIDC issuer.
+                description: Client ID used for communication with the OIDC issuer.
                 type: string
                 x-go-name: ClientID
             issuer:
@@ -8090,8 +8074,9 @@ definitions:
                 description: Scopes to be requested.
                 type: string
                 x-go-name: Scope
+        title: SystemSecurityOIDC is the OIDC related part of the system's security configuration.
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemSecurityOpenFGA:
         description: |-
             SystemSecurityOpenFGA is the OpenFGA related part of the system's security
@@ -10046,6 +10031,36 @@ paths:
             summary: Update system storage configuration
             tags:
                 - system
+    /1.0/system/storage/:create-volume:
+        post:
+            consumes:
+                - application/json
+            description: Creates a new storage pool volume.
+            operationId: system_post_storage_create_volume
+            parameters:
+                - description: The volume to be created
+                  in: body
+                  name: configuration
+                  required: true
+                  schema:
+                    example:
+                        name: my-volume
+                        pool: local
+                        size: 0
+                        use: incus
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Create a volume
+            tags:
+                - system
     /1.0/system/storage/:delete-pool:
         post:
             consumes:
@@ -10071,6 +10086,35 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Delete local pool
+            tags:
+                - system
+    /1.0/system/storage/:delete-volume:
+        post:
+            consumes:
+                - application/json
+            description: Deletes a storage pool volume.
+            operationId: system_post_storage_delete_volume
+            parameters:
+                - description: The volume to be deleted
+                  in: body
+                  name: configuration
+                  required: true
+                  schema:
+                    example:
+                        force: true
+                        name: my-volume
+                        pool: local
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Delete a volume
             tags:
                 - system
     /1.0/system/storage/:import-pool:
