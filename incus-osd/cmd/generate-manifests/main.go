@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	m, err = manifests.GenerateManifests(context.Background(), filepath.Join(os.Args[1], "app-build/"), m)
+	m, err = manifests.GenerateManifests(context.Background(), os.Args[1], m)
 	if err != nil {
 		slog.Error("Error: " + err.Error())
 		os.Exit(1)

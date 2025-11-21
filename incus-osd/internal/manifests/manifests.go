@@ -1,14 +1,18 @@
 package manifests
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/cavaliergopher/cpio"
+	"github.com/klauspost/compress/zstd"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
@@ -46,6 +50,7 @@ type IncusOSManifest struct {
 	IncusOSCommit string             `json:"incusos_commit"`
 	MkosiVersion  string             `json:"mkosi_version"`
 	Artifacts     []IncusOSArtifacts `json:"artifacts,omitempty"`
+	InitrdModules []string           `json:"initrd_modules,omitempty"`
 }
 
 // IncusOSArtifacts represents information about an artifact produced outside of the main mkosi build logic.
@@ -99,13 +104,21 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 		manifest := ret[manifestName]
 		manifest.IncusOSCommit = incusosCommit
 		manifest.MkosiVersion = mkosiVersion
+
+		if manifestName == "base" {
+			manifest.InitrdModules, err = getInitrdModuleInfo(filepath.Join(root, "mkosi.output/"))
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		ret[manifestName] = manifest
 	}
 
 	// Insert artifact information, if it exists, for each manifest.
 	for manifestName := range ret {
 		// #nosec G304
-		content, err := os.ReadFile(filepath.Join(root, manifestName+".json"))
+		content, err := os.ReadFile(filepath.Join(root, "app-build/", manifestName+".json"))
 		if err != nil {
 			// No artifacts were injected for this image.
 			continue
@@ -121,7 +134,7 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 		// Special case to inject migration-manager-worker mkosi manifest.
 		if manifestName == "migration-manager" {
 			// #nosec G304
-			content, err := os.ReadFile(filepath.Join(root, "migration-manager/worker/mkosi.output/migration-manager-worker.manifest"))
+			content, err := os.ReadFile(filepath.Join(root, "app-build/", "migration-manager/worker/mkosi.output/migration-manager-worker.manifest"))
 			if err == nil {
 				var m MkosiManifest
 
@@ -342,4 +355,95 @@ func diffPackages(previous []MkosiManifestPackages, current []MkosiManifestPacka
 	}
 
 	return added, removed, updated
+}
+
+func getInitrdModuleInfo(root string) ([]string, error) {
+	// Find the initrd file in the build artifacts.
+	initrdFile := ""
+
+	files, err := os.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".initrd") {
+			initrdFile = filepath.Join(root, file.Name())
+
+			break
+		}
+	}
+
+	if initrdFile == "" {
+		return nil, errors.New("unable to find initrd file")
+	}
+
+	// Extract the second compressed initrd that contains the kernel modules.
+	// #nosec G304
+	initrdFd, err := os.Open(initrdFile)
+	if err != nil {
+		return nil, err
+	}
+	defer initrdFd.Close()
+
+	// Skip over most of the first compressed initrd.
+	_, err = initrdFd.Seek(35000000, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err := io.ReadAll(initrdFd)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the start of the second compressed initrd.
+	startIndex := bytes.Index(buf, []byte{'\x28', '\xb5', '\x2f', '\xfd'})
+	if startIndex < 1000 {
+		return nil, errors.New("failed to find start of second initrd zstd archive")
+	}
+
+	var cpioBuf []byte
+
+	zstdDecoder, _ := zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
+
+	// There can be padding at the end, so iteratively trim back a few bytes until we
+	// get a compressed file that zstd is happy with.
+	for endIndex := range 16 {
+		buf, err := zstdDecoder.DecodeAll(buf[startIndex:len(buf)-endIndex], nil)
+		if err == nil {
+			cpioBuf = buf
+
+			break
+		}
+	}
+
+	if len(cpioBuf) == 0 {
+		return nil, errors.New("unable to find end of second initrd zstd archive")
+	}
+
+	// Setup the cpio reader.
+	r := cpio.NewReader(bytes.NewBuffer(cpioBuf))
+
+	ret := []string{}
+
+	// Iterate through the archive to find kernel modules.
+	for {
+		header, err := r.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return nil, err
+		}
+
+		// If the file is a kernel module, strip the prefix and add it to the list.
+		if strings.HasSuffix(header.Name, ".ko") {
+			parts := strings.Split(header.Name, "/kernel/")
+			ret = append(ret, parts[1])
+		}
+	}
+
+	return ret, nil
 }

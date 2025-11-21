@@ -5,10 +5,12 @@ go 1.24.7
 require (
 	github.com/FuturFusion/migration-manager v0.0.0-pre.5
 	github.com/FuturFusion/operations-center v0.0.0-20251031171054-3253526a68d9
+	github.com/cavaliergopher/cpio v1.0.1
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/uuid v1.6.0
+	github.com/klauspost/compress v1.18.1
 	github.com/lxc/incus/v6 v6.18.0
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
@@ -46,7 +48,6 @@ require (
 	github.com/gosexy/gettext v0.0.0-20160830220431-74466a0a0c4a // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jaypipes/pcidb v1.1.1 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
