@@ -6,7 +6,7 @@ from .incus_test_vm import IncusTestVM, util
 
 def TestInstallNoTPM(install_image):
     test_name = "no-tpm"
-    test_seed = {}
+    test_seed = None
 
     test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
 
@@ -20,7 +20,7 @@ def TestInstallNoTPM(install_image):
 
 def TestInstallNoSeed(install_image):
     test_name = "no-seed"
-    test_seed = {}
+    test_seed = None
 
     test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
 
