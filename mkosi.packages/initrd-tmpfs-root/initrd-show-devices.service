@@ -1,0 +1,14 @@
+[Unit]
+Description=Show system devices
+After=emergency.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+Environment=TTYS="/dev/tty1 /dev/ttyS0"
+
+ExecStart=/usr/bin/initrd-show-devices.sh
+
+[Install]
+WantedBy=emergency.target
