@@ -5,4 +5,6 @@ initrd-tmpfs-root.service usr/lib/systemd/system/
 
 00-device-timeout.conf usr/lib/systemd/system.conf.d/
 
-initrd-message.service  usr/lib/systemd/system/
+initrd-message.service usr/lib/systemd/system/
+initrd-show-devices.service usr/lib/systemd/system/
+initrd-show-devices.sh usr/bin/
