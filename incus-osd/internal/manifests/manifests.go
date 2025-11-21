@@ -387,7 +387,7 @@ func getInitrdModuleInfo(root string) ([]string, error) {
 	defer initrdFd.Close()
 
 	// Skip over most of the first compressed initrd.
-	_, err = initrdFd.Seek(35000000, io.SeekStart)
+	_, err = initrdFd.Seek(30000000, io.SeekStart)
 	if err != nil {
 		return nil, err
 	}
