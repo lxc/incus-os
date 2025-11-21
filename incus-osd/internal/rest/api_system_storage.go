@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -323,6 +326,205 @@ func (*Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request
 	}
 
 	err = zfs.ImportExistingPool(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/system/storage/:create-volume system system_post_storage_create_volume
+//
+//	Create a volume
+//
+//	Creates a new storage pool volume.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The volume to be created
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"pool":"local", "name":"my-volume", "quota":0, "use":"incus"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	type createStruct struct {
+		Pool  string `json:"pool"`
+		Name  string `json:"name"`
+		Quota int    `json:"quota"`
+		Use   string `json:"use"`
+	}
+
+	config := &createStruct{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if config.Pool == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Pool, "/") {
+		_ = response.BadRequest(errors.New("invalid pool name provided")).Render(w)
+
+		return
+	}
+
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no volume name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Name, "/") {
+		_ = response.BadRequest(errors.New("invalid volume name provided")).Render(w)
+
+		return
+	}
+
+	if config.Use == "" {
+		_ = response.BadRequest(errors.New("no volume use provided")).Render(w)
+
+		return
+	}
+
+	if !slices.Contains([]string{"incus", "linstor"}, config.Use) {
+		_ = response.BadRequest(errors.New("invalid volume use provided")).Render(w)
+
+		return
+	}
+
+	// Create the volume.
+	props := map[string]string{}
+	props["incusos:use"] = config.Use
+
+	if config.Use == "linstor" {
+		// Linstor doesn't support encryption.
+		props["encryption"] = "off"
+	}
+
+	if config.Quota > 0 {
+		props["quota"] = strconv.Itoa(config.Quota)
+	}
+
+	err = zfs.CreateDataset(r.Context(), config.Pool, config.Name, props)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/system/storage/:delete-volume system system_post_storage_delete_volume
+//
+//	Delete a volume
+//
+//	Deletes a storage pool volume.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The volume to be deleted
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"pool":"local", "name":"my-volume", "force":true}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	type deleteStruct struct {
+		Pool  string `json:"pool"`
+		Name  string `json:"name"`
+		Force bool   `json:"force"`
+	}
+
+	config := &deleteStruct{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if config.Pool == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Pool, "/") {
+		_ = response.BadRequest(errors.New("invalid pool name provided")).Render(w)
+
+		return
+	}
+
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no volume name provided")).Render(w)
+
+		return
+	}
+
+	if strings.Contains(config.Name, "/") {
+		_ = response.BadRequest(errors.New("invalid volume name provided")).Render(w)
+
+		return
+	}
+
+	// Delete the volume.
+	err = zfs.DestroyDataset(r.Context(), config.Pool, config.Name, config.Force)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

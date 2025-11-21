@@ -75,6 +75,11 @@ func LoadPools(ctx context.Context, s *state.State) error {
 		}
 	}
 
+	// Make sure that the Incus volume has the incusos:use property set.
+	// Errors are ignored as the user may have deleted the dataset.
+	// NOTE: This logic can go away in January 2026.
+	_, _ = subprocess.RunCommand("zfs", "set", "incusos:use=incus", "local/incus")
+
 	return nil
 }
 
@@ -779,4 +784,29 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 	reverter.Success()
 
 	return nil
+}
+
+// CreateDataset creates a new dataset in the specified pool and applies some optional properties.
+func CreateDataset(ctx context.Context, poolName string, name string, properties map[string]string) error {
+	args := []string{"create", poolName + "/" + name}
+
+	for k, v := range properties {
+		args = append(args, "-o", k+"="+v)
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "zfs", args...)
+
+	return err
+}
+
+// DestroyDataset removes a dataset from the specified pool.
+func DestroyDataset(ctx context.Context, poolName string, name string, force bool) error {
+	args := []string{"destroy", poolName + "/" + name}
+	if force {
+		args = append(args, "-R")
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "zfs", args...)
+
+	return err
 }

@@ -90,3 +90,26 @@ If importing an existing storage pool, IncusOS needs to be informed of its encry
 ```
 incus admin os system import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
 ```
+
+## Managing volumes
+
+It's possible to create and delete volumes within a storage pool.
+
+Each volume has its own:
+
+* Name
+* Quota (in bytes, a zero value means unrestricted)
+* Use (`incus` or `linstor`)
+
+The list of volumes are visible directly in the storage state data.
+
+Creating and deleting volumes can be done through the command line with:
+
+```
+incus admin os system storage create-volume -d '{"pool":"local","name":"my-volume","use":"linstor"}'
+incus admin os system storage delete-volume -d '{"pool":"local","name":"my-volume"}'
+```
+
+```{note}
+IncusOS automatically creates a new `incus` volume when setting up the `local` storage pool.
+```
