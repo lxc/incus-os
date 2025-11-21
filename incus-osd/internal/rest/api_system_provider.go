@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -129,8 +130,13 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_ = response.EmptySyncResponse.Render(w)
+		// We've successfully registered.
+		slog.InfoContext(r.Context(), "Server registered with the provider")
+
+		s.state.System.Provider.State.Registered = true
 		_ = s.state.Save()
+
+		_ = response.EmptySyncResponse.Render(w)
 	default:
 		// If none of the supported methods, return NotImplemented.
 		_ = response.NotImplemented(nil).Render(w)
