@@ -12,6 +12,7 @@ class IncusTestVM:
         self.root_size = root_size
         self.install_image = install_image
         self.is_raw_image = self.install_image.endswith(".img")
+        self.isos = []
 
     def __enter__(self):
         """Create an empty test VM with a basic configuration for running IncusOS."""
@@ -38,10 +39,23 @@ class IncusTestVM:
         if not self.is_raw_image:
             subprocess.run(["incus", "storage", "volume", "delete", "default", self.vm_name+".iso"], capture_output=True)
 
+        for iso in self.isos:
+            subprocess.run(["incus", "storage", "volume", "delete", "default", iso], capture_output=True)
+
     def AddDevice(self, device, *args):
         """Add a device to the VM."""
 
         subprocess.run(["incus", "config", "device", "add", self.vm_name, device, *args], capture_output=True, check=True)
+
+    def AttachISO(self, iso_image, device_name):
+        """Attach an ISO image to the VM."""
+
+        source_name = self.vm_name+"-"+os.path.basename(iso_image)
+
+        subprocess.run(["incus", "storage", "volume", "import", "default", iso_image, source_name, "--type=iso"], capture_output=True, check=True)
+        self.AddDevice(device_name, "disk", "pool=default", "source="+source_name)
+
+        self.isos.append(source_name)
 
     def RemoveDevice(self, device):
         """Remove a device from the VM."""
@@ -63,7 +77,7 @@ class IncusTestVM:
 
         subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def WaitSystemReady(self, incusos_version, source="/dev/sdb", target="/dev/sda", application="incus"):
+    def WaitSystemReady(self, incusos_version, source="/dev/sdb", target="/dev/sda", application="incus", remove_devices=[]):
         """Wait for the system install to complete, the given application to be configured and the system become ready for use."""
 
         # Perform IncusOS install.
@@ -75,6 +89,9 @@ class IncusTestVM:
         # Stop the VM post-install and remove install media.
         self.StopVM()
         self.RemoveDevice("boot-media")
+
+        for device in remove_devices:
+            self.RemoveDevice(device)
 
         # Start freshly installed IncusOS and verify successful boot.
         self.StartVM()

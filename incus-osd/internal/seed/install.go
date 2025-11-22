@@ -1,6 +1,9 @@
 package seed
 
 import (
+	"errors"
+	"io"
+
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
@@ -11,6 +14,11 @@ func GetInstall(partition string) (*apiseed.Install, error) {
 
 	err := parseFileContents(partition, "install", &config)
 	if err != nil {
+		// If we have any empty install file, that should still trigger an install.
+		if errors.Is(err, io.EOF) {
+			return &config, nil
+		}
+
 		return nil, err
 	}
 

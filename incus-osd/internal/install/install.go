@@ -130,11 +130,6 @@ func CheckSystemRequirements(ctx context.Context) error {
 func ShouldPerformInstall() bool {
 	_, err := seed.GetInstall(seed.GetSeedPath())
 
-	// If we have any empty install file, that should still trigger an install.
-	if errors.Is(err, io.EOF) {
-		return true
-	}
-
 	return err == nil
 }
 

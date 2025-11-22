@@ -23,6 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get install --yes \
+            dosfstools \
+            gdisk \
+            genisoimage \
+            mtools
+
       - name: Setup Incus
         run: |
           curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
