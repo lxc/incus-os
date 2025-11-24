@@ -137,6 +137,7 @@ System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
 System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Update.Config.Channel: stable
 System.Update.Config.CheckFrequency: 21600000000000
 `
@@ -167,6 +168,7 @@ System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
 System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Update.Config.Channel: stable
 System.Update.Config.CheckFrequency: 6h0m0s
 `
@@ -197,6 +199,7 @@ System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
 System.Provider.Config.Name: local
 System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
 System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
 System.Update.Config.Channel: stable
 System.Update.Config.CheckFrequency: 6h0m0s
 `
