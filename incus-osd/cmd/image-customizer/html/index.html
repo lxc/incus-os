@@ -13,6 +13,7 @@
 
     <body>
         <div class="container w-75">
+            <script src="/ui/js/bootstrap.min.js"></script>
             <script src="/ui/js/local.js"></script>
 
             <h1>IncusOS image downloader</h1>
@@ -38,89 +39,103 @@
                 </div>
             </div>
 
-            <div class="card">
-                <h5 class="card-header">Generate your installation image</h5>
-                <div class="card-body">
-                    <p class="card-text w-75">
-                        IncusOS doesn't feature a traditional installer.
-                        Instead you can choose to either directly run it
-                        from the media it's written to, or have it
-                        automatically install itself onto an internal
-                        drive on first boot.
-                    </p>
+            <div class="accordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelSelection" aria-expanded="true" aria-controls="panelSelection">
+                            Image selection
+                        </button>
+                    </h2>
 
-                    <p class="card-text w-75">
-                        The installed system is only reachable through
-                        the API, there is no local shell access or remote
-                        access through SSH.
+                    <div id="panelSelection" class="accordion-collapse collapse show">
+                        <div class="accordion-body">
+                            <p class="card-text w-75">
+                                IncusOS doesn't feature a traditional installer.
+                                Instead you can choose to either directly run it
+                                from the media it's written to, or have it
+                                automatically install itself onto an internal
+                                drive on first boot.
+                            </p>
 
-                        The customization tool below allows you to
-                        configure IncusOS' behavior, including what
-                        client will be allowed to control the system.
-                    </p>
+                            <p class="card-text w-75">
+                                The installed system is only reachable through
+                                the API, there is no local shell access or remote
+                                access through SSH.
 
-                    <form class="w-75">
-                        <div>
-                            <h3>Image type</h3>
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeISO" checked>
-                                <label class="form-check-label" for="imageTypeISO">ISO - Read-only, primarily used for server installation through virtual media)</label>
+                                The customization tool below allows you to
+                                configure IncusOS' behavior, including what
+                                client will be allowed to control the system.
+                            </p>
+
+                            <div>
+                                <h3>Image type</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageType" id="imageTypeISO" checked>
+                                    <label class="form-check-label" for="imageTypeISO">ISO - Read-only, primarily used for server installation through virtual media)</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageType" id="imageTypeUSB">
+                                    <label class="form-check-label" for="imageTypeUSB">USB - Writable and can be used either for installation or for running the system directly</label>
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeUSB">
-                                <label class="form-check-label" for="imageTypeUSB">USB - Writable and can be used either for installation or for running the system directly</label>
+                            <div>
+                                <h3>Image architecture</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureX86_64" checked>
+                                    <label class="form-check-label" for="imageArchitectureX86_64">x86_64 - For 64-bit Intel and AMD systems</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureAARCH64">
+                                    <label class="form-check-label" for="imageArchitectureAARCH64">aarch64 - For 64-bit Arm servers</label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3>Image usage</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageInstallation" checked>
+                                    <label class="form-check-label" for="imageUsageInstallation">Installation - Install IncusOS on a boot disk</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageOperation">
+                                    <label class="form-check-label" for="imageUsageOperation">Operation - Run IncusOS directly from the media</label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3>Image application</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationIncus" checked>
+                                    <label class="form-check-label" for="imageApplicationIncus">Incus - Container and VM private cloud platform</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationOperationsCenter">
+                                    <label class="form-check-label" for="imageApplicationOperationsCenter">Operations Center - Central deployment and tracking of Incus clusters <span class="badge bg-secondary">Beta</span></label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationMigrationManager">
+                                    <label class="form-check-label" for="imageApplicationMigrationManager">Migration Manager - VMware to Incus migration orchestrator <span class="badge bg-secondary">Beta</span></label>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div>
-                            <h3>Image architecture</h3>
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureX86_64" checked>
-                                <label class="form-check-label" for="imageArchitectureX86_64">x86_64 - For 64-bit Intel and AMD systems</label>
-                            </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelTarget" aria-expanded="true" aria-controls="panelTarget">
+                            Installation target
+                        </button>
+                    </h2>
 
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureAARCH64">
-                                <label class="form-check-label" for="imageArchitectureAARCH64">aarch64 - For 64-bit Arm servers</label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3>Image usage</h3>
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageInstallation" checked>
-                                <label class="form-check-label" for="imageUsageInstallation">Installation - Install IncusOS on a boot disk</label>
-                            </div>
-
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageOperation">
-                                <label class="form-check-label" for="imageUsageOperation">Operation - Run IncusOS directly from the media</label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3>Image application</h3>
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationIncus" checked>
-                                <label class="form-check-label" for="imageApplicationIncus">Incus - Container and VM private cloud platform</label>
-                            </div>
-
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationOperationsCenter">
-                                <label class="form-check-label" for="imageApplicationOperationsCenter">Operations Center - Central deployment and tracking of Incus clusters <span class="badge bg-secondary">Beta</span></label>
-                            </div>
-
-                            <div class="mb-3">
-                                <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationMigrationManager">
-                                <label class="form-check-label" for="imageApplicationMigrationManager">Migration Manager - VMware to Incus migration orchestrator <span class="badge bg-secondary">Beta</span></label>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        <div>
-                            <h3>Installation target</h3>
+                    <div id="panelTarget" class="accordion-collapse collapse show">
+                        <div class="accordion-body">
                             <div class="mb-3">
                                 <input class="form-check-input" type="checkbox" value="" id="imageForceInstall">
                                 <label class="form-check-label" for="imageForceInstall">Wipe the target drive</label>
@@ -136,12 +151,18 @@
                                 <input type="text" class="form-control" id="imageInstallTarget" placeholder="nvme-eui.123456789">
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <hr>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#panelApplication" aria-expanded="true" aria-controls="panelApplication">
+                            Application configuration
+                        </button>
+                    </h2>
 
-                        <div>
-                            <h3>Application configuration</h3>
-
+                    <div id="panelApplication" class="accordion-collapse collapse show">
+                        <div class="accordion-body">
                             <div class="mb-3">
                                 <input class="form-check-input" type="checkbox" value="" id="applicationDefaults" checked>
                                 <label class="form-check-label" for="applicationDefaults">Apply default configuration</label>
@@ -150,14 +171,28 @@
                             <div class="mb-3">
                                 <label class="form-label" for="applicationClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
                                 <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
-                                <p><b>Tip:</b> If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest <a href="https://github.com/lxc/incus/releases/latest/">Incus release</a> on GitHub. Select the <code>bin.&lt;os&gt;.incus.&lt;arch&gt;</code> binary that is correct for your operating system and architecture.</p>
+
+                                <br />
+                                <p>
+                                    <b>Tip:</b> If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest <a href="https://github.com/lxc/incus/releases/latest/">Incus release</a> on GitHub.
+                                    <br />
+                                    Select the <code>bin.&lt;os&gt;.incus.&lt;arch&gt;</code> binary that is correct for your operating system and architecture.
+                                </p>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <hr>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#panelAdvanced" aria-expanded="false" aria-controls="panelAdvanced">
+                            Advanced settings
+                        </button>
+                    </h2>
 
-                        <div>
-                            <h3>Network configuration (optional)</h3>
+                    <div id="panelAdvanced" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <h3>Network configuration</h3>
 
                             <p>
                                 By default IncusOS will run both DHCPv4
@@ -183,10 +218,12 @@
                                 <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
                             </div>
                         </div>
-                    </form>
-
-                    <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
+                    </div>
                 </div>
+            </div>
+
+            <div>
+                <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
             </div>
         </div>
     </body>
