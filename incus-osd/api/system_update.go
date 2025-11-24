@@ -45,6 +45,17 @@ func (w *SystemUpdateMaintenanceWindow) IsCurrentlyActive() bool {
 
 // IsActive returns true if the maintenance window will be active at the given point in time.
 func (w *SystemUpdateMaintenanceWindow) IsActive(t time.Time) bool {
+	return w.TimeUntilActiveReference(t) == 0*time.Minute
+}
+
+// TimeUntilActive returns a time.Duration representing the amount of time until the maintenance window becomes active.
+func (w *SystemUpdateMaintenanceWindow) TimeUntilActive() time.Duration {
+	return w.TimeUntilActiveReference(time.Now())
+}
+
+// TimeUntilActiveReference returns a time.Duration representing the amount of time until the maintenance window becomes
+// active compared to the given reference time.
+func (w *SystemUpdateMaintenanceWindow) TimeUntilActiveReference(t time.Time) time.Duration {
 	// Compute maintenance windows as the number of minutes since 00:00 on Sunday.
 	// We don't care about actual dates, just (potentially) days of the week and
 	// a start/end time for each window.
@@ -89,5 +100,28 @@ func (w *SystemUpdateMaintenanceWindow) IsActive(t time.Time) bool {
 		currentPosition += 7 * 24 * 60
 	}
 
-	return startOffset <= currentPosition && currentPosition <= endOffset
+	// Migration window is currently active.
+	if startOffset <= currentPosition && currentPosition <= endOffset {
+		return 0 * time.Minute
+	}
+
+	// Migration window hasn't yet started.
+	if currentPosition < startOffset {
+		return time.Duration(startOffset-currentPosition) * time.Minute
+	}
+
+	// Migration window has finished, and repeats each day.
+	if w.StartDayOfWeek == NONE && w.EndDayOfWeek == NONE {
+		return time.Duration(startOffset-currentPosition)*time.Minute + 24*time.Hour
+	}
+
+	dayDiff := int(w.EndDayOfWeek.ToWeekday()) - int(w.StartDayOfWeek.ToWeekday())
+
+	// Migration window has finished, and end day doesn't wrap around the end of a week.
+	if dayDiff > 0 {
+		return time.Duration(startOffset-currentPosition)*time.Minute + time.Duration(7*24)*time.Hour
+	}
+
+	// Migration window has finished, and end day does wrap around the end of a week.
+	return time.Duration(startOffset-currentPosition)*time.Minute + time.Duration(dayDiff+7)*24*time.Hour
 }
