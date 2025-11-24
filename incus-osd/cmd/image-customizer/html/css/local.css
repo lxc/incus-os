@@ -1,5 +1,9 @@
-div.card {
+div.card, div.accordion-item {
     margin-bottom: 1em;
+}
+
+.accordion-item:not(:first-of-type) {
+    border: var(--bs-accordion-border-width) solid var(--bs-accordion-border-color);
 }
 
 label {
