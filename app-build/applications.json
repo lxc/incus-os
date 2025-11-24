@@ -37,7 +37,7 @@
         ]
     },
     "migration-manager": {
-        "version": "main",
+        "version": "0.1.0",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -86,7 +86,7 @@
         ]
     },
     "opentofu": {
-        "version": "1.10.6",
+        "version": "1.10.7",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -146,7 +146,7 @@
         ]
     },
     "tailscale": {
-        "version": "1.90.6",
+        "version": "1.90.8",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
