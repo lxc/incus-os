@@ -660,6 +660,23 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
+		// Verify that each application has its dependencies, if any, included in the list of applications.
+		for _, appName := range toInstall {
+			app, err := applications.Load(ctx, s, appName)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to check application dependencies"
+				showModalError(s.System.Update.State.Status, err)
+
+				break
+			}
+
+			for _, dep := range app.GetDependencies() {
+				if !slices.Contains(toInstall, dep) {
+					toInstall = append(toInstall, dep)
+				}
+			}
+		}
+
 		// Check for application updates.
 		appsUpdated := map[string]string{}
 
