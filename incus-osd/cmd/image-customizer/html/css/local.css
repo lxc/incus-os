@@ -1,4 +1,4 @@
-div.card {
+div.card, div.accordion-item {
     margin-bottom: 1em;
 }
 
