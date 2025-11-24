@@ -573,8 +573,19 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				break
 			}
 
+			// If any maintenance windows are defined, limit the time to sleep to be a minimum
+			// of the configured check frequency and the start of the next maintenance window,
+			// whichever is shorter.
+			for _, window := range s.System.Update.Config.MaintenanceWindows {
+				if window.TimeUntilActive() > 0 && window.TimeUntilActive() < frequency {
+					frequency = window.TimeUntilActive()
+				}
+			}
+
 			if timeSinceCheck < frequency {
-				time.Sleep(frequency - timeSinceCheck)
+				// Add one minute to the calculated sleep to protect against an edge case
+				// where we try to do an update check right at the start of a maintenance window.
+				time.Sleep(frequency - timeSinceCheck + 1*time.Minute)
 			}
 		}
 
