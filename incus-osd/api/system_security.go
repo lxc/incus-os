@@ -3,11 +3,11 @@ package api
 // SystemSecurityState holds information about the current security state.
 type SystemSecurityState struct {
 	EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
-	EncryptedVolumes                []SystemSecurityEncryptedVolume       `json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
-	SecureBootEnabled               bool                                  `json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
-	SecureBootCertificates          []SystemSecuritySecureBootCertificate `json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
-	TPMStatus                       string                                `json:"tpm_status"                         yaml:"tpm_status"`
-	PoolRecoveryKeys                map[string]string                     `json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
+	EncryptedVolumes                []SystemSecurityEncryptedVolume       `incusos:"-"                               json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
+	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
+	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
+	TPMStatus                       string                                `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
+	PoolRecoveryKeys                map[string]string                     `incusos:"-"                               json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
 }
 
 // SystemSecurityConfig holds additional security configuration settings.
@@ -19,7 +19,7 @@ type SystemSecurityConfig struct {
 type SystemSecurity struct {
 	Config SystemSecurityConfig `json:"config" yaml:"config"`
 
-	State SystemSecurityState `incusos:"-" json:"state" yaml:"state"`
+	State SystemSecurityState `json:"state" yaml:"state"`
 }
 
 // SystemSecuritySecureBootCertificate defines a struct that holds information about Secure Boot keys present on the host.
