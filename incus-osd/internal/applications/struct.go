@@ -12,6 +12,7 @@ type Application interface { //nolint:interfacebloat
 	FactoryReset(ctx context.Context) error
 	GetBackup(archive io.Writer, complete bool) error
 	GetCertificate() (*tls.Certificate, error)
+	GetDependencies() []string
 	Initialize(ctx context.Context) error
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool

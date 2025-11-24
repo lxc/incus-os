@@ -24,8 +24,18 @@ type incusCeph struct {
 	common
 }
 
+// GetDependencies returns a list of other applications this application depends on.
+func (*incusCeph) GetDependencies() []string {
+	return []string{"incus"}
+}
+
 type incusLinstor struct {
 	common
+}
+
+// GetDependencies returns a list of other applications this application depends on.
+func (*incusLinstor) GetDependencies() []string {
+	return []string{"incus"}
 }
 
 // Start starts all the systemd units.
@@ -156,6 +166,11 @@ func (*incus) GetCertificate() (*tls.Certificate, error) {
 	}
 
 	return &cert, nil
+}
+
+// GetDependencies returns a list of other applications this application depends on.
+func (*incus) GetDependencies() []string {
+	return nil
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.

@@ -204,6 +204,11 @@ func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
 	return &cert, nil
 }
 
+// GetDependencies returns a list of other applications this application depends on.
+func (*operationsCenter) GetDependencies() []string {
+	return nil
+}
+
 // AddTrustedCertificate adds a new trusted certificate to the application.
 func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, cert string) error {
 	// Compute the certificate's fingerprint.

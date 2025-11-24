@@ -45,6 +45,11 @@ func (*common) GetCertificate() (*tls.Certificate, error) {
 	return nil, errors.New("not supported")
 }
 
+// GetDependencies returns a list of other applications this application depends on.
+func (*common) GetDependencies() []string {
+	return nil
+}
+
 // Initialize runs first time initialization.
 func (*common) Initialize(_ context.Context) error {
 	return nil
