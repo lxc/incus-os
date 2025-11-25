@@ -878,7 +878,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 
-		err := update.DownloadUpdate(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
+		err := update.Download(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
 		if err != nil {
 			return "", err
 		}
@@ -1022,7 +1022,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 				return err
 			}
 
-			err := update.Download(ctx, varPath)
+			err := update.Download(ctx, varPath, nil)
 			if err != nil {
 				return err
 			}

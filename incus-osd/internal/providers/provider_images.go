@@ -330,7 +330,7 @@ func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -413,7 +413,7 @@ func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
+func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
