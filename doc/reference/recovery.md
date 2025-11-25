@@ -27,6 +27,14 @@ automatic decryption of the install drive at boot time.
 Alternatively, with the recovery key(s), you can remove the affected drive(s) to a different
 machine and unlock them to access/migrate any data they contain.
 
+```{tip}
+IncusOS has some basic recovery key complexity rules:
+
+* Must be at least 15 characters long
+* Must contain at least one special character
+* Must consist of at least five unique characters
+```
+
 ## Drive failure
 
 If your install drive fails, sorry but there's not much that can be done other than a

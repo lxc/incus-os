@@ -400,26 +400,37 @@ definitions:
         x-go-package: github.com/lxc/incus/v6/shared/api
     Cluster:
         properties:
-            enabled:
-                description: Whether clustering is enabled
-                example: true
-                type: boolean
-                x-go-name: Enabled
-            member_config:
-                description: List of member configuration keys (used during join)
-                example: []
-                items:
-                    $ref: '#/definitions/ClusterMemberConfigKey'
-                type: array
-                x-go-name: MemberConfig
-            server_name:
-                description: Name of the cluster member answering the request
-                example: server01
+            connection_url:
+                description: |-
+                    URL, hostname or IP address of the cluster endpoint.
+                    This is only user facing, e.g. the address of a load balancer infront of
+                    the cluster and not used by Operations Center for direct communication
+                    Operations Center relies on the connection URL of the cluster members.
+                example: https://incus.local:6443
                 type: string
-                x-go-name: ServerName
-        title: Cluster represents high-level information about a cluster.
+                x-go-name: ConnectionURL
+            last_updated:
+                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
+                type: string
+                x-go-name: LastUpdated
+            name:
+                description: A human-friendly name for this cluster.
+                example: MyCluster
+                type: string
+                x-go-name: Name
+            status:
+                description: |-
+                    Status contains the status the cluster is currently in from the point of view of Operations Center.
+                    Possible values for status are: pending, ready
+                example: pending
+                type: string
+                x-go-name: Status
+                x-go-type: github.com/FuturFusion/operations-center/shared/api.ClusterStatus
+        title: Cluster defines a cluster of servers running Hypervisor OS.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterCertificatePut:
         properties:
             cluster_certificate:
@@ -3410,47 +3421,73 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
+        description: Network represents a network
         properties:
-            bridge_name:
-                description: Name of the parent bridge to use with a VLAN.
-                example: br0
+            config:
+                description: Network configuration map (refer to doc/networks.md)
+                example:
+                    ipv4.address: 10.0.0.1/24
+                    ipv4.nat: "true"
+                    ipv6.address: none
+                type: object
+                x-go-name: Config
+            description:
+                description: Description of the profile
+                example: My new bridge
                 type: string
-                x-go-name: BridgeName
-            identifier:
-                description: The identifier of the network
-                example: network-23
-                type: string
-                x-go-name: Identifier
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
-                type: string
-                x-go-name: Location
+                x-go-name: Description
+            locations:
+                description: Cluster members on which the network has been defined
+                example:
+                    - server01
+                    - server02
+                    - server03
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: Locations
+            managed:
+                description: Whether this is a managed network
+                example: true
+                readOnly: true
+                type: boolean
+                x-go-name: Managed
             name:
-                description: Name of the network on the target.
-                example: '"vmware"'
+                description: The network name
+                example: mybr0
                 readOnly: true
                 type: string
                 x-go-name: Name
-            properties:
-                description: Additional properties of the network.
-                type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+            project:
+                description: Project name
+                example: project1
                 type: string
-                x-go-name: Source
+                x-go-name: Project
+            status:
+                description: The state of the network (for managed network in clusters)
+                example: Created
+                readOnly: true
+                type: string
+                x-go-name: Status
             type:
-                $ref: '#/definitions/NetworkType'
-            vlan_id:
-                description: Name of the VLAN ID to use with a VLAN network.
-                example: "1"
+                description: The network type
+                example: bridge
+                readOnly: true
                 type: string
-                x-go-name: VlanID
-        title: Network defines the network config for use by the migration manager.
+                x-go-name: Type
+            used_by:
+                description: List of URLs of objects using this profile
+                example:
+                    - /1.0/profiles/default
+                    - /1.0/instances/c1
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: UsedBy
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkACL:
         properties:
             config:
@@ -6487,75 +6524,73 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
     Server:
-        description: Server represents a server configuration
         properties:
-            api_extensions:
-                description: List of supported API extensions
-                example:
-                    - etag
-                    - patch
-                    - network
-                    - storage
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: APIExtensions
-            api_status:
-                description: Support status of the current API (one of "devel", "stable" or "deprecated")
-                example: stable
-                readOnly: true
+            cluster:
+                description: The cluster the server is part of.
+                example: one
                 type: string
-                x-go-name: APIStatus
-            api_version:
-                description: API version number
-                example: "1.0"
-                readOnly: true
+                x-go-name: Cluster
+            connection_url:
+                description: |-
+                    URL, hostname or IP address of the server endpoint used by Operations
+                    Center for its communication.
+                example: https://incus.local:6443
                 type: string
-                x-go-name: APIVersion
-            auth:
-                description: Whether the client is trusted (one of "trusted" or "untrusted")
-                example: untrusted
-                readOnly: true
+                x-go-name: ConnectionURL
+            hardware_data:
+                $ref: '#/definitions/HardwareData'
+            last_seen:
+                description: |-
+                    LastSeen is the time, when this server has been seen for the last time
+                    by any sort of connection between the server and operations center
+                    in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
                 type: string
-                x-go-name: Auth
-            auth_methods:
-                description: List of supported authentication methods
-                example:
-                    - tls
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: AuthMethods
-            auth_user_method:
-                description: The current API user login method
-                example: unix
-                readOnly: true
+                x-go-name: LastSeen
+            last_updated:
+                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
                 type: string
-                x-go-name: AuthUserMethod
-            auth_user_name:
-                description: The current API user identifier
-                example: uid=201105
-                readOnly: true
+                x-go-name: LastUpdated
+            name:
+                description: Name or name of the server.
+                example: incus.local
                 type: string
-                x-go-name: AuthUserName
-            config:
-                description: Server configuration map (refer to doc/server.md)
-                example:
-                    core.https_address: :8443
+                x-go-name: Name
+            os_data:
+                $ref: '#/definitions/OSData'
+            public_connection_url:
+                description: |-
+                    Public URL, hostname or IP address of the server endpoint for user facing
+                    communication with the server. Only required, if it differs from
+                    connection_url, e.g. because the server is behind a reverse proxy.
+                example: https://incus.local:6443
+                type: string
+                x-go-name: PublicConnectionURL
+            server_status:
+                description: |-
+                    Status contains the status the server is currently in from the point of view of Operations Center.
+                    Possible values for status are: pending, ready
+                example: pending
+                type: string
+                x-go-name: Status
+                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerStatus
+            server_type:
+                description: Type defines the type of the server, which is normally one of "incus", "migration-manager", "operations-center".
+                example: incus
+                type: string
+                x-go-name: Type
+                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerType
+            version_data:
+                description: VersionData contains information about the servers version.
+                example: '...'
                 type: object
-                x-go-name: Config
-            environment:
-                $ref: '#/definitions/ServerEnvironment'
-            public:
-                description: Whether the server is public-only (only public endpoints are implemented)
-                example: false
-                readOnly: true
-                type: boolean
-                x-go-name: Public
+                x-go-name: VersionData
+        title: Server defines a server running Hypervisor OS.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerEnvironment:
         properties:
             addresses:
@@ -6809,6 +6844,8 @@ definitions:
                 type: array
                 x-go-name: AuthMethods
             config:
+                additionalProperties:
+                    type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
                     core.https_address: :8443
@@ -7613,20 +7650,25 @@ definitions:
     SystemCertificatePost:
         description: |-
             SystemCertificatePost represents the fields available for an update of the
-            system certificate (server certificate) and key.
+            system certificate (server certificate), key, and CA.
         properties:
+            ca:
+                description: The new certificate CA (X509 PEM encoded) for the system (server CA).
+                example: X509 PEM certificate CA
+                type: string
+                x-go-name: CA
             certificate:
                 description: The new certificate (X509 PEM encoded) for the system (server certificate).
                 example: X509 PEM certificate
                 type: string
-                x-go-name: Certificate
+                x-go-name: Cert
             key:
                 description: The new certificate key (X509 PEM encoded) for the system (server key).
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: Key
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemNetwork:
         properties:
             config:
@@ -9896,7 +9938,11 @@ paths:
         put:
             consumes:
                 - application/json
-            description: Updates list of encryption recovery keys.
+            description: |-
+                Updates list of encryption recovery keys. Keys must be at least 15 characters long,
+                contain at least one special character, and consist of at least five unique characters.
+                Some other simple complexity checks are applied, and any key that doesn't pass will
+                be rejected with an error.
             operationId: system_put_security
             parameters:
                 - description: Security configuration
@@ -10046,7 +10092,7 @@ paths:
                     example:
                         name: my-volume
                         pool: local
-                        size: 0
+                        quota: 0
                         use: incus
                     type: object
             produces:

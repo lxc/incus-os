@@ -52,7 +52,10 @@ import (
 //
 //	Update system security configuration
 //
-//	Updates list of encryption recovery keys.
+//	Updates list of encryption recovery keys. Keys must be at least 15 characters long,
+//	contain at least one special character, and consist of at least five unique characters.
+//	Some other simple complexity checks are applied, and any key that doesn't pass will
+//	be rejected with an error.
 //
 //	---
 //	consumes:
