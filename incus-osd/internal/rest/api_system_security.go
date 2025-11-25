@@ -52,7 +52,10 @@ import (
 //
 //	Update system security configuration
 //
-//	Updates list of encryption recovery keys.
+//	Updates list of encryption recovery keys. Keys must be at least 15 characters long,
+//	contain at least one special character, and consist of at least five unique characters.
+//	Some other simple complexity checks are applied, and any key that doesn't pass will
+//	be rejected with an error.
 //
 //	---
 //	consumes:
@@ -134,10 +137,10 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Remove any encryption keys no longer present.
-		for _, existingKey := range s.state.System.Security.Config.EncryptionRecoveryKeys {
-			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
-				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
+		// Add any new encryption keys.
+		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
+				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
 				if err != nil {
 					_ = response.InternalError(err).Render(w)
 
@@ -146,10 +149,10 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Add any new encryption keys.
-		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
-			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
-				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
+		// Remove any encryption keys no longer present.
+		for _, existingKey := range s.state.System.Security.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
+				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
 				if err != nil {
 					_ = response.InternalError(err).Render(w)
 

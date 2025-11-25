@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/muesli/crunchy"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -50,6 +51,18 @@ func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 	if slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
+	}
+
+	validator := crunchy.NewValidatorWithOpts(crunchy.Options{
+		MinLength:         15,
+		MustContainDigit:  false, // systemd-cryptenroll generates recovery passphrases that don't contain any digits.
+		MustContainSymbol: true,
+		CheckHIBP:         false,
+	})
+
+	err := validator.Check(key)
+	if err != nil {
+		return err
 	}
 
 	// Get the underlying LUKS partitions.
