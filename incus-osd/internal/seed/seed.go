@@ -3,12 +3,16 @@ package seed
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v3"
 )
@@ -22,6 +26,77 @@ func IsMissing(e error) bool {
 	}
 
 	return false
+}
+
+// CleanupPostInstall will remove the seed install from the target partition and copy any
+// external user-provided seeds.
+func CleanupPostInstall(ctx context.Context, targetSeedPartition string) error {
+	// Remove the install configuration file, if present, from the target seed partition.
+	for _, filename := range []string{"install.json", "install.yaml", "install.yml"} {
+		_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
+		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
+			return err
+		}
+	}
+
+	// If external user-provided seeds are present, copy them to the target seed partition.
+	externalSeedPartition := getSeedPath()
+	if externalSeedPartition != "/dev/disk/by-partlabel/seed-data" { //nolint:nestif
+		// Mount the seed partition.
+		mountDir, err := os.MkdirTemp("", "incus-os-seed")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(mountDir)
+
+		// Try to mount as vfat.
+		err = unix.Mount(externalSeedPartition, mountDir, "vfat", 0, "ro")
+		if err != nil {
+			// Try to mount as iso9660.
+			err = unix.Mount(externalSeedPartition, mountDir, "iso9660", 0, "ro")
+			if err != nil {
+				return err
+			}
+		}
+		defer unix.Unmount(mountDir, 0)
+
+		files, err := os.ReadDir(mountDir)
+		if err != nil {
+			return err
+		}
+
+		for _, file := range files {
+			seedName := file.Name()
+
+			seedName, foundJSON := strings.CutSuffix(seedName, ".json")
+			seedName, foundYAML := strings.CutSuffix(seedName, ".yaml")
+			seedName, foundYML := strings.CutSuffix(seedName, ".yml")
+
+			if !foundJSON && !foundYAML && !foundYML {
+				continue
+			}
+
+			if seedName == "install" {
+				continue
+			}
+
+			// Remove any existing seed from the target seed partition.
+			for _, filename := range []string{seedName + ".json", seedName + ".yaml", seedName + ".yml"} {
+				_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
+				if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
+					return err
+				}
+			}
+
+			// Append the external seed to the target seed partition.
+			_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "-C", mountDir, "--append", "--add-file", file.Name())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // getSeedPath defines the path to the expected seed configuration. It will first search for any

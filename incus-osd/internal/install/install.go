@@ -546,13 +546,10 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		}
 	}
 
-	// Remove the install configuration file, if present, from the target seed partition.
-	targetSeedPartition := fmt.Sprintf("%s%s2", targetDevice, targetPartitionPrefix)
-	for _, filename := range []string{"install.json", "install.yaml"} {
-		_, err = subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
-		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
-			return err
-		}
+	// Remove the install seed from the target device, and copy any external user-provided seeds.
+	err = seed.CleanupPostInstall(ctx, fmt.Sprintf("%s%s2", targetDevice, targetPartitionPrefix))
+	if err != nil {
+		return err
 	}
 
 	// Finally, run `bootctl install`.
