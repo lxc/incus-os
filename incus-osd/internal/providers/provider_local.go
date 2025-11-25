@@ -112,7 +112,7 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *local) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *local) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {

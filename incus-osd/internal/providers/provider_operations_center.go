@@ -234,7 +234,7 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *operationsCenter) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {

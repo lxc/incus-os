@@ -389,7 +389,7 @@ func uninstallApplication(ctx context.Context, s *state.State, appName string) e
 
 func installApplication(ctx context.Context, s *state.State, p providers.Provider, appName string) (string, error) {
 	// Fetch the application from provider.
-	papp, err := p.GetApplication(ctx, appName)
+	papp, err := p.GetApplicationUpdate(ctx, appName)
 	if err != nil {
 		return "", err
 	}

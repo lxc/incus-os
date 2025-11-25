@@ -118,7 +118,7 @@ func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *images) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *images) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {

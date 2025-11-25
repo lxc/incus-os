@@ -28,8 +28,8 @@ type CommonUpdate interface {
 	Download(ctx context.Context, targetPath string, progressFunc func(float64)) error
 }
 
-// Application represents an application to be installed on top of IncusOS.
-type Application interface {
+// ApplicationUpdate represents an application to be installed on top of IncusOS.
+type ApplicationUpdate interface {
 	CommonUpdate
 
 	Name() string
@@ -57,7 +57,7 @@ type Provider interface {
 
 	GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error)
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
-	GetApplication(ctx context.Context, name string) (Application, error)
+	GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error)
 
 	Register(ctx context.Context, isFirstBoot bool) error
 	RefreshRegister(ctx context.Context) error
