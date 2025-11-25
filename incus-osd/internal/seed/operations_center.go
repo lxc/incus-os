@@ -7,11 +7,11 @@ import (
 )
 
 // GetOperationsCenter extracts the Operations Center preseed from the seed data.
-func GetOperationsCenter(_ context.Context, partition string) (*apiseed.OperationsCenter, error) {
+func GetOperationsCenter(_ context.Context) (*apiseed.OperationsCenter, error) {
 	// Get the preseed.
 	var preseed apiseed.OperationsCenter
 
-	err := parseFileContents(partition, "operations-center", &preseed)
+	err := parseFileContents(getSeedPath(), "operations-center", &preseed)
 	if err != nil {
 		return nil, err
 	}

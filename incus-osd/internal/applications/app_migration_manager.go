@@ -56,7 +56,7 @@ func (*migrationManager) Update(ctx context.Context, _ string) error {
 // Initialize runs first time initialization.
 func (mm *migrationManager) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
-	mmSeed, err := seed.GetMigrationManager(ctx, seed.GetSeedPath())
+	mmSeed, err := seed.GetMigrationManager(ctx)
 	if err != nil && !seed.IsMissing(err) {
 		return err
 	}

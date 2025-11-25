@@ -13,10 +13,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// GetSeedPath defines the path to the expected seed configuration. It will first search for any
+// IsMissing checks whether the provided error is an expected error for missing seed data.
+func IsMissing(e error) bool {
+	for _, entry := range []error{ErrNoSeedPartition, ErrNoSeedData, ErrNoSeedSection} {
+		if errors.Is(e, entry) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// getSeedPath defines the path to the expected seed configuration. It will first search for any
 // disk with a "SEED_DATA" label, which would be externally provided by the user. If not found,
 // defaults to the "seed-data" partition that exists on install media.
-func GetSeedPath() string {
+func getSeedPath() string {
 	_, err := os.Stat("/dev/disk/by-partlabel/SEED_DATA")
 	if err == nil {
 		return "/dev/disk/by-partlabel/SEED_DATA"
@@ -28,17 +39,6 @@ func GetSeedPath() string {
 	}
 
 	return "/dev/disk/by-partlabel/seed-data"
-}
-
-// IsMissing checks whether the provided error is an expected error for missing seed data.
-func IsMissing(e error) bool {
-	for _, entry := range []error{ErrNoSeedPartition, ErrNoSeedData, ErrNoSeedSection} {
-		if errors.Is(e, entry) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // parseFileContents searches for a given file in the seed configuration and returns its contents as a byte array if found.

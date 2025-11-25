@@ -1,18 +1,19 @@
-package seed_test
+package seed
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
 func TestGetApplications(t *testing.T) {
 	t.Parallel()
 
-	apps, err := seed.GetApplications(context.TODO(), "testdata.tar")
+	var apps apiseed.Applications
+
+	err := parseFileContents("testdata.tar", "applications", &apps)
 
 	require.NoError(t, err)
 

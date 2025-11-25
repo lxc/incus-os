@@ -10,11 +10,11 @@ import (
 
 // GetNetwork extracts the network configuration from the seed data.
 // If no seed network found, a default minimal network config will be returned.
-func GetNetwork(_ context.Context, partition string) (*api.SystemNetworkConfig, error) {
+func GetNetwork(_ context.Context) (*api.SystemNetworkConfig, error) {
 	// Get the network configuration.
 	var config apiseed.Network
 
-	err := parseFileContents(partition, "network", &config)
+	err := parseFileContents(getSeedPath(), "network", &config)
 	if err != nil {
 		if !IsMissing(err) {
 			return nil, err
