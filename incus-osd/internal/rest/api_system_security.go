@@ -134,10 +134,10 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Remove any encryption keys no longer present.
-		for _, existingKey := range s.state.System.Security.Config.EncryptionRecoveryKeys {
-			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
-				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
+		// Add any new encryption keys.
+		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
+				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
 				if err != nil {
 					_ = response.InternalError(err).Render(w)
 
@@ -146,10 +146,10 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Add any new encryption keys.
-		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
-			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
-				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
+		// Remove any encryption keys no longer present.
+		for _, existingKey := range s.state.System.Security.Config.EncryptionRecoveryKeys {
+			if !slices.Contains(securityStruct.Config.EncryptionRecoveryKeys, existingKey) {
+				err := systemd.DeleteEncryptionKey(r.Context(), s.state, existingKey)
 				if err != nil {
 					_ = response.InternalError(err).Render(w)
 
