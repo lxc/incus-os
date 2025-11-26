@@ -179,15 +179,15 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="applicationClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
+                                <label class="form-label" for="applicationClientCertificate">
+                                    <b>TLS client certificate of the initial trusted client.</b>
+                                    <br>
+                                    If using the <a href="https://github.com/lxc/incus/releases/latest/" target="_blank">Incus CLI tool</a>, this can be retrieved by running <code>incus remote get-client-certificate</code>.
+                                    <br>
+                                    Alternatively, one can be <a onclick="certificate()" href="#certificate">generated</a> for you which can be imported in your web browser for UI access.
+                                </label>
                                 <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
 
-                                <br />
-                                <p>
-                                    <b>Tip:</b> If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest <a href="https://github.com/lxc/incus/releases/latest/">Incus release</a> on GitHub.
-                                    <br />
-                                    Select the <code>bin.&lt;os&gt;.incus.&lt;arch&gt;</code> binary that is correct for your operating system and architecture.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -234,6 +234,30 @@
 
             <div>
                 <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
+            </div>
+        </div>
+
+        <div class="modal modal-xl fade" id="certificateModal" tabindex="-1" role="dialog" aria-labelledby="certificateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="certificateModalLabel">Certificate generated</h5>
+                    </div>
+
+                    <div class="modal-body">
+                        Three files have been generated and downloaded for you:
+                        <br>
+                        <ul>
+                            <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
+                            <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
+                            <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
+                        </ul>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
     </body>
