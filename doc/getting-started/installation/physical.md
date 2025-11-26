@@ -16,6 +16,7 @@ Once ready, connect the USB stick or attach the virtual media and reboot the ser
 
 Every vendor uses a different firmware configuration layout, but in general, there are three things to configure:
 
+- Disable any RAID mode configuration option (known to break IncusOS boot on some platforms)
 - Enable the TPM 2.0 device (if not already enabled)
 - Turn on and configure Secure Boot
 - Change the boot order to boot from the install media
