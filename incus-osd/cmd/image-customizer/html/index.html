@@ -85,19 +85,6 @@
                             </div>
 
                             <div>
-                                <h3>Image architecture</h3>
-                                <div class="mb-3">
-                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureX86_64" checked>
-                                    <label class="form-check-label" for="imageArchitectureX86_64">x86_64 - For 64-bit Intel and AMD systems</label>
-                                </div>
-
-                                <div class="mb-3">
-                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureAARCH64">
-                                    <label class="form-check-label" for="imageArchitectureAARCH64">aarch64 - For 64-bit Arm servers</label>
-                                </div>
-                            </div>
-
-                            <div>
                                 <h3>Image usage</h3>
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageInstallation" checked>
@@ -107,6 +94,19 @@
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageUsage" id="imageUsageOperation">
                                     <label class="form-check-label" for="imageUsageOperation">Operation - Run IncusOS directly from the media</label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3>Image architecture</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureX86_64" checked>
+                                    <label class="form-check-label" for="imageArchitectureX86_64">x86_64 - For 64-bit Intel and AMD systems</label>
+                                </div>
+
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="radio" name="imageArchitecture" id="imageArchitectureAARCH64">
+                                    <label class="form-check-label" for="imageArchitectureAARCH64">aarch64 - For 64-bit Arm servers</label>
                                 </div>
                             </div>
 
@@ -151,7 +151,13 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="imageInstallTarget">Drive identifier (as seen in /dev/disk/by-id), can be a partial string but must match exactly one drive.<br>If empty, IncusOS will auto-install so long as only one drive is present.</label>
+                                <label class="form-label" for="imageInstallTarget">
+                                    <b>Target drive identifier</b>
+                                    <br>
+                                    This is a (potentially partial) value (as seen in /dev/disk/by-id). The value must match exactly one drive.
+                                    <br>
+                                    If empty, IncusOS will auto-install so long as only one drive is present.
+                                </label>
                                 <input type="text" class="form-control" id="imageInstallTarget" placeholder="nvme-eui.123456789">
                             </div>
                         </div>
@@ -173,15 +179,15 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="applicationClientCertificate">TLS certificate of the initial trusted client.<br>This can be retrieved by running <code>incus remote get-client-certificate</code>.</label>
+                                <label class="form-label" for="applicationClientCertificate">
+                                    <b>TLS client certificate of the initial trusted client.</b>
+                                    <br>
+                                    If using the <a href="https://github.com/lxc/incus/releases/latest/" target="_blank">Incus CLI tool</a>, this can be retrieved by running <code>incus remote get-client-certificate</code>.
+                                    <br>
+                                    Alternatively, one can be <a onclick="certificate()" href="#certificate">generated</a> for you which can be imported in your web browser for UI access.
+                                </label>
                                 <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
 
-                                <br />
-                                <p>
-                                    <b>Tip:</b> If you don't already have the Incus client installed, you can download a statically-linked binary for Linux, MacOS, or Windows from the latest <a href="https://github.com/lxc/incus/releases/latest/">Incus release</a> on GitHub.
-                                    <br />
-                                    Select the <code>bin.&lt;os&gt;.incus.&lt;arch&gt;</code> binary that is correct for your operating system and architecture.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -216,7 +222,7 @@
                                 can be provided instead.
                             </p>
 
-                            <p>Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/">found here</a>.</p>
+                            <p>Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/" target="_blank">found here</a>.</p>
 
                             <div class="mb-3">
                                 <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
@@ -228,6 +234,38 @@
 
             <div>
                 <button onclick="download()" type="submit" class="btn btn-primary">Download</button>
+            </div>
+        </div>
+
+        <div class="modal modal-xl fade" id="certificateModal" tabindex="-1" role="dialog" aria-labelledby="certificateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="certificateModalLabel">Certificate generated</h5>
+                    </div>
+
+                    <div class="modal-body">
+                        <p>
+                            Three files have been generated and downloaded for you:
+                            <br>
+                            <ul>
+                                <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
+                                <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
+                                <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
+                            </ul>
+                        </p>
+                        <br>
+                        <p>
+                            <b>NOTE:</b> This certificate was generated server-side.
+                            <br>
+                            While we don't keep any record of it, it is generally preferrable to manually generate your certificate locally to avoid any chance of it getting intercepted.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
     </body>

@@ -1,3 +1,52 @@
+function certificate() {
+    // Send the request.
+    fetch("/1.0/certificate", {
+        method: "GET",
+    }).then(response => response.json()).then(function(response) {
+        if (response.status_code != 200) {
+            alert("Unable to get generated certificate");
+            return;
+        }
+
+        // Set the certificate.
+        document.getElementById("applicationClientCertificate").value = response.metadata.certificate;
+
+        // Download the various files onto the client.
+        const blobCert = new Blob([response.metadata.certificate], {type: 'application/x-pem-file'});
+        const urlCert = window.URL.createObjectURL(blobCert);
+        const aCert = document.createElement("a");
+        aCert.href = urlCert;
+        aCert.download = "client.crt";
+        aCert.click();
+
+        const blobKey = new Blob([response.metadata.key], {type: 'application/x-pem-file'});
+        const urlKey = window.URL.createObjectURL(blobKey);
+        const aKey = document.createElement("a");
+        aKey.href = urlKey;
+        aKey.download = "client.key";
+        aKey.click();
+
+
+
+        const byteString = window.atob(response.metadata.pfx);
+        var bytesPfx = new ArrayBuffer(byteString.length);
+        var ia = new Uint8Array(bytesPfx);
+        for (var i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+
+        const blobPfx = new Blob([bytesPfx], {type: 'application/x-pkcs12'});
+        const urlPfx = window.URL.createObjectURL(blobPfx);
+        const aPfx = document.createElement("a");
+        aPfx.href = urlPfx;
+        aPfx.download = "client.pfx";
+        aPfx.click();
+
+        var modalDialog = new bootstrap.Modal(document.getElementById("certificateModal"), {});
+        modalDialog.show();
+    });
+}
+
 function download() {
     req = {
         "seeds": {}
