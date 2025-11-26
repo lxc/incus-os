@@ -42,7 +42,7 @@ def TestSeedInstallTarget(install_image):
             # Perform IncusOS install.
             vm.StartVM()
             vm.WaitAgentRunning()
-            vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sdc target=/dev/sda", regex=True)
+            vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sdc target=/dev/sda")
             vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
 
 def TestSeedInstallForce(install_image):
@@ -66,7 +66,7 @@ def TestSeedInstallForce(install_image):
             # Perform IncusOS install.
             vm.StartVM()
             vm.WaitAgentRunning()
-            vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sdc target=/dev/sdb", regex=True)
+            vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sdc target=/dev/sdb")
             vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
 
 def TestSeedInstallEmpty(install_image):
@@ -106,3 +106,28 @@ def TestExternalSeedInstallEmpty(install_image):
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sdb target=/dev/sda")
             vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+
+def TestExternalSeedInstallTarget(install_image):
+    test_name = "external-seed-install-target"
+    test_seed = None
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
+        with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
+            # Create and populate a user-provided USB stick with a seed file on it
+            with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
+                with open(os.path.join(tmp_dir, "install.json"), "w") as seed:
+                    seed.write("""{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""")
+
+                util._create_user_media(seed_img, tmp_dir, "img", 1024*1024*1024, "SEED_DATA")
+
+            with IncusTestVM(test_name, test_image) as vm:
+                vm.AddDevice("disk1", "disk", "source="+disk_img.name)
+                vm.AddDevice("recovery", "disk", "source="+seed_img.name, "io.bus=usb")
+
+                # Perform IncusOS install.
+                vm.StartVM()
+                vm.WaitAgentRunning()
+                vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/sd(c|d) target=/dev/sda", regex=True)
+                vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")

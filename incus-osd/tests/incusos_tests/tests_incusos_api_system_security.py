@@ -28,7 +28,7 @@ def TestIncusOSAPISystemSecurity(install_image):
             raise Exception("expected exactly two encrypted volumes")
 
         # Add a second encryption recovery key.
-        result["metadata"]["config"]["encryption_recovery_keys"].append("foo-bar-biz")
+        result["metadata"]["config"]["encryption_recovery_keys"].append("foo-bar-biz-1234")
         result = vm.APIRequest("/1.0/system/security", method="PUT", body=json.dumps(result["metadata"]))
         if result["status_code"] != 200:
             raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
@@ -41,7 +41,7 @@ def TestIncusOSAPISystemSecurity(install_image):
         if len(result["metadata"]["config"]["encryption_recovery_keys"]) != 2:
             raise Exception("expected exactly two encryption recovery keys")
 
-        if "foo-bar-biz" not in result["metadata"]["config"]["encryption_recovery_keys"]:
+        if "foo-bar-biz-1234" not in result["metadata"]["config"]["encryption_recovery_keys"]:
             raise Exception("new encryption key isn't present")
 
 def TestIncusOSAPISystemSecurityTPMRebind(install_image):
