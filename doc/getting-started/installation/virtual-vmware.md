@@ -6,6 +6,24 @@ IncusOS can be easily installed in a VMware virtual machine when running with vS
 IncusOS requires the use of a virtual TPM device, this appears to require the use of vSphere and won't work on standalone ESXi.
 ```
 
+## Configure a key provider
+
+To be able to use virtual TPM devices with VMware, you need to have a suitable key provider defined in vSphere.
+
+![key provider list](../../images/vsphere-tpm-list.png)
+
+If you don't have one already, create a new native key provider.
+
+![key provider creation](../../images/vsphere-tpm-create.png)
+
+And then back it up to complete its initialization.
+
+![key provider creation](../../images/vsphere-tpm-backup.png)
+
+You'll then have a functional key provider and will be able to attach TPM devices to virtual machines.
+
+![key provider list](../../images/vsphere-tpm-ready.png)
+
 ## Configure networking
 
 Because IncusOS needs runs nested container and virtual machines, the
