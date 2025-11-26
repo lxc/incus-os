@@ -335,7 +335,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
 	if s.System.Network.Config == nil {
-		s.System.Network.Config, err = seed.GetNetwork(ctx, seed.GetSeedPath())
+		s.System.Network.Config, err = seed.GetNetwork(ctx)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
@@ -377,7 +377,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	if s.System.Provider.Config.Name == "" {
-		providerSeed, err := seed.GetProvider(ctx, seed.GetSeedPath())
+		providerSeed, err := seed.GetProvider(ctx)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
@@ -642,7 +642,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 		if len(s.Applications) == 0 && (isStartupCheck || isUserRequested) {
 			// Assume first start of the daemon.
-			apps, err := seed.GetApplications(ctx, seed.GetSeedPath())
+			apps, err := seed.GetApplications(ctx)
 			if err != nil && !seed.IsMissing(err) {
 				s.System.Update.State.Status = "Failed to get application list"
 				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
@@ -1031,7 +1031,7 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 
 func setTimezone(ctx context.Context) error {
 	// Get the network seed.
-	config, err := seed.GetNetwork(ctx, seed.GetSeedPath())
+	config, err := seed.GetNetwork(ctx)
 	if err != nil && !seed.IsMissing(err) {
 		return err
 	}

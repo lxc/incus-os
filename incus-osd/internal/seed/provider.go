@@ -7,11 +7,11 @@ import (
 )
 
 // GetProvider extracts the provider configuration from the seed data.
-func GetProvider(_ context.Context, partition string) (*apiseed.Provider, error) {
+func GetProvider(_ context.Context) (*apiseed.Provider, error) {
 	// Get the install configuration.
 	var config apiseed.Provider
 
-	err := parseFileContents(partition, "provider", &config)
+	err := parseFileContents(getSeedPath(), "provider", &config)
 	if err != nil {
 		return nil, err
 	}

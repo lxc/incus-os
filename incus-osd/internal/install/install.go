@@ -74,7 +74,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
-		config, err := seed.GetInstall(seed.GetSeedPath())
+		config, err := seed.GetInstall()
 		if err != nil && !errors.Is(err, io.EOF) {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
@@ -114,7 +114,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 		}
 
 		// If an applications seed is present, ensure at least one application is defined.
-		apps, _ := seed.GetApplications(ctx, seed.GetSeedPath())
+		apps, _ := seed.GetApplications(ctx)
 		if apps != nil {
 			if len(apps.Applications) == 0 {
 				return errors.New("at least one application must be defined in the provided applications seed")
@@ -128,7 +128,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 // ShouldPerformInstall checks for the presence of an install.{json,yaml} file in the
 // seed partition to indicate if we should attempt to install incus-osd to a local disk.
 func ShouldPerformInstall() bool {
-	_, err := seed.GetInstall(seed.GetSeedPath())
+	_, err := seed.GetInstall()
 
 	return err == nil
 }
@@ -141,7 +141,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 
 	var err error
 
-	ret.config, err = seed.GetInstall(seed.GetSeedPath())
+	ret.config, err = seed.GetInstall()
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
@@ -546,13 +546,10 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		}
 	}
 
-	// Remove the install configuration file, if present, from the target seed partition.
-	targetSeedPartition := fmt.Sprintf("%s%s2", targetDevice, targetPartitionPrefix)
-	for _, filename := range []string{"install.json", "install.yaml"} {
-		_, err = subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
-		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
-			return err
-		}
+	// Remove the install seed from the target device, and copy any external user-provided seeds.
+	err = seed.CleanupPostInstall(ctx, fmt.Sprintf("%s%s2", targetDevice, targetPartitionPrefix))
+	if err != nil {
+		return err
 	}
 
 	// Finally, run `bootctl install`.

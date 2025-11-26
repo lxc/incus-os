@@ -8,11 +8,11 @@ import (
 )
 
 // GetInstall extracts the installation config from the seed data.
-func GetInstall(partition string) (*apiseed.Install, error) {
+func GetInstall() (*apiseed.Install, error) {
 	// Get the install configuration.
 	var config apiseed.Install
 
-	err := parseFileContents(partition, "install", &config)
+	err := parseFileContents(getSeedPath(), "install", &config)
 	if err != nil {
 		// If we have any empty install file, that should still trigger an install.
 		if errors.Is(err, io.EOF) {

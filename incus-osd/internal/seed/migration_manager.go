@@ -7,11 +7,11 @@ import (
 )
 
 // GetMigrationManager extracts the Migration Manager preseed from the seed data.
-func GetMigrationManager(_ context.Context, partition string) (*apiseed.MigrationManager, error) {
+func GetMigrationManager(_ context.Context) (*apiseed.MigrationManager, error) {
 	// Get the preseed.
 	var preseed apiseed.MigrationManager
 
-	err := parseFileContents(partition, "migration-manager", &preseed)
+	err := parseFileContents(getSeedPath(), "migration-manager", &preseed)
 	if err != nil {
 		return nil, err
 	}

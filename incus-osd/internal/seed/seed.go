@@ -3,20 +3,106 @@ package seed
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 	"gopkg.in/yaml.v3"
 )
 
-// GetSeedPath defines the path to the expected seed configuration. It will first search for any
+// IsMissing checks whether the provided error is an expected error for missing seed data.
+func IsMissing(e error) bool {
+	for _, entry := range []error{ErrNoSeedPartition, ErrNoSeedData, ErrNoSeedSection} {
+		if errors.Is(e, entry) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// CleanupPostInstall will remove the seed install from the target partition and copy any
+// external user-provided seeds.
+func CleanupPostInstall(ctx context.Context, targetSeedPartition string) error {
+	// Remove the install configuration file, if present, from the target seed partition.
+	for _, filename := range []string{"install.json", "install.yaml", "install.yml"} {
+		_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
+		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
+			return err
+		}
+	}
+
+	// If external user-provided seeds are present, copy them to the target seed partition.
+	externalSeedPartition := getSeedPath()
+	if externalSeedPartition != "/dev/disk/by-partlabel/seed-data" { //nolint:nestif
+		// Mount the seed partition.
+		mountDir, err := os.MkdirTemp("", "incus-os-seed")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(mountDir)
+
+		// Try to mount as vfat.
+		err = unix.Mount(externalSeedPartition, mountDir, "vfat", 0, "ro")
+		if err != nil {
+			// Try to mount as iso9660.
+			err = unix.Mount(externalSeedPartition, mountDir, "iso9660", 0, "ro")
+			if err != nil {
+				return err
+			}
+		}
+		defer unix.Unmount(mountDir, 0)
+
+		files, err := os.ReadDir(mountDir)
+		if err != nil {
+			return err
+		}
+
+		for _, file := range files {
+			seedName := file.Name()
+
+			seedName, foundJSON := strings.CutSuffix(seedName, ".json")
+			seedName, foundYAML := strings.CutSuffix(seedName, ".yaml")
+			seedName, foundYML := strings.CutSuffix(seedName, ".yml")
+
+			if !foundJSON && !foundYAML && !foundYML {
+				continue
+			}
+
+			if seedName == "install" {
+				continue
+			}
+
+			// Remove any existing seed from the target seed partition.
+			for _, filename := range []string{seedName + ".json", seedName + ".yaml", seedName + ".yml"} {
+				_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "--delete", filename)
+				if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", filename)) {
+					return err
+				}
+			}
+
+			// Append the external seed to the target seed partition.
+			_, err := subprocess.RunCommandContext(ctx, "tar", "-f", targetSeedPartition, "-C", mountDir, "--append", "--add-file", file.Name())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// getSeedPath defines the path to the expected seed configuration. It will first search for any
 // disk with a "SEED_DATA" label, which would be externally provided by the user. If not found,
 // defaults to the "seed-data" partition that exists on install media.
-func GetSeedPath() string {
+func getSeedPath() string {
 	_, err := os.Stat("/dev/disk/by-partlabel/SEED_DATA")
 	if err == nil {
 		return "/dev/disk/by-partlabel/SEED_DATA"
@@ -28,17 +114,6 @@ func GetSeedPath() string {
 	}
 
 	return "/dev/disk/by-partlabel/seed-data"
-}
-
-// IsMissing checks whether the provided error is an expected error for missing seed data.
-func IsMissing(e error) bool {
-	for _, entry := range []error{ErrNoSeedPartition, ErrNoSeedData, ErrNoSeedSection} {
-		if errors.Is(e, entry) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // parseFileContents searches for a given file in the seed configuration and returns its contents as a byte array if found.

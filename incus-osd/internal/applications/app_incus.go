@@ -99,7 +99,7 @@ func (*incus) Update(ctx context.Context, _ string) error {
 // Initialize runs first time initialization.
 func (a *incus) Initialize(ctx context.Context) error {
 	// Get the preseed from the seed partition.
-	incusSeed, err := seed.GetIncus(ctx, seed.GetSeedPath())
+	incusSeed, err := seed.GetIncus(ctx)
 	if err != nil && !seed.IsMissing(err) {
 		return err
 	}
