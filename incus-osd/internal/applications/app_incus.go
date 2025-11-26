@@ -300,7 +300,7 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 	}
 
 	// Create storage pools.
-	if len(storagePools) == 0 && !storage.DatasetExists(ctx, "local/incus") {
+	if len(storagePools) == 0 && storage.PoolExists(ctx, "local") && !storage.DatasetExists(ctx, "local/incus") {
 		// Create the local pool.
 		err = c.CreateStoragePool(incusapi.StoragePoolsPost{
 			Name:   "local",
