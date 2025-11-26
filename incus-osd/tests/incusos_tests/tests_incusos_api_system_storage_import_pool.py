@@ -17,7 +17,7 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
         with IncusTestVM(test_name, test_image) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
-            vm.WaitSystemReady(incusos_version, source="/dev/sdc")
+            vm.WaitSystemReady(incusos_version, source="/dev/sdc", target="/dev/sd(a|b)")
 
             # Can't import an unencrypted pool
             vm.RunCommand("zpool", "create", "mypool", "/dev/sdb")
