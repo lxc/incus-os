@@ -245,13 +245,21 @@
                     </div>
 
                     <div class="modal-body">
-                        Three files have been generated and downloaded for you:
+                        <p>
+                            Three files have been generated and downloaded for you:
+                            <br>
+                            <ul>
+                                <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
+                                <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
+                                <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
+                            </ul>
+                        </p>
                         <br>
-                        <ul>
-                            <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
-                            <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
-                            <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
-                        </ul>
+                        <p>
+                            <b>NOTE:</b> This certificate was generated server-side.
+                            <br>
+                            While we don't keep any record of it, it is generally preferrable to manually generate your certificate locally to avoid any chance of it getting intercepted.
+                        </p>
                     </div>
 
                     <div class="modal-footer">
