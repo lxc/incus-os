@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -532,6 +534,14 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 
 		appInfo.State.Initialized = true
 		s.Applications[appName] = appInfo
+	}
+
+	// If the application has a TLS certificate, print its fingerprint so the user can verify it when initially connecting.
+	cert, err := app.GetCertificate()
+	if err == nil {
+		rawFp := sha256.Sum256(cert.Certificate[0])
+
+		slog.InfoContext(ctx, "Application TLS certificate fingerprint", "name", appName, "fingerprint", hex.EncodeToString(rawFp[:]))
 	}
 
 	return nil
