@@ -47,6 +47,8 @@ The following configuration options can be set:
 
 ### Examples
 
+#### Addressing
+
 Configure two network interfaces, one with IPv4 and the other with IPv6:
 
 ```
@@ -81,6 +83,8 @@ Configure a network interface with two static IP addresses. When specifying a st
 }
 ```
 
+#### VLANs
+
 Configure a VLAN with ID 123 on top of an active-backup bond composed of two interfaces with MTU of 9000 and LLDP enabled:
 
 ```
@@ -104,6 +108,8 @@ Configure a VLAN with ID 123 on top of an active-backup bond composed of two int
 }
 ```
 
+#### DNS, NTP, Timezone
+
 Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```
@@ -117,6 +123,68 @@ Configure custom DNS, NTP, and timezone for IncusOS:
     "time": {
         "ntp_servers": ["ntp.example.com"],
         "timezone": "America/New_York"
+    }
+}
+```
+
+#### Proxy
+
+Configure a simple anonymous HTTP(S) proxy for IncusOS:
+
+```
+{
+    "proxy": {
+        "servers": {
+            "example-proxy": {
+                "host": "proxy.example.com:8080",
+                "auth": "anonymous"
+            }
+        }
+    }
+}
+```
+
+Configure an authenticated HTTP(S) proxy with an exception for `*.example.com` and a total blocking of `*.bad-domain.hacker` for IncusOS:
+
+```
+{
+    "proxy": {
+        "servers": {
+            "example-proxy": {
+                "host": "proxy.example.com:8080",
+                "use_tls": true,
+                "auth": "basic",
+                "username": "myuser",
+                "password": "mypassword"
+            }
+        },
+        "rules": [
+            {"destination": "*.example.com|example.com",
+             "target": "direct"},
+            {"destination": "*.bad-domain.hacker|bad-domain.hacker",
+             "target": "none"},
+            {"destination": "*",
+             "target": "example-proxy"}
+        ]
+    }
+}
+```
+
+Configure an authenticated HTTP(S) proxy that relies on Kerberos authentication for IncusOS:
+
+```
+{
+    "proxy": {
+        "servers": {
+            "example-proxy": {
+                "host": "proxy.example.com:8080",
+                "use_tls": true,
+                "auth": "kerberos",
+                "realm": "auth.example.com",
+                "username": "myuser",
+                "password": "mypassword"
+            }
+        }
     }
 }
 ```
