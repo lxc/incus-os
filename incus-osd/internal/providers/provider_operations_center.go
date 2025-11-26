@@ -283,6 +283,10 @@ func (p *operationsCenter) load(ctx context.Context) error {
 		return errors.New("no operations center token provided")
 	}
 
+	return p.loadTLS(ctx)
+}
+
+func (p *operationsCenter) loadTLS(ctx context.Context) error {
 	// Prepare the TLS config.
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
@@ -358,6 +362,50 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 	// Make the REST call.
 	resp, err := tryRequest(p.client, req)
 	if err != nil {
+		isCertError := func(err error) bool {
+			var urlErr *url.Error
+
+			if !errors.As(err, &urlErr) {
+				return false
+			}
+
+			{
+				var errCase0 *tls.CertificateVerificationError
+				switch {
+				case errors.As(urlErr.Unwrap(), &errCase0):
+					return true
+				default:
+					return false
+				}
+			}
+		}
+
+		// Check if we got a potential transition to a globally valid certificate.
+		if p.serverCertificate != "" && isCertError(err) {
+			// Retry with the system CA.
+			p.serverCertificate = ""
+
+			// Re-load the TLS client.
+			err = p.loadTLS(ctx)
+			if err != nil {
+				// Attempt to reset the client from config.
+				_ = p.load(ctx)
+
+				return nil, err
+			}
+
+			// Re-try the request.
+			resp, err := p.apiRequest(ctx, method, path, data)
+			if err != nil {
+				return nil, err
+			}
+
+			// If successful, commit the change of config.
+			delete(p.state.System.Provider.Config.Config, "server_certificate")
+
+			return resp, nil
+		}
+
 		return nil, err
 	}
 
