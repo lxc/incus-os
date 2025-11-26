@@ -56,6 +56,36 @@ def TestSeedApplictionsIncus(install_image):
     with IncusTestVM(test_name, test_image) as vm:
         vm.WaitSystemReady(incusos_version, application="incus")
 
+def TestSeedApplictionsIncusCeph(install_image):
+    test_name = "seed-applications-incus-ceph"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"incus-ceph"}]}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version, application="incus-ceph")
+
+        # We should also see Incus pulled in as a dependency
+        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus release="+incusos_version)
+
+def TestSeedApplictionsIncusLinstor(install_image):
+    test_name = "seed-applications-incus-linstor"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"incus-linstor"}]}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version, application="incus-linstor")
+
+        # We should also see Incus pulled in as a dependency
+        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus release="+incusos_version)
+
 def TestSeedApplictionsMigrationManager(install_image):
     test_name = "seed-applications-migration-manager"
     test_seed = {
