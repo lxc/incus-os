@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 func downloadAsset(ctx context.Context, client *http.Client, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
@@ -76,4 +77,22 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 	}
 
 	return nil
+}
+
+// tryRequest attempts the request multiple times over 5s.
+func tryRequest(client *http.Client, req *http.Request) (*http.Response, error) {
+	var err error
+
+	for range 5 {
+		var resp *http.Response
+
+		resp, err = client.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return nil, errors.New("http request timed out after five seconds: %s" + err.Error())
 }

@@ -356,7 +356,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 	}
 
 	// Make the REST call.
-	resp, err := p.client.Do(req)
+	resp, err := tryRequest(p.client, req)
 	if err != nil {
 		return nil, err
 	}
