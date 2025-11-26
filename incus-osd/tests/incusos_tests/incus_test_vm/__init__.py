@@ -100,7 +100,7 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Downloading application application="+application+" release="+incusos_version)
         self.WaitExpectedLog("incus-osd", "System is ready release="+incusos_version)
 
-    def WaitAgentRunning(self, timeout=480):
+    def WaitAgentRunning(self, timeout=300):
         """Wait for the Incus agent to start in the VM."""
 
         start = time.time()
@@ -136,7 +136,7 @@ class IncusTestVM:
                     return None
 
             if time.time() - start > timeout:
-                raise Exception(f"timed out waiting for log entry '{log}' to appear")
+                raise Exception(f"timed out waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
 
             time.sleep(1)
 

@@ -82,7 +82,13 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             data = future.result()
         except Exception as e:
             num_fail += 1
-            print("FAIL: %s: %s" % (name, e), flush=True)
+            print("FAIL: %s: %s" % (name, e.args[0]), flush=True)
+
+            if len(e.args) == 2:
+                print("          journalctl entries:", flush=True)
+                for line in e.args[1]:
+                    if line != "":
+                        print("          %s" % line, flush=True)
         else:
             num_pass += 1
             print("PASS: %s" % name, flush=True)
