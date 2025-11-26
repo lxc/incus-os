@@ -182,7 +182,7 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		return nil, err
 	}
 
-	resp, err := p.tryRequest(req)
+	resp, err := tryRequest(http.DefaultClient, req)
 	if err != nil {
 		return nil, err
 	}
@@ -267,23 +267,6 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 	p.latestUpdate = latestUpdate
 
 	return latestUpdate, nil
-}
-
-func (*images) tryRequest(req *http.Request) (*http.Response, error) {
-	var err error
-
-	for range 5 {
-		var resp *http.Response
-
-		resp, err = http.DefaultClient.Do(req)
-		if err == nil {
-			return resp, nil
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	return nil, errors.New("http request timed out after five seconds: %s" + err.Error())
 }
 
 // An application from the images provider.

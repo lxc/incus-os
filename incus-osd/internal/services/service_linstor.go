@@ -196,7 +196,7 @@ func (n *Linstor) Start(ctx context.Context) error {
 	}
 
 	// Start Linstor Satellite.
-	err = systemd.StartUnit(ctx, "linstor-satellite.service")
+	err = systemd.EnableUnit(ctx, true, "linstor-satellite.service")
 	if err != nil {
 		return err
 	}
