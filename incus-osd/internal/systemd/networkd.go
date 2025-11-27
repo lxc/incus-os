@@ -795,6 +795,12 @@ func waitForDNS(ctx context.Context, timeout time.Duration) error {
 			return nil
 		}
 
+		if strings.HasSuffix(err.Error(), ": server misbehaving") {
+			// REFUSED received from the DNS server.
+			// This won't trigger in case of network connection errors (ICMP reject, broken route or timeout).
+			return nil
+		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 }
