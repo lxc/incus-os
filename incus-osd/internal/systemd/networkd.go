@@ -781,8 +781,17 @@ func waitForDNS(ctx context.Context, timeout time.Duration) error {
 			return errors.New("timed out waiting for DNS to respond")
 		}
 
-		ips, err := resolver.LookupIPAddr(ctx, "linuxcontainers.org")
-		if err == nil && len(ips) > 0 {
+		// Attempt to resolve linuxcontainers.org to see if the DNS server is functional.
+		_, err := resolver.LookupIPAddr(ctx, "linuxcontainers.org")
+		if err == nil {
+			// Valid response received from the DNS server.
+			return nil
+		}
+
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
+			// NXDOMAIN received from the DNS server.
+			// We still consider this as functional as we are talking to a live (though likely isolated) DNS server.
 			return nil
 		}
 
