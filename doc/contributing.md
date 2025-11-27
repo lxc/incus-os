@@ -5,8 +5,10 @@
 ## Building locally
 You can build IncusOS locally. Only users specifically interested in the
 development and testing of new IncusOS features should need to do this.
-Building your own images requires a current version of `mkosi`, and should work
-on most Linux distributions, with Debian/Ubuntu being the most well-tested.
+
+We currently only support building IncusOS from a Debian 13 system
+though other Debian releases and Debian derivatives like Ubuntu may work
+as well.
 
 After cloning the repository from GitHub, simply run:
 
