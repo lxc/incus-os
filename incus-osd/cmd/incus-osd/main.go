@@ -215,7 +215,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Done with all initialization.
-	slog.InfoContext(ctx, "System is ready", "release", s.OS.RunningRelease)
+	slog.InfoContext(ctx, "System is ready", "version", s.OS.RunningRelease)
 	s.OS.SuccessfulBoot = true
 
 	// Wait for the API to go down.
@@ -228,7 +228,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	modal := t.AddModal("System shutdown")
 
-	slog.InfoContext(ctx, "System is shutting down", "release", s.OS.RunningRelease)
+	slog.InfoContext(ctx, "System is shutting down", "version", s.OS.RunningRelease)
 	modal.Update("System is shutting down")
 
 	// Run application shutdown actions.
@@ -320,7 +320,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		machineID = []byte("UNKNOWN")
 	}
 
-	slog.InfoContext(ctx, "System is starting up", "mode", mode, "release", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
 
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
@@ -839,7 +839,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		modal := t.AddModal(s.OS.Name + " Update")
 		defer modal.Done()
 
-		slog.InfoContext(ctx, "Downloading OS update", "release", update.Version())
+		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
 		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
 
 		err := update.DownloadUpdate(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
@@ -857,7 +857,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		_ = s.Save()
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
-		slog.InfoContext(ctx, "Applying OS update", "release", update.Version())
+		slog.InfoContext(ctx, "Applying OS update", "version", update.Version())
 		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
 		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
@@ -881,7 +881,7 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 		return update.Version(), nil
 	} else if isStartupCheck {
-		slog.DebugContext(ctx, "System is already running latest OS release", "release", s.OS.RunningRelease)
+		slog.DebugContext(ctx, "System is already running latest OS version", "version", s.OS.RunningRelease)
 	}
 
 	return "", nil
@@ -914,7 +914,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 		modal := t.AddModal(s.OS.Name + " Update")
 		defer modal.Done()
 
-		slog.InfoContext(ctx, "Downloading application", "application", app.Name(), "release", app.Version())
+		slog.InfoContext(ctx, "Downloading application", "application", app.Name(), "version", app.Version())
 		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
 
 		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
@@ -937,7 +937,7 @@ func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provide
 
 		return app.Version(), nil
 	} else if isStartupCheck {
-		slog.DebugContext(ctx, "System is already running latest application release", "application", app.Name(), "release", app.Version())
+		slog.DebugContext(ctx, "System is already running latest application version", "application", app.Name(), "version", app.Version())
 	}
 
 	return "", nil
