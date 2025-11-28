@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -94,5 +95,5 @@ func tryRequest(client *http.Client, req *http.Request) (*http.Response, error) 
 		time.Sleep(time.Second)
 	}
 
-	return nil, errors.New("http request timed out after five seconds: %s" + err.Error())
+	return nil, fmt.Errorf("http request timed out after five seconds: %w", err)
 }
