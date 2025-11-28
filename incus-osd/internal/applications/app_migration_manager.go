@@ -167,6 +167,11 @@ func (*migrationManager) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "migration-manager.service")
 }
 
+// NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
+func (*migrationManager) NeedsLateUpdateCheck() bool {
+	return false
+}
+
 // GetCertificate returns the keypair for the server certificate.
 func (*migrationManager) GetCertificate() (*tls.Certificate, error) {
 	// Load the certificate.

@@ -85,6 +85,11 @@ func (*common) IsRunning(_ context.Context) bool {
 	return false
 }
 
+// NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
+func (*common) NeedsLateUpdateCheck() bool {
+	return false
+}
+
 // WipeLocalData removes local data created by the application.
 func (*common) WipeLocalData() error {
 	return errors.New("not supported")

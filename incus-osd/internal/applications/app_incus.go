@@ -141,6 +141,11 @@ func (*incus) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "incus.service")
 }
 
+// NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
+func (*incus) NeedsLateUpdateCheck() bool {
+	return false
+}
+
 // IsPrimary reports if the application is a primary application.
 func (*incus) IsPrimary() bool {
 	return true
