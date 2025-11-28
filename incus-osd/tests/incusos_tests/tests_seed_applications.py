@@ -42,7 +42,7 @@ def TestSeedApplictionsInvalid(install_image):
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "System is ready release="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
         # We shouldn't see anything about loading an application.
         vm.LogDoesntContain("incus-osd", "Downloading application")
@@ -72,7 +72,7 @@ def TestSeedApplictionsIncusCeph(install_image):
         vm.WaitSystemReady(incusos_version, application="incus-ceph")
 
         # We should also see Incus pulled in as a dependency
-        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus release="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus version="+incusos_version)
 
 def TestSeedApplictionsIncusLinstor(install_image):
     test_name = "seed-applications-incus-linstor"
@@ -87,7 +87,7 @@ def TestSeedApplictionsIncusLinstor(install_image):
         vm.WaitSystemReady(incusos_version, application="incus-linstor")
 
         # We should also see Incus pulled in as a dependency
-        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus release="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application application=incus version="+incusos_version)
 
 def TestSeedApplictionsMigrationManager(install_image):
     test_name = "seed-applications-migration-manager"

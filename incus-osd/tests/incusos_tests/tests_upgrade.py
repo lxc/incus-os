@@ -25,13 +25,13 @@ def TestBaselineUpgrade(install_image):
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
-        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update release=(\\d+)", regex=True)
+        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update version=(\\d+)", regex=True)
         new_version = match.group(1)
-        vm.WaitExpectedLog("incus-osd", "Applying OS update release="+new_version)
+        vm.WaitExpectedLog("incus-osd", "Applying OS update version="+new_version)
 
         # Allow some time for the update to apply.
         time.sleep(30)
 
         # Wait for the system to automatically reboot after installing the upgrade.
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System is ready release="+new_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+new_version)
