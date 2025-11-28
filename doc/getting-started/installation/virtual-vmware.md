@@ -92,7 +92,7 @@ Do not start the virtual machine at this point or it will create a bad Secure Bo
 ## Upload the Secure Boot keys
 Open the datastore view and go to the virtual machine's folder.
 
-Then go to [`https://images.linuxcontainers.org/os/`](https://images.linuxcontainers.org/os/) and download:
+Then go to [`https://images.linuxcontainers.org/os/keys/`](https://images.linuxcontainers.org/os/keys/) and download:
 
 - `secureboot-KEK-R1.der`
 - `secureboot-2025-R1.der`
