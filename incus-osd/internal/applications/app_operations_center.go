@@ -182,6 +182,11 @@ func (*operationsCenter) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "operations-center.service")
 }
 
+// NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
+func (*operationsCenter) NeedsLateUpdateCheck() bool {
+	return true
+}
+
 // GetCertificate returns the keypair for the server certificate.
 func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
 	// Load the certificate.

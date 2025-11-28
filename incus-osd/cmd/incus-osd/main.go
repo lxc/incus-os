@@ -273,7 +273,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	return nil
 }
 
-func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
+func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:revive
 	// Save state on exit.
 	defer func() { _ = s.Save() }()
 
@@ -398,8 +398,19 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		return err
 	}
 
-	// Perform an initial blocking check for updates before proceeding.
-	updateChecker(ctx, s, t, p, true, false)
+	// Sometimes the system may not be able to immediately check the provider for any updates.
+	// One such example is when Operations Center is installed and the underlying IncusOS system
+	// is registered to it as the provider. We need to wait until the Operations Center
+	// application has started, otherwise any update check will fail.
+	delayInitialUpdateCheck, err := checkDelayInitialUpdate(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	if !delayInitialUpdateCheck {
+		// Perform an initial blocking check for updates before proceeding.
+		updateChecker(ctx, s, t, p, true, false)
+	}
 
 	// Run services startup actions. This must be done before bringing up any storage pools.
 	for _, srvName := range services.Supported(s) {
@@ -503,7 +514,32 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error {
 		os.Exit(0) //nolint:revive
 	}()
 
+	if delayInitialUpdateCheck {
+		// Queue a delayed initial start update check 30 seconds after the system has started up.
+		go func() {
+			time.Sleep(30 * time.Second)
+
+			updateChecker(ctx, s, t, p, true, false)
+		}()
+	}
+
 	return nil
+}
+
+func checkDelayInitialUpdate(ctx context.Context, s *state.State) (bool, error) {
+	// Check if any installed application depends on a delayed update check.
+	for appName := range s.Applications {
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return false, err
+		}
+
+		if app.NeedsLateUpdateCheck() {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func startInitializeApplication(ctx context.Context, s *state.State, appName string) error {
