@@ -72,7 +72,7 @@ def TestIncusOSAPISystemReboot(install_image):
 
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System is ready release="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
         # Get journal entries from the prior boot, which can only happen if the VM successfully rebooted.
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd&boot=-1")
