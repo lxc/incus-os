@@ -1030,8 +1030,8 @@ func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI
 
 		modal := t.AddModal(s.OS.Name + " EFI Variable Update")
 
-		slog.InfoContext(ctx, "Applying Secure Boot certificate update version "+update.Version()+".")
-		modal.Update("Applying Secure Boot certificate update version " + update.Version() + ".")
+		slog.InfoContext(ctx, "Applying Secure Boot certificate update version "+update.Version())
+		modal.Update("Applying Secure Boot certificate update version " + update.Version())
 
 		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, archiveFilepath)
 		if err != nil {
