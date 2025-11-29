@@ -3,7 +3,7 @@
 A detailed low-level dump of information about the IncusOS system hardware can be obtained by running
 
 ```
-incus admin os system show resources
+incus admin os system resources show
 ```
 
 ## Configuration options

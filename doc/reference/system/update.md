@@ -53,5 +53,5 @@ Allow updates only on the weekend:
 You can instruct IncusOS to check for an update at any time by running
 
 ```
-incus admin os system check-update
+incus admin os system update check
 ```
