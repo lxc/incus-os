@@ -18,6 +18,7 @@ import (
 
 	"github.com/lxc/incus/v6/shared/ask"
 	"github.com/lxc/incus/v6/shared/revert"
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -27,6 +28,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
+var version = "dev"
+
 var applicationsSeed *apiseed.Applications
 
 var incusSeed *apiseed.Incus
@@ -35,7 +38,57 @@ var installSeed *apiseed.Install
 
 var networkSeed *apiseed.Network
 
+type cmdGlobal struct {
+	flagHelp    bool
+	flagVersion bool
+	flagImage   string
+	flagFormat  string
+	flagSeedTar string
+	flagChannel string
+}
+
 func main() {
+	// Global flags.
+	globalCmd := cmdGlobal{}
+
+	app := &cobra.Command{
+		Use:   "flasher-tool",
+		Short: "IncusOS installation image flasher tool",
+		Long: formatSection("Description",
+			"IncusOS installation image flasher tool\n\nThis tool allows for downloading and customizing IncusOS installation images."),
+		SilenceUsage:      true,
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
+		RunE:              globalCmd.run,
+	}
+
+	app.PersistentFlags().BoolVarP(&globalCmd.flagHelp, "help", "h", false, "Print help command")
+	app.PersistentFlags().BoolVarP(&globalCmd.flagVersion, "version", "v", false, "Print binary version")
+
+	app.Flags().StringVarP(&globalCmd.flagImage, "image", "i", "", "Local IncusOS install image to use (disables CDN download)")
+	app.Flags().StringVarP(&globalCmd.flagFormat, "format", "f", "", "Image format to download: 'iso' or 'img' (disables format prompt)")
+	app.Flags().StringVarP(&globalCmd.flagSeedTar, "seed", "s", "", "Path to install seed tar archive (advanced, disables interactive mode)")
+	app.Flags().StringVarP(&globalCmd.flagChannel, "channel", "c", "stable", "Update channel to download from (default: stable)")
+
+	// Help handling.
+	app.SetHelpCommand(&cobra.Command{
+		Use:    "no-help",
+		Hidden: true,
+	})
+
+	// Run the main command and handle errors.
+	err := app.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func (c *cmdGlobal) run(_ *cobra.Command, _ []string) error {
+	if c.flagVersion {
+		_, _ = fmt.Println("flasher-tool version " + version) //nolint:forbidigo
+
+		return nil
+	}
+
 	var err error
 
 	ctx := context.Background()
@@ -45,42 +98,45 @@ func main() {
 	slog.InfoContext(ctx, "IncusOS flasher tool")
 
 	// Determine what image we should modify.
-	imageFilename := os.Getenv("INCUSOS_IMAGE")
+	imageFilename := c.flagImage
 	if imageFilename == "" {
 		slog.InfoContext(ctx, "Fetching latest release from the Linux Containers CDN")
 
-		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker)
+		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker, c.flagFormat, c.flagChannel)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 	}
 
-	seedTarFilename := os.Getenv("INCUSOS_SEED_TAR")
-	if seedTarFilename == "" {
+	if c.flagSeedTar == "" {
 		// Customize the image.
 		slog.InfoContext(ctx, "Ready to begin customizing image '"+imageFilename+"'")
 
 		err = mainMenu(ctx, asker, imageFilename)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 	} else {
 		// Inject the provided seed data.
 		slog.InfoContext(ctx, "Injecting user-provided seed data")
 
 		// #nosec G304
-		seedFD, err := os.Open(seedTarFilename)
+		seedFD, err := os.Open(c.flagSeedTar)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 
 		s, err := seedFD.Stat()
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 
 		buf := make([]byte, s.Size())
@@ -88,21 +144,25 @@ func main() {
 		numBytes, err := seedFD.Read(buf)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 
 		if int64(numBytes) != s.Size() {
-			slog.ErrorContext(ctx, fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), seedTarFilename))
+			slog.ErrorContext(ctx, fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), c.flagSeedTar))
 		}
 
 		err = injectSeedIntoImage(imageFilename, buf)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
-			os.Exit(1)
+
+			return err
 		}
 	}
 
 	slog.InfoContext(ctx, "Done!")
+
+	return nil
 }
 
 func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error {
@@ -469,16 +529,15 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 	return nil
 }
 
-func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker) (string, error) {
+func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFormat string, channel string) (string, error) {
 	s := state.State{}
 	s.System.Provider.Config.Name = "images"
+	s.System.Update.Config.Channel = channel
 
 	provider, err := providers.Load(ctx, &s)
 	if err != nil {
 		return "", err
 	}
-
-	imageFormat := os.Getenv("INCUSOS_IMAGE_FORMAT")
 
 	if imageFormat == "" {
 		imageFormat, err = asker.AskChoice("Image format (iso or img): ", []string{"iso", "img"}, "iso")
