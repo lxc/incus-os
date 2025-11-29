@@ -10,5 +10,6 @@ The Debug application provides several additional tools that can be useful for d
 * `net-tools`
 * `netcat-openbsd`
 * `procps`
+* `sqlite3`
 * `strace`
 * `tcpdump`
