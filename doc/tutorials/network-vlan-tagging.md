@@ -4,7 +4,7 @@ IncusOS can assign automatic VLAN tagging for one or more VLANs to any configure
 
 This tutorial will assume the network interface is named `enp5s0` and the VLAN ID we want to set is `1234`.
 
-To assign the VLAN tagging, we need to make sure the interface is assigned both the `instances` [role](../reference/system/network.md) and that the `vlan_tags` property consists of a list of desired VLAN ID(s). This can be done by running `incus admin os system edit network` and edit the configuration like follows:
+To assign the VLAN tagging, we need to make sure the interface is assigned both the `instances` [role](../reference/system/network.md) and that the `vlan_tags` property consists of a list of desired VLAN ID(s). This can be done by running `incus admin os system network edit` and edit the configuration like follows:
 
 ```
 config:

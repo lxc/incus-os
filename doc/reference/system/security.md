@@ -7,7 +7,7 @@ As part of its first boot, IncusOS generates a strong recovery key that can be u
 The recovery key(s) can be retrieved by running
 
 ```
-incus admin os system show security
+incus admin os system security show
 ```
 
 ## Configuration options
@@ -21,5 +21,5 @@ The following configuration options can be set:
 If IncusOS fails to automatically unlock the main system drive, after booing using a recovery key, it is possible to forcefully reset the TPM bindings:
 
 ```
-incus admin os system tpm-rebind
+incus admin os system security tpm-rebind
 ```

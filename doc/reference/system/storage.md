@@ -51,7 +51,7 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 Get the pool encryption keys for safe storage (base64 encoded):
 
 ```
-$ incus admin os system show security
+$ incus admin os system security show
 [snip]
 state:
   pool_recovery_keys:
@@ -68,7 +68,7 @@ Deleting a storage pool will result in the unrecoverable loss of all data in tha
 Delete the storage pool `mypool` by running
 
 ```
-incus admin os system delete-storage-pool -d '{"name":"mypool"}'
+incus admin os system storage delete-pool -d '{"name":"mypool"}'
 ```
 
 ## Wiping a drive
@@ -80,7 +80,7 @@ Wiping a drive will result in the unrecoverable loss of all data on that drive.
 Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its ID, by running
 
 ```
-./incus admin os system wipe-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
+./incus admin os system storage wipe-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
 ```
 
 ## Importing an existing encrypted pool
@@ -88,7 +88,7 @@ Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its
 If importing an existing storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Because there is no way to prompt for an encryption passphrase, only ZFS pools using a raw encryption key can be imported. Specify the raw base64 encoded encryption key when importing storage pool `mypool` by running
 
 ```
-incus admin os system import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
+incus admin os system storage import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
 ```
 
 ## Managing volumes

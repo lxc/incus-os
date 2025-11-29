@@ -16,7 +16,7 @@ However, sometimes you may want to attach a container or virtual machine directl
 First, get the current IncusOS network configuration:
 
 ```
-gibmat@futurfusion:~$ incus admin os system show network
+gibmat@futurfusion:~$ incus admin os system network show
 WARNING: The IncusOS API and configuration is subject to change
 
 config:
@@ -52,7 +52,7 @@ state:
       type: interface
 ```
 
-Then, edit the interface and/or bond to add the appropriate role by running `incus admin os system edit network`:
+Then, edit the interface and/or bond to add the appropriate role by running `incus admin os system network edit`:
 
 ```
 config:
