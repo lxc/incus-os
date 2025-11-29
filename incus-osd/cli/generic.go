@@ -43,8 +43,6 @@ func (c *cmdGenericEdit) command() *cobra.Command {
 
 	cmd.Use = cli.Usage("edit", usage)
 	cmd.Long = cli.FormatSection("Description", "Edit "+c.entity+" configuration")
-	cmd.Example = cli.FormatSection("", `incus admin os service edit `+usage+` < `+c.entityShort+`.yaml
-    Update an IncusOS `+c.entity+` using the content of `+c.entityShort+`.yaml.`)
 
 	if c.os.args.SupportsTarget {
 		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
