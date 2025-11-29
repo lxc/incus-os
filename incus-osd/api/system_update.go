@@ -28,7 +28,6 @@ type SystemUpdateState struct {
 
 // SystemUpdateMaintenanceWindow defines a maintenance window for when it is acceptable to check for and apply updates.
 // StartDayOfWeek and EndDayOfWeek are optional, and if non-zero can be used to limit the migration window to certain day(s).
-// Times are assumed to be in UTC.
 type SystemUpdateMaintenanceWindow struct {
 	StartDayOfWeek Weekday `json:"start_day_of_week,omitempty" yaml:"start_day_of_week,omitempty"`
 	StartHour      int     `json:"start_hour"                  yaml:"start_hour"`
