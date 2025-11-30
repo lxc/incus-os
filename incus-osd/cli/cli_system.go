@@ -180,7 +180,16 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					confirm:     "wipe the drive",
 				}
 
-				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), importPoolCmd.command(), wipeDriveCmd.command()}
+				// Scrub pool.
+				scrubPoolCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "scrub-pool",
+					description: "Scrub the storage pool",
+					endpoint:    "system/storage",
+					hasData:     true,
+				}
+
+				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
 			},
 		},
 		{
