@@ -547,3 +547,76 @@ func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Reque
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/storage/:scrub-pool system system_post_storage_scrub_pool
+//
+//	Scrub local pool
+//
+//	Starts a scrub for a local storage pool.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The pool to be scrubbed
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name":"mypool"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "409":
+//	    $ref: "#/responses/Conflict"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	type scrubStruct struct {
+		Name string `json:"name"`
+	}
+
+	config := &scrubStruct{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
+
+		return
+	}
+
+	// Scrub the pool.
+	err = zfs.ScrubZpool(r.Context(), config.Name)
+	if err != nil {
+		if errors.Is(err, storage.ErrScrubAlreadyInProgress) {
+			_ = response.Conflict(err).Render(w)
+		} else {
+			_ = response.InternalError(err).Render(w)
+		}
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
