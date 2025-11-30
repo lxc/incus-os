@@ -65,6 +65,7 @@ type apiImagesPost struct {
 	Architecture string             `json:"architecture" yaml:"architecture"`
 	Type         string             `json:"type"         yaml:"type"`
 	Seeds        apiImagesPostSeeds `json:"seeds"        yaml:"seeds"`
+	Channel      string             `json:"channel"      yaml:"channel"`
 }
 
 type apiImagesPostSeeds struct {
@@ -295,6 +296,11 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set default values.
+	if req.Channel == "" {
+		req.Channel = "stable"
+	}
+
 	// Store the request.
 	imagesMu.Lock()
 	defer imagesMu.Unlock()
@@ -313,7 +319,7 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("image request: created", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture)
+	slog.Info("image request: created", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture, "channel", req.Channel)
 }
 
 func apiImage(w http.ResponseWriter, r *http.Request) {
@@ -393,7 +399,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	var imageFilePath string
 
 	for _, update := range metaIndex.Updates {
-		if !slices.Contains(update.Channels, "stable") {
+		if !slices.Contains(update.Channels, req.Channel) {
 			continue
 		}
 

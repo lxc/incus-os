@@ -202,30 +202,52 @@
 
                     <div id="panelAdvanced" class="accordion-collapse collapse">
                         <div class="accordion-body">
-                            <h3>Network configuration</h3>
+                            <div class="mb-3">
+                                <h3>Network configuration</h3>
 
-                            <p>
-                                By default IncusOS will run both DHCPv4
-                                and SLAAC on every interface it can find
-                                on the system, hoping that one of them
-                                will provide enough connectivity to
-                                allow the user to connect and apply the
-                                final network configuration.
-                            </p>
+                                <p>
+                                    By default IncusOS will run both DHCPv4
+                                    and SLAAC on every interface it can find
+                                    on the system, hoping that one of them
+                                    will provide enough connectivity to
+                                    allow the user to connect and apply the
+                                    final network configuration.
+                                </p>
 
-                            <p>
-                                For cases where this approach doesn't
-                                work, such as environments requiring
-                                static IP addresses, the use of a
-                                proxy server or using link aggregation
-                                or VLANs, a full network configuration
-                                can be provided instead.
-                            </p>
+                                <p>
+                                    For cases where this approach doesn't
+                                    work, such as environments requiring
+                                    static IP addresses, the use of a
+                                    proxy server or using link aggregation
+                                    or VLANs, a full network configuration
+                                    can be provided instead.
+                                </p>
 
-                            <p>Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/" target="_blank">found here</a>.</p>
+                                <p>
+                                    Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/" target="_blank">found here</a>.
+                                </p>
+
+                                <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
+                            </div>
 
                             <div class="mb-3">
-                                <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
+                                <h3>Alternative image channel</h3>
+
+                                <p>
+                                    Images are normally downloaded from
+                                    the "stable" update channel.<br>Other
+                                    channels may be available for various
+                                    reasons, for example for image
+                                    validation and testing ("testing" channel).
+                                </p>
+
+                                <p>
+                                    Only the "stable" channel is
+                                    supported, use other image channels
+                                    at your own risk.
+                                </p>
+
+                                <input type="text" class="form-control" id="imageChannel" placeholder="stable">
                             </div>
                         </div>
                     </div>
@@ -247,13 +269,12 @@
                     <div class="modal-body">
                         <p>
                             Three files have been generated and downloaded for you:
-                            <br>
-                            <ul>
-                                <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
-                                <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
-                                <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
-                            </ul>
                         </p>
+                        <ul>
+                           <li><code>client.crt</code> is a PEM encoded client certificate (can be placed as <code>~/.config/incus/client.crt</code>)</li>
+                           <li><code>client.key</code> is a PEM encoded client key (can be placed as <code>~/.config/incus/client.key</code>)</li>
+                           <li><code>client.pfx</code> is a PPKCS#12 certificate that can be imported in your web browser (password is <b>IncusOS</b>)</li>
+                        </ul>
                         <br>
                         <p>
                             <b>NOTE:</b> This certificate was generated server-side.

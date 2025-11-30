@@ -85,6 +85,11 @@ function download() {
         return;
     }
 
+    // Validate release channel.
+    if (document.getElementById("imageChannel").value != "") {
+        req.channel = document.getElementById("imageChannel").value;
+    }
+
     // Validate client certificate.
     if (document.getElementById("applicationClientCertificate").value == "") {
         alert("Missing client certificate");
