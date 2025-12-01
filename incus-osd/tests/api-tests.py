@@ -9,6 +9,7 @@ import shutil
 import urllib.request
 
 from incusos_tests import IncusOSTests
+from incusos_tests.incus_test_vm import IncusOSException
 
 current_release = None
 prior_stable_release = None
@@ -32,7 +33,7 @@ with urllib.request.urlopen("https://images.linuxcontainers.org/os/index.json") 
                 break
 
     if prior_stable_release is None:
-        raise Exception("need at least two published stable releases")
+        raise IncusOSException("need at least two published stable releases")
 
     for file in current_release["files"]:
         if file["architecture"] == "x86_64":
@@ -80,7 +81,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
 
         try:
             data = future.result()
-        except Exception as e:
+        except IncusOSException as e:
             num_fail += 1
             print("FAIL: %s: %s" % (name, e.args[0]), flush=True)
 
@@ -89,6 +90,9 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 for line in e.args[1]:
                     if line != "":
                         print("          %s" % line, flush=True)
+        except Exception as e:
+            num_fail += 1
+            print("FAIL: %s: %s" % (name, e), flush=True)
         else:
             num_pass += 1
             print("PASS: %s" % name, flush=True)

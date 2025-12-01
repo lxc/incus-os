@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from .incus_test_vm import IncusTestVM, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestIncusOSAPISystemStorageImportPool(install_image):
     test_name = "incusos-api-system-storage-import-pool"
@@ -25,10 +25,10 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":"NONE"}""")
             if result["status_code"] == 200:
-                raise Exception("unexpected success importing unencrypted pool")
+                raise IncusOSException("unexpected success importing unencrypted pool")
 
             if result["error"] != "refusing to import unencrypted ZFS pool":
-                raise Exception("unexpected error message: " + result["error"])
+                raise IncusOSException("unexpected error message: " + result["error"])
 
             # Can't import an encrypted pool that doesn't use a raw key
             vm.RunCommand("sgdisk", "-Z", "/dev/sdb")
@@ -37,10 +37,10 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":"secret-passphrase"}""")
             if result["status_code"] == 200:
-                raise Exception("unexpected success importing encrypted pool with passphrase")
+                raise IncusOSException("unexpected success importing encrypted pool with passphrase")
 
             if result["error"] != "refusing to import pool that doesn't use a raw encryption key":
-                raise Exception("unexpected error message: " + result["error"])
+                raise IncusOSException("unexpected error message: " + result["error"])
 
             # Can't import an encrypted pool with an incorrect key
             vm.RunCommand("sgdisk", "-Z", "/dev/sdb")
@@ -49,18 +49,18 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":"KoPGQLcHG/u4p8F82Jyl8mDfeElTEWlHE7pQV6bClCw="}""")
             if result["status_code"] == 200:
-                raise Exception("unexpected success importing encrypted pool with incorrect key")
+                raise IncusOSException("unexpected success importing encrypted pool with incorrect key")
 
             if result["error"] != "Failed to run: zfs load-key mypool: exit status 255 (Key load error: Incorrect key provided for 'mypool'.)":
-                raise Exception("unexpected error message: " + result["error"])
+                raise IncusOSException("unexpected error message: " + result["error"])
 
             # Get the correct encryption key and verify a successful pool import
             result = vm.APIRequest("/1.0/system/security")
             if result["status_code"] != 200:
-                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
             key = '"' + result["metadata"]["state"]["pool_recovery_keys"]["local"] + '"'
 
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":""" + key + "}")
             if result["status_code"] != 200:
-                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))

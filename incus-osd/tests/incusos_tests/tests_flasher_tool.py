@@ -5,7 +5,7 @@ import subprocess
 import tarfile
 import tempfile
 
-from .incus_test_vm import IncusTestVM
+from .incus_test_vm import IncusTestVM, IncusOSException
 
 def TestFlasherToolStableIMG(_):
     test_name = "flasher-tool-stable-img"
@@ -45,7 +45,7 @@ def _flasher_download_image(channel, image_format):
 
         match = re.search("Downloading and decompressing IncusOS image \\(" + image_format + "\\) version (\\d+) from Linux Containers CDN", str(result.stderr))
         if not match:
-            raise Exception("Failed to download image")
+            raise IncusOSException("Failed to download image")
 
         os.rename(os.path.join(tmp_dir, "IncusOS_" + match.group(1) + "." + image_format), "flasher-install-image." + image_format)
 
