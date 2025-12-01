@@ -208,6 +208,25 @@ func (n *NVME) Start(ctx context.Context) error {
 	return nil
 }
 
+// Reset will attempt a new connection to all targets.
+func (n *NVME) Reset(ctx context.Context) error {
+	if !n.state.Services.NVME.Config.Enabled {
+		return errors.New("NVME isn't currently enabled")
+	}
+
+	// Wait up to 30s for all targets to be connected.
+	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Connect all NVME devices.
+	_, err := subprocess.RunCommandContext(ctxTimeout, "nvme", "connect-all")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ShouldStart returns true if the service should be started on boot.
 func (n *NVME) ShouldStart() bool {
 	return n.state.Services.NVME.Config.Enabled
