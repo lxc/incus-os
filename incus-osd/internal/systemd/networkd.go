@@ -451,10 +451,14 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 		// #nosec G304
 		contents, err := os.ReadFile("/sys/class/net/" + underlyingDevice + "/speed")
 		if err != nil {
-			return api.SystemNetworkInterfaceState{}, err
-		}
+			if !errors.Is(err, os.ErrNotExist) {
+				return api.SystemNetworkInterfaceState{}, err
+			}
 
-		speed = strings.TrimSuffix(string(contents), "\n")
+			speed = "unknown"
+		} else {
+			speed = strings.TrimSuffix(string(contents), "\n")
+		}
 	}
 
 	// Fetch any LLDP info.
