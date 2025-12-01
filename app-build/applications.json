@@ -146,7 +146,7 @@
         ]
     },
     "tailscale": {
-        "version": "1.90.8",
+        "version": "1.92.0",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
