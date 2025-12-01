@@ -9,6 +9,7 @@ import (
 
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -317,6 +318,12 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 				Description: "Local storage pool (on system drive)",
 			},
 		})
+		if err != nil {
+			return err
+		}
+
+		// Set the incusos:use property on the newly created pool.
+		_, err = subprocess.RunCommand("zfs", "set", "incusos:use=incus", "local/incus")
 		if err != nil {
 			return err
 		}
