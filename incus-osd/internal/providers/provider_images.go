@@ -118,7 +118,7 @@ func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *images) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *images) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -330,7 +330,7 @@ func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -413,7 +413,7 @@ func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
+func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {

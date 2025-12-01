@@ -20,32 +20,33 @@ dzfuFuN/tMIqY355bBYk3m6/UAIK5Pum/Q==
 -----END CERTIFICATE-----
 `
 
-// Application represents an application to be installed on top of IncusOS.
-type Application interface {
-	Name() string
+// CommonUpdate defines functions common to all update types.
+type CommonUpdate interface {
 	Version() string
 	IsNewerThan(otherVersion string) bool
 
 	Download(ctx context.Context, targetPath string, progressFunc func(float64)) error
 }
 
+// ApplicationUpdate represents an application to be installed on top of IncusOS.
+type ApplicationUpdate interface {
+	CommonUpdate
+
+	Name() string
+}
+
 // OSUpdate represents a full OS update.
 type OSUpdate interface {
-	Version() string
-	IsNewerThan(otherVersion string) bool
+	CommonUpdate
 
-	DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error
 	DownloadImage(ctx context.Context, imageType string, targetPath string, progressFunc func(float64)) (string, error)
 }
 
 // SecureBootCertUpdate represents a Secure Boot UEFI certificate update (typically a db or dbx addition).
 type SecureBootCertUpdate interface {
-	Version() string
-	IsNewerThan(otherVersion string) bool
+	CommonUpdate
 
 	GetFilename() string
-
-	Download(ctx context.Context, targetPath string) error
 }
 
 // Provider represents an update/application provider.
@@ -56,7 +57,7 @@ type Provider interface {
 
 	GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error)
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
-	GetApplication(ctx context.Context, name string) (Application, error)
+	GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error)
 
 	Register(ctx context.Context, isFirstBoot bool) error
 	RefreshRegister(ctx context.Context) error

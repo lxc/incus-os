@@ -234,7 +234,7 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *operationsCenter) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
 	if err != nil {
@@ -588,7 +588,7 @@ func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *operationsCenterOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (o *operationsCenterOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the target path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -669,7 +669,7 @@ func (o *operationsCenterSecureBootCertUpdate) IsNewerThan(otherVersion string) 
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
-func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
+func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {

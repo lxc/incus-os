@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -671,7 +670,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
-		err := checkDoSecureBootCertUpdate(ctx, s, t, p, isStartupCheck)
+		_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
 			showModalError(s.System.Update.State.Status, err)
@@ -738,7 +737,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		appsUpdated := map[string]string{}
 
 		for _, appName := range toInstall {
-			newAppVersion, err := checkDoAppUpdate(ctx, s, t, p, appName, isStartupCheck)
+			newAppVersion, err := checkDownloadUpdate(ctx, s, t, p, "application", appName, isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for application updates"
 				showModalError(s.System.Update.State.Status, err)
@@ -769,7 +768,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for the latest OS update.
-		newInstalledOSVersion, err := checkDoOSUpdate(ctx, s, t, p, isStartupCheck)
+		newInstalledOSVersion, err := checkDownloadUpdate(ctx, s, t, p, "OS", "", isStartupCheck)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for OS updates"
 			showModalError(s.System.Update.State.Status, err)
@@ -836,20 +835,39 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	}
 }
 
-func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) (string, error) {
+func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, updateType string, appName string, isStartupCheck bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
-	slog.DebugContext(ctx, "Checking for OS updates")
+	slog.DebugContext(ctx, "Checking for "+updateType+" updates")
 
 	if s.System.Update.State.NeedsReboot {
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
+
+		if updateType == "SecureBoot" {
+			return "", nil
+		}
 	}
 
-	update, err := p.GetOSUpdate(ctx)
+	// Get the appropriate update.
+	var update providers.CommonUpdate
+
+	var err error
+
+	switch updateType {
+	case "SecureBoot":
+		update, err = p.GetSecureBootCertUpdate(ctx)
+	case "OS":
+		update, err = p.GetOSUpdate(ctx)
+	case "application":
+		update, err = p.GetApplicationUpdate(ctx, appName)
+	default:
+		return "", errors.New("unrecognized update type '" + updateType + "'")
+	}
+
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.DebugContext(ctx, "OS update provider doesn't currently have any update")
+			slog.DebugContext(ctx, updateType+" update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -857,35 +875,129 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 		return "", err
 	}
 
-	// If we're running from the backup image don't attempt to re-update to a broken version.
-	if !s.System.Update.State.NeedsReboot && s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
-		slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
-
-		return "", nil
-	}
+	updateNeeded := false
 
 	// Skip any update that isn't newer than what we are already running.
-	if s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
-		return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+	switch update.(type) {
+	case providers.SecureBootCertUpdate:
+		updateNeeded = update.Version() != s.SecureBoot.Version
+
+		if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
+			return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+		}
+	case providers.OSUpdate:
+		// If we're running from the backup image don't attempt to re-update to a broken version.
+		if !s.System.Update.State.NeedsReboot && s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
+			slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
+
+			return "", nil
+		}
+
+		updateNeeded = update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease
+
+		if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
+			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+		}
+	case providers.ApplicationUpdate:
+		updateNeeded = update.Version() != s.Applications[appName].State.Version
+
+		if updateNeeded && s.Applications[appName].State.Version != "" && !update.IsNewerThan(s.Applications[appName].State.Version) {
+			return "", errors.New("local application " + appName + " version (" + s.Applications[appName].State.Version + ") is newer than available update (" + update.Version() + "); skipping")
+		}
 	}
 
 	// Apply the update.
-	if update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease {
-		// Download the update into place.
-		modal := t.AddModal(s.OS.Name + " Update")
-		defer modal.Done()
+	if updateNeeded {
+		return applyUpdate(ctx, s, t, update, updateType, appName, isStartupCheck)
+	} else if isStartupCheck {
+		_, isApplication := update.(providers.ApplicationUpdate)
+		if isApplication {
+			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "version", update.Version())
+		} else {
+			slog.DebugContext(ctx, "System is already running latest "+updateType+" version", "version", update.Version())
+		}
+	}
 
-		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
-		modal.Update("Downloading " + s.OS.Name + " update version " + update.Version())
+	return "", nil
+}
 
-		err := update.DownloadUpdate(ctx, systemd.SystemUpdatesPath, modal.UpdateProgress)
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, updateType string, appName string, isStartupCheck bool) (string, error) {
+	// Download the update.
+	modal := t.AddModal(s.OS.Name + " Update")
+	defer modal.Done()
+
+	_, isApplication := update.(providers.ApplicationUpdate)
+	if isApplication {
+		slog.InfoContext(ctx, "Downloading "+updateType+" update", "application", appName, "version", update.Version())
+		modal.Update("Downloading " + updateType + " update " + appName + " update " + update.Version())
+	} else {
+		slog.InfoContext(ctx, "Downloading "+updateType+" update", "version", update.Version())
+		modal.Update("Downloading " + updateType + " update " + update.Version())
+	}
+
+	targetPath := ""
+
+	switch update.(type) {
+	case providers.SecureBootCertUpdate:
+		targetPath = "/tmp/"
+	case providers.OSUpdate:
+		targetPath = systemd.SystemUpdatesPath
+	case providers.ApplicationUpdate:
+		targetPath = systemd.SystemExtensionsPath
+	}
+
+	err := update.Download(ctx, targetPath, modal.UpdateProgress)
+	if err != nil {
+		return "", err
+	}
+
+	// Hide the progress bar.
+	modal.UpdateProgress(0.0)
+
+	switch u := update.(type) {
+	case providers.SecureBootCertUpdate:
+		slog.InfoContext(ctx, "Applying Secure Boot certificate update", "version", update.Version())
+		modal.Update("Applying Secure Boot certificate update version " + update.Version())
+
+		// Immediately set FullyApplied to false and save state to disk.
+		s.SecureBoot.FullyApplied = false
+		_ = s.Save()
+
+		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, filepath.Join(targetPath, u.GetFilename()))
 		if err != nil {
 			return "", err
 		}
 
-		// Hide the progress bar.
-		modal.UpdateProgress(0.0)
+		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
+		// for the user to restart the system before going any further.
+		if needsReboot {
+			s.System.Update.State.NeedsReboot = true
 
+			sbModal := t.AddModal(s.OS.Name + " SecureBoot Certificate Update")
+
+			if isStartupCheck {
+				modal.Done()
+
+				slog.InfoContext(ctx, "Automatically rebooting system in five seconds")
+				sbModal.Update("Automatically rebooting system in five seconds")
+
+				time.Sleep(5 * time.Second)
+
+				_ = systemd.SystemReboot(ctx)
+
+				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
+			} else {
+				slog.InfoContext(ctx, "A reboot is required to finalize the update")
+				sbModal.Update("A reboot is required to finalize the update")
+			}
+
+			return "", nil
+		}
+
+		// Update state once all SecureBoot keys are updated.
+		s.SecureBoot.Version = update.Version()
+		s.SecureBoot.FullyApplied = true
+	case providers.OSUpdate:
 		// Record the release. Need to do it here, since if the system reboots as part of the
 		// update we won't be able to save the state to disk.
 		priorNextRelease := s.OS.NextRelease
@@ -914,165 +1026,22 @@ func checkDoOSUpdate(ctx context.Context, s *state.State, t *tui.TUI, p provider
 
 			return "", err
 		}
-
-		return update.Version(), nil
-	} else if isStartupCheck {
-		slog.DebugContext(ctx, "System is already running latest OS version", "version", s.OS.RunningRelease)
-	}
-
-	return "", nil
-}
-
-func checkDoAppUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string, isStartupCheck bool) (string, error) {
-	s.UpdateMutex.Lock()
-	defer s.UpdateMutex.Unlock()
-
-	slog.DebugContext(ctx, "Checking for application updates")
-
-	app, err := p.GetApplication(ctx, appName)
-	if err != nil {
-		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.DebugContext(ctx, "Application update provider doesn't currently have any update")
-
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	// Apply the update.
-	if app.Version() != s.Applications[app.Name()].State.Version {
-		if s.Applications[app.Name()].State.Version != "" && !app.IsNewerThan(s.Applications[app.Name()].State.Version) {
-			return "", errors.New("local application " + app.Name() + " version (" + s.Applications[app.Name()].State.Version + ") is newer than available update (" + app.Version() + "); skipping")
-		}
-
-		// Download the application.
-		modal := t.AddModal(s.OS.Name + " Update")
-		defer modal.Done()
-
-		slog.InfoContext(ctx, "Downloading application", "application", app.Name(), "version", app.Version())
-		modal.Update("Downloading application " + app.Name() + " update " + app.Version())
-
-		err = app.Download(ctx, systemd.SystemExtensionsPath, modal.UpdateProgress)
-		if err != nil {
-			return "", err
-		}
-
+	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
-		err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw"))
+		err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
 		if err != nil {
 			return "", err
 		}
 
 		// Record newly installed application and save state to disk.
-		newAppInfo := s.Applications[app.Name()]
-		newAppInfo.State.Version = app.Version()
+		newAppInfo := s.Applications[appName]
+		newAppInfo.State.Version = update.Version()
 
-		s.Applications[app.Name()] = newAppInfo
+		s.Applications[appName] = newAppInfo
 		_ = s.Save()
-
-		return app.Version(), nil
-	} else if isStartupCheck {
-		slog.DebugContext(ctx, "System is already running latest application version", "application", app.Name(), "version", app.Version())
 	}
 
-	return "", nil
-}
-
-func checkDoSecureBootCertUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool) error {
-	s.UpdateMutex.Lock()
-	defer s.UpdateMutex.Unlock()
-
-	slog.DebugContext(ctx, "Checking for Secure Boot key updates")
-
-	if s.System.Update.State.NeedsReboot {
-		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
-
-		return nil
-	}
-
-	update, err := p.GetSecureBootCertUpdate(ctx)
-	if err != nil {
-		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.DebugContext(ctx, "Secure Boot key update provider doesn't currently have any update")
-
-			return nil
-		}
-
-		return err
-	}
-
-	// Skip any update that isn't newer than what we are already running.
-	if s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
-		return errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
-	}
-
-	archiveFilepath := filepath.Join(varPath, update.GetFilename())
-
-	// Apply the update.
-	if update.Version() != s.SecureBoot.Version { //nolint:nestif
-		// Immediately set FullyApplied to false and save state to disk.
-		s.SecureBoot.FullyApplied = false
-		_ = s.Save()
-
-		// Check if we need to download the update or not.
-		_, err := os.Stat(archiveFilepath)
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return err
-			}
-
-			err := update.Download(ctx, varPath)
-			if err != nil {
-				return err
-			}
-		}
-
-		modal := t.AddModal(s.OS.Name + " EFI Variable Update")
-
-		slog.InfoContext(ctx, "Applying Secure Boot certificate update version "+update.Version())
-		modal.Update("Applying Secure Boot certificate update version " + update.Version())
-
-		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, archiveFilepath)
-		if err != nil {
-			modal.Done()
-
-			return err
-		}
-
-		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
-		// for the user to restart the system before going any further.
-		if needsReboot {
-			s.System.Update.State.NeedsReboot = true
-
-			if isStartupCheck {
-				slog.InfoContext(ctx, "Automatically rebooting system in five seconds.")
-				modal.Update("Automatically rebooting system in five seconds.")
-
-				time.Sleep(5 * time.Second)
-
-				_ = systemd.SystemReboot(ctx)
-
-				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
-			} else {
-				slog.InfoContext(ctx, "A reboot is required to finalize the update.")
-				modal.Update("A reboot is required to finalize the update.")
-			}
-
-			return nil
-		}
-
-		modal.Done()
-	}
-
-	slog.DebugContext(ctx, "System Secure Boot keys are up to date")
-
-	// Update state and remove zip file once all SecureBoot keys are updated.
-	s.SecureBoot.Version = update.Version()
-	s.SecureBoot.FullyApplied = true
-	_ = os.Remove(archiveFilepath)
-
-	return nil
+	return update.Version(), nil
 }
 
 func setTimezone(ctx context.Context) error {

@@ -112,7 +112,7 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *local) GetApplication(ctx context.Context, name string) (Application, error) {
+func (p *local) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -302,7 +302,7 @@ func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) DownloadUpdate(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (o *localOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -367,7 +367,7 @@ func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return datetimeComparison(o.version, otherVersion)
 }
 
-func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string) error {
+func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
 	for _, asset := range o.assets {
 		// Only select Secure Boot keys for the expected version.
 		if filepath.Base(asset) != o.GetFilename() {
