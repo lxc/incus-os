@@ -554,8 +554,14 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFo
 
 	slog.InfoContext(ctx, "Downloading and decompressing IncusOS image ("+imageFormat+") version "+release.Version()+" from Linux Containers CDN")
 
+	// In the update metadata, the USB image installer is called "raw", so fixup the format name if needed.
+	providerFormatName := imageFormat
+	if providerFormatName == "img" {
+		providerFormatName = "raw"
+	}
+
 	// Download and decompress the image.
-	return release.DownloadImage(ctx, imageFormat, ".", nil)
+	return release.DownloadImage(ctx, providerFormatName, ".", nil)
 }
 
 // Spawn the editor with a temporary YAML file for editing configs.
