@@ -30,18 +30,22 @@ image that's ready for immediate use.
 
 ## Flasher tool
 
-The flasher tool is provided for more advanced users who need
+The flasher tool is provided for advanced users who need
 to perform more customizations of the install seed than the web-based customizer
 supports.
+
+```{note}
+Currently, the flasher tool is only available for Linux systems.
+```
 
 It can be built and run on a system with the Go compiler installed using:
 
     go install github.com/lxc/incus-os/incus-osd/cmd/flasher-tool@latest
     flasher-tool
 
-when run, you will first be prompted for the image format you want to use, either ISO
-(default) or raw disk image. Note that the ISO isn't a hybrid image; if you
-want to boot from a USB stick you should choose the raw disk image format.
+When run, you will first be prompted for the image format you want to use, either `iso`
+(default) or an `img` (raw) disk image. Note that the ISO isn't a hybrid image; if you
+want to boot from a USB stick you should choose the `img` disk image format.
 
 The flasher tool will then connect to the Linux Containers CDN and download the
 latest release.
@@ -76,3 +80,6 @@ preseed:
 
 After writing the image and exiting, you can then install IncusOS from the
 resulting image.
+
+A variety of command line arguments can be provided to the flasher tool,
+allowing for its use in an automated fashion such as from within a script.
