@@ -30,7 +30,7 @@ type networkdConfigFile struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error) error {
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error, delayRefreshCheck bool) error {
 	// If a timezone is specified, apply it before doing any network configuration.
 	if networkCfg.Time != nil && networkCfg.Time.Timezone != "" {
 		_, err := subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", networkCfg.Time.Timezone)
@@ -136,12 +136,19 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	// Refresh registration.
+	// Refresh registration, delaying by 30 seconds if needed to allow the provider to become available,
+	// such as when IncusOS is self-hosting Operations Center.
 	if refresh != nil {
-		err := refresh(ctx, s)
-		if err != nil {
-			slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
-		}
+		go func() {
+			if delayRefreshCheck {
+				time.Sleep(30 * time.Second)
+			}
+
+			err := refresh(ctx, s)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
+			}
+		}()
 	}
 
 	return nil

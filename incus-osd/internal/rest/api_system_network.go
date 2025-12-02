@@ -124,7 +124,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 		slog.InfoContext(r.Context(), "Applying new network configuration")
 
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, newConfig.Config, 30*time.Second, false, providers.Refresh)
+		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, newConfig.Config, 30*time.Second, false, providers.Refresh, false)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "Failed to update network configuration: "+err.Error())
 			_ = response.InternalError(err).Render(w)

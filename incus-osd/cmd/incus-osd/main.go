@@ -347,10 +347,19 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		return err
 	}
 
+	// Sometimes the system may not be able to immediately check the provider for any updates.
+	// One such example is when Operations Center is installed and the underlying IncusOS system
+	// is registered to it as the provider. We need to wait until the Operations Center
+	// application has started, otherwise any update check will fail.
+	delayInitialUpdateCheck, err := checkDelayInitialUpdate(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	// Perform network configuration.
 	slog.InfoContext(ctx, "Bringing up the network")
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Refresh)
+	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Refresh, delayInitialUpdateCheck)
 	if err != nil {
 		return err
 	}
@@ -391,15 +400,6 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	p, err := providers.Load(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	// Sometimes the system may not be able to immediately check the provider for any updates.
-	// One such example is when Operations Center is installed and the underlying IncusOS system
-	// is registered to it as the provider. We need to wait until the Operations Center
-	// application has started, otherwise any update check will fail.
-	delayInitialUpdateCheck, err := checkDelayInitialUpdate(ctx, s)
 	if err != nil {
 		return err
 	}
