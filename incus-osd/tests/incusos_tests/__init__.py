@@ -1,7 +1,7 @@
 from inspect import getmembers, isfunction
 
-from . import tests_incusos_api, tests_incusos_api_applications, tests_incusos_api_debug, tests_incusos_api_services, \
-    tests_incusos_api_system, tests_incusos_api_system_logging, tests_incusos_api_system_provider, \
+from . import tests_flasher_tool, tests_incusos_api, tests_incusos_api_applications, tests_incusos_api_debug, \
+    tests_incusos_api_services, tests_incusos_api_system, tests_incusos_api_system_logging, tests_incusos_api_system_provider, \
     tests_incusos_api_system_resources, tests_incusos_api_system_security, tests_incusos_api_system_storage_import_pool, \
     tests_incusos_api_system_storage_local_pool, tests_install_smoke, tests_install_system_checks, tests_seed_applications, \
     tests_seed_install, tests_upgrade
@@ -47,11 +47,15 @@ class IncusOSTests:
             tests_incusos_api_system_storage_local_pool,
         ]
 
+        # Test the flasher-tool utility
+        flasher_tool_tests = [tests_flasher_tool]
+
         ret = []
 
         ret.extend(self._get_tests(core_tests, self.current_image_img))
         ret.extend(self._get_tests(upgrade_tests, self.prior_image_img))
         ret.extend(self._get_tests(iso_install_tests, self.current_image_iso))
+        ret.extend(self._get_tests(flasher_tool_tests, ""))
 
         return ret
 

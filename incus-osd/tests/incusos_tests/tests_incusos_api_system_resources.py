@@ -1,4 +1,4 @@
-from .incus_test_vm import IncusTestVM, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestIncusOSAPISystemResources(install_image):
     test_name = "incusos-api-system-resources"
@@ -14,9 +14,9 @@ def TestIncusOSAPISystemResources(install_image):
         # Perform a basic sanity check of the returned data.
         result = vm.APIRequest("/1.0/system/resources")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         keys = result["metadata"].keys()
         for key in ["cpu", "memory", "network", "storage"]:
             if key not in keys:
-                raise Exception(f"missing expected key {key} in returned resources")
+                raise IncusOSException(f"missing expected key {key} in returned resources")

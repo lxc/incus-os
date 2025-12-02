@@ -6,6 +6,11 @@ import time
 
 from . import util
 
+class IncusOSException(Exception):
+    """A custom exception raised by test code."""
+
+    pass
+
 class IncusTestVM:
     def __init__(self, vm_name_base, install_image, root_size="50GiB"):
         self.vm_name = vm_name_base + "-" + util._get_random_string()
@@ -114,7 +119,7 @@ class IncusTestVM:
                 pass
 
             if time.time() - start > timeout:
-                raise Exception("timed out waiting for agent to start")
+                raise IncusOSException("timed out waiting for agent to start")
 
             time.sleep(1)
 
@@ -136,7 +141,7 @@ class IncusTestVM:
                     return None
 
             if time.time() - start > timeout:
-                raise Exception(f"timed out waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
+                raise IncusOSException(f"timed out waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
 
             time.sleep(1)
 
@@ -146,7 +151,7 @@ class IncusTestVM:
         result = subprocess.run(["incus", "exec", self.vm_name, "--", "journalctl", "-b", "-u", unit], capture_output=True, check=True)
 
         if log in str(result.stdout):
-            raise Exception(f"wasn't expecting log entry '{log}' to appear")
+            raise IncusOSException(f"wasn't expecting log entry '{log}' to appear")
 
     def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False):
         """Perform a HTTP REST API call, and return the result."""

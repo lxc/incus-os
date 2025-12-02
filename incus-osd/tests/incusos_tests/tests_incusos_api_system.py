@@ -1,6 +1,6 @@
 import time
 
-from .incus_test_vm import IncusTestVM, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestIncusOSAPISystem(install_image):
     test_name = "incusos-api-system"
@@ -16,15 +16,15 @@ def TestIncusOSAPISystem(install_image):
         # Test top-level /1.0/system endpoint.
         result = vm.APIRequest("/1.0/system")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         if len(result["metadata"]) != 7:
-            raise Exception("expected seven system endpoints")
+            raise IncusOSException("expected seven system endpoints")
 
         for endpoint in ["/1.0/system/logging", "/1.0/system/network", "/1.0/system/provider", \
             "/1.0/system/resources", "/1.0/system/security","/1.0/system/storage", "/1.0/system/update"]:
             if endpoint not in result["metadata"]:
-                raise Exception(f"missing expected endpoint {endpoint}")
+                raise IncusOSException(f"missing expected endpoint {endpoint}")
 
 def TestIncusOSAPISystemPoweroff(install_image):
     test_name = "incusos-api-system-poweroff"
@@ -40,7 +40,7 @@ def TestIncusOSAPISystemPoweroff(install_image):
         # Command the system to poweroff.
         result = vm.APIRequest("/1.0/system/:poweroff", method="POST")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         time.sleep(5)
 
@@ -50,7 +50,7 @@ def TestIncusOSAPISystemPoweroff(install_image):
         except:
             return
         else:
-            raise Exception("VM didn't power itself off")
+            raise IncusOSException("VM didn't power itself off")
 
 def TestIncusOSAPISystemReboot(install_image):
     test_name = "incusos-api-system-reboot"
@@ -66,7 +66,7 @@ def TestIncusOSAPISystemReboot(install_image):
         # Command the system to reboot.
         result = vm.APIRequest("/1.0/system/:reboot", method="POST")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         time.sleep(5)
 
@@ -77,4 +77,4 @@ def TestIncusOSAPISystemReboot(install_image):
         # Get journal entries from the prior boot, which can only happen if the VM successfully rebooted.
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd&boot=-1")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))

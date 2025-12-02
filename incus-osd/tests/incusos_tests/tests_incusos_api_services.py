@@ -1,4 +1,4 @@
-from .incus_test_vm import IncusTestVM, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 ### TODO -- There's not really much actual testing of the individual services yet.
 
@@ -16,13 +16,13 @@ def TestIncusOSAPIServices(install_image):
         # Test top-level /1.0/services endpoint.
         result = vm.APIRequest("/1.0/services")
         if result["status_code"] != 200:
-            raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         if len(result["metadata"]) == 0:
-            raise Exception("expected at least one services endpoint")
+            raise IncusOSException("expected at least one services endpoint")
 
         # Do a simple query of each service.
         for service in result["metadata"]:
             result = vm.APIRequest(service)
             if result["status_code"] != 200:
-                raise Exception("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
