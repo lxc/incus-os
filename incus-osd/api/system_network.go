@@ -47,6 +47,7 @@ type SystemNetworkInterface struct {
 	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
 	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
+	StrictHwaddr      bool                 `json:"strict_hwaddr"                 yaml:"strict_hwaddr"`
 }
 
 // SystemNetworkBond contains information about a network bond.
