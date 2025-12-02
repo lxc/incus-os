@@ -151,7 +151,7 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 
 // DoInstall performs the necessary steps for installing incus-osd to a local disk.
 func (i *Install) DoInstall(ctx context.Context, osName string) error {
-	modal := i.tui.AddModal(osName + " Install")
+	modal := i.tui.AddModal(osName+" Install", "install")
 	slog.InfoContext(ctx, "Starting install of "+osName+" to local disk")
 	modal.Update("Starting install of " + osName + " to local disk.")
 
