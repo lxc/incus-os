@@ -46,7 +46,8 @@ type SystemNetworkInterface struct {
 	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
 	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
 	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
-	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
+	LLDP              bool                 `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
+	StrictHwaddr      bool                 `json:"strict_hwaddr,omitempty"       yaml:"strict_hwaddr,omitempty"`
 }
 
 // SystemNetworkBond contains information about a network bond.
@@ -61,7 +62,7 @@ type SystemNetworkBond struct {
 	Hwaddr            string               `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
 	Members           []string             `json:"members,omitempty"             yaml:"members,omitempty"`
 	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
-	LLDP              bool                 `json:"lldp"                          yaml:"lldp"`
+	LLDP              bool                 `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.

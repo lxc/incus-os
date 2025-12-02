@@ -21,6 +21,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
+	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
@@ -358,6 +359,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	// Perform network configuration.
 	slog.InfoContext(ctx, "Bringing up the network")
+
+	err = nftables.ApplyHwaddrFilters(ctx, s.System.Network.Config)
+	if err != nil {
+		return err
+	}
 
 	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Refresh, delayInitialUpdateCheck)
 	if err != nil {
