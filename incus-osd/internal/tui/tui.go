@@ -172,11 +172,12 @@ func (t *TUI) Run() error {
 }
 
 // AddModal adds a new modal popup to display to the user.
-func (t *TUI) AddModal(title string) *Modal {
+func (t *TUI) AddModal(title string, category string) *Modal {
 	ret := &Modal{
-		title:  title,
-		isDone: false,
-		t:      t,
+		title:    title,
+		category: category,
+		isDone:   false,
+		t:        t,
 	}
 
 	t.modalMutex.Lock()
@@ -184,6 +185,17 @@ func (t *TUI) AddModal(title string) *Modal {
 	t.modalMutex.Unlock()
 
 	return ret
+}
+
+// GetModal returns an existing modal with the specified category, and nil if it doesn't exist.
+func (t *TUI) GetModal(category string) *Modal {
+	for _, m := range t.modalMessages {
+		if m.category == category {
+			return m
+		}
+	}
+
+	return nil
 }
 
 // quickDraw() will immediately render the modal update if there is only a single modal

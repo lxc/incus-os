@@ -3,6 +3,7 @@ package tui
 // Modal holds the information for a given modal dialog.
 type Modal struct {
 	title    string
+	category string
 	message  string
 	progress float64
 	isDone   bool
@@ -27,6 +28,7 @@ func (m *Modal) UpdateProgress(progress float64) {
 // Done indicates that the modal is no longer needed and should be removed.
 func (m *Modal) Done() {
 	m.isDone = true
+	m.category = "__DONE__"
 
 	m.t.quickDraw()
 }
