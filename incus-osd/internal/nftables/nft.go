@@ -48,7 +48,7 @@ func ApplyHwaddrFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig
 
 		underlyingDevice := "_p" + strings.ToLower(strings.ReplaceAll(iface.Hwaddr, ":", ""))
 
-		_, err = subprocess.RunCommandContext(ctx, "nft", "add", "rule", "bridge", "incus-osd", "mac-filters", "oif", underlyingDevice, "ether", "saddr", "!=", iface.Hwaddr, "drop")
+		_, err = subprocess.RunCommandContext(ctx, "nft", "add", "rule", "bridge", "incus-osd", "mac-filters", "oifname", underlyingDevice, "ether", "saddr", "!=", iface.Hwaddr, "drop")
 		if err != nil {
 			return err
 		}
