@@ -34,6 +34,10 @@ var applicationsSeed *apiseed.Applications
 
 var incusSeed *apiseed.Incus
 
+var migrationManagerSeed *apiseed.MigrationManager
+
+var operationsCenterSeed *apiseed.OperationsCenter
+
 var installSeed *apiseed.Install
 
 var networkSeed *apiseed.Network
@@ -199,6 +203,20 @@ func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error 
 			menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 		}
 
+		if applicationsSeed != nil && slices.ContainsFunc(applicationsSeed.Applications, func(a apiseed.Application) bool {
+			return a.Name == "migration-manager"
+		}) {
+			menuOptions = append(menuOptions, "Configure Migration Manager seed")
+			menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
+		}
+
+		if applicationsSeed != nil && slices.ContainsFunc(applicationsSeed.Applications, func(a apiseed.Application) bool {
+			return a.Name == "operations-center"
+		}) {
+			menuOptions = append(menuOptions, "Configure Operations Center seed")
+			menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
+		}
+
 		menuOptions = append(menuOptions, "Write image and exit")
 		menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 
@@ -237,6 +255,16 @@ func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error 
 			}
 		case "Configure Incus seed":
 			err := configureIncusSeed(ctx)
+			if err != nil {
+				return err
+			}
+		case "Configure Migration Manager seed":
+			err := configureMigrationManagerSeed(ctx)
+			if err != nil {
+				return err
+			}
+		case "Configure Operations Center seed":
+			err := configureOperationsCenterSeed(ctx)
 			if err != nil {
 				return err
 			}
@@ -307,17 +335,63 @@ func toggleInstallRunningMode(ctx context.Context, asker ask.Asker, imageFilenam
 }
 
 func selectApplications(asker ask.Asker) error {
-	installIncus, err := asker.AskBool("Install Incus? [Y/n] ", "y")
+	menuOptions := []string{"Incus", "Migration Manager", "Operations Center", "None"}
+
+	var menuPrompt strings.Builder
+
+	_, _ = menuPrompt.WriteString("\nApplication selection:\n")
+	for i := range menuOptions {
+		_, _ = menuPrompt.WriteString(fmt.Sprintf("%d) %s\n", i+1, menuOptions[i]))
+	}
+
+	_, _ = menuPrompt.WriteString("\nSelection: ")
+
+	// Prompt the user for a selection.
+	selection, err := asker.AskChoice(menuPrompt.String(), []string{"1", "2", "3", "4"}, strconv.Itoa(len(menuOptions)))
 	if err != nil {
 		return err
 	}
 
+	selectionInt, _ := strconv.Atoi(selection)
+
 	applicationsSeed = &apiseed.Applications{}
 
-	if installIncus {
+	switch menuOptions[selectionInt-1] {
+	case "Incus":
 		applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
 			Name: "incus",
 		})
+
+		installIncusCeph, err := asker.AskBool("Install Incus Ceph add-on? [y/N] ", "n")
+		if err != nil {
+			return err
+		}
+
+		if installIncusCeph {
+			applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+				Name: "incus-ceph",
+			})
+		}
+
+		installIncusLinstor, err := asker.AskBool("Install Incus Linstor add-on? [y/N] ", "n")
+		if err != nil {
+			return err
+		}
+
+		if installIncusLinstor {
+			applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+				Name: "incus-linstor",
+			})
+		}
+	case "Migration Manager":
+		applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+			Name: "migration-manager",
+		})
+	case "Operations Center":
+		applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+			Name: "operations-center",
+		})
+	default:
 	}
 
 	return nil
@@ -407,6 +481,76 @@ func configureIncusSeed(ctx context.Context) error {
 	return nil
 }
 
+func configureMigrationManagerSeed(ctx context.Context) error {
+	var err error
+
+	existingContents := []byte("# Provide Migration Manager seed in yaml format")
+
+	if migrationManagerSeed != nil {
+		existingContents, err = yaml.Marshal(migrationManagerSeed)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Launch an editor to allow user to provide an Incus seed.
+	newContents, err := textEditor(ctx, existingContents)
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+
+		return nil
+	}
+
+	var newSeed apiseed.MigrationManager
+
+	err = yaml.Unmarshal(newContents, &newSeed)
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+
+		return nil
+	}
+
+	// Save the Incus seed.
+	migrationManagerSeed = &newSeed
+
+	return nil
+}
+
+func configureOperationsCenterSeed(ctx context.Context) error {
+	var err error
+
+	existingContents := []byte("# Provide Operations Center seed in yaml format")
+
+	if operationsCenterSeed != nil {
+		existingContents, err = yaml.Marshal(operationsCenterSeed)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Launch an editor to allow user to provide an Incus seed.
+	newContents, err := textEditor(ctx, existingContents)
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+
+		return nil
+	}
+
+	var newSeed apiseed.OperationsCenter
+
+	err = yaml.Unmarshal(newContents, &newSeed)
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+
+		return nil
+	}
+
+	// Save the Incus seed.
+	operationsCenterSeed = &newSeed
+
+	return nil
+}
+
 func writeImage(asker ask.Asker, sourceImage string) error {
 	targetImage, err := asker.AskString("Filename to write image to ["+sourceImage+"]: ", sourceImage, nil)
 	if err != nil {
@@ -455,6 +599,26 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 		}
 
 		archiveContents = append(archiveContents, []string{"incus.yaml", string(yamlContents)})
+	}
+
+	// Create migration-manager yaml contents.
+	if migrationManagerSeed != nil {
+		yamlContents, err := yaml.Marshal(migrationManagerSeed)
+		if err != nil {
+			return err
+		}
+
+		archiveContents = append(archiveContents, []string{"migration-manager.yaml", string(yamlContents)})
+	}
+
+	// Create operations-center yaml contents.
+	if operationsCenterSeed != nil {
+		yamlContents, err := yaml.Marshal(operationsCenterSeed)
+		if err != nil {
+			return err
+		}
+
+		archiveContents = append(archiveContents, []string{"operations-center.yaml", string(yamlContents)})
 	}
 
 	// Create install yaml contents.
