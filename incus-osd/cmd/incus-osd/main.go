@@ -39,8 +39,6 @@ var (
 	runPath = "/run/incus-os/"
 )
 
-var updateModal *tui.Modal
-
 func main() {
 	ctx := context.Background()
 
@@ -131,7 +129,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Verify that the system meets minimum requirements for running IncusOS.
 	err := install.CheckSystemRequirements(ctx)
 	if err != nil {
-		modal := t.AddModal(s.OS.Name)
+		modal := t.AddModal(s.OS.Name, "system-check")
 		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
 
 		slog.ErrorContext(ctx, "System check error: "+err.Error())
@@ -225,7 +223,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Save state on exit.
 	defer func() { _ = s.Save() }()
 
-	modal := t.AddModal("System shutdown")
+	modal := t.AddModal("System Shutdown", "shutdown")
 
 	slog.InfoContext(ctx, "System is shutting down", "version", s.OS.RunningRelease)
 	modal.Update("System is shutting down")
@@ -586,8 +584,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	showModalError := func(msg string, err error) {
 		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 
-		if updateModal == nil {
-			updateModal = t.AddModal(s.OS.Name + " Update")
+		updateModal := t.GetModal("update")
+
+		if t.GetModal("update") == nil {
+			updateModal = t.AddModal(s.OS.Name+" Update", "update")
 		}
 
 		updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
@@ -815,9 +815,11 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		}
 
+		updateModal := t.GetModal("update")
+
 		if newInstalledOSVersion != "" {
 			if updateModal == nil {
-				updateModal = t.AddModal(s.OS.Name + " Update")
+				updateModal = t.AddModal(s.OS.Name+" Update", "update")
 			}
 
 			s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
@@ -826,6 +828,10 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			s.System.Update.State.NeedsReboot = true
 		} else {
 			s.System.Update.State.Status = "Update check completed"
+
+			if updateModal != nil {
+				updateModal.Done()
+			}
 		}
 
 		if isStartupCheck || isUserRequested {
@@ -922,17 +928,20 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 }
 
 func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, updateType string, appName string, isStartupCheck bool) (string, error) {
-	// Download the update.
-	modal := t.AddModal(s.OS.Name + " Update")
-	defer modal.Done()
+	updateModal := t.GetModal("update")
 
+	if t.GetModal("update") == nil {
+		updateModal = t.AddModal(s.OS.Name+" Update", "update")
+	}
+
+	// Download the update.
 	_, isApplication := update.(providers.ApplicationUpdate)
 	if isApplication {
 		slog.InfoContext(ctx, "Downloading "+updateType+" update", "application", appName, "version", update.Version())
-		modal.Update("Downloading " + updateType + " update " + appName + " update " + update.Version())
+		updateModal.Update("Downloading " + updateType + " update " + appName + " update " + update.Version())
 	} else {
 		slog.InfoContext(ctx, "Downloading "+updateType+" update", "version", update.Version())
-		modal.Update("Downloading " + updateType + " update " + update.Version())
+		updateModal.Update("Downloading " + updateType + " update " + update.Version())
 	}
 
 	targetPath := ""
@@ -946,18 +955,18 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		targetPath = systemd.SystemExtensionsPath
 	}
 
-	err := update.Download(ctx, targetPath, modal.UpdateProgress)
+	err := update.Download(ctx, targetPath, updateModal.UpdateProgress)
 	if err != nil {
 		return "", err
 	}
 
 	// Hide the progress bar.
-	modal.UpdateProgress(0.0)
+	updateModal.UpdateProgress(0.0)
 
 	switch u := update.(type) {
 	case providers.SecureBootCertUpdate:
 		slog.InfoContext(ctx, "Applying Secure Boot certificate update", "version", update.Version())
-		modal.Update("Applying Secure Boot certificate update version " + update.Version())
+		updateModal.Update("Applying Secure Boot certificate update version " + update.Version())
 
 		// Immediately set FullyApplied to false and save state to disk.
 		s.SecureBoot.FullyApplied = false
@@ -971,13 +980,17 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		// If an EFI variable was updated, we'll either be rebooting automatically or waiting
 		// for the user to restart the system before going any further.
 		if needsReboot {
+			updateModal.Done()
+
 			s.System.Update.State.NeedsReboot = true
 
-			sbModal := t.AddModal(s.OS.Name + " SecureBoot Certificate Update")
+			sbModal := t.GetModal("secureboot-update")
+
+			if t.GetModal("secureboot-update") == nil {
+				sbModal = t.AddModal(s.OS.Name+" SecureBoot Certificate Update", "secureboot-update")
+			}
 
 			if isStartupCheck {
-				modal.Done()
-
 				slog.InfoContext(ctx, "Automatically rebooting system in five seconds")
 				sbModal.Update("Automatically rebooting system in five seconds")
 
@@ -1006,7 +1019,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.InfoContext(ctx, "Applying OS update", "version", update.Version())
-		modal.Update("Applying " + s.OS.Name + " update version " + update.Version())
+		updateModal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
 		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
 		if err != nil {
