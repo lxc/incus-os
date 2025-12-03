@@ -172,8 +172,14 @@ func (*migrationManager) NeedsLateUpdateCheck() bool {
 	return false
 }
 
-// GetCertificate returns the keypair for the server certificate.
-func (*migrationManager) GetCertificate() (*tls.Certificate, error) {
+// GetClientCertificate returns the keypair for the client certificate.
+func (mm *migrationManager) GetClientCertificate() (*tls.Certificate, error) {
+	// Migration Manager doesn't have a separate certificate it uses when contacting other servers.
+	return mm.GetServerCertificate()
+}
+
+// GetServerCertificate returns the keypair for the server certificate.
+func (*migrationManager) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.
 	tlsCert, err := os.ReadFile("/var/lib/migration-manager/server.crt")
 	if err != nil {

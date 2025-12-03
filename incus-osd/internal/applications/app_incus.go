@@ -3,6 +3,7 @@ package applications
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -152,26 +153,23 @@ func (*incus) IsPrimary() bool {
 	return true
 }
 
-// GetCertificate returns the keypair for the server certificate.
-func (*incus) GetCertificate() (*tls.Certificate, error) {
-	// Load the certificate.
-	tlsCert, err := os.ReadFile("/var/lib/incus/server.crt")
+// GetClientCertificate returns the keypair for the client certificate.
+func (a *incus) GetClientCertificate() (*tls.Certificate, error) {
+	return a.getCertificate("server")
+}
+
+// GetServerCertificate returns the keypair for the server certificate.
+func (a *incus) GetServerCertificate() (*tls.Certificate, error) {
+	cert, err := a.getCertificate("cluster")
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+
+		return a.getCertificate("server")
 	}
 
-	tlsKey, err := os.ReadFile("/var/lib/incus/server.key")
-	if err != nil {
-		return nil, err
-	}
-
-	// Put together a keypair.
-	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cert, nil
+	return cert, nil
 }
 
 // GetDependencies returns a list of other applications this application depends on.
@@ -395,4 +393,25 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 	}
 
 	return nil
+}
+
+func (*incus) getCertificate(name string) (*tls.Certificate, error) {
+	// Load the certificate.
+	tlsCert, err := os.ReadFile("/var/lib/incus/" + name + ".crt") //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+
+	tlsKey, err := os.ReadFile("/var/lib/incus/" + name + ".key") //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+
+	// Put together a keypair.
+	cert, err := tls.X509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
 }

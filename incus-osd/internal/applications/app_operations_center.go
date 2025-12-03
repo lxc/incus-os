@@ -187,8 +187,14 @@ func (*operationsCenter) NeedsLateUpdateCheck() bool {
 	return true
 }
 
-// GetCertificate returns the keypair for the server certificate.
-func (*operationsCenter) GetCertificate() (*tls.Certificate, error) {
+// GetClientCertificate returns the keypair for the client certificate.
+func (oc *operationsCenter) GetClientCertificate() (*tls.Certificate, error) {
+	// Operations Center doesn't have a separate certificate it uses when contacting other servers.
+	return oc.GetServerCertificate()
+}
+
+// GetServerCertificate returns the keypair for the server certificate.
+func (*operationsCenter) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.
 	tlsCert, err := os.ReadFile("/var/lib/operations-center/server.crt")
 	if err != nil {

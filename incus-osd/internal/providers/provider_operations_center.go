@@ -342,7 +342,7 @@ func (p *operationsCenter) configureClientCertificate(ctx context.Context, tlsCo
 	}
 
 	// Get the server certificate.
-	cert, err := app.GetCertificate()
+	cert, err := app.GetClientCertificate()
 	if err != nil {
 		return err
 	}

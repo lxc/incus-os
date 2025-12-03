@@ -11,7 +11,8 @@ type Application interface { //nolint:interfacebloat
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
 	FactoryReset(ctx context.Context) error
 	GetBackup(archive io.Writer, complete bool) error
-	GetCertificate() (*tls.Certificate, error)
+	GetClientCertificate() (*tls.Certificate, error)
+	GetServerCertificate() (*tls.Certificate, error)
 	GetDependencies() []string
 	Initialize(ctx context.Context) error
 	IsPrimary() bool

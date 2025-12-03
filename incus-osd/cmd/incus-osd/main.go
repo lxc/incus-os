@@ -578,7 +578,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	}
 
 	// If the application has a TLS certificate, print its fingerprint so the user can verify it when initially connecting.
-	cert, err := app.GetCertificate()
+	cert, err := app.GetServerCertificate()
 	if err == nil {
 		rawFp := sha256.Sum256(cert.Certificate[0])
 
