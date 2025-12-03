@@ -38,20 +38,16 @@ func GetOSBackup() ([]byte, error) {
 		return nil, err
 	}
 
-	for _, file := range files {
-		if file.IsDir() {
-			return nil, errors.New("backup cannot contain directories")
-		}
-
+	writeFile := func(file os.DirEntry) error {
 		fd, err := os.Open(filepath.Join("/var/lib/incus-os/", file.Name()))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		defer fd.Close() //nolint:revive
+		defer fd.Close()
 
 		stat, err := fd.Stat()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		header := &tar.Header{
@@ -62,10 +58,23 @@ func GetOSBackup() ([]byte, error) {
 
 		err = tw.WriteHeader(header)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		_, err = io.Copy(tw, fd)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			return nil, errors.New("backup cannot contain directories")
+		}
+
+		err := writeFile(file)
 		if err != nil {
 			return nil, err
 		}
@@ -124,6 +133,55 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	tr := tar.NewReader(gz)
 	stateSuccessfullyProcessed := false
 
+	copyFile := func(srcPath string, dstPath string) error {
+		// Copy the existing local pool key.
+		oldKey, err := os.Open(srcPath) //nolint:gosec
+		if err != nil {
+			return err
+		}
+		defer oldKey.Close()
+
+		newKey, err := os.Create(dstPath) //nolint:gosec
+		if err != nil {
+			return err
+		}
+		defer newKey.Close()
+
+		_, err = io.Copy(newKey, oldKey)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	writeFile := func(dstPath string, content io.Reader) error {
+		// #nosec G304
+		fd, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer fd.Close()
+
+		// Read from the archive in chunks to avoid excessive memory consumption.
+		var size int64
+
+		for {
+			n, err := io.CopyN(fd, content, 4*1024*1024)
+			size += n
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return err
+			}
+		}
+
+		return nil
+	}
+
 	for {
 		header, err := tr.Next()
 		if err != nil {
@@ -143,20 +201,7 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 
 		// If told to skip restoring local pool key, copy the existing one from the backup directory.
 		if filename == "zpool.local.key" && slices.Contains(skipOptions, "local-data-encryption-key") {
-			// Copy the existing local pool key.
-			oldKey, err := os.Open("/var/lib/incus-os.bak/zpool.local.key")
-			if err != nil {
-				return err
-			}
-			defer oldKey.Close() //nolint:revive
-
-			newKey, err := os.Create("/var/lib/incus-os/zpool.local.key")
-			if err != nil {
-				return err
-			}
-			defer newKey.Close() //nolint:revive
-
-			_, err = io.Copy(newKey, oldKey)
+			err := copyFile("/var/lib/incus-os.bak/zpool.local.key", "/var/lib/incus-os/zpool.local.key")
 			if err != nil {
 				return err
 			}
@@ -165,27 +210,9 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		}
 
 		// Write file to disk.
-		// #nosec G304
-		fd, err := os.Create(filepath.Join("/var/lib/incus-os/", filename))
+		err = writeFile("/var/lib/incus-os/"+filename, tr)
 		if err != nil {
 			return err
-		}
-		defer fd.Close() //nolint:revive
-
-		// Read from the archive in chunks to avoid excessive memory consumption.
-		var size int64
-
-		for {
-			n, err := io.CopyN(fd, tr, 4*1024*1024)
-			size += n
-
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return err
-			}
 		}
 
 		// Restoring the actual state struct requires additional work.

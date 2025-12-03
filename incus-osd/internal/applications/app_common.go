@@ -40,8 +40,17 @@ func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) erro
 	return errors.New("not supported")
 }
 
-// GetCertificate gets the server certificate for the application.
-func (*common) GetCertificate() (*tls.Certificate, error) {
+// GetClientCertificate gets the client certificate for the application.
+// That is, the client certificate that the application would use when
+// it needs to authenticate itself with a 3rd party service (like a provider).
+func (*common) GetClientCertificate() (*tls.Certificate, error) {
+	return nil, errors.New("not supported")
+}
+
+// GetServerCertificate gets the server certificate for the application.
+// That is, the certificate which will be used when a user connects to
+// the public port for the application.
+func (*common) GetServerCertificate() (*tls.Certificate, error) {
 	return nil, errors.New("not supported")
 }
 
@@ -384,7 +393,7 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
 		}
 
-		mode := fs.FileMode(header.Mode) //nolint:gosec
+		mode := fs.FileMode(header.Mode)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
