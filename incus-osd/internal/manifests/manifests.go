@@ -89,11 +89,11 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 	// When generating a child image manifest, mkosi annoyingly includes all packages already present
 	// in the parent image. That's incorrect, so trim out any packages listed in a child manifest
 	// that are present in the base manifest.
-	for manifestName := range manifests {
+	for manifestName, content := range manifests {
 		if manifestName == "base" {
-			ret[manifestName] = manifests["base"]
+			ret[manifestName] = content
 		} else {
-			ret[manifestName] = trimChildManifest(manifests["base"], manifests[manifestName])
+			ret[manifestName] = trimChildManifest(manifests["base"], content)
 		}
 	}
 

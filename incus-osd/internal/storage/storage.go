@@ -178,7 +178,7 @@ func GetFreeSpaceInGiB(path string) (float64, error) {
 		return 0.0, err
 	}
 
-	return float64(s.Bsize*int64(s.Bfree)) / 1024.0 / 1024.0 / 1024.0, nil //nolint:gosec
+	return float64(s.Bsize*int64(s.Bfree)) / 1024.0 / 1024.0 / 1024.0, nil
 }
 
 // DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.

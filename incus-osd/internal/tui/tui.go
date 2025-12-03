@@ -425,7 +425,7 @@ func getMachineInfo(r *api.Resources) string {
 		numCores += len(socket.Cores)
 	}
 
-	memory := int64(r.Memory.Total) //nolint:gosec
+	memory := int64(r.Memory.Total)
 
 	// Return a string like "AMD EPYC 7763 64-Core Processor (numa=8, sockets=2, cores=128, threads=256) (x86_64) / 514GiB memory".
 	return fmt.Sprintf("%s (numa=%d, sockets=%d, cores=%d, threads=%d) (%s) / %s memory", r.CPU.Sockets[0].Name, len(r.Memory.Nodes), len(r.CPU.Sockets), numCores, r.CPU.Total, r.CPU.Architecture, units.GetByteSizeStringIEC(memory, 0))

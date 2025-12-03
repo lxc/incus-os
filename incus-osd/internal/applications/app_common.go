@@ -393,7 +393,7 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
 		}
 
-		mode := fs.FileMode(header.Mode) //nolint:gosec
+		mode := fs.FileMode(header.Mode)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
