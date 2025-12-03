@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -36,6 +37,24 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 	}
 
 	certs, _, err := parsedVal.SignatureData()
+
+	// Some consumer-grade manufacturers ship invalid Secure Boot certificates. Unfortunately, sometimes
+	// they are required for hardware such as storage or video cards to work. Since they are already in
+	// the PK/KEK/db EFI variable we still process them, but log a warning each time we do.
+	for _, cert := range certs {
+		if cert.SerialNumber.Sign() < 0 {
+			slog.Warn(fmt.Sprintf("Secure Boot variable '%s' contains invalid certificate '%s': serial number is negative", varName, cert.Subject))
+		}
+
+		switch publicKey := cert.PublicKey.(type) {
+		case *rsa.PublicKey:
+			if publicKey.Size()*8 > 2048 {
+				slog.Warn(fmt.Sprintf("Secure Boot variable '%s' contains invalid certificate '%s': RSA key length %d is greater than 2048 bits", varName, cert.Subject, publicKey.Size()*8))
+			}
+		default:
+			slog.Warn(fmt.Sprintf("Secure Boot variable '%s' contains invalid certificate '%s': expected a RSA key, got %s", varName, cert.Subject, cert.PublicKeyAlgorithm))
+		}
+	}
 
 	return certs, err
 }
