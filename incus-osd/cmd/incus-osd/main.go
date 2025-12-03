@@ -1,3 +1,5 @@
+//go:debug x509negativeserial=1
+
 // Package main is used for the incus-osd daemon.
 package main
 
