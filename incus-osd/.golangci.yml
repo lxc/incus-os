@@ -70,6 +70,8 @@ linters:
       - linters:
           - errcheck
         source: ^\s*defer\s+
+      - path: api/
+        text: "avoid meaningless package names"
       - path: internal/util/
         text: "avoid meaningless package names"
 
