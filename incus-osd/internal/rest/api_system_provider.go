@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -93,26 +94,31 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Load the current provider and deregister it.
-		p, err := providers.Load(r.Context(), s.state)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
+		// If switching providers, unregister from the current one.
+		if newConfig.Config.Name != oldConfig.Name {
+			// Load the current provider and deregister it.
+			p, err := providers.Load(r.Context(), s.state)
+			if err != nil {
+				_ = response.InternalError(err).Render(w)
 
-			return
-		}
+				return
+			}
 
-		err = p.Deregister(r.Context())
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
+			err = p.Deregister(r.Context())
+			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
+				_ = response.InternalError(err).Render(w)
 
-			return
+				return
+			}
+
+			s.state.System.Provider.State.Registered = false
 		}
 
 		// Apply the updated configuration.
 		s.state.System.Provider.Config = newConfig.Config
 
-		// Load the new provider and register it.
-		p, err = providers.Load(r.Context(), s.state)
+		// Load the new provider.
+		p, err := providers.Load(r.Context(), s.state)
 		if err != nil {
 			s.state.System.Provider.Config = oldConfig
 			_ = s.state.Save()
@@ -121,19 +127,33 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = p.Register(r.Context(), false)
-		if err != nil {
-			s.state.System.Provider.Config = oldConfig
-			_ = s.state.Save()
-			_ = response.InternalError(err).Render(w)
+		// If not registered, register now.
+		if !s.state.System.Provider.State.Registered {
+			err = p.Register(r.Context(), false)
+			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
+				s.state.System.Provider.Config = oldConfig
+				_ = s.state.Save()
+				_ = response.InternalError(err).Render(w)
 
-			return
+				return
+			}
+
+			// We've successfully registered.
+			slog.InfoContext(r.Context(), "Server registered with the provider")
+
+			s.state.System.Provider.State.Registered = true
+		} else {
+			// Refresh the registration.
+			err = p.RefreshRegister(r.Context())
+			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
+				s.state.System.Provider.Config = oldConfig
+				_ = s.state.Save()
+				_ = response.InternalError(err).Render(w)
+
+				return
+			}
 		}
 
-		// We've successfully registered.
-		slog.InfoContext(r.Context(), "Server registered with the provider")
-
-		s.state.System.Provider.State.Registered = true
 		_ = s.state.Save()
 
 		_ = response.EmptySyncResponse.Render(w)
