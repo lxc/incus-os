@@ -11,8 +11,20 @@ import (
 
 // SetupChains creates the initial system-wide chains.
 func SetupChains(ctx context.Context) error {
+	// Ensure we have an inet table.
+	_, err := subprocess.RunCommandContext(ctx, "nft", "add", "table", "inet", "incus-osd")
+	if err != nil {
+		return err
+	}
+
+	// Ensure we have an input filtering chain.
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "chain", "inet", "incus-osd", "input", "{ type filter hook input priority 0 ; policy accept ; }")
+	if err != nil {
+		return err
+	}
+
 	// Ensure we have a bridge table.
-	_, err := subprocess.RunCommandContext(ctx, "nft", "add", "table", "bridge", "incus-osd")
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "table", "bridge", "incus-osd")
 	if err != nil {
 		return err
 	}
