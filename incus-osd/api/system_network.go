@@ -38,43 +38,54 @@ type SystemNetworkConfig struct {
 
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
-	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
-	Hwaddr            string               `json:"hwaddr"                        yaml:"hwaddr"`
-	LLDP              bool                 `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
-	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
-	Name              string               `json:"name"                          yaml:"name"`
-	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
-	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
-	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
-	StrictHwaddr      bool                 `json:"strict_hwaddr,omitempty"       yaml:"strict_hwaddr,omitempty"`
-	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
+	Hwaddr            string                      `json:"hwaddr"                        yaml:"hwaddr"`
+	LLDP              bool                        `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
+	MTU               int                         `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
+	Name              string                      `json:"name"                          yaml:"name"`
+	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	StrictHwaddr      bool                        `json:"strict_hwaddr,omitempty"       yaml:"strict_hwaddr,omitempty"`
+	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 }
 
 // SystemNetworkBond contains information about a network bond.
 type SystemNetworkBond struct {
-	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
-	Hwaddr            string               `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
-	LLDP              bool                 `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
-	Members           []string             `json:"members,omitempty"             yaml:"members,omitempty"`
-	Mode              string               `json:"mode"                          yaml:"mode"`
-	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
-	Name              string               `json:"name"                          yaml:"name"`
-	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
-	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
-	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
-	VLANTags          []int                `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
+	Hwaddr            string                      `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
+	LLDP              bool                        `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
+	Members           []string                    `json:"members,omitempty"             yaml:"members,omitempty"`
+	Mode              string                      `json:"mode"                          yaml:"mode"`
+	MTU               int                         `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
+	Name              string                      `json:"name"                          yaml:"name"`
+	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.
 type SystemNetworkVLAN struct {
-	Addresses         []string             `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
-	ID                int                  `json:"id"                            yaml:"id"`
-	MTU               int                  `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
-	Name              string               `json:"name"                          yaml:"name"`
-	Parent            string               `json:"parent"                        yaml:"parent"`
-	RequiredForOnline string               `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
-	Roles             []string             `json:"roles,omitempty"               yaml:"roles,omitempty"`
-	Routes            []SystemNetworkRoute `json:"routes,omitempty"              yaml:"routes,omitempty"`
+	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
+	ID                int                         `json:"id"                            yaml:"id"`
+	MTU               int                         `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
+	Name              string                      `json:"name"                          yaml:"name"`
+	Parent            string                      `json:"parent"                        yaml:"parent"`
+	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+}
+
+// SystemNetworkFirewallRule defines a firewall rule.
+type SystemNetworkFirewallRule struct {
+	Action   string `json:"action"             yaml:"action"`
+	Source   string `json:"source,omitempty"   yaml:"source,omitempty"`
+	Protocol string `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+	Port     int    `json:"port,omitempty"     yaml:"port,omitempty"`
 }
 
 // SystemNetworkRoute defines a route.
