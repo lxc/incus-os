@@ -48,10 +48,14 @@ func CheckSystemRequirements(ctx context.Context) error {
 		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
 	}
 
-	// Check if a TPM device is present and working.
+	// Check if a TPM device, either hardware or swtpm, is present and working. If not, attempt to
+	// initialize swtpm for use on next boot.
 	_, err = subprocess.RunCommandContext(ctx, "tpm2_selftest")
 	if err != nil {
-		return errors.New("no working TPM device found")
+		err := configureSWTPM(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Check if systemd-repart has failed (we're either running from a read-only or a small USB
@@ -552,7 +556,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return err
 	}
 
-	// Finally, run `bootctl install`.
+	// Mount /boot/ for final install steps.
 	err = os.MkdirAll("/boot", 0o755)
 	if err != nil {
 		return err
@@ -563,6 +567,16 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return err
 	}
 
+	// If swtpm state was configured, move it to the ESP partition.
+	_, err = os.Stat("/tmp/swtpm/")
+	if err == nil {
+		_, err = subprocess.RunCommandContext(ctx, "sh", "-c", "mv /tmp/swtpm/ /boot/")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Finally, run `bootctl install`.
 	_, err = subprocess.RunCommandContext(ctx, "bootctl", "install")
 	if err != nil {
 		return err
@@ -753,4 +767,77 @@ func GetPartitionPrefix(device string) string {
 	}
 
 	return ""
+}
+
+// configureSWTPM will configure the swtpm-based TPM. If IncusOS is installing, require that the "UseSWTPM"
+// install seed is set, otherwise return an error. If IncusOS is running live from the USB drive, configure
+// swtpm and immediately reboot so the live system can have a proper TPM.
+func configureSWTPM(ctx context.Context) error {
+	if ShouldPerformInstall() {
+		config, err := seed.GetInstall()
+		if err != nil && !errors.Is(err, io.EOF) {
+			return errors.New("unable to get seed config: " + err.Error())
+		}
+
+		if !config.UseSWTPM {
+			return errors.New("no physical TPM found, and install seed doesn't allow for use of swtpm")
+		}
+
+		slog.WarnContext(ctx, "No physical TPM was found, falling back to swtpm implementation")
+
+		// At the conclusion of the install, the swtpm state will be copied to the new ESP partition.
+		return initializeSWTPM(ctx, "/tmp/swtpm/")
+	}
+
+	_, err := os.Stat("/boot/swtpm/")
+	if err == nil {
+		return errors.New("swtpm was already configured")
+	}
+
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return errors.New("unable to get swtpm state directory: " + err.Error())
+	}
+
+	err = initializeSWTPM(ctx, "/boot/swtpm/")
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "Configuring swtpm-backed TPM on first live boot, restarting in five seconds")
+
+	time.Sleep(5 * time.Second)
+
+	_ = systemd.SystemReboot(ctx)
+
+	return nil
+}
+
+// initializeSWTPM initializes the swtpm state in the given root directory.
+func initializeSWTPM(ctx context.Context, swtpmRoot string) error {
+	// Create the swtpm state directory.
+	err := os.MkdirAll(swtpmRoot, 0o700)
+	if err != nil {
+		return err
+	}
+
+	// Create swtpm_setup config files.
+	err = os.WriteFile("/etc/swtpm_setup.conf", []byte("create_certs_tool = swtpm_localca"), 0o644)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("/etc/swtpm-localca.options", []byte("--platform-manufacturer IncusOS\n--platform-version 1.0\n--platform-model QEMU"), 0o644)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile("/etc/swtpm-localca.conf", []byte("statedir = /tmp/swtpm_localca/\nsigningkey = /tmp/swtpm_localca/signkey.pem\nissuercert = /tmp/swtpm_localca/issuercert.pem\ncertserial = /tmp/swtpm_localca/certserial"), 0o644)
+	if err != nil {
+		return err
+	}
+
+	// Initialize the TPM.
+	_, err = subprocess.RunCommandContext(ctx, "swtpm_setup", "--tpm2", "--tpmstate", swtpmRoot, "--create-ek-cert", "--create-platform-cert", "--lock-nvram")
+
+	return err
 }
