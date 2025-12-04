@@ -19,6 +19,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/proxy"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
@@ -91,6 +92,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	}
 
 	err = waitForUdevInterfaceRename(ctx, expectedNewPhysicalDevices, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	// Apply the ingress firewall rules.
+	err = nftables.ApplyInputFilters(ctx, networkCfg)
 	if err != nil {
 		return err
 	}
