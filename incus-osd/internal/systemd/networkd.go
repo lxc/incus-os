@@ -39,15 +39,21 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		}
 	}
 
-	// Very first, dynamically lookup any MAC address that is referred to by an interface name.
-	// This could be the case when reading in seed data, or if a user provides an interface
-	// name via an API update.
-	err := resolveMACs(ctx, networkCfg)
+	// Validate the new network configuration, allowing for invalid MACs.
+	err := ValidateNetworkConfiguration(networkCfg, false)
 	if err != nil {
 		return err
 	}
 
-	// Validate the new network configuration before proceeding.
+	// Before proceeding, dynamically lookup any MAC address that is referred to by an interface name.
+	// This could be the case when reading in seed data, or if a user provides an interface
+	// name via an API update.
+	err = resolveMACs(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	// Now, perform a strict validation of the new network configuration before proceeding.
 	err = ValidateNetworkConfiguration(networkCfg, true)
 	if err != nil {
 		return err
