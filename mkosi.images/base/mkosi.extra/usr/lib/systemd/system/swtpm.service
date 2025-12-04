@@ -1,0 +1,22 @@
+[Unit]
+Description=Start swtpm
+After=boot.automount
+Before=systemd-cryptsetup@swap.service incus-osd.service
+ConditionPathExists=/boot/swtpm/
+
+[Service]
+Type=exec
+
+ExecStartPre=/usr/sbin/modprobe tpm_vtpm_proxy
+ExecStart=/usr/bin/swtpm chardev --tpm2 --vtpm-proxy --tpmstate dir=/boot/swtpm/
+ExecStartPost=/usr/bin/sleep 1
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=ccfc4bb32888a345bc8aeadaba552b627d99348c767681ab3141f5b01e40a40e
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=10bf8291b8bdc8391316f35017fd39390afb5940533c026bf5b1a6af56c47e4d
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=6aba3bcd12a52c416ad8d11c359346ed0f3aff389d3e0defe7e3747c7fa3ccbe
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=e9241a6fe6ac751ad719186f20b5a9f5fd0a33de0c2d3c4c3c1b51d7cc82aedc
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=9f75b6823bff6af1024a4e2036719cdd548d3cbc2bf1de8e7ef4d0ed01f94bf9
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119
+ExecStartPost=/usr/bin/tpm2_pcrextend 7:sha256=9593f83453cc335aed9727c524af99cdfe50ebef6ddbcd371ed79ef0d2234cba
+
+[Install]
+WantedBy=systemd-cryptsetup@swap.service incus-osd.service
