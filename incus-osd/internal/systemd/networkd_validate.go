@@ -3,6 +3,7 @@ package systemd
 import (
 	"errors"
 	"fmt"
+	"net"
 	"regexp"
 	"slices"
 	"strings"
@@ -23,6 +24,11 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 		}
 
 		err = validateRoles(iface.Roles)
+		if err != nil {
+			return fmt.Errorf("interface %d %s", index, err.Error())
+		}
+
+		err = validateFirewall(iface.FirewallRules)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
@@ -80,6 +86,11 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 		err = validateRoles(bond.Roles)
 		if err != nil {
 			return fmt.Errorf("bond %d %s", index, err.Error())
+		}
+
+		err = validateFirewall(bond.FirewallRules)
+		if err != nil {
+			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
 
 		for addressIndex, address := range bond.Addresses {
@@ -152,6 +163,11 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 		err = validateRoles(vlan.Roles)
 		if err != nil {
 			return fmt.Errorf("vlan %d %s", index, err.Error())
+		}
+
+		err = validateFirewall(vlan.FirewallRules)
+		if err != nil {
+			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
 
 		for addressIndex, address := range vlan.Addresses {
@@ -253,6 +269,57 @@ func validateRoles(roles []string) error {
 		}
 
 		existing = append(existing, role)
+	}
+
+	return nil
+}
+
+func validateFirewall(rules []api.SystemNetworkFirewallRule) error {
+	for _, rule := range rules {
+		// Check the action.
+		if !slices.Contains([]string{"accept", "drop", "reject"}, rule.Action) {
+			return fmt.Errorf("unsupported action %q", rule.Protocol)
+		}
+
+		// Check the protocol.
+		if !slices.Contains([]string{"", "tcp", "udp"}, rule.Protocol) {
+			return fmt.Errorf("unsupported protocol %q", rule.Protocol)
+		}
+
+		// Check the port.
+		if rule.Port < 0 || rule.Port > 65535 {
+			return fmt.Errorf("invalid port %d", rule.Port)
+		}
+
+		// Check that a protocol is specified if a port is.
+		if rule.Port > 0 && rule.Protocol == "" {
+			return errors.New("port specified but no protocol provided")
+		}
+
+		// Check that a port is specified if a protocol is.
+		if rule.Protocol != "" && rule.Port == 0 {
+			return errors.New("protocol specified but no port provided")
+		}
+
+		// Check the address.
+		if rule.Source != "" {
+			var ip net.IP
+
+			if strings.Contains(rule.Source, "/") {
+				var err error
+
+				ip, _, err = net.ParseCIDR(rule.Source)
+				if err != nil {
+					return err
+				}
+			} else {
+				ip = net.ParseIP(rule.Source)
+			}
+
+			if ip == nil {
+				return fmt.Errorf("bad address %q", rule.Source)
+			}
+		}
 	}
 
 	return nil
