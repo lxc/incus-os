@@ -332,6 +332,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
 
+	// Display a warning if we're running with a swtpm-backed TPM.
+	if s.UsingSWTPM {
+		slog.WarnContext(ctx, "No physical TPM found, using swtpm")
+	}
+
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
