@@ -46,7 +46,7 @@ func Enabled() (bool, error) {
 //	   first boot.
 func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile string, usrImageFile string) error {
 	// Pre-checks -- Verify that the TPM event log matches current TPM values.
-	eventLog, err := readTMPEventLog()
+	eventLog, err := readTPMEventLog()
 	if err != nil {
 		return err
 	}

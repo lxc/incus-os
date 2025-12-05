@@ -12,7 +12,7 @@ import (
 
 // TPMStatus returns basic information about the status of the TPM.
 func TPMStatus() string {
-	eventLog, err := readTMPEventLog()
+	eventLog, err := readTPMEventLog()
 	if err != nil {
 		return err.Error()
 	}
@@ -39,8 +39,8 @@ func TPMStatus() string {
 	return "ok"
 }
 
-// readTMPEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
-func readTMPEventLog() ([]tcg.Event, error) {
+// readTPMEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
+func readTPMEventLog() ([]tcg.Event, error) {
 	rawLog, err := os.Open("/sys/kernel/security/tpm0/binary_bios_measurements")
 	if err != nil {
 		return nil, err
