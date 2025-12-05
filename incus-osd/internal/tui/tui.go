@@ -281,6 +281,10 @@ func (t *TUI) redrawScreen() {
 	t.frame.AddText(t.state.OS.Name+" "+t.state.OS.RunningRelease, true, tview.AlignCenter, tcell.ColorWhite)
 	t.frame.AddText(time.Now().Format("2006-01-02 15:04 MST"), true, tview.AlignRight, tcell.ColorWhite)
 
+	if t.state.UsingSWTPM {
+		t.frame.AddText("WARNING: No physical TPM found, using swtpm", true, tview.AlignCenter, tcell.ColorRed)
+	}
+
 	// Don't display footer during install.
 	if !t.state.ShouldPerformInstall {
 		// Get list of applications from state.
