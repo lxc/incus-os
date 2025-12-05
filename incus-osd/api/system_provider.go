@@ -2,8 +2,8 @@ package api
 
 // SystemProviderConfig holds the modifiable part of the provider data.
 type SystemProviderConfig struct {
-	Name   string            `json:"name"   yaml:"name"`
-	Config map[string]string `json:"config" yaml:"config"`
+	Name   string            `json:"name"             yaml:"name"`
+	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 // SystemProviderState holds information about the current provider state.

@@ -24,6 +24,10 @@ type migrationManager struct {
 	common
 }
 
+func (*migrationManager) Name() string {
+	return "migration-manager"
+}
+
 // Start starts the systemd unit.
 func (*migrationManager) Start(ctx context.Context, _ string) error {
 	// Start the unit.

@@ -22,8 +22,16 @@ type incus struct {
 	common
 }
 
+func (*incus) Name() string {
+	return "incus"
+}
+
 type incusCeph struct {
 	common
+}
+
+func (*incusCeph) Name() string {
+	return "incus-ceph"
 }
 
 // GetDependencies returns a list of other applications this application depends on.
@@ -33,6 +41,10 @@ func (*incusCeph) GetDependencies() []string {
 
 type incusLinstor struct {
 	common
+}
+
+func (*incusLinstor) Name() string {
+	return "incus-linstor"
 }
 
 // GetDependencies returns a list of other applications this application depends on.

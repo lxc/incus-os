@@ -274,6 +274,27 @@ func (p *operationsCenter) load(ctx context.Context) error {
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.serverToken = p.state.System.Provider.Config.Config["server_token"]
 
+	// Check if we're running Operations Center locally.
+	app, err := applications.GetPrimary(ctx, p.state)
+	if err != nil && !errors.Is(err, applications.ErrNoPrimary) {
+		return err
+	}
+
+	// Handle local operations center.
+	if app != nil && app.Name() == "operations-center" {
+		p.client.Transport = &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var d net.Dialer
+
+				return d.DialContext(ctx, "unix", "/run/operations-center/unix.socket")
+			},
+		}
+
+		p.serverURL = "http://unix" //nolint:revive
+
+		return nil
+	}
+
 	// Basic validation.
 	if p.serverURL == "" {
 		return errors.New("no operations center URL provided")
@@ -283,10 +304,16 @@ func (p *operationsCenter) load(ctx context.Context) error {
 		return errors.New("no operations center token provided")
 	}
 
+	// Apply the TLS config.
 	return p.loadTLS(ctx)
 }
 
 func (p *operationsCenter) loadTLS(ctx context.Context) error {
+	// Skip for local connections.
+	if p.serverURL == "" {
+		return nil
+	}
+
 	// Prepare the TLS config.
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS13,
