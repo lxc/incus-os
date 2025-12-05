@@ -142,7 +142,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 		// so the error message doesn't flicker off and on, then exit and let systemd start us again.
 		time.Sleep(1 * time.Hour)
 
-		os.Exit(1) //nolint:revive
+		os.Exit(1) //nolint:revive,nolintlint
 	}
 
 	// Warn the user if we failed to read any configuration fields from state.
@@ -273,7 +273,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	return nil
 }
 
-func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:revive
+func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:revive,nolintlint
 	// Save state on exit.
 	defer func() { _ = s.Save() }()
 
@@ -516,7 +516,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		default:
 		}
 
-		os.Exit(0) //nolint:revive
+		os.Exit(0) //nolint:revive,nolintlint
 	}()
 
 	if delayInitialUpdateCheck {
@@ -588,7 +588,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	return nil
 }
 
-func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
+func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive,nolintlint
 	showModalError := func(msg string, err error) {
 		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 
