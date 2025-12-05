@@ -24,6 +24,10 @@ type operationsCenter struct {
 	common
 }
 
+func (*operationsCenter) Name() string {
+	return "operations-center"
+}
+
 // Start starts the systemd unit.
 func (*operationsCenter) Start(ctx context.Context, _ string) error {
 	// Start the unit.

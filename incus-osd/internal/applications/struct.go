@@ -17,6 +17,7 @@ type Application interface { //nolint:interfacebloat
 	Initialize(ctx context.Context) error
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool
+	Name() string
 	NeedsLateUpdateCheck() bool
 	Restart(ctx context.Context, version string) error
 	RestoreBackup(ctx context.Context, archive io.Reader) error

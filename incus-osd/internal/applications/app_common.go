@@ -35,6 +35,10 @@ type common struct {
 	state *state.State
 }
 
+func (*common) Name() string {
+	return ""
+}
+
 // AddTrustedCertificate adds a new trusted certificate to the application.
 func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) error {
 	return errors.New("not supported")
