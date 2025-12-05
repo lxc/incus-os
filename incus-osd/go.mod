@@ -4,9 +4,9 @@ go 1.24.7
 
 require (
 	github.com/FuturFusion/migration-manager v0.1.0
-	github.com/FuturFusion/operations-center v0.0.0-20251201082332-743198c3dfe7
+	github.com/FuturFusion/operations-center v0.0.0-20251204171005-94a19448ff38
 	github.com/cavaliergopher/cpio v1.0.1
-	github.com/gdamore/tcell/v2 v2.13.1
+	github.com/gdamore/tcell/v2 v2.13.2
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/uuid v1.6.0
@@ -15,7 +15,7 @@ require (
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	golang.org/x/sys v0.38.0
@@ -80,7 +80,7 @@ require (
 	github.com/vbatts/go-mtree v0.6.1-0.20250911112631-8307d76bc1b9 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zitadel/logging v0.6.2 // indirect
-	github.com/zitadel/oidc/v3 v3.45.0 // indirect
+	github.com/zitadel/oidc/v3 v3.45.1 // indirect
 	github.com/zitadel/schema v1.3.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
