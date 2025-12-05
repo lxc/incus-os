@@ -179,7 +179,7 @@
         ]
     },
     "terraform-provider-incus": {
-        "version": "1.0.0",
+        "version": "1.0.1",
         "repo": "https://github.com/lxc/terraform-provider-incus.git",
         "build_targets": [
             [
