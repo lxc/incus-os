@@ -12,14 +12,14 @@ type Application interface { //nolint:interfacebloat
 	FactoryReset(ctx context.Context) error
 	GetBackup(archive io.Writer, complete bool) error
 	GetClientCertificate() (*tls.Certificate, error)
-	GetServerCertificate() (*tls.Certificate, error)
 	GetDependencies() []string
+	GetServerCertificate() (*tls.Certificate, error)
 	Initialize(ctx context.Context) error
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool
 	NeedsLateUpdateCheck() bool
-	RestoreBackup(ctx context.Context, archive io.Reader) error
 	Restart(ctx context.Context, version string) error
+	RestoreBackup(ctx context.Context, archive io.Reader) error
 	Start(ctx context.Context, version string) error
 	Stop(ctx context.Context, version string) error
 	Update(ctx context.Context, version string) error
