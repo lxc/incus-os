@@ -2,6 +2,7 @@ package secureboot
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +38,23 @@ func TPMStatus() string {
 	}
 
 	return "ok"
+}
+
+// GetSWTPMInUse returns a boolean indicating if a swtpm-backed TPM is running.
+func GetSWTPMInUse() (bool, error) {
+	// Check if a swtpm state directory exists.
+	_, err := os.Stat("/boot/swtpm/")
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	// TODO check the TPM manufacturer data to determine if this is an IncusOS created TPM
+
+	return true, nil
 }
 
 // readTMPEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
