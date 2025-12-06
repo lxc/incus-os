@@ -390,3 +390,29 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"local","type":"zfs","encryption_key":""" + '"' + encryption_key + '"}')
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+
+def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
+    test_name = "incusos-api-system-storage-local-pool-scrub"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version)
+
+        # Get current storage state.
+        result = vm.APIRequest("/1.0/system/storage")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        # TODO: check the status of the scrub
+
+        # Scrub the pool
+        result = vm.APIRequest("/1.0/system/storage/:scrub-pool", method="POST", body="""{"name":"local"}""")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        # TODO: check the status of the scrub

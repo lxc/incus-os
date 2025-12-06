@@ -810,3 +810,22 @@ func DestroyDataset(ctx context.Context, poolName string, name string, force boo
 
 	return err
 }
+
+// ScrubZpool scrubs the specified pool.
+func ScrubZpool(ctx context.Context, poolName string) error {
+	// Check if the zpool exists.
+	if !storage.PoolExists(ctx, poolName) {
+		return errors.New("zpool '" + poolName + "' doesn't exist")
+	}
+
+	// TODO: check scrub status. We should be able to detect that a scrub is already
+	// in progress and provide a better error message to the user.
+
+	// Perform the scrub.
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "scrub", poolName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
