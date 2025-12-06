@@ -42,18 +42,27 @@ system to facilitate debugging of the system:
 
     incus exec test-incus-os bash
 
-You can also easily side-load a custom `incus-osd` binary into the virtual machine:
+You can also easily side-load a custom `incus-osd` binary into the virtual machine.
+Execution from the root disk isn't allowed, so a memory file system is required:
+
+    incus exec test-incus-os -- mkdir -p /root/dev/
+    incus exec test-incus-os -- mount -t tmpfs tmpfs /root/dev/
+
+Once that's in place, you can build the new binary:
 
     cd ./incus-osd/
     go build ./cmd/incus-osd/
-    incus file push ./incus-osd test-incus-os/root/
 
-Then `exec` into the virtual machine, stop the main `incus-osd` service and run the local copy:
+And finally put it in place and have the system run it:
 
-    incus exec test-incus-os bash
-    systemctl stop incus-osd
-    mount -o bind /root/incus-osd /usr/local/bin/incus-osd
-    systemctl start incus-osd
+    incus exec test-incus-os -- umount -l /usr/local/bin/incus-osd || true
+    incus exec test-incus-os -- rm -f /root/dev/incus-osd
+    incus file push ./incus-osd test-incus-os/root/dev/
+    incus exec test-incus-os -- mount -o bind /root/dev/incus-osd /usr/local/bin/incus-osd
+    incus exec test-incus-os -- pkill -9 incus-osd
+
+Those last two steps can be repeated every time you want to build and run a new binary.
+The first step must be run every time the system is restarted.
 
 When debugging, it's a good idea to install the `debug` application which contains a variety of useful tools, including a basic text editor (`nano`).
 
