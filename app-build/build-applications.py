@@ -20,8 +20,12 @@ with open("applications.json", "r") as f:
 
 images = [
     ["base", ["incus-osd", "kpx", "tailscale"]],
-    ["migration-manager", ["migration-manager"]],
+    ["migration-manager", [
+        "lego",
+        "migration-manager"]
+    ],
     ["operations-center", [
+        "lego",
         "opentofu",
         "operations-center",
         "terraform-provider-incus",
@@ -107,7 +111,7 @@ def create_application_manifest(artifact, version):
     }
 
     for target in applications[artifact]["install_targets"]:
-        manifest["installed_artifacts"].append(os.path.join("/", target[1], target[0]))
+        manifest["installed_artifacts"].append(os.path.join("/", target[1], os.path.basename(target[0])))
 
     direct_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if not (or .Indirect .Main)}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
     for line in direct_deps.split("\n"):

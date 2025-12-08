@@ -36,6 +36,28 @@
             "usr/local/bin/kpx"
         ]
     },
+    "lego": {
+        "version": "4.29.0",
+        "repo": "https://github.com/go-acme/lego.git",
+        "build_targets": [
+            [
+                "-o",
+                "dist/lego",
+                "-ldflags",
+                "-X main.version=@VERSION@",
+                "./cmd/lego"
+            ]
+        ],
+        "install_targets": [
+            [
+                "dist/lego",
+                "usr/local/bin/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/local/bin/lego"
+        ]
+    },
     "migration-manager": {
         "version": "0.1.0",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
@@ -146,7 +168,7 @@
         ]
     },
     "tailscale": {
-        "version": "1.92.0",
+        "version": "1.92.1",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
