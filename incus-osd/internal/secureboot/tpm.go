@@ -41,15 +41,28 @@ func TPMStatus() string {
 
 // readTPMEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
 func readTPMEventLog() ([]tcg.Event, error) {
+	var buf []byte
+
+	var err error
+
 	rawLog, err := os.Open("/sys/kernel/security/tpm0/binary_bios_measurements")
 	if err != nil {
-		return nil, err
-	}
-	defer rawLog.Close()
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 
-	buf, err := io.ReadAll(rawLog)
-	if err != nil {
-		return nil, err
+		// Fallback to a synthesized TPM event log for swtpm.
+		buf, err = SynthesizeTPMEventLog()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		defer rawLog.Close()
+
+		buf, err = io.ReadAll(rawLog)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log, err := tcg.ParseEventLog(buf, tcg.ParseOpts{})
