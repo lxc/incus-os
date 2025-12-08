@@ -121,8 +121,8 @@ func main() {
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
-		// Sleep for a second to allow output buffers to flush.
-		time.Sleep(1 * time.Second)
+		// Allow time for the error message to be read before the daemon restarts.
+		time.Sleep(15 * time.Second)
 
 		os.Exit(1)
 	}

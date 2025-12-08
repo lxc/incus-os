@@ -415,8 +415,8 @@ func EarlyError(msg string) {
 		_ = tview.NewApplication().SetScreen(screen).SetRoot(textView, true).Run()
 	}()
 
-	// Give the error a chance to render.
-	time.Sleep(1 * time.Second)
+	// Allow time for the error message to be read before the daemon restarts.
+	time.Sleep(15 * time.Second)
 }
 
 func getMachineInfo(r *api.Resources) string {
