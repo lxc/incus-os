@@ -136,9 +136,17 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Register.
-	resp, err := p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.state.System.Provider.Config.Config["server_token"], bytes.NewReader(data))
-	if err != nil {
-		return err
+	var resp *api.Response
+	if p.state.System.Provider.Config.Config["server_token"] != "" {
+		resp, err = p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.state.System.Provider.Config.Config["server_token"], bytes.NewReader(data))
+		if err != nil {
+			return err
+		}
+	} else {
+		resp, err = p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers/:self_register", bytes.NewReader(data))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Parse the response.
@@ -156,9 +164,11 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Get the server certificate.
-	err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.Certificate)
-	if err != nil {
-		return err
+	if registrationResp.Certificate != "" {
+		err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.Certificate)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
