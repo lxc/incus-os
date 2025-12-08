@@ -37,6 +37,12 @@ func TPMStatus() string {
 		return TPMPCRMismatch
 	}
 
+	if GetSWTPMInUse() {
+		// We have a swtpm TPM in a good state.
+		return "swtpm"
+	}
+
+	// We have a physical TPM in a good state.
 	return "ok"
 }
 
