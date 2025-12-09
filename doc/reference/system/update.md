@@ -8,6 +8,8 @@ When an OS update is installed, IncusOS will display a message on the console th
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemUpdateConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_update.go).
+
 The following configuration options can be set:
 
 * `auto_reboot`: If `true`, IncusOS will automatically restart itself after applying an update. Note that this will cause some period of service interruption for any applications running on that server while it reboots. (IncusOS will always automatically reboot if it applies an update on system boot.)

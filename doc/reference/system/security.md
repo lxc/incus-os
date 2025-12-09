@@ -12,6 +12,8 @@ incus admin os system security show
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemSecurityConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_security.go).
+
 The following configuration options can be set:
 
 * `encryption_recovery_keys`: An array of one or more encryption recovery keys for the IncusOS main system drive. At least one recovery key must always be provided, but no length or complexity policy is enforced by IncusOS. Any existing recovery key(s) not present in the array will be removed, and any new key(s) will be added.

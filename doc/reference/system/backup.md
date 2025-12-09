@@ -52,6 +52,8 @@ User-created storage pools will be untouched, but will be unable to be imported 
 
 ### Configuration options
 
+Configuration fields are defined in the [`SystemReset` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_reset.go).
+
 The following configuration options can be set when performing a factory reset:
 
 * `allow_tpm_reset_failure`: If `true`, ignore failures when resetting TPM state.

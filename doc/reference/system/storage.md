@@ -14,6 +14,8 @@ This prevents the accidental leakage of sensitive data from an encrypted pool to
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemStorageConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go).
+
 The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
