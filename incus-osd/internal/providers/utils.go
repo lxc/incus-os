@@ -14,6 +14,13 @@ import (
 )
 
 func downloadAsset(ctx context.Context, client *http.Client, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
+	// Remove the target file, if it exists. If we don't, truncating the existing file causes spurious
+	// kernel log messages about verity device-mapper corrupted data blocks for sysext images.
+	err := os.Remove(target)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
 	if err != nil {
