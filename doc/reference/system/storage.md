@@ -14,9 +14,15 @@ This prevents the accidental leakage of sensitive data from an encrypted pool to
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemStorageConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go).
+
 The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
+
+```{note}
+When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
+```
 
 ### Examples
 
@@ -24,13 +30,26 @@ Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device
 
 ```
 {
+  "config": {
     "pools": [
-        {"name":"mypool",
-         "type":"zfs-raidz1",
-         "devices":["/dev/sdb","/dev/sdc","/dev/sdd","/dev/sde"],
-         "cache":["/dev/sdf"],
-         "log":["/dev/sdg"]}
+      {
+        "name": "mypool",
+        "type": "zfs-raidz1",
+        "devices": [
+          "/dev/sdb",
+          "/dev/sdc",
+          "/dev/sdd",
+          "/dev/sde"
+        ],
+        "cache": [
+          "/dev/sdf"
+        ],
+        "log": [
+          "/dev/sdg"
+        ]
+      }
     ]
+  }
 }
 ```
 
@@ -38,13 +57,26 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 
 ```
 {
+  "config": {
     "pools": [
-        {"name":"mypool",
-         "type":"zfs-raidz1",
-         "devices":["/dev/sdh","/dev/sdc","/dev/sdd","/dev/sde"],
-         "cache":["/dev/sdf"],
-         "log":["/dev/sdg"]}
+      {
+        "name": "mypool",
+        "type": "zfs-raidz1",
+        "devices": [
+          "/dev/sdh",
+          "/dev/sdc",
+          "/dev/sdd",
+          "/dev/sde"
+        ],
+        "cache": [
+          "/dev/sdf"
+        ],
+        "log": [
+          "/dev/sdg"
+        ]
+      }
     ]
+  }
 }
 ```
 

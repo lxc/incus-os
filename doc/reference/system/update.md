@@ -8,6 +8,8 @@ When an OS update is installed, IncusOS will display a message on the console th
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemUpdateConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_update.go).
+
 The following configuration options can be set:
 
 * `auto_reboot`: If `true`, IncusOS will automatically restart itself after applying an update. Note that this will cause some period of service interruption for any applications running on that server while it reboots. (IncusOS will always automatically reboot if it applies an update on system boot.)
@@ -28,10 +30,16 @@ Allow updates daily each night between 10pm - 6am:
 
 ```
 {
-    "start_hour": 22,
-    "start_minute": 0,
-    "end_hour": 6,
-    "end_minute": 0
+  "config": {
+    "maintenance_windows": [
+      {
+        "start_hour": 22,
+        "start_minute": 0,
+        "end_hour": 6,
+        "end_minute": 0
+      }
+    ]
+  }
 }
 ```
 
@@ -39,12 +47,18 @@ Allow updates only on the weekend:
 
 ```
 {
-    "start_day_of_week": "Saturday",
-    "start_hour": 0,
-    "start_minute": 0,
-    "end_day_of_week": "Sunday",
-    "end_hour": 23,
-    "end_minute": 59
+  "config": {
+    "maintenance_windows": [
+      {
+        "start_day_of_week": "Saturday",
+        "start_hour": 0,
+        "start_minute": 0,
+        "end_day_of_week": "Sunday",
+        "end_hour": 23,
+        "end_minute": 59
+      }
+    ]
+  }
 }
 ```
 

@@ -1,6 +1,6 @@
 # Operations Center
 
-The Operations Center application includes the current development release of [Operations Center](https://github.com/FuturFusion/operations-center).
+The Operations Center application includes the latest tagged release of [Operations Center](https://github.com/FuturFusion/operations-center).
 
 At least one trusted client certificate must be provided in the Operations Center seed, otherwise it will be impossible to authenticate to any API endpoint or the web UI post-install.
 

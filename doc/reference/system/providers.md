@@ -8,6 +8,8 @@ IncusOS receives [updates](update.md) from the currently configured provider. Tw
 
 ## Configuration options
 
+Configuration fields are defined in the [`SystemProviderConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_provider.go).
+
 The following configuration options can be set:
 
 * `name`: The name of the provider. One of `images`, `operations-center`, or `local`. `local` is intended for use by developers working on IncusOS.
