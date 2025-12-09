@@ -1,6 +1,6 @@
 # Migration Manager
 
-The Migration Manager application includes the current development release of [Migration Manager](https://github.com/FuturFusion/migration-manager).
+The Migration Manager application includes the latest tagged release of [Migration Manager](https://github.com/FuturFusion/migration-manager).
 
 At least one trusted client certificate must be provided in the Migration Manger seed, otherwise it will be impossible to authenticate to any API endpoint or the web UI post-install.
 
