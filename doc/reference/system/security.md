@@ -16,7 +16,11 @@ Configuration fields are defined in the [`SystemSecurityConfig` struct](https://
 
 The following configuration options can be set:
 
-* `encryption_recovery_keys`: An array of one or more encryption recovery keys for the IncusOS main system drive. At least one recovery key must always be provided, but no length or complexity policy is enforced by IncusOS. Any existing recovery key(s) not present in the array will be removed, and any new key(s) will be added.
+* `encryption_recovery_keys`: An array of one or more encryption recovery keys for the IncusOS main system drive. At least one recovery key must always be provided. Any existing recovery key(s) not present in the array will be removed, and any new key(s) will be added. A very simple complexity policy is enforced by IncusOS:
+   * At least 15 characters long
+   * Contain at least one special character
+   * Consist of at least five unique characters
+   * Some other simple complexity checks are applied, and any encryption recovery key that doesn't pass will be rejected with an error
 
 ## Resetting TPM bindings
 
