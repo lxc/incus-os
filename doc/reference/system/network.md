@@ -60,14 +60,24 @@ Configure two network interfaces, one with IPv4 and the other with IPv6:
 
 ```
 {
+  "config": {
     "interfaces": [
-        {"name": "ip4iface",
-         "hwaddr": "enp5s0",
-         "addresses": ["dhcp4"]},
-        {"name": "ip6iface",
-         "hwaddr": "enp6s0",
-         "addresses": ["slaac"]}
+      {
+        "name": "ip4iface",
+        "hwaddr": "enp5s0",
+        "addresses": [
+          "dhcp4"
+        ]
+      },
+      {
+        "name": "ip6iface",
+        "hwaddr": "enp6s0",
+        "addresses": [
+          "slaac"
+        ]
+      }
     ]
+  }
 }
 ```
 
@@ -75,18 +85,33 @@ Configure a network interface with two static IP addresses. When specifying a st
 
 ```
 {
+  "config": {
     "interfaces": [
-        {"name": "enp5s0",
-         "hwaddr": "enp5s0",
-         "addresses": ["10.234.136.100/24", "fd42:3cfb:8972:3990::100/64"],
-         "routes": [
-             {"to":"0.0.0.0/0", "via":"10.234.136.1"},
-             {"to":"::/0", "via":"fd42:3cfb:8972:3990::1"}
-         ]}
+      {
+        "name": "enp5s0",
+        "hwaddr": "enp5s0",
+        "addresses": [
+          "10.234.136.100/24",
+          "fd42:3cfb:8972:3990::100/64"
+        ],
+        "routes": [
+          {
+            "to": "0.0.0.0/0",
+            "via": "10.234.136.1"
+          },
+          {
+            "to": "::/0",
+            "via": "fd42:3cfb:8972:3990::1"
+          }
+        ]
+      }
     ],
     "dns": {
-        "nameservers": ["10.234.136.1"]
+      "nameservers": [
+        "10.234.136.1"
+      ]
     }
+  }
 }
 ```
 
@@ -96,22 +121,35 @@ Configure a VLAN with ID 123 on top of an active-backup bond composed of two int
 
 ```
 {
+  "config": {
     "bonds": [
-        {"name": "management",
-         "mode": "active-backup",
-         "mtu": 9000,
-         "lldp": true,
-         "members": ["enp5s0", "enp6s0"],
-         "roles": ["management", "interfaces"]
-        }
+      {
+        "name": "management",
+        "mode": "active-backup",
+        "mtu": 9000,
+        "lldp": true,
+        "members": [
+          "enp5s0",
+          "enp6s0"
+        ],
+        "roles": [
+          "management",
+          "interfaces"
+        ]
+      }
     ],
     "vlans": [
-        {"name": "uplink",
-         "parent": "management",
-         "id": 123,
-         "addresses": ["dhcp4", "slaac"]
-        }
+      {
+        "name": "uplink",
+        "parent": "management",
+        "id": 123,
+        "addresses": [
+          "dhcp4",
+          "slaac"
+        ]
+      }
     ]
+  }
 }
 ```
 
@@ -121,16 +159,26 @@ Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```
 {
+  "config": {
     "dns": {
-        "hostname": "server01",
-        "domain": "example.com",
-        "search_domains": ["example.com", "example.org"],
-        "nameservers": ["ns1.example.com", "ns2.example.com"]
+      "hostname": "server01",
+      "domain": "example.com",
+      "search_domains": [
+        "example.com",
+        "example.org"
+      ],
+      "nameservers": [
+        "ns1.example.com",
+        "ns2.example.com"
+      ]
     },
     "time": {
-        "ntp_servers": ["ntp.example.com"],
-        "timezone": "America/New_York"
+      "ntp_servers": [
+        "ntp.example.com"
+      ],
+      "timezone": "America/New_York"
     }
+  }
 }
 ```
 
@@ -140,14 +188,16 @@ Configure a simple anonymous HTTP(S) proxy for IncusOS:
 
 ```
 {
+  "config": {
     "proxy": {
-        "servers": {
-            "example-proxy": {
-                "host": "proxy.example.com:8080",
-                "auth": "anonymous"
-            }
+      "servers": {
+        "example-proxy": {
+          "host": "proxy.example.com:8080",
+          "auth": "anonymous"
         }
+      }
     }
+  }
 }
 ```
 
@@ -155,25 +205,33 @@ Configure an authenticated HTTP(S) proxy with an exception for `*.example.com` a
 
 ```
 {
+  "config": {
     "proxy": {
-        "servers": {
-            "example-proxy": {
-                "host": "proxy.example.com:8080",
-                "use_tls": true,
-                "auth": "basic",
-                "username": "myuser",
-                "password": "mypassword"
-            }
+      "servers": {
+        "example-proxy": {
+          "host": "proxy.example.com:8080",
+          "use_tls": true,
+          "auth": "basic",
+          "username": "myuser",
+          "password": "mypassword"
+        }
+      },
+      "rules": [
+        {
+          "destination": "*.example.com|example.com",
+          "target": "direct"
         },
-        "rules": [
-            {"destination": "*.example.com|example.com",
-             "target": "direct"},
-            {"destination": "*.bad-domain.hacker|bad-domain.hacker",
-             "target": "none"},
-            {"destination": "*",
-             "target": "example-proxy"}
-        ]
+        {
+          "destination": "*.bad-domain.hacker|bad-domain.hacker",
+          "target": "none"
+        },
+        {
+          "destination": "*",
+          "target": "example-proxy"
+        }
+      ]
     }
+  }
 }
 ```
 
@@ -181,17 +239,19 @@ Configure an authenticated HTTP(S) proxy that relies on Kerberos authentication 
 
 ```
 {
+  "config": {
     "proxy": {
-        "servers": {
-            "example-proxy": {
-                "host": "proxy.example.com:8080",
-                "use_tls": true,
-                "auth": "kerberos",
-                "realm": "auth.example.com",
-                "username": "myuser",
-                "password": "mypassword"
-            }
+      "servers": {
+        "example-proxy": {
+          "host": "proxy.example.com:8080",
+          "use_tls": true,
+          "auth": "kerberos",
+          "realm": "auth.example.com",
+          "username": "myuser",
+          "password": "mypassword"
         }
+      }
     }
+  }
 }
 ```

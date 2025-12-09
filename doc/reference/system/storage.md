@@ -26,13 +26,26 @@ Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device
 
 ```
 {
+  "config": {
     "pools": [
-        {"name":"mypool",
-         "type":"zfs-raidz1",
-         "devices":["/dev/sdb","/dev/sdc","/dev/sdd","/dev/sde"],
-         "cache":["/dev/sdf"],
-         "log":["/dev/sdg"]}
+      {
+        "name": "mypool",
+        "type": "zfs-raidz1",
+        "devices": [
+          "/dev/sdb",
+          "/dev/sdc",
+          "/dev/sdd",
+          "/dev/sde"
+        ],
+        "cache": [
+          "/dev/sdf"
+        ],
+        "log": [
+          "/dev/sdg"
+        ]
+      }
     ]
+  }
 }
 ```
 
@@ -40,13 +53,26 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 
 ```
 {
+  "config": {
     "pools": [
-        {"name":"mypool",
-         "type":"zfs-raidz1",
-         "devices":["/dev/sdh","/dev/sdc","/dev/sdd","/dev/sde"],
-         "cache":["/dev/sdf"],
-         "log":["/dev/sdg"]}
+      {
+        "name": "mypool",
+        "type": "zfs-raidz1",
+        "devices": [
+          "/dev/sdh",
+          "/dev/sdc",
+          "/dev/sdd",
+          "/dev/sde"
+        ],
+        "cache": [
+          "/dev/sdf"
+        ],
+        "log": [
+          "/dev/sdg"
+        ]
+      }
     ]
+  }
 }
 ```
 
