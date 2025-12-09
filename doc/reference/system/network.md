@@ -45,7 +45,7 @@ The following configuration options can be set:
 
 * `time`: Optionally, configure custom NTP server(s) and timezone for the system.
 
-## Firewall
+### Firewall
 
 IncusOS supports a basic ingress firewall on its interfaces.
 This is done by setting the `firewall_rules` option to a list of rules (action, source address, protocol and port).
