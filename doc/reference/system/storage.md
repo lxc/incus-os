@@ -20,6 +20,10 @@ The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
 
+```{note}
+When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
+```
+
 ### Examples
 
 Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device:
