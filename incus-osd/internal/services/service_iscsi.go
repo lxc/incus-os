@@ -89,11 +89,8 @@ func (n *ISCSI) Stop(ctx context.Context) error {
 			portal = fmt.Sprintf("%s:%d", portal, target.Port)
 		}
 
-		// Logout from the target.
-		_, err := subprocess.RunCommandContext(ctx, "iscsiadm", "-m", "node", "-T", target.Target, "-p", portal, "--logout")
-		if err != nil {
-			return err
-		}
+		// Attempt logout from the target.
+		_, _ = subprocess.RunCommandContext(ctx, "iscsiadm", "-m", "node", "-T", target.Target, "-p", portal, "--logout")
 	}
 
 	// Stop the systemd unit.
