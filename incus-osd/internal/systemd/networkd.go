@@ -689,7 +689,7 @@ func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []string
 		}
 
 		// Trigger udev rule update to pickup device names.
-		_, err := subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add")
+		_, err := subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add", "--subsystem-match=net")
 		if err != nil {
 			return err
 		}
