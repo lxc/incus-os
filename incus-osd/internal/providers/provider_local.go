@@ -190,6 +190,13 @@ func (p *local) checkRelease(_ context.Context) error {
 }
 
 func (p *local) copyAsset(_ context.Context, name string, targetPath string, progressFunc func(float64)) error {
+	// Remove the target file, if it exists. If we don't, truncating the existing file causes spurious
+	// kernel log messages about verity device-mapper corrupted data blocks for sysext images.
+	err := os.Remove(filepath.Join(targetPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	// Open the source.
 	// #nosec G304
 	src, err := os.Open(filepath.Join(p.path, name))

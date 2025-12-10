@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -39,7 +40,7 @@ func RefreshExtensions(ctx context.Context) error {
 // RemoveExtension removes the specified system extension layer.
 func RemoveExtension(ctx context.Context, name string) error {
 	// Remove the sysext image.
-	err := os.Remove("/var/lib/extensions/" + name + ".raw")
+	err := os.Remove(filepath.Join(SystemExtensionsPath, name+".raw"))
 	if err != nil {
 		return err
 	}
