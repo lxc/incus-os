@@ -7,10 +7,10 @@ DefaultDependencies=no
 [Service]
 Type=oneshot
 
-Environment=MSG="@OSNAME@ is starting..."
+Environment=OS_NAME="@OSNAME@"
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
-ExecStart=/bin/sh -c "for TTY in $TTYS; do echo $MSG > $TTY || true; done"
+ExecStart=/usr/bin/initrd-boot-message.sh
 
 [Install]
 WantedBy=veritysetup.target
