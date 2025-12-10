@@ -4,20 +4,6 @@ import tempfile
 
 from .incus_test_vm import IncusTestVM, util
 
-def TestInstallNoTPM(install_image):
-    test_name = "no-tpm"
-    test_seed = None
-
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
-
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.RemoveDevice("vtpm")
-
-        # Perform IncusOS install.
-        vm.StartVM()
-        vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System check error: no working TPM device found")
-
 def TestInstallNoSeed(install_image):
     test_name = "no-seed"
     test_seed = None

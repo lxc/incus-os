@@ -1,2 +1,2 @@
-usr/lib/systemd/system/initrd-message.service usr/lib/systemd/system/veritysetup.target.wants/initrd-message.service
+usr/lib/systemd/system/initrd-boot-message.service usr/lib/systemd/system/veritysetup.target.wants/initrd-boot-message.service
 usr/lib/systemd/system/initrd-show-devices.service usr/lib/systemd/system/emergency.target.wants/initrd-show-devices.service

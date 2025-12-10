@@ -28,7 +28,7 @@ generate-manifests:
 .PHONY: initrd-deb-package
 initrd-deb-package:
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
-	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-message.service.in initrd-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-message.service && debuild)
+	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service && debuild)
 	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
           mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \
           mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.substvars mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root/ \
