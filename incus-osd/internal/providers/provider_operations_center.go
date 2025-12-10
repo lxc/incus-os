@@ -66,7 +66,7 @@ type operationsCenter struct {
 
 func (p *operationsCenter) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.lastCheck = time.Now()
+	p.lastCheck = time.Time{}
 
 	return nil
 }

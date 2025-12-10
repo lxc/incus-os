@@ -33,7 +33,7 @@ type images struct {
 
 func (p *images) ClearCache(_ context.Context) error {
 	// Reset the last check time.
-	p.lastCheck = time.Now()
+	p.lastCheck = time.Time{}
 
 	return nil
 }
