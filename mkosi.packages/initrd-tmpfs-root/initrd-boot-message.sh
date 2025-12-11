@@ -37,7 +37,6 @@ if [ -e /sys/class/tpm/tpm0/tpm_version_major ]; then
     fi
 else
     for TTY in $TTYS; do
-        echo "\033[31mNo TPM detected. $OS_NAME cannot start without a TPM.\033[0m" > "$TTY" || true
+        echo "\033[0;33mNo TPM detected. $OS_NAME will attempt to fall back to a less-secure swtpm implementation.\033[0m" > "$TTY" || true
     done
-    sleep 3600
 fi
