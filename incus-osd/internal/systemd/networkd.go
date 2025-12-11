@@ -1391,6 +1391,8 @@ func generateLinkSectionContents(addresses []string, requiredForOnline string) s
 }
 
 func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, newCfg *api.SystemNetworkConfig) error {
+	deleteInterfaces := []string{}
+
 	// Check for changed/deleted interfaces.
 	for oldIndex := range oldCfg.Interfaces {
 		newIndex := slices.IndexFunc(newCfg.Interfaces, func(i api.SystemNetworkInterface) bool {
@@ -1399,7 +1401,7 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 
 		// If not found, remove the existing interface (either deleted, or the device is now a bond or vlan).
 		if newIndex < 0 {
-			deleteNetworkDevice(ctx, "_v"+oldCfg.Interfaces[oldIndex].Name, oldCfg.Interfaces[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, "_v"+oldCfg.Interfaces[oldIndex].Name, oldCfg.Interfaces[oldIndex].Name)
 
 			continue
 		}
@@ -1416,7 +1418,11 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		if !bytes.Equal(oldConfig, newConfig) {
-			deleteNetworkDevice(ctx, "_v"+oldCfg.Interfaces[oldIndex].Name, oldCfg.Interfaces[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, "_v"+oldCfg.Interfaces[oldIndex].Name)
+
+			if !isBridgeInUse(oldCfg.Interfaces[oldIndex].Name) {
+				deleteInterfaces = append(deleteInterfaces, oldCfg.Interfaces[oldIndex].Name)
+			}
 
 			continue
 		}
@@ -1430,7 +1436,7 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 
 		// If not found, remove the existing bond (either deleted, or the device is now an interface or vlan).
 		if newIndex < 0 {
-			deleteNetworkDevice(ctx, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name, oldCfg.Bonds[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name, oldCfg.Bonds[oldIndex].Name)
 
 			continue
 		}
@@ -1447,7 +1453,11 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		if !bytes.Equal(oldConfig, newConfig) {
-			deleteNetworkDevice(ctx, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name, oldCfg.Bonds[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, "_b"+oldCfg.Bonds[oldIndex].Name, "_v"+oldCfg.Bonds[oldIndex].Name)
+
+			if !isBridgeInUse(oldCfg.Bonds[oldIndex].Name) {
+				deleteInterfaces = append(deleteInterfaces, oldCfg.Bonds[oldIndex].Name)
+			}
 
 			continue
 		}
@@ -1461,7 +1471,7 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 
 		// If not found, remove the existing vlan (either deleted, or the device is now an interface or bond).
 		if newIndex < 0 {
-			deleteNetworkDevice(ctx, oldCfg.VLANs[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, oldCfg.VLANs[oldIndex].Name)
 
 			continue
 		}
@@ -1478,13 +1488,48 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		if !bytes.Equal(oldConfig, newConfig) {
-			deleteNetworkDevice(ctx, oldCfg.VLANs[oldIndex].Name)
+			deleteInterfaces = append(deleteInterfaces, oldCfg.VLANs[oldIndex].Name)
 
 			continue
 		}
 	}
 
+	// Delete all the interfaces.
+	if len(deleteInterfaces) > 0 {
+		deleteNetworkDevice(ctx, deleteInterfaces...)
+	}
+
 	return nil
+}
+
+// isBridgeInUse checks if a bridge exists and only contains internal ports.
+func isBridgeInUse(device string) bool {
+	entries, err := os.ReadDir(filepath.Join("/sys/class/net", device))
+	if err != nil {
+		// Not an active interface.
+		return false
+	}
+
+	isBridge := false
+	isUsed := false
+
+	for _, entry := range entries {
+		name := entry.Name()
+
+		if name == "bridge" && entry.IsDir() {
+			isBridge = true
+
+			continue
+		}
+
+		if strings.HasPrefix(name, "lower_") && !strings.HasPrefix(name, "lower__") {
+			isUsed = true
+
+			break
+		}
+	}
+
+	return isBridge && isUsed
 }
 
 func deleteNetworkDevice(ctx context.Context, devices ...string) {
