@@ -2,6 +2,7 @@ package secureboot
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +38,23 @@ func TPMStatus() string {
 	}
 
 	return "ok"
+}
+
+// GetSWTPMInUse returns a boolean indicating if a swtpm-backed TPM is running.
+func GetSWTPMInUse() bool {
+	// If a kernel TPM event log exists, that means we have a real TPM.
+	_, err := os.Stat("/sys/kernel/security/tpm0/binary_bios_measurements")
+	if err == nil {
+		return false
+	}
+
+	// If a swtpm state directory exists, the swtpm service should be running.
+	_, err = os.Stat("/boot/swtpm/")
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	return true
 }
 
 // readTPMEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
