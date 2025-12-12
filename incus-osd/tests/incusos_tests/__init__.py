@@ -3,8 +3,8 @@ from inspect import getmembers, isfunction
 from . import tests_flasher_tool, tests_incusos_api, tests_incusos_api_applications, tests_incusos_api_debug, \
     tests_incusos_api_services, tests_incusos_api_system, tests_incusos_api_system_logging, tests_incusos_api_system_provider, \
     tests_incusos_api_system_resources, tests_incusos_api_system_security, tests_incusos_api_system_storage_import_pool, \
-    tests_incusos_api_system_storage_local_pool, tests_install_smoke, tests_install_system_checks, tests_seed_applications, \
-    tests_seed_install, tests_upgrade
+    tests_incusos_api_system_storage_local_pool, tests_incusos_live, tests_install_smoke, tests_install_system_checks, \
+    tests_seed_applications, tests_seed_install, tests_upgrade
 
 class IncusOSTests:
     def __init__(self, prior_image_img, current_image_img, current_image_iso):
@@ -32,6 +32,9 @@ class IncusOSTests:
 
             # Basic install seed tests
             tests_seed_install,
+
+            # Test running IncusOS live from a large enough drive
+            tests_incusos_live,
 
             # IncusOS API tests
             tests_incusos_api,
