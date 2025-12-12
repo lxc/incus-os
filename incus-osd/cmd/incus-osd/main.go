@@ -84,6 +84,13 @@ func main() {
 
 	// Record if the system is relying on a swtpm-backed TPM.
 	s.UsingSWTPM = secureboot.GetSWTPMInUse()
+	if s.UsingSWTPM {
+		err := secureboot.BlowTrustedFuse()
+		if err != nil {
+			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			os.Exit(1)
+		}
+	}
 
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
