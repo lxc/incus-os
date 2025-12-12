@@ -287,6 +287,12 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 		return err
 	}
 
+	// Check if we're locally registered with it.
+	if oc.state.System.Provider.State.Registered && (oc.state.System.Provider.Config.Config == nil || oc.state.System.Provider.Config.Config["server_url"] == "") {
+		oc.state.System.Provider.State.Registered = false
+		oc.state.System.Provider.Config.Config = map[string]string{}
+	}
+
 	// Start the application.
 	err = oc.Start(ctx, "")
 	if err != nil {
