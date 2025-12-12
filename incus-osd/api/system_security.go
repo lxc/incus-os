@@ -8,6 +8,7 @@ type SystemSecurityState struct {
 	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 	TPMStatus                       string                                `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
 	PoolRecoveryKeys                map[string]string                     `incusos:"-"                               json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
+	SystemStateIsTrusted            bool                                  `incusos:"-"                               json:"system_state_is_trusted"            yaml:"system_state_is_trusted"`
 }
 
 // SystemSecurityConfig holds additional security configuration settings.

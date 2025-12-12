@@ -18,6 +18,9 @@ def TestIncusOSAPISystemSecurity(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
+        if result["metadata"]["state"]["tpm_status"] != "ok":
+            raise IncusOSException("tpm_status != ok, got " + result["metadata"]["state"]["tpm_status"])
+
         if len(result["metadata"]["config"]["encryption_recovery_keys"]) != 1:
             raise IncusOSException("expected exactly one encryption recovery key")
 

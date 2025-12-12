@@ -82,6 +82,16 @@ func main() {
 	s.OS.Name = osName
 	s.OS.RunningRelease = osRelease
 
+	// Record if the system is relying on a swtpm-backed TPM.
+	s.UsingSWTPM = secureboot.GetSWTPMInUse()
+	if s.UsingSWTPM {
+		err := secureboot.BlowTrustedFuse()
+		if err != nil {
+			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			os.Exit(1)
+		}
+	}
+
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
@@ -321,6 +331,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
+
+	// Display a warning if we're running with a swtpm-backed TPM.
+	if s.UsingSWTPM {
+		slog.WarnContext(ctx, "No physical TPM found, using swtpm")
+	}
 
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
