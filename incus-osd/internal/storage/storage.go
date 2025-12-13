@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
@@ -30,9 +31,46 @@ type LsblkOutput struct {
 	BlockDevices []BlockDevices `json:"blockdevices"`
 }
 
+// ZpoolScrubState represents the scrub state of a pool.
+type ZpoolScrubState string
+
+const (
+	// ZpoolNone represents the empty state for a ZpoolScrubState.
+	ZpoolNone ZpoolScrubState = ""
+	// ZpoolScanning represents that the zpool scrub is in progress.
+	ZpoolScanning ZpoolScrubState = "SCANNING"
+	// ZpoolFinished represents that the zpool scrub has finished.
+	ZpoolFinished ZpoolScrubState = "FINISHED"
+)
+
+var zpoolToScrubStateMap = map[ZpoolScrubState]api.SystemStoragePoolScrubState{
+	ZpoolScanning: api.ScrubInProgress,
+	ZpoolFinished: api.ScrubFinished,
+}
+
+func zpoolScrubStateToPoolScrubState(state ZpoolScrubState) api.SystemStoragePoolScrubState {
+	if mapped, ok := zpoolToScrubStateMap[state]; ok {
+		return mapped
+	}
+
+	return api.ScrubUnknown
+}
+
+// ErrScrubAlreadyInProgress is returned if a scrub is requested for a pool that already has one in progress.
+var ErrScrubAlreadyInProgress = errors.New("scrub already in progress")
+
 type zpoolStatusPartialParse struct {
 	Pools map[string]struct {
-		State string `json:"state"`
+		State     string `json:"state"`
+		ScanStats struct {
+			Function  string          `json:"function"`
+			State     ZpoolScrubState `json:"state"`
+			StartTime int             `json:"start_time"`
+			EndTime   int             `json:"end_time"`
+			ToExamine int             `json:"to_examine"`
+			Examined  int             `json:"examined"`
+			Errors    int             `json:"errors"`
+		} `json:"scan_stats"`
 		Vdevs map[string]struct {
 			Vdevs map[string]struct {
 				VdevType   string `json:"vdev_type"`
@@ -391,8 +429,16 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	slices.Sort(zpoolDevices["cache_degraded"])
 
 	return api.SystemStoragePool{
-		Name:                      zpoolName,
-		State:                     zpoolJSON.Pools[zpoolName].State,
+		Name:  zpoolName,
+		State: zpoolJSON.Pools[zpoolName].State,
+		LastScrub: api.SystemStoragePoolScrubStatus{
+			State:          zpoolScrubStateToPoolScrubState(zpoolJSON.Pools[zpoolName].ScanStats.State),
+			StartTime:      time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.StartTime), 0),
+			EndTime:        time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.EndTime), 0),
+			ToExamineBytes: zpoolJSON.Pools[zpoolName].ScanStats.ToExamine,
+			ExaminedBytes:  zpoolJSON.Pools[zpoolName].ScanStats.Examined,
+			Errors:         zpoolJSON.Pools[zpoolName].ScanStats.Errors,
+		},
 		EncryptionKeyStatus:       zpoolKeyStatus,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
