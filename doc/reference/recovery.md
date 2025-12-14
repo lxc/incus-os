@@ -41,7 +41,7 @@ If your install drive fails, sorry but there's not much that can be done other t
 new install. :(
 
 If a drive in a storage pool fails, and the pool has sufficient redundancy, you can
-remove the failed drive and replace it with a new one via the API. The underling pool driver
+remove the failed drive and replace it with a new one via the API. The underlying pool driver
 will begin data recovery process(es), which you can monitor via querying the status of the
 storage endpoint.
 

@@ -24,7 +24,7 @@ The following configuration options can be set:
 
 ## Resetting TPM bindings
 
-If IncusOS fails to automatically unlock the main system drive, after booing using a recovery key, it is possible to forcefully reset the TPM bindings:
+If IncusOS fails to automatically unlock the main system drive, after booting using a recovery key, it is possible to forcefully reset the TPM bindings:
 
 ```
 incus admin os system security tpm-rebind
