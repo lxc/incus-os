@@ -548,7 +548,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 			continue
 		}
 
-		file.url = p.serverURL + "/1.0/provisioning/updates/" + updates[0].UUID + "/files/" + file.Filename
+		file.url = p.serverURL + "/1.0/provisioning/updates/" + latestUpdate.UUID + "/files/" + file.Filename
 		latestUpdateFiles = append(latestUpdateFiles, file)
 	}
 
