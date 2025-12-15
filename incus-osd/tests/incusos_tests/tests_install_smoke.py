@@ -34,6 +34,9 @@ def TestBaselineInstall(install_image):
     with IncusTestVM(test_name, test_image) as vm:
         vm.WaitSystemReady(incusos_version, source="/dev/(sdb|mapper/sr0)")
 
+        # Shouldn't see any mention of swtpm with a physical TPM
+        vm.LogDoesntContain("incus-osd", "No physical TPM found, using swtpm")
+
 def TestBaselineInstallNVME(install_image):
     test_name = "baseline-install-nvme"
     test_seed = {
@@ -46,3 +49,6 @@ def TestBaselineInstallNVME(install_image):
         vm.SetDeviceProperty("root", "io.bus=nvme")
 
         vm.WaitSystemReady(incusos_version, source="/dev/(sda|mapper/sr0)", target="/dev/nvme0n1")
+
+        # Shouldn't see any mention of swtpm with a physical TPM
+        vm.LogDoesntContain("incus-osd", "No physical TPM found, using swtpm")
