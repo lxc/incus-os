@@ -11,8 +11,9 @@ Applications </reference/applications>
 Services </reference/services>
 System configuration </reference/system>
 API </reference/api>
+Installing without a TPM </reference/installing-without-tpm>
 Partitioning scheme </reference/partitioning-scheme>
 Recovery </reference/recovery>
-Seed </reference/seed>
 Security </reference/security>
+Seed </reference/seed>
 ```
