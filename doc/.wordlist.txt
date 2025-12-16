@@ -25,6 +25,7 @@ FuturFusion
 GiB
 Github
 homelab
+hotfix
 HTTPS
 Incus
 IncusOS
@@ -92,6 +93,7 @@ Uncheck
 Unencrypted
 unencrypted
 unmanaged
+Unmount
 USBIP
 VirtIO
 VirtualBox
