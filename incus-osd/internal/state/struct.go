@@ -41,6 +41,7 @@ type State struct {
 	TriggerUpdate   chan bool  `json:"-"`
 
 	SecureBoot SecureBoot `json:"secure_boot"`
+	UsingSWTPM bool       `json:"using_swtpm"`
 
 	Applications map[string]api.Application `json:"applications"`
 

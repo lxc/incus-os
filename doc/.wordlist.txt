@@ -24,6 +24,7 @@ Furo
 FuturFusion
 GiB
 Github
+homelab
 HTTPS
 Incus
 IncusOS
@@ -69,6 +70,7 @@ proxied
 Proxmox
 Proxmox's
 raidz
+RaspberryPi
 resilver
 RSA
 SLAAC

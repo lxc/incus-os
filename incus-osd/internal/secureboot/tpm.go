@@ -2,6 +2,7 @@ package secureboot
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +13,7 @@ import (
 
 // TPMStatus returns basic information about the status of the TPM.
 func TPMStatus() string {
-	eventLog, err := readTMPEventLog()
+	eventLog, err := readTPMEventLog()
 	if err != nil {
 		return err.Error()
 	}
@@ -36,20 +37,56 @@ func TPMStatus() string {
 		return TPMPCRMismatch
 	}
 
+	if GetSWTPMInUse() {
+		// We have a swtpm TPM in a good state.
+		return "swtpm"
+	}
+
+	// We have a physical TPM in a good state.
 	return "ok"
 }
 
-// readTMPEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
-func readTMPEventLog() ([]tcg.Event, error) {
+// GetSWTPMInUse returns a boolean indicating if a swtpm-backed TPM is running.
+func GetSWTPMInUse() bool {
+	// If a kernel TPM event log exists, that means we have a real TPM.
+	_, err := os.Stat("/sys/kernel/security/tpm0/binary_bios_measurements")
+	if err == nil {
+		return false
+	}
+
+	// If a swtpm state directory exists, the swtpm service should be running.
+	_, err = os.Stat("/boot/swtpm/")
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	return true
+}
+
+// readTPMEventLog reads the raw TPM measurements and returns a parsed array of Events with SHA256 hashes.
+func readTPMEventLog() ([]tcg.Event, error) {
+	var buf []byte
+
+	var err error
+
 	rawLog, err := os.Open("/sys/kernel/security/tpm0/binary_bios_measurements")
 	if err != nil {
-		return nil, err
-	}
-	defer rawLog.Close()
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 
-	buf, err := io.ReadAll(rawLog)
-	if err != nil {
-		return nil, err
+		// Fallback to a synthesized TPM event log for swtpm.
+		buf, err = SynthesizeTPMEventLog()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		defer rawLog.Close()
+
+		buf, err = io.ReadAll(rawLog)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log, err := tcg.ParseEventLog(buf, tcg.ParseOpts{})

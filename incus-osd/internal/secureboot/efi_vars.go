@@ -227,7 +227,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	// Get and verify the current PCR7 state.
-	eventLog, err := readTMPEventLog()
+	eventLog, err := readTPMEventLog()
 	if err != nil {
 		return err
 	}
@@ -417,6 +417,8 @@ func efiVariableToFilename(variableName string) (string, error) {
 		return "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f", nil
 	case "dbx":
 		return "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f", nil
+	case "LoaderEntrySelected":
+		return "/sys/firmware/efi/efivars/LoaderEntrySelected-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f", nil
 	default:
 		return "", fmt.Errorf("unsupported EFI variable '%s'", variableName)
 	}
