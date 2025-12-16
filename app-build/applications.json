@@ -59,7 +59,7 @@
         ]
     },
     "migration-manager": {
-        "version": "0.1.0",
+        "version": "0.2.0",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -108,7 +108,7 @@
         ]
     },
     "opentofu": {
-        "version": "1.10.7",
+        "version": "1.11.1",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -126,7 +126,7 @@
         ]
     },
     "operations-center": {
-        "version": "main",
+        "version": "0.1.0",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
@@ -168,7 +168,7 @@
         ]
     },
     "tailscale": {
-        "version": "1.92.1",
+        "version": "1.92.3",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
