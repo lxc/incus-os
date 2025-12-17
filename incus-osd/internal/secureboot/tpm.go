@@ -102,22 +102,39 @@ func readTPMEventLog() ([]tcg.Event, error) {
 func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	var err error
 
-	// Playback the log and compute the resulting PCR7 value.
+	// Playback the log and compute the resulting PCR4 and PCR7 values.
+	untrustedPCR4Digest := make([]byte, 32)
 	untrustedPCR7Digest := make([]byte, 32)
 
 	for _, e := range eventLog {
-		if e.Index == 7 { // We only care about PCR7.
+		switch e.Index {
+		case 4:
+			untrustedPCR4Digest, err = extendPCRValue(untrustedPCR4Digest, e.ReplayedDigest(), false)
+			if err != nil {
+				return err
+			}
+		case 7:
 			untrustedPCR7Digest, err = extendPCRValue(untrustedPCR7Digest, e.ReplayedDigest(), false)
 			if err != nil {
 				return err
 			}
+		default: // Ignore all other PCRs.
 		}
 	}
 
-	// Get the current PCR7 value from the TPM.
+	// Get the current PCR4 and PCR7 values from the TPM.
+	actualPCR4, err := readPCR("4")
+	if err != nil {
+		return err
+	}
+
 	actualPCR7, err := readPCR("7")
 	if err != nil {
 		return err
+	}
+
+	if !bytes.Equal(actualPCR4, untrustedPCR4Digest) {
+		return fmt.Errorf("computed PCR4 (%x) doesn't match actual value (%x)", untrustedPCR4Digest, actualPCR4)
 	}
 
 	if !bytes.Equal(actualPCR7, untrustedPCR7Digest) {
