@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/foxboron/go-uefi/authenticode"
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/smallstep/pkcs7"
@@ -115,6 +116,96 @@ func readPCR(index string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(string(actualPCRBuf))
+}
+
+// computeNewPCR4Value will compute the future PCR4 value after the systemd-boot or UKI EFI images are updated.
+// IMPORTANT: It is assumed that the provided TPM event log has already been validated.
+func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, error) {
+	actualPCR4Buf := make([]byte, 32)
+
+	for _, e := range eventLog {
+		// We only care about PCR4.
+		if e.Index == 4 { //nolint:nestif
+			switch e.Type { //nolint:exhaustive
+			case tcg.EFIBootServicesApplication:
+				// Boot services application's data is an array of DevicePaths, but the digest is the hash of the
+				// authenticode for the referenced PE binary.
+				r := bytes.NewReader(e.Data)
+
+				efiImageLoad, err := tcg.ParseEFIImageLoad(r)
+				if err != nil {
+					return nil, err
+				}
+
+				devPaths, err := efiImageLoad.DevicePath()
+				if err != nil {
+					return nil, err
+				}
+
+				foundPE := false
+
+				// Iterate through the device paths for this event, until we get to the actual PE binary.
+				for _, dev := range devPaths {
+					if dev.Type == tcg.MediaDevice && dev.Subtype == 4 {
+						peName, err := util.UTF16ToString(dev.Data)
+						if err != nil {
+							return nil, err
+						}
+
+						// Convert the EFI-style path to the real path.
+						peName = "/boot" + strings.ReplaceAll(peName, "\\", "/")
+
+						// If the PE binary is the UKI, override the filename with the one provided.
+						// This is needed when computing PCR4 for a new OS update.
+						if strings.HasPrefix(peName, "/boot/EFI/Linux/") {
+							peName = newUkiImage
+						}
+
+						// Open the PE binary from disk and compute its authenticode.
+						peFile, err := os.Open(peName) //nolint:gosec
+						if err != nil {
+							return nil, err
+						}
+						defer peFile.Close() //nolint:revive
+
+						authenticodeContents, err := authenticode.Parse(peFile)
+						if err != nil {
+							return nil, err
+						}
+
+						// Extend the PCR4 value.
+						actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, authenticodeContents.Hash(crypto.SHA256), false)
+						if err != nil {
+							return nil, err
+						}
+
+						foundPE = true
+
+						break
+					}
+				}
+
+				// When Secure Boot is disabled, there seems to be some sort of raw EFIBootServicesApplication measurement after PCR11 measures
+				// the UKI's various sections. Since there's no actual PE binary for this, re-use the existing digest from the event log.
+				if !foundPE {
+					actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, e.ReplayedDigest(), false)
+					if err != nil {
+						return nil, err
+					}
+				}
+			default:
+				// For all other types, re-use the existing digest from the event log.
+				var err error
+
+				actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, e.ReplayedDigest(), false)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	return actualPCR4Buf, nil
 }
 
 // computeNewPCR7Value will compute the future PCR7 value after the KEK, db, and/or dbx EFI variables are updated.
