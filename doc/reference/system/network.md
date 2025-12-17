@@ -19,7 +19,8 @@ Each interface, bond or VLAN can be assigned one or more _roles_, which are used
 * `management`: The device is used for management
 * `storage`: The device is used for network-attached storage connectivity
 
-By default, the `cluster` and `management` roles will be assigned.
+IncusOS will automatically assign the `cluster` and `management` roles to all interfaces if no roles have been manually configured.
+If only the `management` role has been assigned, then the `cluster` role will automatically be assigned to the same interfaces.
 
 ## Configuration options
 
