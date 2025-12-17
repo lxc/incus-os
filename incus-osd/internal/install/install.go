@@ -20,6 +20,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -54,10 +55,10 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
 	}
 
 	// Check if Secure Boot is enabled.
-	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
+	sbEnabled, err := secureboot.Enabled()
 	if err != nil {
 		return err
-	} else if !strings.Contains(output, "Secure Boot: enabled") {
+	} else if !sbEnabled {
 		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
 	}
 
