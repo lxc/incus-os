@@ -61,7 +61,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 	// Get the current PCR7 value directly from the TPM. Don't bother replaying the event log and computing the value,
 	// since it should be the same.
-	pcr7, err := readPCR7()
+	pcr7, err := readPCR("7")
 	if err != nil {
 		return err
 	}
@@ -97,24 +97,24 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	return nil
 }
 
-// readPCR7 returns the current PCR7 value from the TPM.
-func readPCR7() ([]byte, error) {
-	pcr7File, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/7")
+// readPCR returns the current PCR value from the TPM.
+func readPCR(index string) ([]byte, error) {
+	pcrFile, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/" + index) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	defer pcr7File.Close()
+	defer pcrFile.Close()
 
-	actualPCR7Buf := make([]byte, 64)
+	actualPCRBuf := make([]byte, 64)
 
-	numBytes, err := io.ReadFull(pcr7File, actualPCR7Buf)
+	numBytes, err := io.ReadFull(pcrFile, actualPCRBuf)
 	if err != nil {
 		return nil, err
 	} else if numBytes != 64 {
-		return nil, fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/7", numBytes)
+		return nil, fmt.Errorf("only read %d bytes from /sys/class/tpm/tpm0/pcr-sha256/"+index, numBytes)
 	}
 
-	return hex.DecodeString(string(actualPCR7Buf))
+	return hex.DecodeString(string(actualPCRBuf))
 }
 
 // computeNewPCR7Value will compute the future PCR7 value after the KEK, db, and/or dbx EFI variables are updated.
