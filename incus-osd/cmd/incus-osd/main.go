@@ -140,7 +140,7 @@ func main() {
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	// Verify that the system meets minimum requirements for running IncusOS.
-	err := install.CheckSystemRequirements(ctx)
+	err := install.CheckSystemRequirements(ctx, t)
 	if err != nil {
 		modal := t.AddModal(s.OS.Name, "system-check")
 		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
