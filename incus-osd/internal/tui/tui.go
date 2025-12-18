@@ -285,6 +285,10 @@ func (t *TUI) redrawScreen() {
 		t.frame.AddText("WARNING: Degraded security state: no physical TPM found, using swtpm", true, tview.AlignCenter, tcell.ColorRed)
 	}
 
+	if t.state.SecureBootDisabled {
+		t.frame.AddText("WARNING: Degraded security state: Secure Boot is disabled", true, tview.AlignCenter, tcell.ColorRed)
+	}
+
 	// Don't display footer during install.
 	if !t.state.ShouldPerformInstall {
 		// Get list of applications from state.
