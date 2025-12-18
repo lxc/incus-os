@@ -41,7 +41,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		return err
 	}
 
-	atLeastOneVolumeNeedsFixing := false
+	/* atLeastOneVolumeNeedsFixing := false
 
 	for volumeName, volumeDev := range luksVolumes {
 		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
@@ -54,7 +54,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 	if !atLeastOneVolumeNeedsFixing {
 		return errors.New("refusing to reset TPM encryption bindings because current state can unlock all volumes")
-	}
+	} */
 
 	// WARNING: here be dragons as we're going to be blindly trusting inputs that in theory could be attacker-controlled.
 
