@@ -40,8 +40,9 @@ type State struct {
 	TriggerShutdown chan error `json:"-"`
 	TriggerUpdate   chan bool  `json:"-"`
 
-	SecureBoot SecureBoot `json:"secure_boot"`
-	UsingSWTPM bool       `json:"using_swtpm"`
+	SecureBoot         SecureBoot `json:"secure_boot"`
+	UsingSWTPM         bool       `json:"using_swtpm"`
+	SecureBootDisabled bool       `json:"secure_boot_disabled"`
 
 	Applications map[string]api.Application `json:"applications"`
 
