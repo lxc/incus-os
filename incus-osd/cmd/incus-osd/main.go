@@ -334,7 +334,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	// Display a warning if we're running with a swtpm-backed TPM.
 	if s.UsingSWTPM {
-		slog.WarnContext(ctx, "No physical TPM found, using swtpm")
+		slog.WarnContext(ctx, "Degraded security state: no physical TPM found, using swtpm")
 	}
 
 	// Display a warning if we're running from the backup image.
