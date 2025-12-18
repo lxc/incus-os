@@ -16,7 +16,7 @@ def TestInstallNoTPMNoSWTPM(install_image):
         # Verify we get expected error
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "no physical TPM found, and install seed doesn't allow for use of swtpm")
+        vm.WaitExpectedLog("incus-osd", "no working TPM found, and install seed doesn't allow for use of swtpm")
 
 def TestInstallUseSWTPM(install_image):
     test_name = "use-swtpm"
@@ -32,7 +32,7 @@ def TestInstallUseSWTPM(install_image):
         vm.WaitSystemReady(incusos_version)
 
         # Should see a log message about swtpm
-        vm.WaitExpectedLog("incus-osd", "No physical TPM found, using swtpm")
+        vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
 
         # Check some PCR values: expect PCR0 to be empty with swtpm, while PCR7 and PCR11 should have non-zero values
         result = vm.RunCommand("tpm2_pcrread", "sha256:0")
