@@ -102,6 +102,23 @@ func main() {
 		}
 	}
 
+	// Record if the system has booted with Secure Boot disabled.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		tui.EarlyError("unable to check Secure Boot state: " + err.Error())
+		os.Exit(1)
+	}
+
+	s.SecureBootDisabled = !sbEnabled
+
+	if s.SecureBootDisabled {
+		err := secureboot.BlowTrustedFuse()
+		if err != nil {
+			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			os.Exit(1)
+		}
+	}
+
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
