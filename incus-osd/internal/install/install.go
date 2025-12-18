@@ -769,9 +769,9 @@ func GetPartitionPrefix(device string) string {
 	return ""
 }
 
-// configureSWTPM will configure the swtpm-based TPM. If IncusOS is installing, require that the "UseSWTPM"
-// install seed is set, otherwise return an error. If IncusOS is running live from the USB drive, configure
-// swtpm and immediately reboot so the live system can have a proper TPM.
+// configureSWTPM will configure the swtpm-based TPM. If IncusOS is installing, require that the
+// "Security.MissingTPM" install seed is set, otherwise return an error. If IncusOS is running live
+// from the USB drive, configure swtpm and immediately reboot so the live system can have a proper TPM.
 func configureSWTPM(ctx context.Context) error {
 	if ShouldPerformInstall() {
 		config, err := seed.GetInstall()
@@ -779,7 +779,7 @@ func configureSWTPM(ctx context.Context) error {
 			return errors.New("unable to get seed config: " + err.Error())
 		}
 
-		if !config.UseSWTPM {
+		if config.Security != nil && config.Security.MissingTPM {
 			return errors.New("no physical TPM found, and install seed doesn't allow for use of swtpm")
 		}
 
