@@ -141,6 +141,17 @@ func PerformOSFactoryReset(ctx context.Context, resetSeed *api.SystemReset) erro
 		}
 	}
 
+	// Fourth, clear any swtpm or Secure Boot state information from /boot/.
+	err = os.RemoveAll("/boot/swtpm/")
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll("/boot/sb-disabled")
+	if err != nil {
+		return err
+	}
+
 	// Finally, sync disks and immediately reboot the system.
 	unix.Sync()
 
