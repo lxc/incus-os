@@ -147,6 +147,22 @@ func (a *incus) Initialize(ctx context.Context) error {
 		}
 	}
 
+	// Set listen address if not set.
+	conf, etag, err := c.GetServer()
+	if err != nil {
+		return err
+	}
+
+	_, ok := conf.Config["core.https_address"]
+	if !ok {
+		conf.Config["core.https_address"] = ":8443"
+
+		err = c.UpdateServer(conf.Writable(), etag)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -195,22 +211,6 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 	c, err := incusclient.ConnectIncusUnix("", nil)
 	if err != nil {
 		return err
-	}
-
-	// Set listen address if not set.
-	conf, etag, err := c.GetServer()
-	if err != nil {
-		return err
-	}
-
-	_, ok := conf.Config["core.https_address"]
-	if !ok {
-		conf.Config["core.https_address"] = ":8443"
-
-		err = c.UpdateServer(conf.Writable(), etag)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Add the certificate.
