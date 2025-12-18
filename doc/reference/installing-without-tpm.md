@@ -22,7 +22,7 @@ Any IncusOS system that has ever booted with a software-backed TPM will permanen
 
 ## Install seed
 
-When configuring the IncusOS [install seed](./seed.md), set the `use_swtpm` field to `true`. This will cause IncusOS to configure a software TPM during installation. This option will only take affect if no physical TPM is detected.
+When configuring the IncusOS [install seed](./seed.md), set the `security.missing_tpm` field to `true`. This will cause IncusOS to configure a software TPM during installation. This option will only take affect if no physical TPM is detected.
 
 ## Running off a live USB drive
 
