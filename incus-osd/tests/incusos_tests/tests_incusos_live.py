@@ -25,7 +25,7 @@ def TestIncusOSLive(install_image):
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
         # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "No physical TPM found, using swtpm")
+        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
 
 def TestIncusOSLiveSWTPM(install_image):
     test_name = "incusos-live-swtpm"
@@ -54,6 +54,6 @@ def TestIncusOSLiveSWTPM(install_image):
         time.sleep(10)
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "No physical TPM found, using swtpm")
+        vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)

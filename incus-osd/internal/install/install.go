@@ -39,7 +39,20 @@ var cdromMappedDevice = "/dev/mapper/sr0"
 var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running IncusOS.
-func CheckSystemRequirements(ctx context.Context) error {
+func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
+	// Get the install seed, if it exists.
+	installSeed, err := seed.GetInstall()
+	if err != nil && !seed.IsMissing(err) && !errors.Is(err, io.EOF) {
+		return errors.New("unable to get install seed: " + err.Error())
+	}
+
+	// Validate that the install seed, if present, doesn't attempt to disable both Secure Boot and TPM requirements.
+	if installSeed != nil && installSeed.Security != nil {
+		if installSeed.Security.MissingTPM && installSeed.Security.MissingSecureBoot {
+			return errors.New("install seed cannot enable both Secure Boot and TPM degraded security options")
+		}
+	}
+
 	// Check if Secure Boot is enabled.
 	output, err := subprocess.RunCommandContext(ctx, "bootctl", "status")
 	if err != nil {
@@ -51,8 +64,18 @@ func CheckSystemRequirements(ctx context.Context) error {
 	// Check if a TPM device, either hardware or swtpm, is present and working. If not, attempt to
 	// initialize swtpm for use on next boot.
 	_, err = subprocess.RunCommandContext(ctx, "tpm2_selftest")
-	if err != nil {
-		err := configureSWTPM(ctx)
+	if err == nil {
+		// Return an error if there's a working TPM but the install seed wants to configure swtpm.
+		if installSeed != nil && installSeed.Security != nil && installSeed.Security.MissingTPM {
+			return errors.New("a working TPM was found, but install seed wants to configure a swtpm-backed TPM")
+		}
+	} else {
+		// Return an error if there's no working TPM and the install seed doesn't allow using swtpm.
+		if installSeed != nil && (installSeed.Security == nil || !installSeed.Security.MissingTPM) {
+			return errors.New("no working TPM found, and install seed doesn't allow for use of swtpm")
+		}
+
+		err := configureSWTPM(ctx, t, installSeed != nil)
 		if err != nil {
 			return err
 		}
@@ -66,7 +89,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 	}
 
 	// Perform install-specific checks.
-	if ShouldPerformInstall() { //nolint:nestif
+	if installSeed != nil { //nolint:nestif
 		// Check that we have either been told what target device to use, or that we can automatically figure it out.
 		source, _, err := getSourceDevice(ctx)
 		if err != nil {
@@ -76,11 +99,6 @@ func CheckSystemRequirements(ctx context.Context) error {
 		targets, err := getAllTargets(ctx, source)
 		if err != nil {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
-		}
-
-		config, err := seed.GetInstall()
-		if err != nil && !errors.Is(err, io.EOF) {
-			return errors.New("unable to get seed config: " + err.Error())
 		}
 
 		// Sanity check: if we're not running from a CDROM, ensure that the default install media seed partition
@@ -102,7 +120,7 @@ func CheckSystemRequirements(ctx context.Context) error {
 			}
 		}
 
-		targetDevice, targetDeviceSize, err := getTargetDevice(targets, config.Target)
+		targetDevice, targetDeviceSize, err := getTargetDevice(targets, installSeed.Target)
 		if err != nil {
 			devices := []string{}
 			for _, t := range targets {
@@ -769,22 +787,13 @@ func GetPartitionPrefix(device string) string {
 	return ""
 }
 
-// configureSWTPM will configure the swtpm-based TPM. If IncusOS is installing, require that the "UseSWTPM"
-// install seed is set, otherwise return an error. If IncusOS is running live from the USB drive, configure
-// swtpm and immediately reboot so the live system can have a proper TPM.
-func configureSWTPM(ctx context.Context) error {
-	if ShouldPerformInstall() {
-		config, err := seed.GetInstall()
-		if err != nil && !errors.Is(err, io.EOF) {
-			return errors.New("unable to get seed config: " + err.Error())
-		}
+// configureSWTPM will configure the swtpm-based TPM after displaying a warning modal. If
+// IncusOS is running live from the USB drive, configure swtpm and immediately reboot so the
+// live system can have a proper TPM.
+func configureSWTPM(ctx context.Context, t *tui.TUI, isInstall bool) error {
+	displayDegradedSecurityWarning(t, "A software-backed TPM")
 
-		if !config.UseSWTPM {
-			return errors.New("no physical TPM found, and install seed doesn't allow for use of swtpm")
-		}
-
-		slog.WarnContext(ctx, "No physical TPM was found, falling back to swtpm implementation")
-
+	if isInstall {
 		// At the conclusion of the install, the swtpm state will be copied to the new ESP partition.
 		return initializeSWTPM(ctx, "/tmp/swtpm/")
 	}
@@ -840,4 +849,16 @@ func initializeSWTPM(ctx context.Context, swtpmRoot string) error {
 	_, err = subprocess.RunCommandContext(ctx, "swtpm_setup", "--tpm2", "--tpmstate", swtpmRoot, "--create-ek-cert", "--create-platform-cert", "--lock-nvram")
 
 	return err
+}
+
+func displayDegradedSecurityWarning(t *tui.TUI, msg string) {
+	modal := t.AddModal("Degraded security warning", "degraded-security-warning")
+
+	for i := range 30 {
+		modal.Update(fmt.Sprintf("[red]WARNING:[white] %s will result in a degraded security state.\nContinuing in %d seconds...", msg, 30-i))
+
+		time.Sleep(1 * time.Second)
+	}
+
+	modal.Done()
 }
