@@ -384,6 +384,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		slog.WarnContext(ctx, "Degraded security state: no physical TPM found, using swtpm")
 	}
 
+	// Display a warning if Secure Boot is disabled.
+	if s.SecureBootDisabled {
+		slog.WarnContext(ctx, "Degraded security state: Secure Boot is disabled")
+	}
+
 	// Display a warning if we're running from the backup image.
 	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
