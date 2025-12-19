@@ -91,6 +91,16 @@ func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error)
 	dbUpdates := make(map[string][]byte)
 	dbxUpdates := make(map[string][]byte)
 
+	// Determine Secure Boot state.
+	sbEnabled, err := Enabled()
+	if err != nil {
+		return false, err
+	}
+
+	if !sbEnabled {
+		return false, errors.New("Secure Boot is disabled, refusing to attempt a certificate update") //nolint:staticcheck
+	}
+
 	// #nosec G304
 	archive, err := os.Open(tarArchive)
 	if err != nil {
