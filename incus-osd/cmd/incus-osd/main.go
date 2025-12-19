@@ -122,11 +122,11 @@ func main() {
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
-	// If this is the system's first boot, set the timezone.
-	if !s.ShouldPerformInstall && s.System.Network.Config == nil {
-		err := setTimezone(ctx)
+	// Perform first-boot actions, if needed.
+	if !s.OS.SuccessfulBoot && !s.ShouldPerformInstall && s.System.Network.Config == nil {
+		err := firstBootActions(ctx, s)
 		if err != nil {
-			tui.EarlyError("unable to set timezone: " + err.Error())
+			tui.EarlyError("unable to perform first boot actions: " + err.Error())
 			os.Exit(1)
 		}
 	}
@@ -163,6 +163,20 @@ func main() {
 
 		os.Exit(1)
 	}
+}
+
+func firstBootActions(ctx context.Context, s *state.State) error {
+	// If Secure Boot is disabled, on first boot update the encryption bindings to
+	// use both PCRs 4 and 7.
+	if s.SecureBootDisabled {
+		err := secureboot.UpdatePCR4Binding(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Ensure the system timezone is set properly.
+	return setTimezone(ctx)
 }
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
