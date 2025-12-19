@@ -1,3 +1,4 @@
+systemd-fsck.conf usr/lib/systemd/system/systemd-fsck@dev-disk-by\x2dpartlabel-esp.service.d/
 systemd-repart.conf usr/lib/systemd/system/systemd-repart.service.d/
 initrd-tmpfs-root.service usr/lib/systemd/system/
 
