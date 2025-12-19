@@ -245,6 +245,9 @@ func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[st
 // appendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
 // to the current EFI value, and then updates the expected PCR7 value used to
 // decrypt the root file system and swap at boot.
+//
+// NOTE: This function should never be called if Secure Boot is disabled, so the encryption
+// binding logic doesn't include PCR4.
 func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName string) error {
 	// Verify the file exists.
 	_, err := os.Stat(efiUpdateFile)
