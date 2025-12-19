@@ -102,6 +102,62 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 	return nil
 }
 
+// UpdatePCR4Binding updates all LUKS encryption bindings to use the newly computed PCR4
+// value in addition to PCR7 when the UKI is updated.
+//
+// Generally, this code should only be used when IncusOS is running with Secure Boot disabled
+// and we rely on the additional binding of PCR4 in this degraded security state. Because PCR4
+// is different for each UKI, this forces the use of a recovery passphrase if booting an older
+// version of IncusOS, so use of PCR4 is limited just to instances with Secure Boot disabled.
+func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
+	// Verify the UKI file exists.
+	_, err := os.Stat(ukiFile)
+	if err != nil {
+		return err
+	}
+
+	// Get and verify the current PCR states.
+	eventLog, err := readTPMEventLog()
+	if err != nil {
+		return err
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Compute new PCR4 value for the updated UKI.
+	newPCR4, err := computeNewPCR4Value(eventLog, ukiFile)
+	if err != nil {
+		return err
+	}
+
+	// PCR7 won't change when the UKI is updated.
+	pcr7, err := readPCR("7")
+	if err != nil {
+		return err
+	}
+
+	// Update the LUKS-encrypted volumes to use the new PCR4 value.
+	newPCR4String := hex.EncodeToString(newPCR4)
+	pcr7String := hex.EncodeToString(pcr7)
+
+	luksVolumes, err := util.GetLUKSVolumePartitions()
+	if err != nil {
+		return err
+	}
+
+	for _, volume := range luksVolumes {
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed
 // with a different Secure Boot certificate than the one that signed the currently running system.
 func UKIHasDifferentSecureBootCertificate(ukiFile string) (bool, error) {
