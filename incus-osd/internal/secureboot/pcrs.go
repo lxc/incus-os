@@ -29,15 +29,13 @@ import (
 //
 // Immediately after a successful reset, the system will be rebooted.
 func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string, luksPassword string) error {
-	// First, make sure Secure Boot is enabled so we can have some confidence in the current running system.
+	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
 		return err
-	} else if !sbEnabled {
-		return errors.New("refusing to reset TPM encryption bindings because Secure Boot is disabled")
 	}
 
-	// Second, refuse to do anything if the TPM can unlock all LUKS volumes.
+	// Refuse to do anything if the TPM can unlock all LUKS volumes.
 	luksVolumes, err := util.GetLUKSVolumePartitions()
 	if err != nil {
 		return err
@@ -60,8 +58,13 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 	// WARNING: here be dragons as we're going to be blindly trusting inputs that in theory could be attacker-controlled.
 
-	// Get the current PCR7 value directly from the TPM. Don't bother replaying the event log and computing the value,
-	// since it should be the same.
+	// Get the current PCR4 and PCR7 values directly from the TPM. Don't bother replaying the event log and computing the
+	// values, since they should be the same.
+	pcr4, err := readPCR("4")
+	if err != nil {
+		return err
+	}
+
 	pcr7, err := readPCR("7")
 	if err != nil {
 		return err
@@ -80,10 +83,18 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	// Finally, we're ready to update the TPM bindings for each LUKS volume.
+	pcr4String := hex.EncodeToString(pcr4)
 	pcr7String := hex.EncodeToString(pcr7)
 
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String
+
+	// When Secure Boot is disabled, we also bind to PCR4.
+	if !sbEnabled {
+		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String
+	}
+
 	for _, volume := range luksVolumes {
-		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+pcr7String, volume)
+		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}
