@@ -709,16 +709,19 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
-		_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
-		if err != nil {
-			s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
-			showModalError(s.System.Update.State.Status, err)
+		// Only check if Secure Boot is enabled.
+		if !s.SecureBootDisabled {
+			_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
+				showModalError(s.System.Update.State.Status, err)
 
-			if isStartupCheck || isUserRequested {
-				break
+				if isStartupCheck || isUserRequested {
+					break
+				}
+
+				continue
 			}
-
-			continue
 		}
 
 		// Determine what applications to install.
@@ -793,7 +796,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if len(appsUpdated) > 0 {
 			slog.DebugContext(ctx, "Refreshing system extensions")
 
-			err = systemd.RefreshExtensions(ctx)
+			err := systemd.RefreshExtensions(ctx)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
 				showModalError(s.System.Update.State.Status, err)
