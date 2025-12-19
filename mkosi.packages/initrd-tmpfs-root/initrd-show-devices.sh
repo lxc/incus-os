@@ -5,6 +5,20 @@
 while true; do
     for TTY in $TTYS; do
         echo "\033cIncusOS failed to start. Debug information follows." > "$TTY" || true
+        echo "$ systemctl --failed" > "$TTY" || true
+        systemctl --failed > "$TTY" || true
+    done
+    sleep 10
+
+    for TTY in $TTYS; do
+        echo "\033cIncusOS failed to start. Debug information follows." > "$TTY" || true
+        echo "$ journalctl -b 0 --priority 3" > "$TTY" || true
+        journalctl -b 0 --priority 3 > "$TTY" || true
+    done
+    sleep 10
+
+    for TTY in $TTYS; do
+        echo "\033cIncusOS failed to start. Debug information follows." > "$TTY" || true
         echo "$ lsblk" > "$TTY" || true
         lsblk > "$TTY" || true
     done
