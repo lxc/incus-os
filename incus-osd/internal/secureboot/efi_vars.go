@@ -28,16 +28,40 @@ import (
 
 // GetCertificatesFromVar returns a list of certificates currently in a given EFI variable.
 func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
-	val, err := readEFIVariable(varName)
+	var certs []x509.Certificate
+
+	// Determine Secure Boot state.
+	sbEnabled, err := Enabled()
 	if err != nil {
 		return nil, err
 	}
 
-	parsedVal := tcg.UEFIVariableData{
-		VariableData: val,
-	}
+	if sbEnabled {
+		// In normal operation, Secure Boot will be enabled and we can
+		// directly fetch certificates from a trusted EFI variable.
+		val, err := readEFIVariable(varName)
+		if err != nil {
+			return nil, err
+		}
 
-	certs, _, err := parsedVal.SignatureData()
+		parsedVal := tcg.UEFIVariableData{
+			VariableData: val,
+		}
+
+		certs, _, err = parsedVal.SignatureData()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// When Secure Boot is disabled, rely on any certificates present in /usr/lib/incus-osd/certs/.
+		// Since those files are part of the usr-verity image, they are read-only and the verity
+		// image has been verified both during install/upgrade as well as boot-time checks against
+		// the TPM event log. Therefore it should to be relatively safe to trust the contents.
+		certs, err = util.GetFilesystemTrustedCerts(varName + ".crt")
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Some consumer-grade manufacturers ship invalid Secure Boot certificates. Unfortunately, sometimes
 	// they are required for hardware such as storage or video cards to work. Since they are already in
@@ -57,7 +81,7 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 		}
 	}
 
-	return certs, err
+	return certs, nil
 }
 
 // UpdateSecureBootCerts takes a given tar archive and applies any SecureBoot KEK, db, or dbx
