@@ -64,6 +64,12 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 		return err
 	}
 
+	// Determine Secure Boot state.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		return err
+	}
+
 	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
 	var newUKIFile string
 
@@ -88,7 +94,14 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	}
 
 	if secureBootKeyChanged {
+		// If the signing key has changed, perform a full encryption rebinding.
 		err := secureboot.HandleSecureBootKeyChange(ctx, luksPassword, newUKIFile, newUsrImageFile)
+		if err != nil {
+			return err
+		}
+	} else if !sbEnabled {
+		// If Secure Boot is disabled, we always must update the PCR4 bindings for the new UKI.
+		err := secureboot.UpdatePCR4Binding(ctx, newUKIFile)
 		if err != nil {
 			return err
 		}
