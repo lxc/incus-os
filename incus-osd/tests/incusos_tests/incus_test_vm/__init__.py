@@ -12,10 +12,11 @@ class IncusOSException(Exception):
     pass
 
 class IncusTestVM:
-    def __init__(self, vm_name_base, install_image, root_size="50GiB"):
+    def __init__(self, vm_name_base, install_image, root_size="50GiB", readonly_install_image="false"):
         self.vm_name = vm_name_base + "-" + util._get_random_string()
         self.root_size = root_size
         self.install_image = install_image
+        self.readonly_install_image = readonly_install_image
         self.is_raw_image = self.install_image.endswith(".img")
         self.isos = []
 
@@ -29,7 +30,7 @@ class IncusTestVM:
         self.AddDevice("vtpm", "tpm")
 
         if self.is_raw_image:
-            self.AddDevice("boot-media", "disk", "source="+self.install_image, "io.bus=usb", "boot.priority=10", "readonly=false")
+            self.AddDevice("boot-media", "disk", "source="+self.install_image, "io.bus=usb", "boot.priority=10", "readonly=" + self.readonly_install_image)
         else:
             self.AddDevice("boot-media", "disk", "pool=default", "source="+self.vm_name+".iso", "boot.priority=10")
 

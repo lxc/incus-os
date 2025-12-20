@@ -75,6 +75,9 @@ class IncusOSTests:
                 if not name.startswith("Test"):
                     continue
 
+                if ext == "iso" and name.endswith("ReadonlyImage"):
+                    continue
+
                 ret.append([name + "/" + ext, fn, image])
 
         return ret
