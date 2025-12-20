@@ -746,9 +746,15 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 
 	devicesToCheck := []string{}
 
+	needIPv6Delay := false
+
 	for _, i := range networkCfg.Interfaces {
 		if len(i.Addresses) == 0 {
 			continue
+		}
+
+		if slices.Contains([]string{"ipv6", "both"}, i.RequiredForOnline) {
+			needIPv6Delay = true
 		}
 
 		devicesToCheck = append(devicesToCheck, i.Name)
@@ -759,12 +765,20 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 			continue
 		}
 
+		if slices.Contains([]string{"ipv6", "both"}, b.RequiredForOnline) {
+			needIPv6Delay = true
+		}
+
 		devicesToCheck = append(devicesToCheck, b.Name)
 	}
 
 	for _, v := range networkCfg.VLANs {
 		if len(v.Addresses) == 0 {
 			continue
+		}
+
+		if slices.Contains([]string{"ipv6", "both"}, v.RequiredForOnline) {
+			needIPv6Delay = true
 		}
 
 		devicesToCheck = append(devicesToCheck, v.Name)
@@ -791,6 +805,16 @@ func waitForNetworkOnline(ctx context.Context, networkCfg *api.SystemNetworkConf
 		}
 
 		if allDevicesOnline {
+			if needIPv6Delay {
+				// Even with the interface configured to require IPv6
+				// family connectivity, networkd will sometimes mark the interface as
+				// online when IPv6 duplicate address detection is still running.
+				//
+				// This can lead to connectivity issues when IPv6 is
+				// required, so add a 3s delay for DAD and related logic to complete.
+				time.Sleep(3 * time.Second)
+			}
+
 			return nil
 		}
 
