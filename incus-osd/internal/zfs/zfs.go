@@ -831,7 +831,7 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 		}
 	}
 
-	if pool.LastScrub.State == api.ScrubInProgress {
+	if pool.LastScrub != nil && pool.LastScrub.State == api.ScrubInProgress {
 		return storage.ErrScrubAlreadyInProgress
 	}
 
