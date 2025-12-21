@@ -278,7 +278,7 @@ func validateFirewall(rules []api.SystemNetworkFirewallRule) error {
 	for _, rule := range rules {
 		// Check the action.
 		if !slices.Contains([]string{"accept", "drop", "reject"}, rule.Action) {
-			return fmt.Errorf("unsupported action %q", rule.Protocol)
+			return fmt.Errorf("unsupported action %q", rule.Action)
 		}
 
 		// Check the protocol.
