@@ -7,7 +7,7 @@ from .incus_test_vm import IncusTestVM, IncusOSException, util
 def TestIncusOSAPISystemStorageLocalPool(install_image):
     test_name = "incusos-api-system-storage-local-pool"
     test_seed = {
-        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+        "install.json": "{}",
     }
 
     test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
@@ -396,7 +396,7 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
 def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
     test_name = "incusos-api-system-storage-local-pool-scrub"
     test_seed = {
-        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+        "install.json": "{}",
     }
 
     test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
