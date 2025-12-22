@@ -894,7 +894,7 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
-	generateOffloadSegments := func(s *api.SystemNetworkEthernet) string {
+	generateEthernet := func(s *api.SystemNetworkEthernet) string {
 		if s == nil {
 			return ""
 		}
@@ -916,7 +916,15 @@ func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConf
 			offloadSegments = append(offloadSegments, "TCP6SegmentationOffload=false")
 		}
 
-		return strings.Join(offloadSegments, "\n")
+		out := strings.Join(offloadSegments, "\n")
+
+		if s.DisableEnergyEfficient {
+			out += `
+[EnergyEfficientEthernet]
+Enable=false`
+		}
+
+		return out
 	}
 
 	for _, i := range networkCfg.Interfaces {
@@ -930,7 +938,7 @@ PermanentMACAddress=%s
 MACAddressPolicy=random
 NamePolicy=
 Name=_p%s
-%s`, i.Hwaddr, strippedHwaddr, generateOffloadSegments(i.Ethernet)),
+%s`, i.Hwaddr, strippedHwaddr, generateEthernet(i.Ethernet)),
 		})
 	}
 
@@ -945,7 +953,7 @@ PermanentMACAddress=%s
 [Link]
 NamePolicy=
 Name=_p%s
-%s`, member, strippedHwaddr, generateOffloadSegments(b.Ethernet)),
+%s`, member, strippedHwaddr, generateEthernet(b.Ethernet)),
 			})
 		}
 	}
