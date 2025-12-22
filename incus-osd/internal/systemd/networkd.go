@@ -894,6 +894,27 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
+	generateOffloadSegments := func(s api.SystemNetworkOffloading) string {
+		offloadSegments := []string{}
+		if s.DisableGRO {
+			offloadSegments = append(offloadSegments, "GenericSegmentationOffload=false")
+		}
+
+		if s.DisableGSO {
+			offloadSegments = append(offloadSegments, "GenericReceiveOffload=false")
+		}
+
+		if s.DisableIPv4TSO {
+			offloadSegments = append(offloadSegments, "TCPSegmentationOffload=false")
+		}
+
+		if s.DisableIPv6TSO {
+			offloadSegments = append(offloadSegments, "TCP6SegmentationOffload=false")
+		}
+
+		return strings.Join(offloadSegments, "\n")
+	}
+
 	for _, i := range networkCfg.Interfaces {
 		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
@@ -905,7 +926,7 @@ PermanentMACAddress=%s
 MACAddressPolicy=random
 NamePolicy=
 Name=_p%s
-`, i.Hwaddr, strippedHwaddr),
+%s`, i.Hwaddr, strippedHwaddr, generateOffloadSegments(i.Offloading)),
 		})
 	}
 
@@ -920,7 +941,7 @@ PermanentMACAddress=%s
 [Link]
 NamePolicy=
 Name=_p%s
-`, member, strippedHwaddr),
+%s`, member, strippedHwaddr, generateOffloadSegments(b.Offloading)),
 			})
 		}
 	}
