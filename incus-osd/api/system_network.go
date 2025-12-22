@@ -49,6 +49,7 @@ type SystemNetworkInterface struct {
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
 	StrictHwaddr      bool                        `json:"strict_hwaddr,omitempty"       yaml:"strict_hwaddr,omitempty"`
 	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Offloading        SystemNetworkOffloading     `json:"offloading"                    yaml:"offloading"`
 }
 
 // SystemNetworkBond contains information about a network bond.
@@ -65,6 +66,7 @@ type SystemNetworkBond struct {
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
 	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+	Offloading        SystemNetworkOffloading     `json:"offloading"                    yaml:"offloading"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.
@@ -78,6 +80,14 @@ type SystemNetworkVLAN struct {
 	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+}
+
+// SystemNetworkOffloading contains information for what hardware offloading to configure.
+type SystemNetworkOffloading struct {
+	DisableGRO     bool `json:"disable_gro,omitempty"      yaml:"disable_gro,omitempty"`
+	DisableGSO     bool `json:"disable_gso,omitempty"      yaml:"disable_gso,omitempty"`
+	DisableIPv4TSO bool `json:"disable_ipv4_tso,omitempty" yaml:"disable_ipv4_tso,omitempty"`
+	DisableIPv6TSO bool `json:"disable_ipv6_tso,omitempty" yaml:"disable_ipv6_tso,omitempty"`
 }
 
 // SystemNetworkFirewallRule defines a firewall rule.
