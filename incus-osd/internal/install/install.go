@@ -856,7 +856,12 @@ func displayDegradedSecurityWarning(t *tui.TUI, msg string) {
 	modal := t.AddModal("Degraded security warning", "degraded-security-warning")
 
 	for i := range 30 {
-		modal.Update(fmt.Sprintf("[red]WARNING:[white] %s will result in a degraded security state.\nContinuing in %d seconds...", msg, 30-i))
+		secondsString := "seconds"
+		if 30-i == 1 {
+			secondsString = "second"
+		}
+
+		modal.Update(fmt.Sprintf("[red]WARNING:[white] %s will result in a degraded security state.\nContinuing in %d %s...", msg, 30-i, secondsString))
 
 		time.Sleep(1 * time.Second)
 	}
