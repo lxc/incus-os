@@ -23,6 +23,8 @@ func main() {
 		switch os.Args[1] {
 		case "measure-pcrs":
 			err = measurePCRs()
+		case "validate-pe-binaries":
+			err = secureboot.ValidatePEBinaries()
 		default:
 			err = fmt.Errorf("unsupported action '%s'", os.Args[1])
 		}
