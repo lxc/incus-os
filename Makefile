@@ -71,6 +71,8 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 
+	./scripts/inject-system-certs.sh
+
 	cd app-build/ && ./build-applications.py
 
 	# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.
