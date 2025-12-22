@@ -13,4 +13,4 @@ initrd-show-devices.service usr/lib/systemd/system/
 initrd-show-devices.sh usr/bin/
 
 initrd-swtpm.service usr/lib/systemd/system/
-measure-pcrs usr/bin/
+ios-utils usr/bin/
