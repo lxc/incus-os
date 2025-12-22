@@ -1,7 +1,7 @@
 import subprocess
 import time
 
-from .incus_test_vm import IncusTestVM, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestIncusOSLive(install_image):
     test_name = "incusos-live"
@@ -24,8 +24,8 @@ def TestIncusOSLive(install_image):
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-        # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        # Shouldn't see any mention of a degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state:")
 
 def TestIncusOSLiveSWTPM(install_image):
     test_name = "incusos-live-swtpm"
@@ -57,3 +57,16 @@ def TestIncusOSLiveSWTPM(install_image):
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+
+        # Check some PCR values: expect PCR0 to be empty with swtpm, while PCR7 and PCR11 should have non-zero values
+        result = vm.RunCommand("tpm2_pcrread", "sha256:0")
+        if "0x0000000000000000000000000000000000000000000000000000000000000000" not in str(result.stdout):
+            raise IncusOSException("PCR0 has a non-zero value")
+
+        result = vm.RunCommand("tpm2_pcrread", "sha256:7")
+        if "0x0000000000000000000000000000000000000000000000000000000000000000" in str(result.stdout):
+            raise IncusOSException("PCR7 isn't initialized")
+
+        result = vm.RunCommand("tpm2_pcrread", "sha256:11")
+        if "0x0000000000000000000000000000000000000000000000000000000000000000" in str(result.stdout):
+            raise IncusOSException("PCR11 isn't initialized")

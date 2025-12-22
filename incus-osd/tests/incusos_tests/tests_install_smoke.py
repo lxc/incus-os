@@ -34,8 +34,8 @@ def TestBaselineInstall(install_image):
     with IncusTestVM(test_name, test_image) as vm:
         vm.WaitSystemReady(incusos_version, source="/dev/(sdb|mapper/sr0)")
 
-        # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        # Shouldn't see any mention of a degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state:")
 
 def TestBaselineInstallReadonlyImage(install_image):
     test_name = "baseline-install-readonly-image"
@@ -48,8 +48,8 @@ def TestBaselineInstallReadonlyImage(install_image):
     with IncusTestVM(test_name, test_image, readonly_install_image="true") as vm:
         vm.WaitSystemReady(incusos_version)
 
-        # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        # Shouldn't see any mention of a degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state:")
 
 def TestBaselineInstallNVME(install_image):
     test_name = "baseline-install-nvme"
@@ -64,8 +64,8 @@ def TestBaselineInstallNVME(install_image):
 
         vm.WaitSystemReady(incusos_version, source="/dev/(sda|mapper/sr0)", target="/dev/nvme0n1")
 
-        # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        # Shouldn't see any mention of a degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state:")
 
 def TestBaselineInstallNVMEReadonlyImage(install_image):
     test_name = "baseline-install-nvme-readonly-image"
@@ -80,5 +80,5 @@ def TestBaselineInstallNVMEReadonlyImage(install_image):
 
         vm.WaitSystemReady(incusos_version, source="/dev/sda", target="/dev/nvme0n1")
 
-        # Shouldn't see any mention of swtpm with a physical TPM
-        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        # Shouldn't see any mention of a degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state:")
