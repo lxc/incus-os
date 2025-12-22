@@ -21,7 +21,7 @@ incus-osd/generate-manifests
 incus-osd/image-customizer
 incus-osd/image-publisher
 incus-osd/incus-osd
-incus-osd/measure-pcrs
+incus-osd/incusos-initrd-utils
 
 mkosi.packages/initrd-tmpfs-root*
 

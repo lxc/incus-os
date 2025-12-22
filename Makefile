@@ -25,15 +25,15 @@ generate-manifests:
 	(cd incus-osd && go build ./cmd/generate-manifests)
 	strip incus-osd/generate-manifests
 
-.PHONY: measure-pcrs
-measure-pcrs:
-	(cd incus-osd && go build ./cmd/measure-pcrs)
-	strip incus-osd/measure-pcrs
+.PHONY: incusos-initrd-utils
+incusos-initrd-utils:
+	(cd incus-osd && go build ./cmd/incusos-initrd-utils)
+	strip incus-osd/incusos-initrd-utils
 
 .PHONY: initrd-deb-package
-initrd-deb-package: measure-pcrs
+initrd-deb-package: incusos-initrd-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
-	cp incus-osd/measure-pcrs mkosi.packages/initrd-tmpfs-root/
+	cp incus-osd/incusos-initrd-utils mkosi.packages/initrd-tmpfs-root/
 	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
 	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
           mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \

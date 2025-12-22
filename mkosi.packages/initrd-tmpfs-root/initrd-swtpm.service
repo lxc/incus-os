@@ -13,7 +13,7 @@ ExecStartPre=/usr/bin/rm -f /boot/swtpm/tpm2-00.volatilestate
 ExecStartPre=/usr/sbin/modprobe tpm_vtpm_proxy
 ExecStart=/usr/bin/swtpm chardev --tpm2 --vtpm-proxy --tpmstate dir=/boot/swtpm/ --ctrl type=unixio,path=/run/swtpm.sock
 ExecStartPost=/usr/bin/sleep 1
-ExecStartPost=/usr/bin/measure-pcrs
+ExecStartPost=/usr/bin/incusos-initrd-utils measure-pcrs
 ExecStartPost=/usr/bin/swtpm_ioctl --unix /run/swtpm.sock -v
 
 [Install]

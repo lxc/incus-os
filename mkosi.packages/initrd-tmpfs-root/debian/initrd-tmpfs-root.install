@@ -13,4 +13,4 @@ initrd-debug-info.service usr/lib/systemd/system/
 initrd-debug-info.sh usr/bin/
 
 initrd-swtpm.service usr/lib/systemd/system/
-measure-pcrs usr/bin/
+incusos-initrd-utils usr/bin/
