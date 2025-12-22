@@ -146,7 +146,7 @@ interfaces:
       - fd40:1234:1234:101::10/64
     required_for_online: both
     hwaddr: AA:BB:CC:DD:EE:01
-    offloading:
+    ethernet:
       disable_ipv4_tso: true
       disable_ipv6_tso: true
       disable_gro: true
@@ -169,7 +169,7 @@ bonds:
     members:
       - AA:BB:CC:DD:EE:02
       - AA:BB:CC:DD:EE:03
-    offloading:
+    ethernet:
       disable_ipv4_tso: true
       disable_ipv6_tso: true
 `

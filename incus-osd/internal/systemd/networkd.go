@@ -894,7 +894,11 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
-	generateOffloadSegments := func(s api.SystemNetworkOffloading) string {
+	generateOffloadSegments := func(s *api.SystemNetworkEthernet) string {
+		if s == nil {
+			return ""
+		}
+
 		offloadSegments := []string{}
 		if s.DisableGRO {
 			offloadSegments = append(offloadSegments, "GenericSegmentationOffload=false")
@@ -926,7 +930,7 @@ PermanentMACAddress=%s
 MACAddressPolicy=random
 NamePolicy=
 Name=_p%s
-%s`, i.Hwaddr, strippedHwaddr, generateOffloadSegments(i.Offloading)),
+%s`, i.Hwaddr, strippedHwaddr, generateOffloadSegments(i.Ethernet)),
 		})
 	}
 
@@ -941,7 +945,7 @@ PermanentMACAddress=%s
 [Link]
 NamePolicy=
 Name=_p%s
-%s`, member, strippedHwaddr, generateOffloadSegments(b.Offloading)),
+%s`, member, strippedHwaddr, generateOffloadSegments(b.Ethernet)),
 			})
 		}
 	}
