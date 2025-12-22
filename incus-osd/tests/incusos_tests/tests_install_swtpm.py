@@ -21,7 +21,7 @@ def TestInstallNoTPMNoSWTPM(install_image):
 def TestInstallUseSWTPM(install_image):
     test_name = "use-swtpm"
     test_seed = {
-        "install.json": """{"use_swtpm":true}"""
+        "install.json": """{"security":{"missing_tpm":true}}"""
     }
 
     test_image, incusos_version = util._prepare_test_image(install_image, test_seed)

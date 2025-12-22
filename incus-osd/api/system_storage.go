@@ -33,16 +33,16 @@ type SystemStoragePool struct {
 	Log     []string `json:"log,omitempty"   yaml:"log,omitempty"`
 
 	// Read-only fields returned from the server with additional pool information.
-	State                     string                       `json:"state"                         yaml:"state"`
-	LastScrub                 SystemStoragePoolScrubStatus `json:"last_scrub"                    yaml:"last_scrub,omitempty"`
-	EncryptionKeyStatus       string                       `json:"encryption_key_status"         yaml:"encryption_key_status"`
-	DevicesDegraded           []string                     `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
-	CacheDegraded             []string                     `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
-	LogDegraded               []string                     `json:"log_degraded,omitempty"        yaml:"log_degraded,omitempty"`
-	RawPoolSizeInBytes        int                          `json:"raw_pool_size_in_bytes"        yaml:"raw_pool_size_in_bytes"`
-	UsablePoolSizeInBytes     int                          `json:"usable_pool_size_in_bytes"     yaml:"usable_pool_size_in_bytes"`
-	PoolAllocatedSpaceInBytes int                          `json:"pool_allocated_space_in_bytes" yaml:"pool_allocated_space_in_bytes"`
-	Volumes                   []SystemStoragePoolVolume    `json:"volumes"                       yaml:"volumes"`
+	State                     string                        `json:"state"                         yaml:"state"`
+	LastScrub                 *SystemStoragePoolScrubStatus `json:"last_scrub,omitempty"          yaml:"last_scrub,omitempty,omitempty"`
+	EncryptionKeyStatus       string                        `json:"encryption_key_status"         yaml:"encryption_key_status"`
+	DevicesDegraded           []string                      `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
+	CacheDegraded             []string                      `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
+	LogDegraded               []string                      `json:"log_degraded,omitempty"        yaml:"log_degraded,omitempty"`
+	RawPoolSizeInBytes        int                           `json:"raw_pool_size_in_bytes"        yaml:"raw_pool_size_in_bytes"`
+	UsablePoolSizeInBytes     int                           `json:"usable_pool_size_in_bytes"     yaml:"usable_pool_size_in_bytes"`
+	PoolAllocatedSpaceInBytes int                           `json:"pool_allocated_space_in_bytes" yaml:"pool_allocated_space_in_bytes"`
+	Volumes                   []SystemStoragePoolVolume     `json:"volumes"                       yaml:"volumes"`
 }
 
 // SystemStoragePoolVolume represents a single IncusOS-managed volume in a pool.

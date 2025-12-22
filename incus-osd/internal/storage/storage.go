@@ -431,16 +431,23 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	slices.Sort(zpoolDevices["log_degraded"])
 	slices.Sort(zpoolDevices["cache_degraded"])
 
-	return api.SystemStoragePool{
-		Name:  zpoolName,
-		State: zpoolJSON.Pools[zpoolName].State,
-		LastScrub: api.SystemStoragePoolScrubStatus{
+	// Get the scrub status, if it exists.
+	var scrubStatus *api.SystemStoragePoolScrubStatus
+
+	if zpoolJSON.Pools[zpoolName].ScanStats.StartTime != 0 {
+		scrubStatus = &api.SystemStoragePoolScrubStatus{
 			State:     zpoolScrubStateToPoolScrubState(zpoolJSON.Pools[zpoolName].ScanStats.State),
 			StartTime: time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.StartTime), 0),
 			EndTime:   time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.EndTime), 0),
 			Progress:  calculateScrubProgress(zpoolJSON.Pools[zpoolName].ScanStats),
 			Errors:    zpoolJSON.Pools[zpoolName].ScanStats.Errors,
-		},
+		}
+	}
+
+	return api.SystemStoragePool{
+		Name:                      zpoolName,
+		State:                     zpoolJSON.Pools[zpoolName].State,
+		LastScrub:                 scrubStatus,
 		EncryptionKeyStatus:       zpoolKeyStatus,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
