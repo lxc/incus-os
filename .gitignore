@@ -9,6 +9,8 @@ certs/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/
+mkosi.images/base/mkosi.extra/usr/lib/incus-osd/certs/
+mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 mkosi.images/migration-manager/mkosi.extra/
 mkosi.images/operations-center/mkosi.extra/
 
