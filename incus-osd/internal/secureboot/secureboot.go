@@ -3,6 +3,7 @@ package secureboot
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/sha256"
 	"crypto/x509"
 	"debug/pe"
@@ -14,8 +15,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"time"
 
+	"github.com/foxboron/go-uefi/authenticode"
+	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
@@ -225,6 +229,100 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 	}
 
 	return ret
+}
+
+// ValidatePEBinaries checks that each PE binary measured in the TPM's PCR4 event log
+// still matches when read back from disk and that it is signed with a trusted IncusOS
+// certificate.
+func ValidatePEBinaries() error {
+	// Get and verify the current PCR states.
+	eventLog, err := readTPMEventLog()
+	if err != nil {
+		return err
+	}
+
+	err = validateUntrustedTPMEventLog(eventLog)
+	if err != nil {
+		return err
+	}
+
+	// Get a list of trusted certificates.
+	trustedCerts, err := GetCertificatesFromVar("db")
+	if err != nil {
+		return err
+	}
+
+	// Validate each PE binary referenced in the PCR4 event log.
+	for _, e := range eventLog {
+		// We only care about PCR4.
+		if e.Index == 4 { //nolint:nestif
+			switch e.Type { //nolint:exhaustive
+			case tcg.EFIBootServicesApplication:
+				r := bytes.NewReader(e.Data)
+
+				efiImageLoad, err := tcg.ParseEFIImageLoad(r)
+				if err != nil {
+					return err
+				}
+
+				devPaths, err := efiImageLoad.DevicePath()
+				if err != nil {
+					return err
+				}
+
+				// Iterate through the device paths for this event, until we get to the actual PE binary.
+				for _, dev := range devPaths {
+					if dev.Type == tcg.MediaDevice && dev.Subtype == 4 {
+						peName, err := util.UTF16ToString(dev.Data)
+						if err != nil {
+							return err
+						}
+
+						// Convert the EFI-style path to the real path.
+						peName = "/boot" + strings.ReplaceAll(peName, "\\", "/")
+
+						// Open the PE binary from disk and compute its authenticode.
+						peFile, err := os.Open(peName) //nolint:gosec
+						if err != nil {
+							return err
+						}
+						defer peFile.Close() //nolint:revive
+
+						authenticodeContents, err := authenticode.Parse(peFile)
+						if err != nil {
+							return err
+						}
+
+						// First check: authenticode from disk matches the TPM event log.
+						if !bytes.Equal(authenticodeContents.Hash(crypto.SHA256), e.ReplayedDigest()) {
+							return errors.New("authenticode mismatch for PE binary " + peName)
+						}
+
+						peProperlySigned := false
+
+						// Second check: PE is properly signed by a trusted certificate.
+						for _, cert := range trustedCerts {
+							_, err := authenticodeContents.Verify(&cert)
+							if err == nil {
+								peProperlySigned = true
+
+								break
+							}
+						}
+
+						if !peProperlySigned {
+							return errors.New("PE binary " + peName + " not signed by any trusted certificate")
+						}
+
+						break
+					}
+				}
+			default:
+			}
+		}
+	}
+
+	return nil
 }
 
 // validatePKICertificate makes sure the certificate obtained from a potential new UKI
