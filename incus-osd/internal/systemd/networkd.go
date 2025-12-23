@@ -894,6 +894,39 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
 	ret := []networkdConfigFile{}
 
+	generateEthernet := func(s *api.SystemNetworkEthernet) string {
+		if s == nil {
+			return ""
+		}
+
+		offloadSegments := []string{}
+		if s.DisableGRO {
+			offloadSegments = append(offloadSegments, "GenericSegmentationOffload=false")
+		}
+
+		if s.DisableGSO {
+			offloadSegments = append(offloadSegments, "GenericReceiveOffload=false")
+		}
+
+		if s.DisableIPv4TSO {
+			offloadSegments = append(offloadSegments, "TCPSegmentationOffload=false")
+		}
+
+		if s.DisableIPv6TSO {
+			offloadSegments = append(offloadSegments, "TCP6SegmentationOffload=false")
+		}
+
+		out := strings.Join(offloadSegments, "\n")
+
+		if s.DisableEnergyEfficient {
+			out += `
+[EnergyEfficientEthernet]
+Enable=false`
+		}
+
+		return out
+	}
+
 	for _, i := range networkCfg.Interfaces {
 		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
@@ -905,7 +938,7 @@ PermanentMACAddress=%s
 MACAddressPolicy=random
 NamePolicy=
 Name=_p%s
-`, i.Hwaddr, strippedHwaddr),
+%s`, i.Hwaddr, strippedHwaddr, generateEthernet(i.Ethernet)),
 		})
 	}
 
@@ -920,7 +953,7 @@ PermanentMACAddress=%s
 [Link]
 NamePolicy=
 Name=_p%s
-`, member, strippedHwaddr),
+%s`, member, strippedHwaddr, generateEthernet(b.Ethernet)),
 			})
 		}
 	}

@@ -39,6 +39,7 @@ type SystemNetworkConfig struct {
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr"                        yaml:"hwaddr"`
 	LLDP              bool                        `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
@@ -54,6 +55,7 @@ type SystemNetworkInterface struct {
 // SystemNetworkBond contains information about a network bond.
 type SystemNetworkBond struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
 	LLDP              bool                        `json:"lldp,omitempty"                yaml:"lldp,omitempty"`
@@ -78,6 +80,15 @@ type SystemNetworkVLAN struct {
 	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+}
+
+// SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
+type SystemNetworkEthernet struct {
+	DisableEnergyEfficient bool `json:"disable_energy_efficient,omitempty" yaml:"disable_energy_efficient,omitempty"`
+	DisableGRO             bool `json:"disable_gro,omitempty"              yaml:"disable_gro,omitempty"`
+	DisableGSO             bool `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
+	DisableIPv4TSO         bool `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
+	DisableIPv6TSO         bool `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
 }
 
 // SystemNetworkFirewallRule defines a firewall rule.

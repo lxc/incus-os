@@ -138,6 +138,44 @@ vlans:
     - "management"
 `
 
+var networkdConfig5 = `
+interfaces:
+  - name: no-hw-tso-gro-gso
+    addresses:
+      - 10.0.101.10/24
+      - fd40:1234:1234:101::10/64
+    required_for_online: both
+    hwaddr: AA:BB:CC:DD:EE:01
+    ethernet:
+      disable_energy_efficient: true
+      disable_ipv4_tso: true
+      disable_ipv6_tso: true
+      disable_gro: true
+      disable_gso: true
+
+bonds:
+  - name: no-hw-tso
+    mode: 802.3ad
+    mtu: 9000
+    vlan_tags:
+      - 100
+    addresses:
+      - 10.0.100.10/24
+      - fd40:1234:1234:100::10/64
+    routes:
+      - to: 0.0.0.0/0
+        via: 10.0.100.1
+      - to: ::/0
+        via: fd40:1234:1234:100::1
+    members:
+      - AA:BB:CC:DD:EE:02
+      - AA:BB:CC:DD:EE:03
+    ethernet:
+      disable_energy_efficient: true
+      disable_ipv4_tso: true
+      disable_ipv6_tso: true
+`
+
 var badNetworkdConfig1 = `
 interfaces:
   - name: myreallylongname
@@ -426,6 +464,20 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.Equal(t, "[Match]\nPermanentMACAddress=aa:bb:cc:dd:ee:e1\n\n[Link]\nNamePolicy=\nName=_paabbccddeee1\n", cfgs[0].Contents)
 	require.Equal(t, "01-_paabbccddeee2.link", cfgs[1].Name)
 	require.Equal(t, "[Match]\nPermanentMACAddress=aa:bb:cc:dd:ee:e2\n\n[Link]\nNamePolicy=\nName=_paabbccddeee2\n", cfgs[1].Contents)
+
+	// Test fifth config .link file genration
+	networkCfg = api.SystemNetworkConfig{}
+	err = yaml.Unmarshal([]byte(networkdConfig5), &networkCfg)
+	require.NoError(t, err)
+
+	cfgs = generateLinkFileContents(networkCfg)
+	require.Len(t, cfgs, 3)
+	require.Equal(t, "00-_paabbccddee01.link", cfgs[0].Name)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nGenericSegmentationOffload=false\nGenericReceiveOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false", cfgs[0].Contents)
+	require.Equal(t, "01-_paabbccddee02.link", cfgs[1].Name)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false", cfgs[1].Contents)
+	require.Equal(t, "01-_paabbccddee03.link", cfgs[2].Name)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false", cfgs[2].Contents)
 }
 
 func TestNetdevFileGeneration(t *testing.T) {
