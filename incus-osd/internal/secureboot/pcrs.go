@@ -249,21 +249,22 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	// Update the variable's contents with the expected certificate value.
 	var newBuf bytes.Buffer
 
-	_, err = newBuf.Write(v.VariableData[:16]) // The first 16 bytes are a header; we shouldn't need to care about updating it since we're replacing a certificate with the same type/size as the existing one.
+	_, err = newBuf.Write(v.VariableData[:16]) // The first 16 bytes are the signature owner GUID, which shouldn't change.
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = newBuf.Write(certs[index].Raw)
+	_, err = newBuf.Write(certs[index].Raw) // Write the new certificate's contents.
 	if err != nil {
 		return nil, err
 	}
 
-	if newBuf.Len() != len(v.VariableData) {
-		return nil, fmt.Errorf("resulting buffer size (%d) != expected size (%d)", newBuf.Len(), len(v.VariableData))
+	if newBuf.Len() != 16+len(certs[index].Raw) {
+		return nil, fmt.Errorf("resulting buffer size (%d) != expected size (%d)", newBuf.Len(), 16+len(certs[index].Raw))
 	}
 
 	// Update in-memory values.
+	v.Header.VariableDataLength = uint64(newBuf.Len()) //nolint:gosec
 	v.VariableData = newBuf.Bytes()
 
 	// Get the updated buffer and use for PCR calculation.
