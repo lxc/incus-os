@@ -173,7 +173,8 @@ jobs:
 
       - name: Test EFI db and dbx updates
         run: |
-          incus file push certs/efi/updates/*.auth test-incus-os/root/updates/
+          pushd certs/efi/updates/ && tar cf SecureBootKeys_${RELEASE}.tar *.auth && popd
+          incus file push certs/efi/updates/*.tar test-incus-os/root/updates/
           incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
 
           sleep 30s
