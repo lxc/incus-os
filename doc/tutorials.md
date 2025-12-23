@@ -9,4 +9,5 @@ Import existing Incus instances from an unencrypted pool </tutorials/storage-imp
 Directly attaching instances to host network </tutorials/network-direct-attach>
 Applying VLAN tagging to physical networks </tutorials/network-vlan-tagging>
 Emergency Procedure for a Lost Client Certificate </tutorials/emergency-procedure-lost-client-certificate>
+Creating an Incus cluster </tutorials/incus-cluster>
 ```
