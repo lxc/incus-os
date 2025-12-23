@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
@@ -299,24 +300,21 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	}
 	defer dbxFile.Close()
 
-	s, err := dbxFile.Stat()
+	buf, err := io.ReadAll(dbxFile)
 	if err != nil {
 		return err
 	}
 
-	// .auth files have a timestamp and AuthInfo header before the .esl content. For our use, skip 1287 bytes
-	// into the .auth file to get actual certificate data.
-	buf := make([]byte, s.Size()-1287)
+	// .auth files have a EFI_VARIABLE_AUTHENTICATION_2 header before the EFI signature list.
+	// The first 16 bytes are EFI_TIME, followed by WIN_CERTIFICATE. The first four bytes of
+	// WIN_CERTIFICATE are the total size of the header including the PKCS7 certificate data.
+	// So the proper offset to the start of the EFI signature list is 16 + WIN_CERTIFICATE->dwLength.
 
-	readBytes, err := dbxFile.ReadAt(buf, 1287)
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	} else if readBytes != len(buf) {
-		return fmt.Errorf("only read %d of %d expected bytes from EFI variable update '%s'", readBytes, len(buf), dbxFilePath)
-	}
+	headerSize := binary.LittleEndian.Uint32(buf[16:20])
+	offset := 16 + headerSize
 
 	efiVar := tcg.UEFIVariableData{
-		VariableData: buf,
+		VariableData: buf[offset:],
 	}
 
 	certs, _, err := efiVar.SignatureData()

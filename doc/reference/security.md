@@ -15,25 +15,24 @@ IncusOS actively relies on both UEFI Secure Boot and TPM for its boot security a
 ## Certificate hierarchy
 IncusOS relies on a hierarchy of TLS certificate authorities and certificates as shown below. Note that Secure Boot doesn't perform TLS-style validation of the certificates.
 
-- IncusOS Root CA should use latest standards (ECDSA, etc)
-- IncusOS PK CA and below certificates are limited to RSA 2048 due to the Secure Boot standard
+- The IncusOS Root and Secure Boot CAs use latest standards (ECDSA, etc).
+- IncusOS PK, KEK, and db certificates are limited to RSA 2048 due to the Secure Boot standard. Each Secure Boot certificate is signed by the IncusOS Secure Boot CA.
 
 ```
-        Incus OS - Secure Boot E1
-              |
-        Incus OS - Secure Boot PK R1
-              |
-        Incus OS - Secure Boot KEK R1
-              |
-      /------------------------\---------------------------------\
-     /                          \                                 \
-Incus OS - Secure Boot 2025 R1   Incus OS - Secure Boot 2026 R1    ......
+    Incus OS - Root E1
+          |
+    Incus OS - Secure Boot E1
+          |
+          \-- Incus OS - Secure Boot PK R1
+           \-- Incus OS - Secure Boot KEK R1
+            |-- Incus OS - Secure Boot 2025 R1
+            \-- Incus OS - Secure Boot 2026 R1
 ```
 
 ## Use of Secure Boot variables
 
-- PK: OEM/owner-provided or Incus OS Secure Boot PK R1
-- KEK: Secure Boot KEK R1
+- PK: OEM/owner-provided or Incus OS - Secure Boot PK R1
+- KEK: Incus OS - Secure Boot KEK R1
 - db: IncusOS signing key(s)
    - A new signing key will be generated each year and published in advance
    - 6-12 month overlap after January 1st when new signing key is placed into service

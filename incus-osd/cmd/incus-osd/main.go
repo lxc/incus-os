@@ -307,7 +307,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 			mode = "production"
 		}
 
-		if mode == "unsafe" && (strings.HasPrefix(key.Description, "mkosi of ") || strings.HasPrefix(key.Description, "TestOS Secure Boot Key ")) {
+		if mode == "unsafe" && (strings.HasPrefix(key.Description, "mkosi of ") || strings.HasPrefix(key.Description, "TestOS - Secure Boot ")) {
 			mode = "dev"
 		}
 
