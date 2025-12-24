@@ -85,11 +85,14 @@ type SystemNetworkVLAN struct {
 
 // SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
 type SystemNetworkEthernet struct {
-	DisableEnergyEfficient bool `json:"disable_energy_efficient,omitempty" yaml:"disable_energy_efficient,omitempty"`
-	DisableGRO             bool `json:"disable_gro,omitempty"              yaml:"disable_gro,omitempty"`
-	DisableGSO             bool `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
-	DisableIPv4TSO         bool `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
-	DisableIPv6TSO         bool `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
+	DisableEnergyEfficient bool     `json:"disable_energy_efficient,omitempty" yaml:"disable_energy_efficient,omitempty"`
+	DisableGRO             bool     `json:"disable_gro,omitempty"              yaml:"disable_gro,omitempty"`
+	DisableGSO             bool     `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
+	DisableIPv4TSO         bool     `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
+	DisableIPv6TSO         bool     `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
+	WakeOnLAN              bool     `json:"wakeonlan,omitempty"                yaml:"wakeonlan,omitempty"`
+	WakeOnLANModes         []string `json:"wakeonlan_modes,omitempty"          yaml:"wakeonlan_modes,omitempty"`
+	WakeOnLANPassword      string   `json:"wakeonlan_password,omitempty"       yaml:"wakeonlan_password,omitempty"`
 }
 
 // SystemNetworkFirewallRule defines a firewall rule.

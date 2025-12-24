@@ -16,6 +16,7 @@ linters:
     - lll
     - maintidx
     - mnd
+    - nolintlint
     - testpackage
     - unparam
     - varnamelen
