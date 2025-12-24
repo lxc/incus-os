@@ -34,6 +34,7 @@ type SystemNetworkConfig struct {
 	Interfaces []SystemNetworkInterface `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
 	Bonds      []SystemNetworkBond      `json:"bonds,omitempty"      yaml:"bonds,omitempty"`
 	VLANs      []SystemNetworkVLAN      `json:"vlans,omitempty"      yaml:"vlans,omitempty"`
+	Wireguard  []SystemNetworkWireguard `json:"wireguard,omitempty"  yaml:"wireguard,omitempty"`
 }
 
 // SystemNetworkInterface contains information about a network interface.
@@ -99,6 +100,29 @@ type SystemNetworkFirewallRule struct {
 	Port     int    `json:"port,omitempty"     yaml:"port,omitempty"`
 }
 
+// SystemNetworkWireguard contains information about a wireguard interface.
+type SystemNetworkWireguard struct {
+	Addresses         []string                     `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	FirewallRules     []SystemNetworkFirewallRule  `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
+	MTU               int                          `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
+	Name              string                       `json:"name"                          yaml:"name"`
+	Peers             []SystemNetworkWireguardPeer `json:"peers,omitempty"               yaml:"peers,omitempty"`
+	Port              int                          `json:"port,omitempty"                yaml:"port,omitempty"`
+	PrivateKey        string                       `json:"private_key,omitempty"         yaml:"private_key,omitempty"`
+	RequiredForOnline string                       `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
+	Roles             []string                     `json:"roles,omitempty"               yaml:"roles,omitempty"`
+	Routes            []SystemNetworkRoute         `json:"routes,omitempty"              yaml:"routes,omitempty"`
+}
+
+// SystemNetworkWireguardPeer defines wireguard peer.
+type SystemNetworkWireguardPeer struct {
+	AllowedIPs          []string `json:"allowed_ips"                    yaml:"allowed_ips"`
+	Endpoint            string   `json:"endpoint,omitempty"             yaml:"endpoint,omitempty"`
+	PersistentKeepalive int      `json:"persistent_keepalive,omitempty" yaml:"persistent_keepalive,omitempty"`
+	PresharedKey        string   `json:"preshared_key,omitempty"        yaml:"preshared_key,omitempty"`
+	PublicKey           string   `json:"public_key"                     yaml:"public_key"`
+}
+
 // SystemNetworkRoute defines a route.
 type SystemNetworkRoute struct {
 	To  string `json:"to"  yaml:"to"`
@@ -162,7 +186,7 @@ func (n *SystemNetworkState) GetInterfaceNamesByRole(role string) []string {
 // SystemNetworkInterfaceState holds state information about a specific network interface.
 type SystemNetworkInterfaceState struct {
 	Addresses []string                               `json:"addresses,omitempty" yaml:"addresses,omitempty"`
-	Hwaddr    string                                 `json:"hwaddr"              yaml:"hwaddr"`
+	Hwaddr    string                                 `json:"hwaddr,omitempty"    yaml:"hwaddr,omitempty"`
 	LACP      *SystemNetworkLACPState                `json:"lacp,omitempty"      yaml:"lacp,omitempty"`
 	LLDP      []SystemNetworkLLDPState               `json:"lldp,omitempty"      yaml:"lldp,omitempty"`
 	Members   map[string]SystemNetworkInterfaceState `json:"members,omitempty"   yaml:"members,omitempty"`
@@ -173,6 +197,7 @@ type SystemNetworkInterfaceState struct {
 	State     string                                 `json:"state"               yaml:"state"`
 	Stats     SystemNetworkInterfaceStats            `json:"stats"               yaml:"stats"`
 	Type      string                                 `json:"type,omitempty"      yaml:"type,omitempty"`
+	Wireguard *SystemNetworkWireguardState           `json:"wireguard,omitempty" yaml:"wireguard,omitempty"`
 }
 
 // SystemNetworkInterfaceStats holds RX/TX stats for an interface.
@@ -195,4 +220,21 @@ type SystemNetworkLLDPState struct {
 type SystemNetworkLACPState struct {
 	LocalMAC  string `json:"local_mac"  yaml:"local_mac"`
 	RemoteMAC string `json:"remote_mac" yaml:"remote_mac"`
+}
+
+// SystemNetworkWireguardState holds state information about a specific wireguard interface.
+type SystemNetworkWireguardState struct {
+	ListeningPort int                               `json:"listening_port,omitempty" yaml:"listening_port,omitempty"`
+	Peers         []SystemNetworkWireguardPeerState `json:"peers,omitempty"          yaml:"peers,omitempty"`
+	PublicKey     string                            `json:"public_key"               yaml:"public_key"`
+}
+
+// SystemNetworkWireguardPeerState holds state information about a specific wireguard peer.
+type SystemNetworkWireguardPeerState struct {
+	AllowedIPs          []string                    `json:"allowed_ips"                    yaml:"allowed_ips"`
+	EndPoint            string                      `json:"endpoint"                       yaml:"endpoint"`
+	LatestHandshake     string                      `json:"latest_handshake,omitempty"     yaml:"latest_handshake,omitempty"`
+	PersistentKeepalive string                      `json:"persistent_keepalive,omitempty" yaml:"persistent_keepalive,omitempty"`
+	PublicKey           string                      `json:"public_key"                     yaml:"public_key"`
+	Stats               SystemNetworkInterfaceStats `json:"stats"                          yaml:"stats"`
 }

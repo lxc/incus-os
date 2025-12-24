@@ -103,6 +103,7 @@ VLANs
 VMware
 VPN
 vSphere
+WireGuard
 WWN
 YAML
 Zabbly

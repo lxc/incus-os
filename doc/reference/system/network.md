@@ -1,6 +1,6 @@
 # Network
 
-IncusOS supports complex network configurations consisting of interfaces, bonds, and VLANs. By default, IncusOS will configure each discovered interface to automatically acquire IPv4/IPv6 addresses, DNS, and NTP information from the local network. More complex network setups can be configured via an [install seed](../seed.md), or post-install via the network API.
+IncusOS supports complex network configurations consisting of interfaces, bonds, VLANs and WireGuard. By default, IncusOS will configure each discovered interface to automatically acquire IPv4/IPv6 addresses, DNS, and NTP information from the local network. More complex network setups can be configured via an [install seed](../seed.md), or post-install via the network API.
 
 Before applying any new/updated network configuration, basic validation checks are performed. If this check fails, or the network fails to come up properly as reported by `systemd-networkd`, the changes will be reverted to minimize the chance of accidentally knocking the IncusOS system offline.
 
@@ -12,7 +12,7 @@ IncusOS automatically configures each interface and bond as a network bridge. Th
 
 ## Roles
 
-Each interface, bond or VLAN can be assigned one or more _roles_, which are used by IncusOS to control how the network device is used:
+Each interface, bond, VLAN or WireGuard can be assigned one or more _roles_, which are used by IncusOS to control how the network device is used:
 
 * `cluster`: The device is used for internal cluster communication
 * `instances`: The device should be made available for use by Incus containers or virtual machines
@@ -24,7 +24,7 @@ If only the `management` role has been assigned, then the `cluster` role will au
 
 ## Configuration options
 
-Interfaces, bonds, and VLANs have a significant number of fields, which are largely self-descriptive and can be viewed in the [API definition](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
+Interfaces, bonds, VLANs and WireGuard have a significant number of fields, which are largely self-descriptive and can be viewed in the [API definition](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
 
 One special feature of note is the handling of hardware addresses (MACs). Both interfaces and bonds associate their configuration with the hardware address, which can be specified in two ways:
 
@@ -39,6 +39,8 @@ The following configuration options can be set:
 * `bonds`: Zero or more bonds that should be configured for the system.
 
 * `vlans`: Zero or more VLANs that should be configured for the system.
+
+* `wireguard`: Zero or more WireGuard interfaces that should be configured for the system.
 
 * `dns`: Optionally, configure custom DNS information for the system.
 
@@ -147,6 +149,53 @@ Configure a VLAN with ID 123 on top of an active-backup bond composed of two int
         "addresses": [
           "dhcp4",
           "slaac"
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### WireGuard
+
+Configure a WireGuard interface with two peers (providing a private_key is optional and will be created if empty):
+
+```
+{
+  "config": {
+    "wireguard": [
+      {
+        "name": "wg0",
+        "port": 51820,
+        "private_key": "AE1SCwtkp8ruDYlUa9x9wsoTzEOePl3P9sMdFFa9PmI=",
+        "addresses": [
+          "10.234.234.100/24",
+          "fd42:3cfb:8972:abcd::100/64"
+        ],
+        "routes" : [
+          {
+            "to": "10.234.110.0/24",
+            "via": "10.234.234.110"
+          }
+        ],
+        "peers": [
+          {
+            "allowed_ips": [
+              "10.234.234.110/24",
+              "fd42:3cfb:8972:abcd::110/64",
+              "10.234.110.0/24"
+            ],
+            "endpoint": "10.102.89.110:51820",
+            "public_key": "rJhRcAtHUldTAA/J+TPQPQpr6G9C2Arf5FiTVwjOYCE="
+          },
+          {
+            "allowed_ips": [
+              "10.234.234.120/24",
+              "fd42:3cfb:8972:abcd::120/64"
+            ],
+            "persistent_keepalive": 30,
+            "public_key": "qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ="
+          }
         ]
       }
     ]
