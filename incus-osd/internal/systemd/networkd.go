@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v6/shared/units"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
@@ -63,6 +64,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	// Delete any interfaces, bonds, or vlans that currently exist but don't in
 	// the new configuration, or have a different configuration.
 	err = cleanupStaleDevices(ctx, s.System.Network.Config, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	// Generate a new private key for each wireguard if none is given.
+	err = checkWireguardPrivateKeys(ctx, networkCfg)
 	if err != nil {
 		return err
 	}
@@ -180,7 +187,7 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 	names := []string{}
 	for _, iface := range networkCfg.Interfaces {
 		if slices.Contains(names, iface.Name) {
-			return errors.New("duplicate interface/bond/vlan name: " + iface.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard name: " + iface.Name)
 		}
 
 		names = append(names, iface.Name)
@@ -188,7 +195,7 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 
 	for _, bond := range networkCfg.Bonds {
 		if slices.Contains(names, bond.Name) {
-			return errors.New("duplicate interface/bond/vlan name: " + bond.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard name: " + bond.Name)
 		}
 
 		names = append(names, bond.Name)
@@ -196,10 +203,18 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 
 	for _, vlan := range networkCfg.VLANs {
 		if slices.Contains(names, vlan.Name) {
-			return errors.New("duplicate interface/bond/vlan name: " + vlan.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard name: " + vlan.Name)
 		}
 
 		names = append(names, vlan.Name)
+	}
+
+	for _, wg := range networkCfg.Wireguard {
+		if slices.Contains(names, wg.Name) {
+			return errors.New("duplicate interface/bond/vlan/wireguard name: " + wg.Name)
+		}
+
+		names = append(names, wg.Name)
 	}
 
 	// Some USB NICs have a default name of "enx<MAC>", which is 15 characters long.
@@ -217,6 +232,11 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 	}
 
 	err = validateVLANs(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	err = validateWireguard(networkCfg)
 	if err != nil {
 		return err
 	}
@@ -294,6 +314,18 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		n.State.Interfaces[v.Name] = vState
 	}
 
+	// State update for wireguard.
+	for _, wg := range n.Config.Wireguard {
+		wgState, err := getWireguardState(ctx, wg.Name)
+		if err != nil {
+			return err
+		}
+
+		wgState.Roles = wg.Roles
+		rolesFound = append(rolesFound, wg.Roles...)
+		n.State.Interfaces[wg.Name] = wgState
+	}
+
 	// Ensure required roles exist.
 	if !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleManagement) || !slices.Contains(rolesFound, api.SystemNetworkInterfaceRoleCluster) {
 		for iName, i := range n.State.Interfaces {
@@ -358,6 +390,195 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	}
 
 	return nil
+}
+
+// getWireguardState runs various commands to gather wireguard state for a specific wireguard interface.
+func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInterfaceState, error) {
+	// Get IPs for the interface.
+	ips, err := GetIPAddresses(ctx, iface)
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	// Get routes for the interface.
+	routes := []api.SystemNetworkRoute{}
+	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
+
+	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	for _, r := range routeRegex.FindAllStringSubmatch(output, -1) {
+		routes = append(routes, api.SystemNetworkRoute{
+			To:  r[1],
+			Via: r[2],
+		})
+	}
+
+	// Get various details from networkctl. It would be better to use the json output
+	// option, but that doesn't include everything we're interested in.
+	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	interfaceStateRegex := regexp.MustCompile(`State: (.+?) `)
+
+	interfaceState := ""
+	if len(interfaceStateRegex.FindStringSubmatch(output)) == 2 {
+		interfaceState = interfaceStateRegex.FindStringSubmatch(output)[1]
+	}
+
+	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
+
+	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	rxBytesRegex := regexp.MustCompile(`Rx Bytes: (.+)`)
+
+	rxBytes, err := strconv.Atoi(rxBytesRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	txBytesRegex := regexp.MustCompile(`Tx Bytes: (.+)`)
+
+	txBytes, err := strconv.Atoi(txBytesRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	rxErrorsRegex := regexp.MustCompile(`Rx Errors: (.+)`)
+
+	rxErrors, err := strconv.Atoi(rxErrorsRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	txErrorsRegex := regexp.MustCompile(`Tx Errors: (.+)`)
+
+	txErrors, err := strconv.Atoi(txErrorsRegex.FindStringSubmatch(output)[1])
+	if err != nil {
+		return api.SystemNetworkInterfaceState{}, err
+	}
+
+	var (
+		publicKey     string
+		listeningPort int
+		wgSections    []string
+	)
+
+	peers := []api.SystemNetworkWireguardPeerState{}
+
+	if interfaceState != "off" {
+		// Get various details from wg show output.
+		output, err = subprocess.RunCommandContext(ctx, "wg", "show", resolveBridge(iface))
+		if err != nil {
+			return api.SystemNetworkInterfaceState{}, err
+		}
+
+		wgSections = strings.Split(output, "\n\n")
+	}
+
+	// Loop over sections of wg show and fill stats.
+	for sectionIndex, section := range wgSections {
+		if sectionIndex == 0 { //nolint:nestif
+			publicKeyRegex := regexp.MustCompile(`  public key: (.+)`)
+			content := publicKeyRegex.FindStringSubmatch(section)[1]
+			publicKey = strings.TrimSuffix(content, "\n")
+
+			listeningPortRegex := regexp.MustCompile(`  listening port: (.+)`)
+
+			port, err := strconv.Atoi(listeningPortRegex.FindStringSubmatch(section)[1])
+			if err != nil {
+				return api.SystemNetworkInterfaceState{}, err
+			}
+
+			listeningPort = port
+		} else {
+			pubKeyRegex := regexp.MustCompile(`peer: (.+)`)
+
+			pubKey := ""
+			if len(pubKeyRegex.FindStringSubmatch(section)) == 2 {
+				pubKey = pubKeyRegex.FindStringSubmatch(section)[1]
+			}
+
+			endPointRegex := regexp.MustCompile(`  endpoint: (.+)`)
+
+			endPoint := ""
+			if len(endPointRegex.FindStringSubmatch(section)) == 2 {
+				endPoint = endPointRegex.FindStringSubmatch(section)[1]
+			}
+
+			handshakeRegex := regexp.MustCompile(`  latest handshake: (.+)`)
+
+			handshake := ""
+			if len(handshakeRegex.FindStringSubmatch(section)) == 2 {
+				handshake = handshakeRegex.FindStringSubmatch(section)[1]
+			}
+
+			addressesRegex := regexp.MustCompile(`  allowed ips: (.+)`)
+			addresses := strings.Split(strings.ReplaceAll(addressesRegex.FindStringSubmatch(section)[1], " ", ""), ",")
+
+			transferRegex := regexp.MustCompile(`  transfer: (.+) received, (.+) sent`)
+			transfer := transferRegex.FindStringSubmatch(section)
+
+			rxStats := 0
+			txStats := 0
+
+			if transfer != nil {
+				output, err := units.ParseByteSizeString(strings.ReplaceAll(transfer[1], " ", ""))
+				if err != nil {
+					return api.SystemNetworkInterfaceState{}, err
+				}
+
+				rxStats = int(output)
+
+				output, err = units.ParseByteSizeString(strings.ReplaceAll(transfer[2], " ", ""))
+				if err != nil {
+					return api.SystemNetworkInterfaceState{}, err
+				}
+
+				txStats = int(output)
+			}
+
+			peers = append(peers, api.SystemNetworkWireguardPeerState{
+				AllowedIPs:      addresses,
+				EndPoint:        endPoint,
+				LatestHandshake: handshake,
+				PublicKey:       pubKey,
+				Stats: api.SystemNetworkInterfaceStats{
+					RXBytes:  rxStats,
+					RXErrors: 0,
+					TXBytes:  txStats,
+					TXErrors: 0,
+				},
+			})
+		}
+	}
+
+	return api.SystemNetworkInterfaceState{
+		Type:      "wireguard",
+		Addresses: ips,
+		Routes:    routes,
+		MTU:       mtu,
+		Speed:     "unknown",
+		State:     interfaceState,
+		Stats: api.SystemNetworkInterfaceStats{
+			RXBytes:  rxBytes,
+			TXBytes:  txBytes,
+			RXErrors: rxErrors,
+			TXErrors: txErrors,
+		},
+		Wireguard: &api.SystemNetworkWireguardState{
+			ListeningPort: listeningPort,
+			PublicKey:     publicKey,
+			Peers:         peers,
+		},
+	}, nil
 }
 
 // getInterfaceState runs various commands to gather network state for a specific interface.
@@ -1076,6 +1297,62 @@ Id=%d
 		})
 	}
 
+	// Create wireguard.
+	for _, w := range networkCfg.Wireguard {
+		mtuString := ""
+		if w.MTU != 0 {
+			mtuString = fmt.Sprintf("MTUBytes=%d", w.MTU)
+		}
+
+		listenPort := ""
+		if w.Port != 0 {
+			listenPort = fmt.Sprintf("ListenPort=%d", w.Port)
+		}
+
+		var cfgBuffer strings.Builder
+
+		_, _ = cfgBuffer.WriteString(fmt.Sprintf(`[NetDev]
+Name=%s
+Kind=wireguard
+%s
+
+[WireGuard]
+PrivateKey=%s
+%s
+
+`, w.Name, mtuString, w.PrivateKey, listenPort))
+
+		for _, peer := range w.Peers {
+			var options strings.Builder
+			for _, addr := range peer.AllowedIPs {
+				_, _ = options.WriteString(fmt.Sprintf("AllowedIPs=%s\n", addr))
+			}
+
+			if peer.PresharedKey != "" {
+				_, _ = options.WriteString(fmt.Sprintf("PresharedKey=%s\n", peer.PresharedKey))
+			}
+
+			if peer.Endpoint != "" {
+				_, _ = options.WriteString(fmt.Sprintf("Endpoint=%s\n", peer.Endpoint))
+			}
+
+			if peer.PersistentKeepalive > 0 {
+				_, _ = options.WriteString(fmt.Sprintf("PersistentKeepalive=%d\n", peer.PersistentKeepalive))
+			}
+
+			_, _ = cfgBuffer.WriteString(fmt.Sprintf(`[WireGuardPeer]
+PublicKey=%s
+%s
+
+`, peer.PublicKey, options.String()))
+		}
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("13-%s.netdev", w.Name),
+			Contents: cfgBuffer.String(),
+		})
+	}
+
 	return ret
 }
 
@@ -1291,6 +1568,26 @@ UseMTU=true
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("22-%s.network", v.Name),
+			Contents: cfgString,
+		})
+	}
+
+	// Create network for each Wireguard.
+	for _, wg := range networkCfg.Wireguard {
+		cfgString := fmt.Sprintf(`[Match]
+Name=%s
+
+[Network]
+`, wg.Name)
+
+		cfgString += processAddresses(wg.Addresses)
+
+		if len(wg.Routes) > 0 {
+			cfgString += processRoutes(wg.Routes)
+		}
+
+		ret = append(ret, networkdConfigFile{
+			Name:     fmt.Sprintf("23-%s.network", wg.Name),
 			Contents: cfgString,
 		})
 	}
@@ -1551,6 +1848,37 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 	}
 
+	// Check for changed/deleted wireguard.
+	for oldIndex := range oldCfg.Wireguard {
+		newIndex := slices.IndexFunc(newCfg.Wireguard, func(v api.SystemNetworkWireguard) bool {
+			return oldCfg.Wireguard[oldIndex].Name == v.Name
+		})
+
+		// If not found, remove the existing wireguard.
+		if newIndex < 0 {
+			deleteInterfaces = append(deleteInterfaces, oldCfg.Wireguard[oldIndex].Name)
+
+			continue
+		}
+
+		// Check if the wireguard configuration has changed.
+		oldConfig, err := json.Marshal(oldCfg.Wireguard[oldIndex])
+		if err != nil {
+			return err
+		}
+
+		newConfig, err := json.Marshal(newCfg.Wireguard[newIndex])
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(oldConfig, newConfig) {
+			deleteInterfaces = append(deleteInterfaces, oldCfg.Wireguard[oldIndex].Name)
+
+			continue
+		}
+	}
+
 	// Delete all the interfaces.
 	if len(deleteInterfaces) > 0 {
 		deleteNetworkDevice(ctx, deleteInterfaces...)
@@ -1692,4 +2020,21 @@ func mangleUSBNICs(config *api.SystemNetworkConfig) {
 			config.Interfaces[i].Name = strings.TrimPrefix(config.Interfaces[i].Name, "enx")
 		}
 	}
+}
+
+func checkWireguardPrivateKeys(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
+	// Check for a private key for each wireguard.
+	for index, wg := range networkCfg.Wireguard {
+		// No private key defined generate one as this is required for wireguard.
+		if wg.PrivateKey == "" {
+			output, err := subprocess.RunCommandContext(ctx, "wg", "genkey")
+			if err != nil {
+				return err
+			}
+
+			networkCfg.Wireguard[index].PrivateKey = strings.Trim(output, "\n")
+		}
+	}
+
+	return nil
 }

@@ -1,6 +1,7 @@
 package systemd
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -198,6 +199,92 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 	return nil
 }
 
+func validateWireguard(cfg *api.SystemNetworkConfig) error {
+	for index, wg := range cfg.Wireguard {
+		err := validateName(wg.Name)
+		if err != nil {
+			return fmt.Errorf("wireguard %d %s", index, err.Error())
+		}
+
+		err = validateMTU(wg.MTU)
+		if err != nil {
+			return fmt.Errorf("wireguard %d %s", index, err.Error())
+		}
+
+		err = validateRoles(wg.Roles)
+		if err != nil {
+			return fmt.Errorf("wireguard %d %s", index, err.Error())
+		}
+
+		err = validateFirewall(wg.FirewallRules)
+		if err != nil {
+			return fmt.Errorf("wireguard %d %s", index, err.Error())
+		}
+
+		for addressIndex, address := range wg.Addresses {
+			err := validateAddressWithCIDR(address)
+			if err != nil {
+				return fmt.Errorf("wireguard %d address %d %s", index, addressIndex, err.Error())
+			}
+		}
+
+		err = validateRequiredForOnline(wg.RequiredForOnline)
+		if err != nil {
+			return fmt.Errorf("wireguard %d %s", index, err.Error())
+		}
+
+		if !isValidBase64(wg.PrivateKey) {
+			return fmt.Errorf("wireguard %d private key '%s' invalid", index, wg.PrivateKey)
+		}
+
+		if wg.Port < 0 || wg.Port > 65535 {
+			return fmt.Errorf("wireguard %d port '%d' out of range", index, wg.Port)
+		}
+
+		for routeIndex, route := range wg.Routes {
+			err := validateAddressWithCIDR(route.To)
+			if err != nil {
+				return fmt.Errorf("wireguard %d route %d 'To' %s", index, routeIndex, err.Error())
+			}
+
+			err = validateAddress(route.Via)
+			if err != nil {
+				return fmt.Errorf("wireguard %d route %d 'Via' %s", index, routeIndex, err.Error())
+			}
+		}
+
+		for peerIndex, peer := range wg.Peers {
+			if !isValidBase64(peer.PublicKey) {
+				return fmt.Errorf("wireguard %d peer %d public key invalid", index, peerIndex)
+			}
+
+			if peer.PresharedKey != "" && !isValidBase64(peer.PresharedKey) {
+				return fmt.Errorf("wireguard %d peer %d preshared key invalid", index, peerIndex)
+			}
+
+			for addressIndex, address := range peer.AllowedIPs {
+				err := validateAddressWithCIDR(address)
+				if err != nil {
+					return fmt.Errorf("wireguard %d peer %d allowed IP %d %s", index, peerIndex, addressIndex, err.Error())
+				}
+			}
+
+			if peer.PersistentKeepalive < 0 || peer.PersistentKeepalive > 65535 {
+				return fmt.Errorf("wireguard %d peer %d persitent keepalive %d out of range", index, peerIndex, peer.PersistentKeepalive)
+			}
+
+			if peer.Endpoint != "" {
+				endpointishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+:\d+$`)
+				if !endpointishRegex.MatchString(peer.Endpoint) {
+					return fmt.Errorf("wireguard %d peer %d invalid endpoint '%s'", index, peerIndex, peer.Endpoint)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func validateName(name string) error {
 	if name == "" {
 		return errors.New("has no name")
@@ -388,4 +475,10 @@ func validateHwaddr(hwaddr string, requireValidMAC bool) error {
 	}
 
 	return nil
+}
+
+func isValidBase64(s string) bool {
+	_, err := base64.StdEncoding.DecodeString(s)
+
+	return err == nil
 }
