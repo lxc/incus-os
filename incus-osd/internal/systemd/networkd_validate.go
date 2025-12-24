@@ -62,6 +62,11 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
+
+		err = validateEthernet(iface.Ethernet)
+		if err != nil {
+			return fmt.Errorf("interface %d %s", index, err.Error())
+		}
 	}
 
 	return nil
@@ -134,6 +139,11 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 			if err != nil {
 				return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
 			}
+		}
+
+		err = validateEthernet(bond.Ethernet)
+		if err != nil {
+			return fmt.Errorf("bond %d %s", index, err.Error())
 		}
 	}
 
@@ -481,4 +491,20 @@ func isValidBase64(s string) bool {
 	_, err := base64.StdEncoding.DecodeString(s)
 
 	return err == nil
+}
+
+func validateEthernet(eth *api.SystemNetworkEthernet) error {
+	if eth == nil {
+		return nil
+	}
+
+	// Validate WakeOnLAN password (should be MAC formatted).
+	if eth.WakeOnLANPassword != "" {
+		err := validateHwaddr(eth.WakeOnLANPassword, true)
+		if err != nil {
+			return fmt.Errorf("bad wake-on-lan password: %w", err)
+		}
+	}
+
+	return nil
 }

@@ -1120,24 +1120,38 @@ func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConf
 			return ""
 		}
 
-		offloadSegments := []string{}
+		segments := []string{}
 		if s.DisableGRO {
-			offloadSegments = append(offloadSegments, "GenericSegmentationOffload=false")
+			segments = append(segments, "GenericSegmentationOffload=false")
 		}
 
 		if s.DisableGSO {
-			offloadSegments = append(offloadSegments, "GenericReceiveOffload=false")
+			segments = append(segments, "GenericReceiveOffload=false")
 		}
 
 		if s.DisableIPv4TSO {
-			offloadSegments = append(offloadSegments, "TCPSegmentationOffload=false")
+			segments = append(segments, "TCPSegmentationOffload=false")
 		}
 
 		if s.DisableIPv6TSO {
-			offloadSegments = append(offloadSegments, "TCP6SegmentationOffload=false")
+			segments = append(segments, "TCP6SegmentationOffload=false")
 		}
 
-		out := strings.Join(offloadSegments, "\n")
+		if s.WakeOnLAN {
+			if len(s.WakeOnLANModes) > 0 {
+				for _, mode := range s.WakeOnLANModes {
+					segments = append(segments, "WakeOnLan="+mode)
+				}
+			} else {
+				segments = append(segments, "WakeOnLan=magic")
+			}
+
+			if slices.Contains(s.WakeOnLANModes, "secureon") {
+				segments = append(segments, "WakeOnLanPassword="+s.WakeOnLANPassword)
+			}
+		}
+
+		out := strings.Join(segments, "\n")
 
 		if s.DisableEnergyEfficient {
 			out += `
