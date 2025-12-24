@@ -179,5 +179,16 @@ func ApplyInputFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig)
 		}
 	}
 
+	for _, iface := range networkCfg.Wireguard {
+		if len(iface.FirewallRules) == 0 {
+			continue
+		}
+
+		err := applyFirewall(iface.Name, iface.FirewallRules)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
