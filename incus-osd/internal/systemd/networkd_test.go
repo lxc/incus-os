@@ -564,11 +564,11 @@ func TestLinkFileGeneration(t *testing.T) {
 	cfgs = generateLinkFileContents(networkCfg)
 	require.Len(t, cfgs, 3)
 	require.Equal(t, "00-_paabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nGenericSegmentationOffload=false\nGenericReceiveOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n[EnergyEfficientEthernet]\nEnable=false", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nGenericSegmentationOffload=false\nGenericReceiveOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
 	require.Equal(t, "01-_paabbccddee02.link", cfgs[1].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[1].Contents)
 	require.Equal(t, "01-_paabbccddee03.link", cfgs[2].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[2].Contents)
 }
 
 func TestNetdevFileGeneration(t *testing.T) {

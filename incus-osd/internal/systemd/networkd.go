@@ -1159,6 +1159,10 @@ func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConf
 Enable=false`
 		}
 
+		if out != "" {
+			out += "\n"
+		}
+
 		return out
 	}
 

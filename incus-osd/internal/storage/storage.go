@@ -126,6 +126,23 @@ type smartOutput struct {
 	SMARTStatus struct {
 		Passed bool `json:"passed"`
 	} `json:"smart_status"`
+	PowerOnTime struct {
+		Hours int `json:"hours"`
+	} `json:"power_on_time"`
+	NVMESmartHealthInformationLog struct {
+		DataUnitsRead    int `json:"data_units_read"`
+		DataUnitsWritten int `json:"data_units_written"`
+		AvailableSpare   int `json:"available_spare"`
+		PercentageUsed   int `json:"percentage_used"`
+	} `json:"nvme_smart_health_information_log"`
+	ATASmartAttributes struct {
+		Table []struct {
+			Name string `json:"name"`
+			Raw  struct {
+				Value int `json:"value"`
+			} `json:"raw"`
+		} `json:"table"`
+	} `json:"ata_smart_attributes"`
 }
 
 // GetUnderlyingDevice figures out and returns the underlying device that IncusOS is running from.
@@ -609,9 +626,48 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 		// Populate SMART info if available.
 		smartStatus := new(api.SystemStorageDriveSMART)
-		if smart.SMARTSupport.Available {
+		if smart.SMARTSupport.Available { //nolint:nestif
 			smartStatus.Enabled = smart.SMARTSupport.Enabled
 			smartStatus.Passed = smart.SMARTStatus.Passed
+
+			if smart.PowerOnTime.Hours > 0 {
+				smartStatus.PowerOnHours = smart.PowerOnTime.Hours
+			}
+
+			// NVME handling.
+			if smart.NVMESmartHealthInformationLog.PercentageUsed > 0 {
+				smartStatus.PercentageUsed = smart.NVMESmartHealthInformationLog.PercentageUsed
+			}
+
+			if smart.NVMESmartHealthInformationLog.DataUnitsRead > 0 {
+				smartStatus.DataUnitsRead = smart.NVMESmartHealthInformationLog.DataUnitsRead
+			}
+
+			if smart.NVMESmartHealthInformationLog.DataUnitsWritten > 0 {
+				smartStatus.DataUnitsWritten = smart.NVMESmartHealthInformationLog.DataUnitsWritten
+			}
+
+			if smart.NVMESmartHealthInformationLog.AvailableSpare > 0 {
+				smartStatus.AvailableSpare = smart.NVMESmartHealthInformationLog.AvailableSpare
+			}
+
+			// ATA handling.
+			ataAttributes := map[string]int{}
+			for _, attr := range smart.ATASmartAttributes.Table {
+				ataAttributes[attr.Name] = attr.Raw.Value
+			}
+
+			if ataAttributes["Raw_Read_Error_Rate"] > 0 {
+				smartStatus.RawReadErrorRate = ataAttributes["Raw_Read_Error_Rate"]
+			}
+
+			if ataAttributes["Seek_Error_Rate"] > 0 {
+				smartStatus.SeekErrorRate = ataAttributes["Seek_Error_Rate"]
+			}
+
+			if ataAttributes["Reallocated_Sector_Ct"] > 0 {
+				smartStatus.ReallocatedSectors = ataAttributes["Reallocated_Sector_Ct"]
+			}
 		} else {
 			smartStatus = nil
 		}

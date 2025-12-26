@@ -94,6 +94,15 @@ type SystemStorageDrive struct {
 type SystemStorageDriveSMART struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 	Passed  bool `json:"passed"  yaml:"passed"`
+
+	PowerOnHours       int `json:"power_on_hours,omitempty"      yaml:"power_on_hours,omitempty"`
+	DataUnitsRead      int `json:"data_units_read,omitempty"     yaml:"data_units_read,omitempty"`
+	DataUnitsWritten   int `json:"data_units_written,omitempty"  yaml:"data_units_written,omitempty"`
+	AvailableSpare     int `json:"available_spare,omitempty"     yaml:"available_spare,omitempty"`
+	PercentageUsed     int `json:"percentage_used,omitempty"     yaml:"percentage_used,omitempty"`
+	RawReadErrorRate   int `json:"raw_read_error_rate,omitempty" yaml:"raw_read_error_rate,omitempty"`
+	SeekErrorRate      int `json:"seek_error_rate,omitempty"     yaml:"seek_error_rate,omitempty"`
+	ReallocatedSectors int `json:"reallocated_sectors,omitempty" yaml:"reallocated_sectors,omitempty"`
 }
 
 // SystemStorageWipe defines a struct with information about what drive to wipe.
