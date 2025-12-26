@@ -74,12 +74,12 @@ class IncusTestVM:
         subprocess.run(["incus", "config", "device", "set", self.vm_name, device, prop], capture_output=True, check=True)
 
     def StartVM(self, timeout=60):
-        """Start the VM and wait up to 15 seconds by default for the command to return."""
+        """Start the VM and wait up to 60 seconds by default for the command to return."""
 
         subprocess.run(["incus", "start", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
     def StopVM(self, timeout=120):
-        """Stop the VM and wait up to 60 seconds by default for the command to return."""
+        """Stop the VM and wait up to 120 seconds by default for the command to return."""
 
         subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
