@@ -42,7 +42,7 @@ def TestIncusOSAPISystemPoweroff(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
-        time.sleep(5)
+        time.sleep(15)
 
         # When the VM is powered off, attempting to stop it should raise an exception.
         try:
