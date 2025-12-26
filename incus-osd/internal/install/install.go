@@ -580,7 +580,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return err
 	}
 
-	err = unix.Mount(targetDevice+targetPartitionPrefix+"1", "/boot", "vfat", 0, "")
+	err = unix.Mount(targetDevice+targetPartitionPrefix+"1", "/boot", "vfat", 0, "umask=0077")
 	if err != nil {
 		return err
 	}
