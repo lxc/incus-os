@@ -303,7 +303,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	mode := "unsafe"
 
 	for _, key := range keys {
+		// UEFI 2025 key.
 		if key.Fingerprint == "6cdc880c5df31b18176ddaa3528394aa03791f91" {
+			mode = "production"
+		}
+
+		// UEFI 2026 key.
+		if key.Fingerprint == "65fdb45e95aba8c36d58f90610f49eeebc0dd451" {
 			mode = "production"
 		}
 
