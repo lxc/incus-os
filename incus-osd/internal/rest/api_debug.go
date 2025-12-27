@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -211,6 +212,8 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) {
@@ -218,6 +221,20 @@ func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) 
 
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Determine Secure Boot state.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	if !sbEnabled {
+		_ = response.BadRequest(errors.New("cannot apply certificate update when Secure Boot is disabled")).Render(w)
 
 		return
 	}

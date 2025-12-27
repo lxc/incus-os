@@ -7102,8 +7102,16 @@ definitions:
                 readOnly: true
                 type: array
                 x-go-name: AuthMethods
+            config:
+                additionalProperties:
+                    type: string
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :6443
+                type: object
+                x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Source:
         properties:
             name:
@@ -8019,20 +8027,25 @@ definitions:
     SystemCertificatePost:
         description: |-
             SystemCertificatePost represents the fields available for an update of the
-            system certificate (server certificate) and key.
+            system certificate (server certificate), key, and CA.
         properties:
+            ca:
+                description: The new certificate CA (X509 PEM encoded) for the system (server CA).
+                example: X509 PEM certificate CA
+                type: string
+                x-go-name: CA
             certificate:
                 description: The new certificate (X509 PEM encoded) for the system (server certificate).
                 example: X509 PEM certificate
                 type: string
-                x-go-name: Certificate
+                x-go-name: Cert
             key:
                 description: The new certificate key (X509 PEM encoded) for the system (server key).
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: Key
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemNetwork:
         properties:
             config:
@@ -9267,64 +9280,55 @@ definitions:
     Warning:
         properties:
             count:
-                description: The number of times this warning occurred
-                example: 1
+                description: Number of times the warning has been seen.
+                example: 10
                 format: int64
                 type: integer
                 x-go-name: Count
-            entity_url:
-                description: The entity affected by this warning
-                example: /1.0/instances/c1?project=default
-                type: string
-                x-go-name: EntityURL
-            first_seen_at:
-                description: The first time this warning occurred
-                example: "2021-03-23T17:38:37.753398689-04:00"
+            first_seen_date:
+                description: First time the warning was seen.
+                example: "2025-01-01 01:00:00"
                 format: date-time
                 type: string
-                x-go-name: FirstSeenAt
-            last_message:
-                description: The warning message
-                example: Couldn't find the CGroup blkio.weight, disk priority will be ignored
-                type: string
-                x-go-name: LastMessage
-            last_seen_at:
-                description: The last time this warning occurred
-                example: "2021-03-23T17:38:37.753398689-04:00"
+                x-go-name: FirstSeenDate
+            last_seen_date:
+                description: Most recent time the warning was seen.
+                example: "2025-01-01 01:00:00"
                 format: date-time
                 type: string
-                x-go-name: LastSeenAt
-            location:
-                description: What cluster member this warning occurred on
-                example: server01
-                type: string
-                x-go-name: Location
-            project:
-                description: The project the warning occurred in
-                example: default
-                type: string
-                x-go-name: Project
-            severity:
-                description: The severity of this warning
-                example: low
-                type: string
-                x-go-name: Severity
+                x-go-name: LastSeenDate
+            messages:
+                description: Messages associated with the warning type.
+                example: list of messages
+                items:
+                    type: string
+                type: array
+                x-go-name: Messages
+            scope:
+                $ref: '#/definitions/WarningScope'
             status:
                 $ref: '#/definitions/WarningStatus'
+                description: Status of the warning (new, acknowledged, or resolved)
+                example: new
                 type: string
+                x-go-name: Status
             type:
-                description: Type type of warning
-                example: Couldn't find CGroup
+                $ref: '#/definitions/WarningType'
+            updated_date:
+                description: Last time the warning was changed.
+                example: "2025-01-01 01:00:00"
+                format: date-time
                 type: string
-                x-go-name: Type
+                x-go-name: UpdatedDate
             uuid:
-                description: UUID of the warning
-                example: e9e9da0d-2538-4351-8047-46d4a8ae4dbb
+                description: Unique identifier of the warning.
+                example: a2095069-a527-4b2a-ab23-1739325dcac7
+                format: uuid
                 type: string
                 x-go-name: UUID
-        title: Warning represents a warning entry.
+        title: Warning represents a record of a warning.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     WarningPut:
         properties:
             status:
@@ -9794,6 +9798,8 @@ paths:
             responses:
                 "200":
                     $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Apply Secure Boot updates

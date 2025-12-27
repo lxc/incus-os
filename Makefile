@@ -25,15 +25,15 @@ generate-manifests:
 	(cd incus-osd && go build ./cmd/generate-manifests)
 	strip incus-osd/generate-manifests
 
-.PHONY: measure-pcrs
-measure-pcrs:
-	(cd incus-osd && go build ./cmd/measure-pcrs)
-	strip incus-osd/measure-pcrs
+.PHONY: ios-utils
+ios-utils:
+	(cd incus-osd && go build ./cmd/ios-utils)
+	strip incus-osd/ios-utils
 
 .PHONY: initrd-deb-package
-initrd-deb-package: measure-pcrs
+initrd-deb-package: ios-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
-	cp incus-osd/measure-pcrs mkosi.packages/initrd-tmpfs-root/
+	cp incus-osd/ios-utils mkosi.packages/initrd-tmpfs-root/
 	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service && debuild)
 	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
           mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \
@@ -70,6 +70,8 @@ endif
 	-mkosi genkey
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
+
+	./scripts/inject-system-certs.sh
 
 	cd app-build/ && ./build-applications.py
 
