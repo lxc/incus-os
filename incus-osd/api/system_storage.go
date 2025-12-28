@@ -4,7 +4,8 @@ import "time"
 
 // SystemStorageConfig represents additional configuration for the system's local storage.
 type SystemStorageConfig struct {
-	Pools []SystemStoragePool `json:"pools,omitempty" yaml:"pools,omitempty"`
+	ScrubSchedule string              `json:"scrub_schedule" yaml:"scrub_schedule"`
+	Pools         []SystemStoragePool `incusos:"-"           json:"pools,omitempty" yaml:"pools,omitempty"`
 }
 
 // SystemStorageState represents additional state for the system's local storage.
