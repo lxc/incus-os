@@ -68,6 +68,7 @@ type State struct {
 		Provider api.SystemProvider `json:"provider"`
 		Security api.SystemSecurity `json:"security"`
 		Update   api.SystemUpdate   `json:"update"`
+		Storage  api.SystemStorage  `json:"storage"`
 	} `json:"system"`
 }
 

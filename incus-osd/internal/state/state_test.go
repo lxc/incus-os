@@ -204,6 +204,38 @@ System.Update.Config.Channel: stable
 System.Update.Config.CheckFrequency: 6h0m0s
 `
 
+var goldEncodingV7 = `#Version: 7
+Applications[incus].State.Initialized: true
+Applications[incus].State.Version: 202506241635
+OS.Name: IncusOS
+OS.RunningRelease: 202506241635
+OS.NextRelease: 202506241635
+System.Network.Config.Time.NTPServers[0]: ntp.example.org
+System.Network.Config.Proxy.Rules[0].Destination: http://*
+System.Network.Config.Proxy.Rules[0].Target: anonymous-proxy_example_org_1234
+System.Network.Config.Proxy.Rules[1].Destination: https://*
+System.Network.Config.Proxy.Rules[1].Target: proxy_example_net_8080
+System.Network.Config.Proxy.Rules[2].Destination: *.example.org|*.example.net
+System.Network.Config.Proxy.Rules[2].Target: direct
+System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Auth: anonymous
+System.Network.Config.Proxy.Servers[anonymous-proxy_example_org_1234].Host: anonymous-proxy.example.org:1234
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Auth: basic
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Host: proxy.example.net:8080
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Password: pass
+System.Network.Config.Proxy.Servers[proxy_example_net_8080].Username: user
+System.Network.Config.Interfaces[0].Addresses[0]: dhcp4
+System.Network.Config.Interfaces[0].Addresses[1]: slaac
+System.Network.Config.Interfaces[0].Hwaddr: 10:66:6a:7c:8c:b0
+System.Network.Config.Interfaces[0].Name: enp5s0
+System.Provider.Config.Name: local
+System.Provider.Config.Config[multiline_value]: first\nsecond\nthird
+System.Security.Config.EncryptionRecoveryKeys[0]: ebbbibiu-ltgjfuhk-gvutdrvu-hijhvfje-gvlrgrfv-ndekdtdh-ghteuklj-ldedfifb
+System.Security.State.EncryptionRecoveryKeysRetrieved: true
+System.Update.Config.Channel: stable
+System.Update.Config.CheckFrequency: 6h0m0s
+System.Storage.Config.ScrubSchedule: 0 4 * * 0
+`
+
 var unrecognizedFieldConfig = `#Version: 5
 Applications[incus].State.Initialized: true
 Applications[incus].State.Version: 202506241635
@@ -231,7 +263,7 @@ func TestCustomEncoding(t *testing.T) {
 	t.Parallel()
 
 	// Test upgrading each known old state version.
-	for _, goldVersion := range []string{goldEncodingV0, goldEncodingV1, goldEncodingV2, goldEncodingV3, goldEncodingV4, goldEncodingV5} {
+	for _, goldVersion := range []string{goldEncodingV0, goldEncodingV1, goldEncodingV2, goldEncodingV3, goldEncodingV4, goldEncodingV5, goldEncodingV6} {
 		var s state.State
 
 		err := state.Decode([]byte(goldVersion), nil, &s)
@@ -240,8 +272,8 @@ func TestCustomEncoding(t *testing.T) {
 		content, err := state.Encode(&s)
 		require.NoError(t, err)
 
-		require.Equal(t, goldEncodingV6, string(content))
-		require.Equal(t, 6, s.StateVersion)
+		require.Equal(t, goldEncodingV7, string(content))
+		require.Equal(t, 7, s.StateVersion)
 
 		require.Equal(t, 2, strings.Count(s.System.Provider.Config.Config["multiline_value"], "\n"))
 	}
