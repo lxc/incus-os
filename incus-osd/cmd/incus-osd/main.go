@@ -241,6 +241,12 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	slog.InfoContext(ctx, "System is shutting down", "version", s.OS.RunningRelease)
 	modal.Update("System is shutting down")
 
+	// Shutdown the job scheduler.
+	err := s.JobScheduler.Shutdown()
+	if err != nil {
+		return err
+	}
+
 	// Run application shutdown actions.
 	for appName, appInfo := range s.Applications {
 		// Get the application.
@@ -500,6 +506,15 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 	}
 
+	// Register background jobs.
+	err = registerJobs(s)
+	if err != nil {
+		return err
+	}
+
+	// Start the job scheduler.
+	s.JobScheduler.Start()
+
 	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
@@ -547,6 +562,16 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 			updateChecker(ctx, s, t, p, true, false)
 		}()
+	}
+
+	return nil
+}
+
+func registerJobs(s *state.State) error {
+	// Register the ZFS scrub job.
+	err := s.JobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools)
+	if err != nil {
+		return err
 	}
 
 	return nil
