@@ -17,8 +17,14 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
+)
+
+const (
+	// PoolScrubJob represents the job to scrub all storage pools.
+	PoolScrubJob scheduling.JobName = "pool_scrub"
 )
 
 // LoadPools will import all managed ZFS pools on the local system and attempt to load
@@ -839,6 +845,55 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 	_, err = subprocess.RunCommandContext(ctx, "zpool", "scrub", poolName)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ScrubAllPools scrubs all pools in the system sequentially, blocking until the scrub is complete.
+func ScrubAllPools(ctx context.Context) error {
+	info, err := storage.GetStorageInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Scrub every pool sequentially.
+	for _, pool := range info.State.Pools {
+		slog.InfoContext(ctx, "Scrubbing pool", slog.String("pool", pool.Name))
+
+		// If a scrub is already in progress for a pool, skip it.
+		if pool.LastScrub != nil && pool.LastScrub.State == api.ScrubInProgress {
+			continue
+		}
+
+		// Perform the scrub.
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "scrub", pool.Name)
+		if err != nil {
+			return err
+		}
+
+		// Wait for the scrub to finish.
+		for {
+			latestInfo, err := storage.GetStorageInfo(ctx)
+			if err != nil {
+				return err
+			}
+
+			latestPoolInfo := api.SystemStoragePool{}
+
+			for _, p := range latestInfo.State.Pools {
+				if p.Name == pool.Name {
+					latestPoolInfo = p
+				}
+			}
+
+			// If the scrub is not in progress, break and move to the next pool.
+			if latestPoolInfo.LastScrub != nil && latestPoolInfo.LastScrub.State != api.ScrubInProgress {
+				break
+			}
+
+			time.Sleep(time.Minute)
+		}
 	}
 
 	return nil
