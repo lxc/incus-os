@@ -145,7 +145,7 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		_, err = subprocess.RunCommandContext(ctx, "tailscale", "serve", "--bg", "--https="+strconv.Itoa(int(n.state.Services.Tailscale.Config.ServePort)), "https+insecure://localhost:8443")
+		_, err = subprocess.RunCommandContext(ctx, "tailscale", "serve", "--bg", "--https="+strconv.Itoa(n.state.Services.Tailscale.Config.ServePort), "https+insecure://localhost:8443")
 		if err != nil {
 			return err
 		}
