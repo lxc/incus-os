@@ -6,11 +6,11 @@ initrd-tmpfs-root.service usr/lib/systemd/system/
 
 00-device-timeout.conf usr/lib/systemd/system.conf.d/
 
-initrd-boot-message.service usr/lib/systemd/system/
-initrd-boot-message.sh usr/bin/
+initrd-startup-checks.service usr/lib/systemd/system/
+initrd-startup-checks.sh usr/bin/
 
-initrd-show-devices.service usr/lib/systemd/system/
-initrd-show-devices.sh usr/bin/
+initrd-debug-info.service usr/lib/systemd/system/
+initrd-debug-info.sh usr/bin/
 
 initrd-swtpm.service usr/lib/systemd/system/
 measure-pcrs usr/bin/

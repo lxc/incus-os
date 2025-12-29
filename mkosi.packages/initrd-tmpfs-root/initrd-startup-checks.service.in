@@ -1,5 +1,5 @@
 [Unit]
-Description=Display startup message
+Description=Run startup checks
 Before=veritysetup.target
 After=veritysetup-pre.target
 DefaultDependencies=no
@@ -10,7 +10,7 @@ Type=oneshot
 Environment=OS_NAME="@OSNAME@"
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
-ExecStart=/usr/bin/initrd-boot-message.sh
+ExecStart=/usr/bin/initrd-startup-checks.sh
 
 [Install]
 WantedBy=veritysetup.target

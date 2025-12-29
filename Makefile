@@ -34,7 +34,7 @@ measure-pcrs:
 initrd-deb-package: measure-pcrs
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
 	cp incus-osd/measure-pcrs mkosi.packages/initrd-tmpfs-root/
-	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service && debuild)
+	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
 	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
           mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \
           mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.substvars mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root/ \
