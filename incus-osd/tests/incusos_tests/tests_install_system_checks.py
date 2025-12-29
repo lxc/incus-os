@@ -14,7 +14,19 @@ def TestInstallNoSeed(install_image):
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System check error: unable to begin install without seed configuration")
+        vm.WaitExpectedLog("incus-osd", "System check error: source device '/dev/sdb' is too small \\(.+GiB\\), must be at least 50GiB", regex=True)
+
+def TestInstallNoSeedReadonlyImage(install_image):
+    test_name = "no-seed-readonly-image"
+    test_seed = None
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image, readonly_install_image="true") as vm:
+        # Perform IncusOS install.
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: unable to begin install from read-only device '/dev/sdb' without seed configuration")
 
 def TestInstallTooManyTargets(install_image):
     test_name = "too-many-targets"

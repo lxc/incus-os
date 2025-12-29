@@ -81,22 +81,29 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
 		}
 	}
 
-	// Check if systemd-repart has failed (we're either running from a read-only or a small USB
-	// stick), or we're running from a CDROM, which normally indicates we're about to start an
-	// install but there's no install seed present.
-	if (systemd.IsFailed(ctx, "systemd-repart") || runningFromCDROM()) && !ShouldPerformInstall() {
-		return errors.New("unable to begin install without seed configuration")
+	// Get the source device that IncusOS is running from.
+	sourceDevice, sourceIsReadonly, sourceDeviceSize, err := getSourceDevice(ctx)
+	if err != nil {
+		return errors.New("unable to determine source device: " + err.Error())
+	}
+
+	// If we aren't going to perform an install but systemd-repart failed or we're running from a CDROM,
+	// display an appropriate error message to the user.
+	if !ShouldPerformInstall() && (systemd.IsFailed(ctx, "systemd-repart") || runningFromCDROM()) {
+		if sourceIsReadonly {
+			return fmt.Errorf("unable to begin install from read-only device '%s' without seed configuration", sourceDevice)
+		}
+
+		if sourceDeviceSize < 50*1024*1024*1024 {
+			return fmt.Errorf("source device '%s' is too small (%0.2fGiB), must be at least 50GiB", sourceDevice, float64(sourceDeviceSize)/(1024.0*1024.0*1024.0))
+		}
+
+		return errors.New("no install seed provided, and failed to run systemd-repart for live system")
 	}
 
 	// Perform install-specific checks.
 	if installSeed != nil { //nolint:nestif
-		// Check that we have either been told what target device to use, or that we can automatically figure it out.
-		source, _, err := getSourceDevice(ctx)
-		if err != nil {
-			return errors.New("unable to determine source device: " + err.Error())
-		}
-
-		targets, err := getAllTargets(ctx, source)
+		targets, err := getAllTargets(ctx, sourceDevice)
 		if err != nil {
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
@@ -115,7 +122,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
 			}
 
 			seedPartition := filepath.Join("/dev/disk/by-partlabel", seedLink)
-			if !strings.HasPrefix(seedPartition, source) {
+			if !strings.HasPrefix(seedPartition, sourceDevice) {
 				return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
 			}
 		}
@@ -177,7 +184,7 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 	slog.InfoContext(ctx, "Starting install of "+osName+" to local disk")
 	modal.Update("Starting install of " + osName + " to local disk.")
 
-	sourceDevice, sourceIsReadonly, err := getSourceDevice(ctx)
+	sourceDevice, sourceIsReadonly, _, err := getSourceDevice(ctx)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
@@ -237,10 +244,10 @@ func runningFromCDROM() bool {
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func getSourceDevice(ctx context.Context) (string, bool, error) {
+func getSourceDevice(ctx context.Context) (string, bool, int, error) { //nolint:revive
 	// Check if we're running from a CDROM.
 	if runningFromCDROM() {
-		return cdromMappedDevice, true, nil
+		return cdromMappedDevice, true, -1, nil
 	}
 
 	// If boot.mount has failed, we're running from a read-only USB stick.
@@ -249,17 +256,30 @@ func getSourceDevice(ctx context.Context) (string, bool, error) {
 	// need to check its output.
 	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
 	if err != nil {
-		return "", false, err
+		return "", false, -1, err
 	}
 
 	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
 
 	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
-		return "", isReadonlyInstallFS, err
+		return "", isReadonlyInstallFS, -1, err
 	}
 
-	return underlyingDevice, isReadonlyInstallFS, nil
+	// Get the device's size.
+	lsblkOutput := storage.LsblkOutput{}
+
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-iJnpbs", "-o", "KNAME,ID_LINK,SIZE", underlyingDevice)
+	if err != nil {
+		return "", isReadonlyInstallFS, -1, err
+	}
+
+	err = json.Unmarshal([]byte(output), &lsblkOutput)
+	if err != nil {
+		return "", isReadonlyInstallFS, -1, err
+	}
+
+	return underlyingDevice, isReadonlyInstallFS, lsblkOutput.BlockDevices[0].Size, nil
 }
 
 // getAllTargets returns a list of all potential install target devices.
