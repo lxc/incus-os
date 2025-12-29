@@ -1,7 +1,8 @@
 [Unit]
 Description=Run startup checks
+After=boot.mount veritysetup-pre.target
+Requires=boot.mount
 Before=veritysetup.target
-After=veritysetup-pre.target
 DefaultDependencies=no
 
 [Service]

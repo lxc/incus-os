@@ -31,7 +31,7 @@ incusos-initrd-utils:
 	strip incus-osd/incusos-initrd-utils
 
 .PHONY: initrd-deb-package
-initrd-deb-package: incusos-initrd-utils
+initrd-deb-package: inject-system-certs incusos-initrd-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
 	cp incus-osd/incusos-initrd-utils mkosi.packages/initrd-tmpfs-root/
 	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
@@ -60,8 +60,8 @@ ifeq (,$(wildcard ./certs/))
 	./scripts/test/switch-secure-boot-signing-key.sh 1
 endif
 
-.PHONY: build
-build: incus-osd flasher-tool generate-manifests initrd-deb-package
+.PHONY: inject-system-certs
+inject-system-certs:
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -73,6 +73,8 @@ endif
 
 	./scripts/inject-system-certs.sh
 
+.PHONY: build
+build: incus-osd flasher-tool generate-manifests initrd-deb-package
 	cd app-build/ && ./build-applications.py
 
 	# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.

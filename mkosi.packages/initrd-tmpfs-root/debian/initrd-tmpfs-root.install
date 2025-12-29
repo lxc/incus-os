@@ -14,3 +14,5 @@ initrd-debug-info.sh usr/bin/
 
 initrd-swtpm.service usr/lib/systemd/system/
 incusos-initrd-utils usr/bin/
+
+certs/ usr/lib/incus-osd/
