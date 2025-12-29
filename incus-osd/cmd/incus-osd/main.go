@@ -1119,7 +1119,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		}
 	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
-		err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+		err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
 		if err != nil {
 			return "", err
 		}

@@ -2,13 +2,17 @@ package systemd
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/foxboron/go-uefi/authenticode"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -70,10 +74,11 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 		return err
 	}
 
-	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
 	var newUKIFile string
 
 	var newUsrImageFile string
+
+	var newUsrImageVeritySigFile string
 
 	updateFiles, err := os.ReadDir(SystemUpdatesPath)
 	if err != nil {
@@ -81,13 +86,66 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	}
 
 	for _, file := range updateFiles {
-		if strings.HasSuffix(file.Name(), "_"+version+".efi") {
+		if strings.HasSuffix(file.Name(), "_"+version+".efi") { //nolint:gocritic
 			newUKIFile = filepath.Join(SystemUpdatesPath, file.Name())
 		} else if strings.Contains(file.Name(), "_"+version+".usr-x86-64.") || strings.Contains(file.Name(), "_"+version+".usr-arm64.") {
 			newUsrImageFile = filepath.Join(SystemUpdatesPath, file.Name())
+		} else if strings.Contains(file.Name(), "_"+version+".usr-x86-64-verity-sig.") || strings.Contains(file.Name(), "_"+version+".usr-arm64-verity-sig.") {
+			newUsrImageVeritySigFile = filepath.Join(SystemUpdatesPath, file.Name())
 		}
 	}
 
+	// Verify that the UKI and usr image file are signed by a trusted certificate.
+	sigFile, err := os.Open(newUsrImageVeritySigFile) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer sigFile.Close()
+
+	buf, err := io.ReadAll(sigFile)
+	if err != nil {
+		return err
+	}
+
+	// Decode the json metadata.
+	metadata := veritySignatureMetadata{}
+	buf = bytes.Trim(buf, "\x00")
+
+	err = json.Unmarshal(buf, &metadata)
+	if err != nil {
+		return err
+	}
+
+	// Get the trusted certificate that matches the verity certificate fingerprint.
+	trustedCert, err := getTrustedVerityCertificate(ctx, metadata.CertificateFingerprint)
+	if err != nil {
+		return err
+	}
+
+	// Verify the UKI image.
+	ukiImage, err := os.Open(newUKIFile) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	defer ukiImage.Close()
+
+	ukiAuthenticode, err := authenticode.Parse(ukiImage)
+	if err != nil {
+		return err
+	}
+
+	_, err = ukiAuthenticode.Verify(trustedCert)
+	if err != nil {
+		return err
+	}
+
+	// Verify the usr image PKCS7 signature.
+	err = verifySignature(metadata.Signature, metadata.RootHash, trustedCert)
+	if err != nil {
+		return err
+	}
+
+	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
 	secureBootKeyChanged, err := secureboot.UKIHasDifferentSecureBootCertificate(newUKIFile)
 	if err != nil {
 		return err
