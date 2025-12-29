@@ -595,7 +595,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	// Finally, run `bootctl install`.
-	_, err = subprocess.RunCommandContext(ctx, "bootctl", "install")
+	_, err = subprocess.RunCommandContext(ctx, "bootctl", "--graceful", "install")
 	if err != nil {
 		return err
 	}
