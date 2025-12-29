@@ -28,7 +28,7 @@ func TPMStatus() string {
 		return err.Error()
 	}
 
-	actualPCR, err := readPCR7()
+	actualPCR, err := readPCR("7")
 	if err != nil {
 		return err.Error()
 	}
@@ -115,7 +115,7 @@ func validateUntrustedTPMEventLog(eventLog []tcg.Event) error {
 	}
 
 	// Get the current PCR7 value from the TPM.
-	actualPCR7, err := readPCR7()
+	actualPCR7, err := readPCR("7")
 	if err != nil {
 		return err
 	}

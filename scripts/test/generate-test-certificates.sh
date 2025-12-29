@@ -24,11 +24,13 @@ EOF
 # Root CA
 openssl ecparam -genkey -name prime256v1 -out "certs/cas/${OS_NAME}-root-E1.key"
 openssl req -x509 -new -extensions v3_ca -SHA384 -nodes -key "certs/cas/${OS_NAME}-root-E1.key" -days 3650 -out "certs/cas/${OS_NAME}-root-E1.crt" -subj "/CN=${OS_NAME} - Root E1/O=${OS_NAME}"
+ln -s "${OS_NAME}-root-E1.crt" certs/cas/root-ca.crt
 
 # Secure Boot CA
 openssl ecparam -genkey -name prime256v1 -out "certs/cas/${OS_NAME}-secureboot-E1.key"
 openssl req -new -SHA384 -key "certs/cas/${OS_NAME}-secureboot-E1.key" -nodes -out "certs/cas/${OS_NAME}-secureboot-E1.csr" -subj "/CN=${OS_NAME} - Secure Boot E1/O=${OS_NAME}"
 openssl x509 -req -extensions v3_ca -extfile certs/cas/ssl.conf -SHA384 -days 3650 -in "certs/cas/${OS_NAME}-secureboot-E1.csr" -CA "certs/cas/${OS_NAME}-root-E1.crt" -CAkey "certs/cas/${OS_NAME}-root-E1.key" -out "certs/cas/${OS_NAME}-secureboot-E1.crt"
+ln -s "${OS_NAME}-secureboot-E1.crt" certs/cas/secureboot-ca.crt
 
 # PK
 openssl genrsa -out "certs/${OS_NAME}-secureboot-PK-R1.key" 2048

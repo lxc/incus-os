@@ -1,5 +1,5 @@
-usr/lib/systemd/system/initrd-boot-message.service usr/lib/systemd/system/veritysetup.target.wants/initrd-boot-message.service
-usr/lib/systemd/system/initrd-show-devices.service usr/lib/systemd/system/emergency.target.wants/initrd-show-devices.service
+usr/lib/systemd/system/initrd-startup-checks.service usr/lib/systemd/system/veritysetup.target.wants/initrd-startup-checks.service
+usr/lib/systemd/system/initrd-debug-info.service usr/lib/systemd/system/emergency.target.wants/initrd-debug-info.service
 usr/lib/systemd/system/initrd-swtpm.service usr/lib/systemd/system/cryptsetup.target.wants/initrd-swtpm.service
 usr/lib/systemd/system/initrd-swtpm.service usr/lib/systemd/system/systemd-cryptsetup@root.service.wants/initrd-swtpm.service
 usr/lib/systemd/system/initrd-swtpm.service usr/lib/systemd/system/systemd-repart.service.wants/initrd-swtpm.service

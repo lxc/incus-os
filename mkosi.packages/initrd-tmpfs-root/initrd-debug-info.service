@@ -1,5 +1,5 @@
 [Unit]
-Description=Show system devices
+Description=Show startup debug information
 After=emergency.target
 DefaultDependencies=no
 
@@ -8,7 +8,7 @@ Type=oneshot
 
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
-ExecStart=/usr/bin/initrd-show-devices.sh
+ExecStart=/usr/bin/initrd-debug-info.sh
 
 [Install]
 WantedBy=emergency.target

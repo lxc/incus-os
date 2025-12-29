@@ -130,16 +130,7 @@ func VerifyExtensionCertificateFingerprint(ctx context.Context, extensionFile st
 		if metadata.CertificateFingerprint == hex.EncodeToString(sha256Fp[:]) {
 			// Iterate through kernel trusted keys to find a match.
 			for _, key := range kernelKeys {
-				// It would be much better to match on the SHA1 fingerprint of the certificate, but the value returned
-				// from /proc/keys isn't the same as sha1.Sum(cert.Raw), and I can't figure out what data the kernel is
-				// using to compute its values. So, instead compare the certificate's first subject name to the kernel's
-				// description of the key.
-				if key.Description == cert.Subject.Names[0].Value {
-					return nil
-				}
-
-				// In some cases, the kernel uses a combination of organization and common name.
-				if len(cert.Subject.Organization) > 0 && key.Description == cert.Subject.Organization[0]+": "+cert.Subject.CommonName {
+				if key.Fingerprint == hex.EncodeToString(cert.SubjectKeyId) {
 					return nil
 				}
 			}
