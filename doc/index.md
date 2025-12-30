@@ -52,7 +52,7 @@ Network features:
 
 Management features:
 
-- Central management through Operations Center
+- Central management through [Operations Center](https://docs.futurfusion.io/operations-center/main/)
 - Backup/Restore of both the main OS configuration and individual application data
 - Factory reset of either the whole OS or individual applications
 - Flexible update management
@@ -61,7 +61,7 @@ Management features:
 IncusOS is built on top of Debian 13 with our own Incus and kernel builds.
 
 In addition to running Incus itself, IncusOS can also be used as the
-underlying OS to run Operations Center and Migration Manager, allowing
+underlying OS to run [Operations Center](https://docs.futurfusion.io/operations-center/main/) and [Migration Manager](https://docs.futurfusion.io/migration-manager/main/), allowing
 for an easy migration from a VMware or similar environment over to
 Incus.
 
