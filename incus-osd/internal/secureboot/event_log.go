@@ -18,6 +18,8 @@ import (
 
 	"github.com/google/go-eventlog/register"
 	"github.com/google/go-eventlog/tcg"
+
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 type eventLogHeader struct {
@@ -430,17 +432,19 @@ func getUKIImage() (string, error) {
 		return "", err
 	}
 
-	// Looks like UTF-16 is returned? Strip out null bytes to get simple ASCII.
-	rawUKIName = bytes.ReplaceAll(rawUKIName, []byte{0x00}, []byte{})
+	ukiName, err := util.UTF16ToString(rawUKIName)
+	if err != nil {
+		return "", err
+	}
 
 	// Extract the IncusOS version that was booted. During OS upgrades, the EFI image is actually
 	// renamed, so pull out the 12-digit version which will be unique, then do a readdir to find
 	// the UKI image we need to examine.
 	versionRegex := regexp.MustCompile(`^.+_(\d{12}).+efi$`)
 
-	versionGroup := versionRegex.FindStringSubmatch(string(rawUKIName))
+	versionGroup := versionRegex.FindStringSubmatch(ukiName)
 	if len(versionGroup) != 2 {
-		return "", errors.New("unable to determine version from EFI variable LoaderEntrySelected ('" + string(rawUKIName) + "')")
+		return "", errors.New("unable to determine version from EFI variable LoaderEntrySelected ('" + ukiName + "')")
 	}
 
 	ukis, err := os.ReadDir("/boot/EFI/Linux/")
