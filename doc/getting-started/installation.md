@@ -19,15 +19,10 @@ For virtual machines, storage drives should be configured to use the `VirtIO-scs
 :maxdepth: 1
 
 Installing on hardware </getting-started/installation/physical>
+Installing on Hyper-V </getting-started/installation/virtual-hyperv>
 Installing on Incus </getting-started/installation/virtual-incus>
 Installing on libvirt </getting-started/installation/virtual-libvirt>
 Installing on Proxmox </getting-started/installation/virtual-proxmox>
 Installing on VirtualBox </getting-started/installation/virtual-virtualbox>
 Installing on VMware </getting-started/installation/virtual-vmware>
 ```
-
-## Unsupported platforms
-
-So far we're aware that IncusOS cannot be installed on top of Microsoft
-Hyper-V due to that virtualization platform not supporting custom Secure
-Boot keys.
