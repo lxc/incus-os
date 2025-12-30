@@ -2,22 +2,6 @@ import json
 
 from .incus_test_vm import IncusTestVM, IncusOSException, util
 
-def TestInstallNoTPMNoSWTPM(install_image):
-    test_name = "no-tpm-no-swtpm"
-    test_seed = {
-        "install.json": "{}"
-    }
-
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
-
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.RemoveDevice("vtpm")
-
-        # Verify we get expected error
-        vm.StartVM()
-        vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "no working TPM found, but install seed doesn't allow for use of swtpm")
-
 def TestInstallUseSWTPM(install_image):
     test_name = "use-swtpm"
     test_seed = {

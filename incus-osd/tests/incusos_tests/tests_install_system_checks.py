@@ -79,3 +79,76 @@ def TestInstallDriveWithGPT(install_image):
             vm.StartVM()
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "a partition table already exists on device '/dev/sdb', and `ForceInstall` from install configuration isn't true")
+
+def TestInstallCantDisableSBandTPM(install_image):
+    test_name = "cant-disable-sb-and-tpm"
+    test_seed = {
+        "install.json": """{"security":{"missing_tpm":true,"missing_secure_boot":true}}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        # Perform IncusOS install.
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: install seed cannot enable both Secure Boot and TPM degraded security options")
+
+def TestInstallNoSWTPMwithTPM(install_image):
+    test_name = "no-swtpm-with-tpm"
+    test_seed = {
+        "install.json": """{"security":{"missing_tpm":true}}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        # Perform IncusOS install.
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: a physical TPM was found, but install seed wants to configure a swtpm-backed TPM")
+
+def TestInstallNoDisabledSBwithSB(install_image):
+    test_name = "no-disabled-sb-with-sb"
+    test_seed = {
+        "install.json": """{"security":{"missing_secure_boot":true}}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        # Perform IncusOS install.
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: Secure Boot is enabled, but install seed expects it to be disabled")
+
+def TestInstallNoTPMNoSWTPM(install_image):
+    test_name = "no-tpm-no-swtpm"
+    test_seed = {
+        "install.json": "{}"
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.RemoveDevice("vtpm")
+
+        # Verify we get expected error
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: no working TPM found, but install seed doesn't allow for use of swtpm")
+
+def TestInstallSecureBootDisabledNoFallback(install_image):
+    test_name = "secureboot-disabled-no-fallback"
+    test_seed = {
+        "install.json": "{}"
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    util._remove_secureboot_keys(test_image)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        # Verify we get expected error
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "System check error: Secure Boot is disabled, but install seed doesn't allow this")
