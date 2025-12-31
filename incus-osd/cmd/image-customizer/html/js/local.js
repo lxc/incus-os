@@ -116,6 +116,16 @@ function download() {
             };
         }
 
+        if (document.getElementById("installSecurityNoTPM").checked) {
+            install.security = {
+                "missing_tpm": true
+            };
+        } else if (document.getElementById("installSecurityNoSecureBoot").checked) {
+            install.security = {
+                "missing_secure_boot": true
+            };
+        }
+
         req.seeds.install = install;
     }
 
