@@ -69,10 +69,22 @@ KEK, db, and dbx updates are signed offline and then made available via a Provid
 - Each `.auth` file is signed by a KEK certificate already enrolled on the machine IncusOS is running on. If the file is tampered with, enrollment will fail, so there is no special need to protect or checksum received updates.
 
 ## Use of TPM PCRs
-IncusOS relies on two PCRs (7 & 11) to bind disk encryption keys.
+IncusOS relies on three PCRs (4, 7 & 11) to bind disk encryption keys.
+
+### PCR 4
+
+```{note}
+PCR 4 is only used on IncusOS systems where Secure Boot is disabled.
+```
+
+PCR 4 is computed based on the Portable Executable (PE) binaries involved in the boot process. For IncusOS, this includes the `systemd-boot` stub and the system UKI image. The UEFI computes the final value of this PCR by hashing the authenticode of each PE binary. The corresponding TPM event log entry contains additional information about the PE binary, such as its UEFI path, size, etc.
+
+When IncusOS is configured to run with Secure Boot disabled, we cannot rely on PCR 7 containing useful data. Even if it is populated, we cannot trust its contents. Therefore, we add PCR 4 to the list of values that the disk encryption is bound to. This provides some measure of assurance that the disk is only automatically unlocked if we boot the expected IncusOS install.
+
+Combined with IncusOS performing an early boot verification of the TPM PCR 4 event log and binary signatures, if IncusOS can automatically unlock the encrypted disks when starting we can be fairly confident that IncusOS hasn't been tampered with even when Secure Boot is disabled.
 
 ### PCR 7
-PCR 7 is computed based on the current Secure Boot state and PK/KEK/db/dbx values. The final value of this PCR is calculated by UEFI before the systemd-boot UEFI stub starts. Binding to this PCR allows us to ensure data is only available when Secure Boot is enabled and IncusOS certificates are present. (Prevents an attacker from unlocking the disk on a different machine or launching attacks via live boot media.)
+PCR 7 is computed based on the current Secure Boot state and PK/KEK/db/dbx values. The final value of this PCR is calculated by UEFI before the `systemd-boot` UEFI stub starts. Binding to this PCR allows us to ensure data is only available when Secure Boot is enabled and IncusOS certificates are present. (Prevents an attacker from unlocking the disk on a different machine or launching attacks via live boot media.)
 
 The calculation of PCR 7 is straightforward, and performed whenever a signing key is added or revoked, and when an IncusOS update is signed with a different key than the current running system:
 
@@ -87,8 +99,8 @@ PCR 11 is computed based on the running UKI, and computed at various points duri
 IncusOS only ever needs to worry about re-binding PCR 11 when the Secure Boot key used by an UKI is changed, such as the yearly key transition. This is because the PCR 11 policies are bound to the TPM using the current Secure Boot signing key, and if it changes on reboot the TPM state won't match and auto-unlock will fail. The steps taken when installing an IncusOS update with a different Secure Boot key are:
 
 - Verify the key of the updated UKI is present in the UEFI db variable, and isn't in dbx. This prevents installing an update which will immediately fail to boot with a Secure Boot policy violation.
-- Replace the existing systemd-boot UEFI stub with a newly signed one from the pending OS update. `systemd-sysupdate` doesn't typically update the systemd-boot stub, but we need to ensure it's updated to a version signed by the new key.
-- Changing the signature on the systemd-boot stub will affect the PCR 7 value at next boot, so follow the steps outlined above to predict the new PCR 7 value.
+- Replace the existing `systemd-boot` UEFI stub with a newly signed one from the pending OS update. `systemd-sysupdate` doesn't typically update the `systemd-boot` stub, but we need to ensure it's updated to a version signed by the new key.
+- Changing the signature on the `systemd-boot` stub will affect the PCR 7 value at next boot, so follow the steps outlined above to predict the new PCR 7 value.
 - Re-bind the TPM PCR 11 policies with the new signing certificate and predicted PCR 7 value. Doing this invalidates the current TPM state, so we must rely on a recovery key known to IncusOS to update the LUKS header. The update is performed in as an atomic process as possible, to prevent having the LUKS header in a state where it doesn't have a TPM enrolled.
 
 ### Implications
