@@ -35,6 +35,13 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	for _, pool := range pools {
 		_, err = subprocess.RunCommandContext(ctx, "zpool", "import", pool)
 		if err != nil {
+			// If the pool doesn't exist, log a warning and allow startup to continue.
+			if strings.Contains(err.Error(), "cannot import '"+pool+"': no such pool available") {
+				slog.WarnContext(ctx, "Unable to import storage pool '"+pool+"', its contents will be unavailable")
+
+				continue
+			}
+
 			// If the pool is already imported, don't return an error.
 			if !strings.Contains(err.Error(), "cannot import '"+pool+"': a pool with that name already exists") {
 				return err
@@ -309,9 +316,23 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 		return errors.New("cannot destroy special zpool 'local'")
 	}
 
+	zpoolKey := "/var/lib/incus-os/zpool." + zpoolName + ".key"
+
 	// Get a list of member devices.
 	poolConfig, err := storage.GetZpoolMembers(ctx, zpoolName)
 	if err != nil {
+		// If we can't get the pool's config, it may have been removed outside of IncusOS' control.
+		// If we still have an encryption key clean that up and return. Otherwise return an error
+		// about the pool not existing.
+		if strings.Contains(err.Error(), "cannot open '"+zpoolName+"': no such pool") {
+			_, err := os.Stat(zpoolKey)
+			if os.IsNotExist(err) {
+				return errors.New("cannot destroy zpool '" + zpoolName + "': no such pool")
+			}
+
+			return os.Remove(zpoolKey)
+		}
+
 		return err
 	}
 
@@ -322,7 +343,7 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 	}
 
 	// Remove the old encryption key.
-	err = os.Remove("/var/lib/incus-os/zpool." + zpoolName + ".key")
+	err = os.Remove(zpoolKey)
 	if err != nil {
 		return err
 	}
