@@ -13,7 +13,8 @@ type SystemSecurityState struct {
 
 // SystemSecurityConfig holds additional security configuration settings.
 type SystemSecurityConfig struct {
-	EncryptionRecoveryKeys []string `json:"encryption_recovery_keys" yaml:"encryption_recovery_keys"`
+	CustomCACerts          []string `json:"custom_ca_certs,omitempty" yaml:"custom_ca_certs,omitempty"`
+	EncryptionRecoveryKeys []string `json:"encryption_recovery_keys"  yaml:"encryption_recovery_keys"`
 }
 
 // SystemSecurity defines a struct to hold information about the system's security state.
