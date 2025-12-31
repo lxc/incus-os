@@ -170,6 +170,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			defer f.Close() //nolint:revive
 
 			decoder := json.NewDecoder(f)
+			decoder.DisallowUnknownFields()
 
 			err = decoder.Decode(target)
 			if err != nil {
@@ -186,6 +187,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			defer f.Close() //nolint:revive
 
 			decoder := yaml.NewDecoder(f)
+			decoder.KnownFields(true)
 
 			err = decoder.Decode(target)
 			if err != nil {
@@ -202,6 +204,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			defer f.Close() //nolint:revive
 
 			decoder := yaml.NewDecoder(f)
+			decoder.KnownFields(true)
 
 			err = decoder.Decode(target)
 			if err != nil {
@@ -267,6 +270,7 @@ func parseFileContentsFromRawTar(partition string, filename string, target any) 
 		switch hdr.Name {
 		case filename + ".json":
 			decoder := json.NewDecoder(tr)
+			decoder.DisallowUnknownFields()
 
 			err = decoder.Decode(target)
 			if err != nil {
@@ -277,6 +281,7 @@ func parseFileContentsFromRawTar(partition string, filename string, target any) 
 
 		case filename + ".yaml", filename + ".yml":
 			decoder := yaml.NewDecoder(tr)
+			decoder.KnownFields(true)
 
 			err = decoder.Decode(target)
 			if err != nil {
