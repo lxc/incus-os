@@ -34,6 +34,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
@@ -70,6 +71,15 @@ func main() {
 	if err != nil {
 		tui.EarlyError("unable to load state file: " + err.Error())
 		os.Exit(1)
+	}
+
+	// Ensure custom CA certificates are set, if any.
+	if len(s.System.Security.Config.CustomCACerts) > 0 {
+		err := util.UpdateSystemCustomCACerts(s.System.Security.Config.CustomCACerts)
+		if err != nil {
+			tui.EarlyError("unable to configure custom CA certificates: " + err.Error())
+			os.Exit(1)
+		}
 	}
 
 	// Get the OS name and version from /lib/os-release.

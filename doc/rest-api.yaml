@@ -1,4 +1,8 @@
 definitions:
+    ACMEChallengeType:
+        title: ACMEChallengeType represents challenge types for ACME configuration.
+        type: string
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Access:
         items:
             $ref: '#/definitions/AccessEntry'
@@ -597,20 +601,20 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterCertificatePut:
-        description: ClusterCertificatePut represents the certificate and key pair for all cluster members
         properties:
             cluster_certificate:
-                description: The new certificate (X509 PEM encoded) for the cluster
+                description: The new certificate (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate
                 type: string
                 x-go-name: ClusterCertificate
             cluster_certificate_key:
-                description: The new certificate key (X509 PEM encoded) for the cluster
+                description: The new certificate key (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: ClusterCertificateKey
+        title: ClusterCertificatePut represents the certificate and key pair for all cluster members.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterGroup:
         properties:
             config:
@@ -1072,47 +1076,21 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterPut:
+        description: |-
+            ClusterPut defines the updateable part of a cluster of servers running
+            Hypervisor OS.
         properties:
-            cluster_address:
-                description: The address of the cluster you wish to join
-                example: 10.0.0.1:8443
+            connection_url:
+                description: |-
+                    URL, hostname or IP address of the cluster endpoint.
+                    This is only user facing, e.g. the address of a load balancer infront of
+                    the cluster and not used by Operations Center for direct communication
+                    Operations Center relies on the connection URL of the cluster members.
+                example: https://incus.local:6443
                 type: string
-                x-go-name: ClusterAddress
-            cluster_certificate:
-                description: The expected certificate (X509 PEM encoded) for the cluster
-                example: X509 PEM certificate
-                type: string
-                x-go-name: ClusterCertificate
-            cluster_token:
-                description: The cluster join token for the cluster you're trying to join
-                example: blah
-                type: string
-                x-go-name: ClusterToken
-            enabled:
-                description: Whether clustering is enabled
-                example: true
-                type: boolean
-                x-go-name: Enabled
-            member_config:
-                description: List of member configuration keys (used during join)
-                example: []
-                items:
-                    $ref: '#/definitions/ClusterMemberConfigKey'
-                type: array
-                x-go-name: MemberConfig
-            server_address:
-                description: The local address to use for cluster communication
-                example: 10.0.0.2:8443
-                type: string
-                x-go-name: ServerAddress
-            server_name:
-                description: Name of the cluster member answering the request
-                example: server01
-                type: string
-                x-go-name: ServerName
-        title: ClusterPut represents the fields required to bootstrap or join a cluster.
+                x-go-name: ConnectionURL
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterTemplate:
         description: |-
             ClusterTemplate defines a template, which can be used to form a cluster
@@ -2090,6 +2068,8 @@ definitions:
                 type: string
                 x-go-name: Architecture
             config:
+                additionalProperties:
+                    type: string
                 description: Instance configuration (see doc/instances.md)
                 example:
                     security.nesting: "true"
@@ -2478,11 +2458,33 @@ definitions:
         x-go-package: github.com/lxc/incus/v6/shared/api
     InstanceOverride:
         properties:
+            architecture:
+                description: Architecture of the Instance.
+                example: x86_64
+                type: string
+                x-go-name: Architecture
             comment:
                 description: An optional comment about the override
                 example: '"Manually tweak number of CPUs"'
                 type: string
                 x-go-name: Comment
+            config:
+                additionalProperties:
+                    type: string
+                description: Additional configuration of the Instance.
+                type: object
+                x-go-name: Config
+            cpus:
+                description: Number of CPUs assigned to the Instance.
+                example: 4
+                format: int64
+                type: integer
+                x-go-name: CPUs
+            description:
+                description: Description of the Instance.
+                example: Windows Server 2025
+                type: string
+                x-go-name: Description
             disable_migration:
                 description: If true, migration of this instance will be disabled.
                 example: true
@@ -2499,8 +2501,27 @@ definitions:
                 format: date-time
                 type: string
                 x-go-name: LastUpdate
-            properties:
-                $ref: '#/definitions/InstancePropertiesConfigurable'
+            memory:
+                description: Memory in bytes assigned to the Instance.
+                example: 1073741824
+                format: int64
+                type: integer
+                x-go-name: Memory
+            name:
+                description: Name of the Instance.
+                example: myVM
+                type: string
+                x-go-name: Name
+            os:
+                description: OS name of the Instance.
+                example: Ubuntu
+                type: string
+                x-go-name: OS
+            os_version:
+                description: OS version of the Instance.
+                example: "24.04"
+                type: string
+                x-go-name: OSVersion
         title: InstanceOverride defines a limited set of instance values that can be overridden as part of the migration process.
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
@@ -3522,6 +3543,14 @@ definitions:
         title: InstancesPut represents the fields available for a mass update.
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
+    LogScope:
+        title: LogScope is a type of log that a logging target will receive.
+        type: string
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+    LogType:
+        title: LogType is a type of logging target.
+        type: string
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     MetadataConfig:
         additionalProperties:
             additionalProperties:
@@ -3662,45 +3691,73 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
+        description: Network represents a network
         properties:
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
-                type: string
-                x-go-name: Location
-            overrides:
-                $ref: '#/definitions/NetworkPlacement'
-            placement:
-                $ref: '#/definitions/NetworkPlacement'
-            properties:
-                description: Additional properties of the network.
+            config:
+                description: Network configuration map (refer to doc/networks.md)
+                example:
+                    ipv4.address: 10.0.0.1/24
+                    ipv4.nat: "true"
+                    ipv6.address: none
                 type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+                x-go-name: Config
+            description:
+                description: Description of the profile
+                example: My new bridge
                 type: string
-                x-go-name: Source
-            source_specific_id:
-                description: The source-specific identifier of the network
-                example: network-23
+                x-go-name: Description
+            locations:
+                description: Cluster members on which the network has been defined
+                example:
+                    - server01
+                    - server02
+                    - server03
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: Locations
+            managed:
+                description: Whether this is a managed network
+                example: true
+                readOnly: true
+                type: boolean
+                x-go-name: Managed
+            name:
+                description: The network name
+                example: mybr0
+                readOnly: true
                 type: string
-                x-go-name: SourceSpecificID
+                x-go-name: Name
+            project:
+                description: Project name
+                example: project1
+                type: string
+                x-go-name: Project
+            status:
+                description: The state of the network (for managed network in clusters)
+                example: Created
+                readOnly: true
+                type: string
+                x-go-name: Status
             type:
-                $ref: '#/definitions/NetworkType'
                 description: The network type
                 example: bridge
                 readOnly: true
                 type: string
                 x-go-name: Type
-            uuid:
-                description: UUID of the network.
-                format: uuid
-                type: string
-                x-go-name: UUID
-        title: Network defines the network config for use by the migration manager.
+            used_by:
+                description: List of URLs of objects using this profile
+                example:
+                    - /1.0/profiles/default
+                    - /1.0/instances/c1
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: UsedBy
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkACL:
         properties:
             config:
@@ -6793,75 +6850,82 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
     Server:
-        description: Server represents a server configuration
         properties:
-            api_extensions:
-                description: List of supported API extensions
-                example:
-                    - etag
-                    - patch
-                    - network
-                    - storage
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: APIExtensions
-            api_status:
-                description: Support status of the current API (one of "devel", "stable" or "deprecated")
-                example: stable
-                readOnly: true
+            certificate:
+                description: Certificate of the server endpoint in PEM encoded format.
                 type: string
-                x-go-name: APIStatus
-            api_version:
-                description: API version number
-                example: "1.0"
-                readOnly: true
+                x-go-name: Certificate
+            cluster:
+                description: The cluster the server is part of.
+                example: one
                 type: string
-                x-go-name: APIVersion
-            auth:
-                description: Whether the client is trusted (one of "trusted" or "untrusted")
-                example: untrusted
-                readOnly: true
+                x-go-name: Cluster
+            connection_url:
+                description: |-
+                    URL, hostname or IP address of the server endpoint used by Operations
+                    Center for its communication.
+                example: https://incus.local:6443
                 type: string
-                x-go-name: Auth
-            auth_methods:
-                description: List of supported authentication methods
-                example:
-                    - tls
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: AuthMethods
-            auth_user_method:
-                description: The current API user login method
-                example: unix
-                readOnly: true
+                x-go-name: ConnectionURL
+            fingerprint:
+                description: Fingerprint in SHA256 format of the certificate.
+                example: fd200419b271f1dc2a5591b693cc5774b7f234e1ff8c6b78ad703b6888fe2b69
                 type: string
-                x-go-name: AuthUserMethod
-            auth_user_name:
-                description: The current API user identifier
-                example: uid=201105
-                readOnly: true
+                x-go-name: Fingerprint
+            hardware_data:
+                $ref: '#/definitions/HardwareData'
+            last_seen:
+                description: |-
+                    LastSeen is the time, when this server has been seen for the last time
+                    by any sort of connection between the server and operations center
+                    in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
                 type: string
-                x-go-name: AuthUserName
-            config:
-                description: Server configuration map (refer to doc/server.md)
-                example:
-                    core.https_address: :8443
+                x-go-name: LastSeen
+            last_updated:
+                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
+                type: string
+                x-go-name: LastUpdated
+            name:
+                description: Name of the server.
+                example: incus.local
+                type: string
+                x-go-name: Name
+            os_data:
+                $ref: '#/definitions/OSData'
+            public_connection_url:
+                description: |-
+                    Public URL, hostname or IP address of the server endpoint for user facing
+                    communication with the server. Only required, if it differs from
+                    connection_url, e.g. because the server is behind a reverse proxy.
+                example: https://incus.local:6443
+                type: string
+                x-go-name: PublicConnectionURL
+            server_status:
+                description: |-
+                    Status contains the status the server is currently in from the point of view of Operations Center.
+                    Possible values for status are: pending, ready
+                example: pending
+                type: string
+                x-go-name: Status
+                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerStatus
+            server_type:
+                description: Type defines the type of the server, which is normally one of "incus", "migration-manager", "operations-center".
+                example: incus
+                type: string
+                x-go-name: Type
+                x-go-type: github.com/FuturFusion/operations-center/shared/api.ServerType
+            version_data:
+                description: VersionData contains information about the servers version.
+                example: '...'
                 type: object
-                x-go-name: Config
-            environment:
-                $ref: '#/definitions/ServerEnvironment'
-            public:
-                description: Whether the server is public-only (only public endpoints are implemented)
-                example: false
-                readOnly: true
-                type: boolean
-                x-go-name: Public
+                x-go-name: VersionData
+        title: Server defines a server running Hypervisor OS.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerEnvironment:
         properties:
             addresses:
@@ -7036,15 +7100,13 @@ definitions:
         description: ServerPut represents the modifiable fields of a server configuration
         properties:
             config:
-                additionalProperties:
-                    type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :6443
+                    core.https_address: :8443
                 type: object
                 x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     ServerSelfUpdate:
         properties:
             connection_url:
@@ -7102,8 +7164,16 @@ definitions:
                 readOnly: true
                 type: array
                 x-go-name: AuthMethods
+            config:
+                additionalProperties:
+                    type: string
+                description: Server configuration map (refer to doc/server.md)
+                example:
+                    core.https_address: :6443
+                type: object
+                x-go-name: Config
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Source:
         properties:
             name:
@@ -8016,6 +8086,18 @@ definitions:
                 x-go-name: Type
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
+    SystemBackupPost:
+        properties:
+            include_artifacts:
+                description: List of artifact UUIDs to include in the backup.
+                items:
+                    format: uuid
+                    type: string
+                type: array
+                x-go-name: IncludeArtifacts
+        title: SystemBackupPost represents configuration for creating a system backup.
+        type: object
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemCertificatePost:
         description: |-
             SystemCertificatePost represents the fields available for an update of the
@@ -8049,6 +8131,8 @@ definitions:
                     type: string
                 type: array
                 x-go-name: Addresses
+            ethernet:
+                $ref: '#/definitions/SystemNetworkEthernet'
             firewall_rules:
                 items:
                     $ref: '#/definitions/SystemNetworkFirewallRule'
@@ -8120,6 +8204,11 @@ definitions:
                     $ref: '#/definitions/SystemNetworkVLAN'
                 type: array
                 x-go-name: VLANs
+            wireguard:
+                items:
+                    $ref: '#/definitions/SystemNetworkWireguard'
+                type: array
+                x-go-name: Wireguard
         title: SystemNetworkConfig represents the user modifiable network configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -8142,6 +8231,37 @@ definitions:
                 type: array
                 x-go-name: SearchDomains
         title: SystemNetworkDNS defines DNS configuration options.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkEthernet:
+        properties:
+            disable_energy_efficient:
+                type: boolean
+                x-go-name: DisableEnergyEfficient
+            disable_gro:
+                type: boolean
+                x-go-name: DisableGRO
+            disable_gso:
+                type: boolean
+                x-go-name: DisableGSO
+            disable_ipv4_tso:
+                type: boolean
+                x-go-name: DisableIPv4TSO
+            disable_ipv6_tso:
+                type: boolean
+                x-go-name: DisableIPv6TSO
+            wakeonlan:
+                type: boolean
+                x-go-name: WakeOnLAN
+            wakeonlan_modes:
+                items:
+                    type: string
+                type: array
+                x-go-name: WakeOnLANModes
+            wakeonlan_password:
+                type: string
+                x-go-name: WakeOnLANPassword
+        title: SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkFirewallRule:
@@ -8169,6 +8289,8 @@ definitions:
                     type: string
                 type: array
                 x-go-name: Addresses
+            ethernet:
+                $ref: '#/definitions/SystemNetworkEthernet'
             firewall_rules:
                 items:
                     $ref: '#/definitions/SystemNetworkFirewallRule'
@@ -8259,6 +8381,8 @@ definitions:
             type:
                 type: string
                 x-go-name: Type
+            wireguard:
+                $ref: '#/definitions/SystemNetworkWireguardState'
         title: SystemNetworkInterfaceState holds state information about a specific network interface.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -8451,6 +8575,117 @@ definitions:
         title: SystemNetworkVLAN contains information about a network vlan.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkWireguard:
+        properties:
+            addresses:
+                items:
+                    type: string
+                type: array
+                x-go-name: Addresses
+            firewall_rules:
+                items:
+                    $ref: '#/definitions/SystemNetworkFirewallRule'
+                type: array
+                x-go-name: FirewallRules
+            mtu:
+                format: int64
+                type: integer
+                x-go-name: MTU
+            name:
+                type: string
+                x-go-name: Name
+            peers:
+                items:
+                    $ref: '#/definitions/SystemNetworkWireguardPeer'
+                type: array
+                x-go-name: Peers
+            port:
+                format: int64
+                type: integer
+                x-go-name: Port
+            private_key:
+                type: string
+                x-go-name: PrivateKey
+            required_for_online:
+                type: string
+                x-go-name: RequiredForOnline
+            roles:
+                items:
+                    type: string
+                type: array
+                x-go-name: Roles
+            routes:
+                items:
+                    $ref: '#/definitions/SystemNetworkRoute'
+                type: array
+                x-go-name: Routes
+        title: SystemNetworkWireguard contains information about a wireguard interface.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkWireguardPeer:
+        properties:
+            allowed_ips:
+                items:
+                    type: string
+                type: array
+                x-go-name: AllowedIPs
+            endpoint:
+                type: string
+                x-go-name: Endpoint
+            persistent_keepalive:
+                format: int64
+                type: integer
+                x-go-name: PersistentKeepalive
+            preshared_key:
+                type: string
+                x-go-name: PresharedKey
+            public_key:
+                type: string
+                x-go-name: PublicKey
+        title: SystemNetworkWireguardPeer defines wireguard peer.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkWireguardPeerState:
+        properties:
+            allowed_ips:
+                items:
+                    type: string
+                type: array
+                x-go-name: AllowedIPs
+            endpoint:
+                type: string
+                x-go-name: EndPoint
+            latest_handshake:
+                type: string
+                x-go-name: LatestHandshake
+            persistent_keepalive:
+                type: string
+                x-go-name: PersistentKeepalive
+            public_key:
+                type: string
+                x-go-name: PublicKey
+            stats:
+                $ref: '#/definitions/SystemNetworkInterfaceStats'
+        title: SystemNetworkWireguardPeerState holds state information about a specific wireguard peer.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkWireguardState:
+        properties:
+            listening_port:
+                format: int64
+                type: integer
+                x-go-name: ListeningPort
+            peers:
+                items:
+                    $ref: '#/definitions/SystemNetworkWireguardPeerState'
+                type: array
+                x-go-name: Peers
+            public_key:
+                type: string
+                x-go-name: PublicKey
+        title: SystemNetworkWireguardState holds state information about a specific wireguard interface.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemProviderConfig:
         properties:
             config:
@@ -8473,8 +8708,55 @@ definitions:
         title: SystemSecurity defines a struct to hold information about the system's security state.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemSecurityACME:
+        properties:
+            agree_tos:
+                description: Agree to ACME terms of service.
+                type: boolean
+                x-go-name: AgreeTOS
+            ca_url:
+                description: URL to the directory resource of the ACME service.
+                type: string
+                x-go-name: CAURL
+            challenge:
+                $ref: '#/definitions/ACMEChallengeType'
+            domain:
+                description: Domain for which the certificate is issued.
+                type: string
+                x-go-name: Domain
+            email:
+                description: Email address used for the account registration.
+                type: string
+                x-go-name: Email
+            http_challenge_address:
+                description: Address and interface for HTTP server (used by HTTP-01).
+                type: string
+                x-go-name: Address
+            provider:
+                description: Backend provider for the challenge (used by DNS-01).
+                type: string
+                x-go-name: Provider
+            provider_environment:
+                description: Environment variables to set during the challenge (used by DNS-01).
+                items:
+                    type: string
+                type: array
+                x-go-name: ProviderEnvironment
+            provider_resolvers:
+                description: List of DNS resolvers (used by DNS-01).
+                items:
+                    type: string
+                type: array
+                x-go-name: ProviderResolvers
+        type: object
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemSecurityConfig:
         properties:
+            custom_ca_certs:
+                items:
+                    type: string
+                type: array
+                x-go-name: CustomCACerts
             encryption_recovery_keys:
                 items:
                     type: string
@@ -8545,6 +8827,8 @@ definitions:
             SystemSecurityPut represents the fields available for an update of the
             system's security configuration.
         properties:
+            acme:
+                $ref: '#/definitions/SystemSecurityACME'
             oidc:
                 $ref: '#/definitions/SystemSecurityOIDC'
             openfga:
@@ -8616,6 +8900,12 @@ definitions:
                 description: Daemon log level.
                 type: string
                 x-go-name: LogLevel
+            log_targets:
+                description: Additional logging targets.
+                items:
+                    $ref: '#/definitions/SystemSettingsLog'
+                type: array
+                x-go-name: LogTargets
             sync_interval:
                 description: Interval over which data from all sources will be periodically resynced.
                 type: string
@@ -8623,6 +8913,67 @@ definitions:
         title: SystemSettings represents global system settings.
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
+    SystemSettingsLog:
+        properties:
+            address:
+                description: Address of the logging target.
+                example: https://example.com:443
+                type: string
+                x-go-name: Address
+            ca_cert:
+                description: CA Certificate used to authenticate with the logging target.
+                type: string
+                x-go-name: CACert
+            level:
+                description: Log level to display.
+                example: WARN
+                type: string
+                x-go-name: Level
+            name:
+                description: Name identifying the logging target.
+                example: foo
+                type: string
+                x-go-name: Name
+            password:
+                description: Password of the logging target.
+                type: string
+                x-go-name: Password
+            retry_count:
+                description: Number of attempts to make against the logging target.
+                format: int64
+                type: integer
+                x-go-name: RetryCount
+            retry_timeout:
+                description: How long to wait between retrying a log.
+                type: string
+                x-go-name: RetryTimeout
+            scopes:
+                description: Logging scopes to send to the logging target.
+                example: '[logging, lifecycle]'
+                items:
+                    $ref: '#/definitions/LogScope'
+                type: array
+                x-go-name: Scopes
+            type:
+                $ref: '#/definitions/LogType'
+            username:
+                description: Username of the logging target.
+                type: string
+                x-go-name: Username
+        title: SystemSettingsLog represents configuration for a logging target.
+        type: object
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+    SystemSettingsPut:
+        description: |-
+            SystemSettingsPut represents the fields available for an update of the global
+            system settings.
+        properties:
+            log_level:
+                description: Daemon log level.
+                type: string
+                x-go-name: LogLevel
+        type: object
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     SystemStorage:
         properties:
             config:
@@ -8685,12 +9036,44 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemStorageDriveSMART:
         properties:
+            available_spare:
+                format: int64
+                type: integer
+                x-go-name: AvailableSpare
+            data_units_read:
+                format: int64
+                type: integer
+                x-go-name: DataUnitsRead
+            data_units_written:
+                format: int64
+                type: integer
+                x-go-name: DataUnitsWritten
             enabled:
                 type: boolean
                 x-go-name: Enabled
             passed:
                 type: boolean
                 x-go-name: Passed
+            percentage_used:
+                format: int64
+                type: integer
+                x-go-name: PercentageUsed
+            power_on_hours:
+                format: int64
+                type: integer
+                x-go-name: PowerOnHours
+            raw_read_error_rate:
+                format: int64
+                type: integer
+                x-go-name: RawReadErrorRate
+            reallocated_sectors:
+                format: int64
+                type: integer
+                x-go-name: ReallocatedSectors
+            seek_error_rate:
+                format: int64
+                type: integer
+                x-go-name: SeekErrorRate
         title: SystemStorageDriveSMART defines a struct to return basic SMART information about a specific device.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -8832,25 +9215,26 @@ definitions:
                     provisioning.UpdateFile.
                     If a filter is defined, the filter needs to evaluate to true for the file
                     being fetched by Operations Center.
-                    Empty filter expression does not filter at all.
+                    Empty filter expression does fallback to the default value defined below.
+                    To disable filtering, set to "true", which causes the filter to allow all
+                    files.
 
                     For file filter expression, the following helper functions are available:
-                    applies_to_architecture(arch string, expected_arch string) bool
-                    Returns true if the 'arch' string matches the given 'expected_arch' string
-                    or if 'arch' is not set.
-
-                    Examples:
-                    applies_to_architecture(architecture, "x86_64")
-                    architecture == "x86_64"
+                    applies_to_architecture(arch string, expected_arch ...string) bool
+                    Returns true if the 'arch' string matches one of the given
+                    'expected_arch' strings or if 'architecure' is not set.
                 type: string
                 x-go-name: FileFilterExpression
             filter_expression:
+                default: '''stable'' in channels'
                 description: |-
                     Filter expression for updates using https://expr-lang.org/ on struct
                     provisioning.Update.
                     If a filter is defined, the filter needs to evaluate to true for the update
                     being fetched by Operations Center.
-                    Empty filter expression does not filter at all.
+                    Empty filter expression does fallback to the default value defined below.
+                    To disable filtering, set to "true", which causes the filter to allow all
+                    updates.
                 example: '''stable'' in channels'
                 type: string
                 x-go-name: FilterExpression
@@ -8877,25 +9261,26 @@ definitions:
                     provisioning.UpdateFile.
                     If a filter is defined, the filter needs to evaluate to true for the file
                     being fetched by Operations Center.
-                    Empty filter expression does not filter at all.
+                    Empty filter expression does fallback to the default value defined below.
+                    To disable filtering, set to "true", which causes the filter to allow all
+                    files.
 
                     For file filter expression, the following helper functions are available:
-                    applies_to_architecture(arch string, expected_arch string) bool
-                    Returns true if the 'arch' string matches the given 'expected_arch' string
-                    or if 'arch' is not set.
-
-                    Examples:
-                    applies_to_architecture(architecture, "x86_64")
-                    architecture == "x86_64"
+                    applies_to_architecture(arch string, expected_arch ...string) bool
+                    Returns true if the 'arch' string matches one of the given
+                    'expected_arch' strings or if 'architecure' is not set.
                 type: string
                 x-go-name: FileFilterExpression
             filter_expression:
+                default: '''stable'' in channels'
                 description: |-
                     Filter expression for updates using https://expr-lang.org/ on struct
                     provisioning.Update.
                     If a filter is defined, the filter needs to evaluate to true for the update
                     being fetched by Operations Center.
-                    Empty filter expression does not filter at all.
+                    Empty filter expression does fallback to the default value defined below.
+                    To disable filtering, set to "true", which causes the filter to allow all
+                    updates.
                 example: '''stable'' in channels'
                 type: string
                 x-go-name: FilterExpression
@@ -9329,13 +9714,10 @@ definitions:
         properties:
             status:
                 $ref: '#/definitions/WarningStatus'
-                description: Status of the warning (new, acknowledged, or resolved)
-                example: new
                 type: string
-                x-go-name: Status
-        title: WarningPut represents configurable properties of a warning.
+        title: WarningPut represents the modifiable fields of a warning.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     WarningScope:
         properties:
             entity:
@@ -10500,10 +10882,13 @@ paths:
             consumes:
                 - application/json
             description: |-
-                Updates list of encryption recovery keys. Keys must be at least 15 characters long,
-                contain at least one special character, and consist of at least five unique characters.
-                Some other simple complexity checks are applied, and any key that doesn't pass will
-                be rejected with an error.
+                Updates the list of encryption recovery keys. At least one recovery key must always be
+                specified. Keys must be at least 15 characters long, contain at least one special
+                character, and consist of at least five unique characters. Some other simple complexity
+                checks are applied, and any key that doesn't pass will be rejected with an error.
+
+                Optionally, specify one or more PEM-encoded custom CA certificates that should be added
+                to the system's root trust. Only certificates specified in the API call will be persisted.
             operationId: system_put_security
             parameters:
                 - description: Security configuration
@@ -10515,6 +10900,11 @@ paths:
                         config:
                             description: The security configuration
                             example:
+                                custom_ca_certs:
+                                    - |-
+                                      -----BEGIN CERTIFICATE-----
+                                      [cert]
+                                      -----END CERTIFICATE-----
                                 encryption_recovery_keys:
                                     - my-super-secret-passphrase
                             type: object
