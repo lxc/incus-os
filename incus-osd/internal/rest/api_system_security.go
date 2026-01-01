@@ -10,6 +10,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
@@ -52,10 +53,13 @@ import (
 //
 //	Update system security configuration
 //
-//	Updates list of encryption recovery keys. Keys must be at least 15 characters long,
-//	contain at least one special character, and consist of at least five unique characters.
-//	Some other simple complexity checks are applied, and any key that doesn't pass will
-//	be rejected with an error.
+//	Updates the list of encryption recovery keys. At least one recovery key must always be
+//	specified. Keys must be at least 15 characters long, contain at least one special
+//	character, and consist of at least five unique characters. Some other simple complexity
+//	checks are applied, and any key that doesn't pass will be rejected with an error.
+//
+//	Optionally, specify one or more PEM-encoded custom CA certificates that should be added
+//	to the system's root trust. Only certificates specified in the API call will be persisted.
 //
 //	---
 //	consumes:
@@ -73,7 +77,7 @@ import (
 //	        config:
 //	          type: object
 //	          description: The security configuration
-//	          example: {"encryption_recovery_keys":["my-super-secret-passphrase"]}
+//	          example: {"encryption_recovery_keys":["my-super-secret-passphrase"],"custom_ca_certs":["-----BEGIN CERTIFICATE-----\n[cert]\n-----END CERTIFICATE-----"]}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -161,6 +165,16 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			}
+		}
+
+		// Configure custom CA certificates, if any.
+		s.state.System.Security.Config.CustomCACerts = securityStruct.Config.CustomCACerts
+
+		err = util.UpdateSystemCustomCACerts(s.state.System.Security.Config.CustomCACerts)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
