@@ -1393,6 +1393,9 @@ ClientIdentifier=mac
 RouteMetric=100
 UseMTU=true
 
+[DHCPv6]
+WithoutRA=solicit
+
 [Network]
 %s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
 
@@ -1476,6 +1479,9 @@ Name=_v%s
 ClientIdentifier=mac
 RouteMetric=100
 UseMTU=true
+
+[DHCPv6]
+WithoutRA=solicit
 
 [Network]
 %s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
@@ -1575,6 +1581,9 @@ ClientIdentifier=mac
 RouteMetric=100
 UseMTU=true
 
+[DHCPv6]
+WithoutRA=solicit
+
 [Network]
 %s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.Time))
 
@@ -1632,6 +1641,7 @@ func processAddresses(addresses []string) string {
 		case "dhcp4":
 			hasDHCP4 = true
 		case "dhcp6":
+			acceptIPv6RA = true
 			hasDHCP6 = true
 		case "slaac":
 			acceptIPv6RA = true
