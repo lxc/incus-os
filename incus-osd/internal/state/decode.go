@@ -107,7 +107,9 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 				field.Set(reflect.MakeMap(field.Type()))
 			}
 
-			mapField := field.MapIndex(reflect.ValueOf(parts[1]))
+			decodedMapKey := strings.ReplaceAll(parts[1], "__DOT__", ".")
+
+			mapField := field.MapIndex(reflect.ValueOf(decodedMapKey))
 			if !mapField.IsValid() {
 				mapField = reflect.New(field.Type().Elem()).Elem()
 			} else {
@@ -121,7 +123,7 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 				return err
 			}
 
-			field.SetMapIndex(reflect.ValueOf(parts[1]), mapField)
+			field.SetMapIndex(reflect.ValueOf(decodedMapKey), mapField)
 
 			return nil
 		case reflect.Pointer:

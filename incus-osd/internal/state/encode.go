@@ -67,11 +67,11 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 		})
 
 		for _, mapKey := range mapKeys {
-			if strings.Contains(mapKey.String(), ".") {
-				return fmt.Errorf("map key '%s' cannot contain dots", mapKey)
-			}
+			// Map keys cannot contain a literal dot, otherwise our simple decoder logic breaks.
+			// To support such keys, do a simple replacement of the literal dot with __DOT__.
+			encodedMapKey := strings.ReplaceAll(mapKey.String(), ".", "__DOT__")
 
-			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%s]", keyBase, mapKey)
+			keyPrefix[len(keyPrefix)-1] = fmt.Sprintf("%s[%s]", keyBase, encodedMapKey)
 
 			err := encodeHelper(b, keyPrefix, v.MapIndex(mapKey))
 			if err != nil {
