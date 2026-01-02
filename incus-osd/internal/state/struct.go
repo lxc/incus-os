@@ -64,6 +64,7 @@ type State struct {
 	} `json:"services"`
 
 	System struct {
+		Kernel   api.SystemKernel   `json:"kernel"`
 		Logging  api.SystemLogging  `json:"logging"`
 		Network  api.SystemNetwork  `json:"network"`
 		Provider api.SystemProvider `json:"provider"`
