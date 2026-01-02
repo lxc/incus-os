@@ -72,7 +72,7 @@ jobs:
 
           mkdir -p certs
           cd certs
-          echo "${{ secrets.SB_CERTS }}" | base64 -d | tar zxvf
+          echo "${{ secrets.SB_CERTS }}" | base64 -d | tar zxv
           cd ..
 
       - name: Build the images
