@@ -214,7 +214,9 @@ func apiOIDC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the OIDC credentials.
-	issuer, clientID, err := oidcGenerate(r.Context(), r.FormValue("username"))
+	userName := r.FormValue("username")
+
+	issuer, clientID, err := oidcGenerate(r.Context(), userName)
 	if err != nil {
 		slog.Warn("oidc request: failed generation", "client", clientAddress(r), "err", err)
 
@@ -223,6 +225,8 @@ func apiOIDC(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	slog.Info("oidc generated", "client", clientAddress(r), "username", userName)
 
 	resp := apiOIDCGet{
 		Issuer:   issuer,
