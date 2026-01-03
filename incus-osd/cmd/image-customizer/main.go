@@ -5,16 +5,9 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"embed"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -32,7 +25,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/timpalpant/gzran"
 	"gopkg.in/yaml.v3"
-	"software.sslmate.com/src/go-pkcs12"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -59,6 +51,11 @@ type apiCertificateGet struct {
 	Certificate string `json:"certificate"`
 	Key         string `json:"key"`
 	PFX         string `json:"pfx"`
+}
+
+type apiOIDCGet struct {
+	Issuer   string `json:"issuer"`
+	ClientID string `json:"client_id"`
 }
 
 type apiImagesPost struct {
@@ -117,6 +114,7 @@ func do(ctx context.Context) error {
 	router.HandleFunc("/1.0/certificate", apiCertificate)
 	router.HandleFunc("/1.0/images", apiImages)
 	router.HandleFunc("/1.0/images/{uuid}", apiImage)
+	router.HandleFunc("/1.0/oidc", apiOIDC)
 	router.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(fsUI))))
 
 	// Setup server.
@@ -185,58 +183,12 @@ func apiCertificate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the certificate.
-	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	cert, key, pfx, err := certificateGenerate()
 	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		slog.Warn("certificate request: failed generation", "client", clientAddress(r), "err", err)
 
-		return
-	}
-
-	certTemplate := x509.Certificate{
-		Subject: pkix.Name{
-			Organization: []string{"Linux Containers"},
-			CommonName:   "Auto-generated IncusOS client certificate",
-		},
-
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().Add(10 * 365 * 24 * time.Hour),
-
-		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-
-		BasicConstraintsValid: true,
-		DNSNames:              []string{"unspecified"},
-	}
-
-	certDerBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, &certTemplate, &key.PublicKey, key)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	keyDerBytes, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	certBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDerBytes})
-	keyBytes := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDerBytes})
-
-	// Load the cert and key.
-	cert, err := tls.X509KeyPair(certBytes, keyBytes)
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	// Get the PKCS12.
-	pfx, err := pkcs12.Modern2023.Encode(cert.PrivateKey, cert.Leaf, nil, "IncusOS")
-	if err != nil {
-		_ = response.BadRequest(err).Render(w)
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -244,9 +196,37 @@ func apiCertificate(w http.ResponseWriter, r *http.Request) {
 	slog.Info("certificate generated", "client", clientAddress(r))
 
 	resp := apiCertificateGet{
-		Certificate: string(certBytes),
-		Key:         string(keyBytes),
+		Certificate: string(cert),
+		Key:         string(key),
 		PFX:         base64.StdEncoding.EncodeToString(pfx),
+	}
+
+	_ = response.SyncResponse(true, resp).Render(w)
+}
+
+func apiOIDC(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Generate the OIDC credentials.
+	issuer, clientID, err := oidcGenerate(r.Context(), r.FormValue("username"))
+	if err != nil {
+		slog.Warn("oidc request: failed generation", "client", clientAddress(r), "err", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	resp := apiOIDCGet{
+		Issuer:   issuer,
+		ClientID: clientID,
 	}
 
 	_ = response.SyncResponse(true, resp).Render(w)
