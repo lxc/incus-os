@@ -131,7 +131,7 @@ function download() {
 
     // Add the network seed if provided.
     if (document.getElementById("networkConfiguration").value != "") {
-        network = JSON.parse(document.getElementById("networkConfiguration").value)
+        network = JSON.parse(document.getElementById("networkConfiguration").value);
 
         req.seeds.network = network;
     }
@@ -142,8 +142,13 @@ function download() {
        "applications": [{"name": app}]
     };
 
+    hasOIDC = false;
+    if (document.getElementById("applicationOIDCIssuer").value != "" && document.getElementById("applicationOIDCClientID").value != "") {
+        hasOIDC = true;
+    }
+
     if (app == "incus") {
-        certificate = {
+        var certificate = {
             "name": "admin",
             "type": "client",
             "description": "Initial admin client",
@@ -161,12 +166,48 @@ function download() {
             incus.apply_defaults = true;
         }
 
+        if (hasOIDC) {
+            var config = {
+                "oidc.issuer": document.getElementById("applicationOIDCIssuer").value,
+                "oidc.client.id": document.getElementById("applicationOIDCClientID").value
+            };
+
+            if (document.getElementById("applicationOIDCClaim").value != "") {
+                config["oidc.claim"] = document.getElementById("applicationOIDCClaim").value;
+            }
+
+            if (document.getElementById("applicationOIDCScopes").value != "") {
+                config["oidc.scopes"] = document.getElementById("applicationOIDCScopes").value;
+            }
+
+            incus.preseed.config = config;
+        }
+
         req.seeds.incus = incus;
     } else {
         appSeed = {
             "version": "1",
             "trusted_client_certificates": [document.getElementById("applicationClientCertificate").value]
         };
+
+        if (hasOIDC) {
+            var oidc = {
+                "issuer": document.getElementById("applicationOIDCIssuer").value,
+                "client_id": document.getElementById("applicationOIDCClientID").value
+            };
+
+            if (document.getElementById("applicationOIDCClaim").value != "") {
+                oidc.claim = document.getElementById("applicationOIDCClaim").value;
+            }
+
+            if (document.getElementById("applicationOIDCScopes").value != "") {
+                oidc.scopes = document.getElementById("applicationOIDCScopes").value;
+            }
+
+            appSeed.preseed = {};
+            appSeed.preseed.system_security = {};
+            appSeed.preseed.system_security.oidc = oidc;
+        }
 
         req.seeds[app] = appSeed;
     }
@@ -189,14 +230,40 @@ function download() {
 }
 
 ;(function () {
-    const htmlElement = document.querySelector("html")
-    if(htmlElement.getAttribute("data-bs-theme") === 'auto') {
+    const htmlElement = document.querySelector("html");
+    if (htmlElement.getAttribute("data-bs-theme") === 'auto') {
         function updateTheme() {
             document.querySelector("html").setAttribute("data-bs-theme",
-                window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+                window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
         }
 
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
-        updateTheme()
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+        updateTheme();
     }
-})()
+})();
+
+function oidc() {
+    var modalDialog = new bootstrap.Modal(document.getElementById("oidcModal"), {});
+    modalDialog.show();
+}
+
+function oidcGenerate() {
+    // Send the request.
+    fetch("/1.0/oidc?username="+document.getElementById("oidcModalUsername").value, {
+        method: "GET",
+    }).then(response => response.json()).then(function(response) {
+        if (response.status_code != 200) {
+            alert("Unable to get generate an OIDC client, make sure the username is valid");
+            return;
+        }
+
+        // Set the fields.
+        document.getElementById("applicationOIDCIssuer").value = response.metadata.issuer;
+        document.getElementById("applicationOIDCClientID").value = response.metadata.client_id;
+        document.getElementById("applicationOIDCClaim").value = "preferred_username";
+        document.getElementById("applicationOIDCScopes").value = "openid,offline_access";
+
+        var modalDialog = new bootstrap.Modal(document.getElementById("oidcModal"), {});
+        modalDialog.hide();
+    });
+}

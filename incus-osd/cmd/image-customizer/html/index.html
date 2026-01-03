@@ -24,7 +24,7 @@
             <h1>IncusOS image downloader</h1>
 
             <div class="card">
-                <h5 class="card-header">Introduction</h5>
+                <h2 class="card-header">Introduction</h2>
                 <div class="card-body">
                     <p class="card-text w-75">
                         IncusOS is designed to provide an extremely secure
@@ -124,12 +124,12 @@
 
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationOperationsCenter">
-                                    <label class="form-check-label" for="imageApplicationOperationsCenter">Operations Center - Central deployment and tracking of Incus clusters <span class="badge bg-secondary">Beta</span></label>
+                                    <label class="form-check-label" for="imageApplicationOperationsCenter">Operations Center - Central deployment and tracking of Incus clusters</label>
                                 </div>
 
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageApplication" id="imageApplicationMigrationManager">
-                                    <label class="form-check-label" for="imageApplicationMigrationManager">Migration Manager - VMware to Incus migration orchestrator <span class="badge bg-secondary">Beta</span></label>
+                                    <label class="form-check-label" for="imageApplicationMigrationManager">Migration Manager - VMware to Incus migration orchestrator</label>
                                 </div>
                             </div>
                         </div>
@@ -178,21 +178,54 @@
 
                     <div id="panelApplication" class="accordion-collapse collapse show">
                         <div class="accordion-body">
-                            <div class="mb-3">
-                                <input class="form-check-input" type="checkbox" value="" id="applicationDefaults" checked>
-                                <label class="form-check-label" for="applicationDefaults">Apply default configuration</label>
+                            <div>
+                                <h3>Default configuration</h3>
+                                <div class="mb-3">
+                                    <input class="form-check-input" type="checkbox" value="" id="applicationDefaults" checked>
+                                    <label class="form-check-label" for="applicationDefaults">Apply default configuration</label>
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label" for="applicationClientCertificate">
-                                    <b>TLS client certificate of the initial trusted client.</b>
-                                    <br>
+                            <div>
+                                <h3>OIDC authentication <span class="badge bg-secondary">optional</span></h3>
+                                <div class="mb-3">
+                                    OpenID Connect (OIDC) authentication allows for a simple web-based login flow that will work on all devices.<br><br>
+                                    Enterprise environments will typically already have their OIDC Identity Provider of choice.<br>
+                                    Alternatively, we provide our own public one which only requires you to have an account on our <a href="https://discuss.linuxcontainers.org" target="_blank">community forum</a>, click <a onclick="oidc()" href="#oidc">here to use it</a>.
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="applicationOIDCIssuer">Issuer</label>
+                                    <input type="text" class="form-control" id="applicationOIDCIssuer" placeholder="https://sso.linuxcontainers.org">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="applicationOIDCClientID">Client ID</label>
+                                    <input type="text" class="form-control" id="applicationOIDCClientID" placeholder="123456">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="applicationOIDCScopes">Scopes</label>
+                                    <input type="text" class="form-control" id="applicationOIDCScopes" placeholder="openid,profile,offline_access">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="applicationOIDCClaim">Login claim</label>
+                                    <input type="text" class="form-control" id="applicationOIDCClaim" placeholder="preferred_username">
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3>TLS client certificate <span class="badge bg-secondary">required</span></h3>
+                                <div class="mb-3">
+                                    TLS authentication is the built-in local authentication mechanism.<br>
+                                    We require a minimum of one certificate to always be trusted even if OIDC authentication is used as this provides a way to recover the system should OIDC fail.<br><br>
+
                                     If using the <a href="https://github.com/lxc/incus/releases/latest/" target="_blank">Incus CLI tool</a>, this can be retrieved by running <code>incus remote get-client-certificate</code>.
                                     <br>
                                     Alternatively, one can be <a onclick="certificate()" href="#certificate">generated</a> for you which can be imported in your web browser for UI access.
-                                </label>
-                                <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
-
+                                    <textarea class="form-control" id="applicationClientCertificate" rows="10" placeholder="-----BEGIN CERTIFICATE-----&#10;<snip>&#10;-----END CERTIFICATE-----"></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -310,7 +343,7 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="certificateModalLabel">Certificate generated</h5>
+                        <h1 class="modal-title" id="certificateModalLabel">Certificate generated</h1>
                     </div>
 
                     <div class="modal-body">
@@ -336,5 +369,44 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal modal-xl fade" id="oidcModal" tabindex="-1" role="dialog" aria-labelledby="oidcModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title" id="oidcModalLabel">Public OIDC provider</h1>
+                    </div>
+
+                    <div class="modal-body">
+                        <p>
+                            The public OIDC provider relies on users having an account on the <a href="https://discuss.linuxcontainers.org" target="_blank">community forum</a>.<br>
+                            We then generate a per-server OpenID Connect Client ID which can be used with Incus, Operations Center or Migration Manager.
+                        </p>
+
+                        <p>
+                            When acessing your server, you will be sent to our SSO server which will then send you to the forum to authenticate.<br>
+                            If successful, you'll be granted full access.
+                        </p>
+
+                        <p>
+                            <b>NOTE:</b> You are trusting a third party with your authentication.
+                            <br>
+                            Whenever possible, you should look at deploying your own Identiy Provider to avoid relying on a third party service.
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="oidcModalUsername">Username</label>
+                            <input type="text" class="form-control" id="oidcModalUsername" placeholder="john-doe">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button onclick="oidcGenerate()" type="button" class="btn btn-primary" data-bs-dismiss="modal">Submit</button>
+                        <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </body>
 </html>
