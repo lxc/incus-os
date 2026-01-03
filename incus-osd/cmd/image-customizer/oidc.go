@@ -303,7 +303,7 @@ func oidcGenerate(ctx context.Context, userName string) (string, string, error) 
 	}
 
 	// Check that the Discourse account is valid.
-	err := oidcCheckDiscourse(ctx, userName)
+	userName, err := oidcCheckDiscourse(ctx, userName)
 	if err != nil {
 		slog.Warn("Requested OIDC login for invalid forum account", "username", userName)
 
@@ -372,23 +372,41 @@ func oidcGenerate(ctx context.Context, userName string) (string, string, error) 
 	return os.Getenv("ZITADEL_URL"), clientID, nil
 }
 
-func oidcCheckDiscourse(ctx context.Context, userName string) error {
+func oidcCheckDiscourse(ctx context.Context, userName string) (string, error) {
 	// Check that the username is valid.
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, os.Getenv("DISCOURSE_URL")+"/u/"+userName+".json", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, os.Getenv("DISCOURSE_URL")+"/u/"+userName+".json", nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
-		return errors.New("forum account doesn't exist")
+		return "", errors.New("forum account doesn't exist")
 	}
 
-	return nil
+	// Get exact spelling from the response.
+	type userResp struct {
+		User struct {
+			Username string `json:"username"`
+		} `json:"user"`
+	}
+
+	resp := userResp{}
+
+	err = json.NewDecoder(res.Body).Decode(&resp)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.User.Username == "" {
+		return "", errors.New("forum account data is broken")
+	}
+
+	return resp.User.Username, nil
 }
