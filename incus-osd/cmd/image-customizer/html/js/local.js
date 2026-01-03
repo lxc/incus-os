@@ -131,7 +131,7 @@ function download() {
 
     // Add the network seed if provided.
     if (document.getElementById("networkConfiguration").value != "") {
-        network = JSON.parse(document.getElementById("networkConfiguration").value)
+        network = JSON.parse(document.getElementById("networkConfiguration").value);
 
         req.seeds.network = network;
     }
@@ -148,7 +148,7 @@ function download() {
     }
 
     if (app == "incus") {
-        certificate = {
+        var certificate = {
             "name": "admin",
             "type": "client",
             "description": "Initial admin client",
@@ -167,20 +167,20 @@ function download() {
         }
 
         if (hasOIDC) {
-            config = {
+            var config = {
                 "oidc.issuer": document.getElementById("applicationOIDCIssuer").value,
                 "oidc.client.id": document.getElementById("applicationOIDCClientID").value
-            }
+            };
 
             if (document.getElementById("applicationOIDCClaim").value != "") {
-                config["oidc.claim"] = document.getElementById("applicationOIDCClaim").value
+                config["oidc.claim"] = document.getElementById("applicationOIDCClaim").value;
             }
 
             if (document.getElementById("applicationOIDCScopes").value != "") {
-                config["oidc.scopes"] = document.getElementById("applicationOIDCScopes").value
+                config["oidc.scopes"] = document.getElementById("applicationOIDCScopes").value;
             }
 
-            incus.preseed.config = config
+            incus.preseed.config = config;
         }
 
         req.seeds.incus = incus;
@@ -191,22 +191,22 @@ function download() {
         };
 
         if (hasOIDC) {
-            oidc = {
+            var oidc = {
                 "issuer": document.getElementById("applicationOIDCIssuer").value,
                 "client_id": document.getElementById("applicationOIDCClientID").value
-            }
+            };
 
             if (document.getElementById("applicationOIDCClaim").value != "") {
-                oidc["claim"] = document.getElementById("applicationOIDCClaim").value
+                oidc.claim = document.getElementById("applicationOIDCClaim").value;
             }
 
             if (document.getElementById("applicationOIDCScopes").value != "") {
-                oidc["scopes"] = document.getElementById("applicationOIDCScopes").value
+                oidc.scopes = document.getElementById("applicationOIDCScopes").value;
             }
 
-            appSeed.preseed = {}
-            appSeed.preseed.system_security = {}
-            appSeed.preseed.system_security.oidc = oidc
+            appSeed.preseed = {};
+            appSeed.preseed.system_security = {};
+            appSeed.preseed.system_security.oidc = oidc;
         }
 
         req.seeds[app] = appSeed;
@@ -230,17 +230,17 @@ function download() {
 }
 
 ;(function () {
-    const htmlElement = document.querySelector("html")
-    if(htmlElement.getAttribute("data-bs-theme") === 'auto') {
+    const htmlElement = document.querySelector("html");
+    if (htmlElement.getAttribute("data-bs-theme") === 'auto') {
         function updateTheme() {
             document.querySelector("html").setAttribute("data-bs-theme",
-                window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+                window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
         }
 
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
-        updateTheme()
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme);
+        updateTheme();
     }
-})()
+})();
 
 function oidc() {
     var modalDialog = new bootstrap.Modal(document.getElementById("oidcModal"), {});
