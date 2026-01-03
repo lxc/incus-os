@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
 // SecureBoot represents the current state of Secure Boot key updates applied to the system.
@@ -34,6 +35,8 @@ type State struct {
 	ShouldPerformInstall bool `json:"-"`
 
 	UpdateMutex sync.Mutex `json:"-"`
+
+	JobScheduler scheduling.Scheduler `json:"-"`
 
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
