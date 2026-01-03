@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -224,6 +225,36 @@ func TestUnrecognizedField(t *testing.T) {
 
 	require.Len(t, s.UnrecognizedFields, 1)
 	require.Equal(t, "System.Security.Config.FooBar", s.UnrecognizedFields[0])
+}
+
+// Test encoding and decoding a state that contains a map with a field that contains a dot (".").
+func TestDottedMapKey(t *testing.T) {
+	t.Parallel()
+
+	s := state.State{
+		StateVersion: 6,
+		Applications: map[string]api.Application{
+			"dotted.app": {
+				State: api.ApplicationState{
+					Initialized: true,
+					Version:     "abc",
+				},
+			},
+		},
+	}
+
+	contents, err := state.Encode(&s)
+	require.NoError(t, err)
+
+	require.Contains(t, string(contents), "dotted__DOT__app")
+
+	var newS state.State
+
+	err = state.Decode(contents, nil, &newS)
+	require.NoError(t, err)
+
+	require.Equal(t, s.Applications["dotted.app"].State.Initialized, newS.Applications["dotted.app"].State.Initialized)
+	require.Equal(t, s.Applications["dotted.app"].State.Version, newS.Applications["dotted.app"].State.Version)
 }
 
 // Test basic custom decoding/encoding of state.
