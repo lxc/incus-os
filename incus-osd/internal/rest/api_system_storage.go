@@ -10,6 +10,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
@@ -91,9 +92,15 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Populate config with the current system config.
+		ret.Config = s.state.System.Storage.Config
+
 		// Return the current system storage state.
 		_ = response.SyncResponse(true, ret).Render(w)
 	case http.MethodPut:
+		// Ensure any state updates are persisted.
+		defer s.state.Save()
+
 		// Get the current configuration.
 		current, err := storage.GetStorageInfo(r.Context())
 		if err != nil {
@@ -102,7 +109,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create or update a pool.
+		// Read the new config.
 		storageStruct := &api.SystemStorage{}
 
 		counter := &countWrapper{ReadCloser: r.Body}
@@ -114,6 +121,24 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Apply new schedule to the job scheduler.
+		err = s.state.JobScheduler.RegisterJob(zfs.PoolScrubJob, storageStruct.Config.ScrubSchedule, zfs.ScrubAllPools)
+		if err != nil {
+			if errors.Is(err, scheduling.ErrInvalidCronTab) {
+				_ = response.BadRequest(errors.New("invalid cron expression provided for scrub schedule")).Render(w)
+
+				return
+			}
+
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		// Update scrub schedule in state.
+		s.state.System.Storage.Config.ScrubSchedule = storageStruct.Config.ScrubSchedule
+
+		// Create or update a pool.
 		if len(storageStruct.Config.Pools) == 0 {
 			if len(current.Config.Pools) == 0 {
 				_ = response.EmptySyncResponse.Render(w)
@@ -126,7 +151,6 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create or update a pool.
 		for _, pool := range storageStruct.Config.Pools {
 			if !storage.PoolExists(r.Context(), pool.Name) {
 				err = zfs.CreateZpool(r.Context(), pool, s.state)
@@ -146,8 +170,6 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// If none of the supported methods, return NotImplemented.
 		_ = response.NotImplemented(nil).Render(w)
 	}
-
-	_ = s.state.Save()
 }
 
 // swagger:operation POST /1.0/system/storage/:delete-pool system system_post_storage_delete_pool

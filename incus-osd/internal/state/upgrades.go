@@ -156,4 +156,10 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V7: Set default value for ScrubSchedule.
+	func(lines []string) ([]string, error) {
+		lines = append(lines, "System.Storage.Config.ScrubSchedule: 0 4 * * 0")
+
+		return lines, nil
+	},
 }

@@ -5,19 +5,27 @@ import (
 	"os"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
-var currentStateVersion = 6
+var currentStateVersion = 7
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
 func LoadOrCreate(path string) (*State, error) {
+	scheduler, err := scheduling.NewScheduler()
+	if err != nil {
+		return nil, err
+	}
+
 	s := State{
 		path: path,
 
 		StateVersion: currentStateVersion,
 
 		Applications: map[string]api.Application{},
+
+		JobScheduler: scheduler,
 	}
 
 	body, err := os.ReadFile(s.path)
@@ -75,6 +83,9 @@ func (s *State) initialize() error {
 
 	// Set the initial update frequency to 6 hours.
 	s.System.Update.Config.CheckFrequency = "6h"
+
+	// Set the initial scrub schedule to weekly on sunday 4 AM.
+	s.System.Storage.Config.ScrubSchedule = "0 4 * * 0"
 
 	return nil
 }
