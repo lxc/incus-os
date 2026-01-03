@@ -102,14 +102,31 @@ func main() {
 		}
 	}
 
+	// Record if the system has booted with Secure Boot disabled.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		tui.EarlyError("unable to check Secure Boot state: " + err.Error())
+		os.Exit(1)
+	}
+
+	s.SecureBootDisabled = !sbEnabled
+
+	if s.SecureBootDisabled {
+		err := secureboot.BlowTrustedFuse()
+		if err != nil {
+			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			os.Exit(1)
+		}
+	}
+
 	// Perform the install check here, so we don't render the TUI footer during install.
 	s.ShouldPerformInstall = install.ShouldPerformInstall()
 
-	// If this is the system's first boot, set the timezone.
-	if !s.ShouldPerformInstall && s.System.Network.Config == nil {
-		err := setTimezone(ctx)
+	// Perform first-boot actions, if needed.
+	if !s.OS.SuccessfulBoot && !s.ShouldPerformInstall && s.System.Network.Config == nil {
+		err := firstBootActions(ctx, s)
 		if err != nil {
-			tui.EarlyError("unable to set timezone: " + err.Error())
+			tui.EarlyError("unable to perform first boot actions: " + err.Error())
 			os.Exit(1)
 		}
 	}
@@ -146,6 +163,20 @@ func main() {
 
 		os.Exit(1)
 	}
+}
+
+func firstBootActions(ctx context.Context, s *state.State) error {
+	// If Secure Boot is disabled, on first boot update the encryption bindings to
+	// use both PCRs 4 and 7.
+	if s.SecureBootDisabled {
+		err := secureboot.UpdatePCR4Binding(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Ensure the system timezone is set properly.
+	return setTimezone(ctx)
 }
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {
@@ -351,6 +382,11 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	// Display a warning if we're running with a swtpm-backed TPM.
 	if s.UsingSWTPM {
 		slog.WarnContext(ctx, "Degraded security state: no physical TPM found, using swtpm")
+	}
+
+	// Display a warning if Secure Boot is disabled.
+	if s.SecureBootDisabled {
+		slog.WarnContext(ctx, "Degraded security state: Secure Boot is disabled")
 	}
 
 	// Display a warning if we're running from the backup image.
@@ -709,16 +745,19 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
-		_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
-		if err != nil {
-			s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
-			showModalError(s.System.Update.State.Status, err)
+		// Only check if Secure Boot is enabled.
+		if !s.SecureBootDisabled {
+			_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
+				showModalError(s.System.Update.State.Status, err)
 
-			if isStartupCheck || isUserRequested {
-				break
+				if isStartupCheck || isUserRequested {
+					break
+				}
+
+				continue
 			}
-
-			continue
 		}
 
 		// Determine what applications to install.
@@ -793,7 +832,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		if len(appsUpdated) > 0 {
 			slog.DebugContext(ctx, "Refreshing system extensions")
 
-			err = systemd.RefreshExtensions(ctx)
+			err := systemd.RefreshExtensions(ctx)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
 				showModalError(s.System.Update.State.Status, err)
@@ -1080,7 +1119,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		}
 	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
-		err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+		err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
 		if err != nil {
 			return "", err
 		}

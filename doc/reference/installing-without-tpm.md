@@ -6,7 +6,7 @@ To support homelab users and others who wish to run IncusOS on physical machines
 
 * Unlike a physical TPM, it is trivial to inspect and change the software TPM state.
 
-* A physical TPM has already measured several critical PCR values before the kernel starts booting. IncusOS performs these same measurements early in the boot process, but from user-space. This opens some avenues of attack, but is at least partially mitigated by the Secure Boot configuration.
+* A physical TPM has already measured several critical PCR values before the kernel starts booting. IncusOS performs these same measurements early in the boot process, but from user-space. This opens some avenues of attack, but is partially mitigated by the Secure Boot configuration.
 
 Running IncusOS in an enterprise environment without a physical TPM is **UNSUPPORTED**.
 
@@ -22,8 +22,8 @@ Any IncusOS system that has ever booted with a software-backed TPM will permanen
 
 ## Install seed
 
-When configuring the IncusOS [install seed](./seed.md), set the `security.missing_tpm` field to `true`. This will cause IncusOS to configure a software TPM during installation. This option will only take affect if no physical TPM is detected.
+When configuring the IncusOS [install seed](./seed.md), set the `security.missing_tpm` field to `true`. This will cause IncusOS to configure a software TPM during installation. This option will only take effect if no physical TPM is detected.
 
 ## Running off a live USB drive
 
-If booting IncusOS off of a live USB drive, IncusOS will automatically configure a software TPM on first boot if no physical TPM is detected and then automatically restart. This restart is necessary to properly initialize the software TPM and setting up the encrypted disk partitions for use.
+If booting IncusOS off of a live USB drive and no physical TPM is detected, IncusOS will display a 30 second security warning on first boot and then automatically configure a software TPM. Once the software TPM is configured, the system will automatically restart. This restart is necessary to properly initialize the software TPM and set up the encrypted disk partitions for use.

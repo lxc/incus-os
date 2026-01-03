@@ -1,22 +1,6 @@
 import json
 
-from .incus_test_vm import IncusTestVM, util
-
-def TestInstallNoTPMNoSWTPM(install_image):
-    test_name = "no-tpm-no-swtpm"
-    test_seed = {
-        "install.json": "{}"
-    }
-
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
-
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.RemoveDevice("vtpm")
-
-        # Verify we get expected error
-        vm.StartVM()
-        vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "no working TPM found, and install seed doesn't allow for use of swtpm")
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestInstallUseSWTPM(install_image):
     test_name = "use-swtpm"
@@ -54,6 +38,9 @@ def TestInstallUseSWTPM(install_image):
 
         if result["metadata"]["state"]["tpm_status"] != "swtpm":
             raise IncusOSException("tpm_status != swtpm, got " + result["metadata"]["state"]["tpm_status"])
+
+        if result["metadata"]["state"]["system_state_is_trusted"]:
+            raise IncusOSException("expected to see system state is untrusted")
 
         # Set a different encryption recovery key.
         result["metadata"]["config"]["encryption_recovery_keys"][0] = "foo-bar-biz-1234"

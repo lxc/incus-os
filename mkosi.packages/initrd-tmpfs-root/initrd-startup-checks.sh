@@ -7,6 +7,9 @@ for TTY in $TTYS; do
     echo "$OS_NAME is starting..." > "$TTY" || true
 done
 
+SECURE_BOOT_DISABLED=false
+TPM_MISSING=false
+
 # Check if SecureBoot is enabled
 if [ -e /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]; then
     raw_secure_boot_state=$(tail -c 1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c)
@@ -14,13 +17,13 @@ if [ -e /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8
 
     if [ "$secure_boot_state" != 1 ]; then
         for TTY in $TTYS; do
-            echo "\033[31mSecureBoot is disabled. $OS_NAME cannot start until SecureBoot is enabled.\033[0m" > "$TTY" || true
+            echo "\033[0;33mSecureBoot is disabled. $OS_NAME will attempt to fall back to a less-secure boot logic.\033[0m" > "$TTY" || true
+            SECURE_BOOT_DISABLED=true
         done
-        sleep 3600
     fi
 else
     for TTY in $TTYS; do
-        echo "\033[31mUnable to determine SecureBoot state. $OS_NAME cannot start until SecureBoot is enabled.\033[0m" > "$TTY" || true
+        echo "\033[31mUnable to determine SecureBoot state. $OS_NAME will only boot on UEFI systems.\033[0m" > "$TTY" || true
     done
     sleep 3600
 fi
@@ -38,5 +41,25 @@ if [ -e /sys/class/tpm/tpm0/tpm_version_major ]; then
 else
     for TTY in $TTYS; do
         echo "\033[0;33mNo TPM detected. $OS_NAME will attempt to fall back to a less-secure swtpm implementation.\033[0m" > "$TTY" || true
+        TPM_MISSING=true
     done
+fi
+
+# If SecureBoot is disabled and we're missing a TPM, refuse to boot.
+if $SECURE_BOOT_DISABLED && $TPM_MISSING; then
+    for TTY in $TTYS; do
+        echo "\033[31m$OS_NAME cannot boot if SecureBoot is disabled and no physical TPM is present.\033[0m" > "$TTY" || true
+    done
+    sleep 3600
+fi
+
+# If a physical TPM is present, verify that the PE binaries involved in boot (systemd-boot, UKI) match the TPM event log and are properly signed by a trusted certificate.
+if ! $TPM_MISSING; then
+    peBinaryStatus=$(/usr/bin/incusos-initrd-utils validate-pe-binaries 2>&1)
+    if [ "$peBinaryStatus" != "" ]; then
+        for TTY in $TTYS; do
+            echo "\033[31m$OS_NAME failed to verify PE binaries: $peBinaryStatus\033[0m" > "$TTY" || true
+        done
+        sleep 3600
+    fi
 fi

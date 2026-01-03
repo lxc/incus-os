@@ -3,8 +3,6 @@ package systemd
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,16 +13,7 @@ import (
 	"strconv"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
-
-	"github.com/lxc/incus-os/incus-osd/internal/keyring"
-	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
-
-type sysextMetadata struct {
-	RootHash               string `json:"rootHast"`               //nolint:tagliatelle
-	CertificateFingerprint string `json:"certificateFingerprint"` //nolint:tagliatelle
-	Signature              string `json:"signature"`
-}
 
 // RefreshExtensions causes systemd-sysext to re-scan and reload the system extensions.
 func RefreshExtensions(ctx context.Context) error {
@@ -49,10 +38,12 @@ func RemoveExtension(ctx context.Context, name string) error {
 	return RefreshExtensions(ctx)
 }
 
-// VerifyExtensionCertificateFingerprint takes the filename of a sysext image and verifies its basic
-// format is correct and that its certificate fingerprint matches one currently trusted by the kernel.
-// Actual cryptographic validation of the signature is deferred to systemd-sysext.
-func VerifyExtensionCertificateFingerprint(ctx context.Context, extensionFile string) error {
+// VerifyExtension takes the filename of a sysext image and verifies its basic format is correct,
+// that its certificate fingerprint matches one currently trusted by the kernel, and that the signature
+// can be verified by the trusted certificate. systemd-sysext performs similar tasks, but we do this
+// by hand to catch potential issues when Secure Boot is disabled _before_ overwriting the existing
+// known good sysext image.
+func VerifyExtension(ctx context.Context, extensionFile string) error {
 	// Start with a quick baseline validation of the image.
 	_, err := subprocess.RunCommandContext(ctx, "systemd-dissect", "--validate", extensionFile)
 	if err != nil {
@@ -102,7 +93,7 @@ func VerifyExtensionCertificateFingerprint(ctx context.Context, extensionFile st
 	}
 
 	// Decode the json metadata.
-	metadata := sysextMetadata{}
+	metadata := veritySignatureMetadata{}
 	buf = bytes.Trim(buf, "\x00")
 
 	err = json.Unmarshal(buf, &metadata)
@@ -110,34 +101,12 @@ func VerifyExtensionCertificateFingerprint(ctx context.Context, extensionFile st
 		return err
 	}
 
-	// Get db Secure Boot certificates.
-	certs, err := secureboot.GetCertificatesFromVar("db")
+	// Get the trusted certificate that matches the verity certificate fingerprint.
+	trustedCert, err := getTrustedVerityCertificate(ctx, metadata.CertificateFingerprint)
 	if err != nil {
 		return err
 	}
 
-	// Get kernel's trusted platform keys.
-	kernelKeys, err := keyring.GetKeys(ctx, keyring.PlatformKeyring)
-	if err != nil {
-		return err
-	}
-
-	// Iterate through Secure Boot certificates to find a match.
-	for _, cert := range certs {
-		sha256Fp := sha256.Sum256(cert.Raw)
-
-		// The image fingerprint matches a certificate in Secure Boot db.
-		if metadata.CertificateFingerprint == hex.EncodeToString(sha256Fp[:]) {
-			// Iterate through kernel trusted keys to find a match.
-			for _, key := range kernelKeys {
-				if key.Fingerprint == hex.EncodeToString(cert.SubjectKeyId) {
-					return nil
-				}
-			}
-
-			return fmt.Errorf("sysext image '%s' is signed by a trusted Secure Boot certificate, but the certificate isn't present in the kernel's keyring (reboot needed?)", extensionFile)
-		}
-	}
-
-	return fmt.Errorf("sysext image '%s' is not signed by a trusted certificate", extensionFile)
+	// Now that we have a trusted certificate, verify the PKCS7 signature of the root hash.
+	return verifySignature(metadata.Signature, metadata.RootHash, trustedCert)
 }

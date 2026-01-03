@@ -428,7 +428,7 @@ func installApplication(ctx context.Context, s *state.State, p providers.Provide
 	}
 
 	// Verify the application is signed with a trusted key in the kernel's keyring.
-	err = systemd.VerifyExtensionCertificateFingerprint(ctx, filepath.Join(systemd.SystemExtensionsPath, papp.Name()+".raw"))
+	err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, papp.Name()+".raw"))
 	if err != nil {
 		return "", err
 	}

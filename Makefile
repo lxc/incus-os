@@ -25,15 +25,15 @@ generate-manifests:
 	(cd incus-osd && go build ./cmd/generate-manifests)
 	strip incus-osd/generate-manifests
 
-.PHONY: measure-pcrs
-measure-pcrs:
-	(cd incus-osd && go build ./cmd/measure-pcrs)
-	strip incus-osd/measure-pcrs
+.PHONY: incusos-initrd-utils
+incusos-initrd-utils:
+	(cd incus-osd && go build ./cmd/incusos-initrd-utils)
+	strip incus-osd/incusos-initrd-utils
 
 .PHONY: initrd-deb-package
-initrd-deb-package: measure-pcrs
+initrd-deb-package: inject-system-certs incusos-initrd-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
-	cp incus-osd/measure-pcrs mkosi.packages/initrd-tmpfs-root/
+	cp incus-osd/incusos-initrd-utils mkosi.packages/initrd-tmpfs-root/
 	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
 	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
           mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \
@@ -60,8 +60,8 @@ ifeq (,$(wildcard ./certs/))
 	./scripts/test/switch-secure-boot-signing-key.sh 1
 endif
 
-.PHONY: build
-build: incus-osd flasher-tool generate-manifests initrd-deb-package
+.PHONY: inject-system-certs
+inject-system-certs:
 ifeq (, $(shell which mkosi))
 	@echo "mkosi couldn't be found, please install it and try again"
 	exit 1
@@ -71,6 +71,10 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 
+	./scripts/inject-system-certs.sh
+
+.PHONY: build
+build: incus-osd flasher-tool generate-manifests initrd-deb-package
 	cd app-build/ && ./build-applications.py
 
 	# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.

@@ -1,3 +1,4 @@
+authenticode
 backend
 CAs
 CDN
@@ -28,6 +29,7 @@ Github
 homelab
 hotfix
 HTTPS
+IMG
 Incus
 IncusOS
 IPs

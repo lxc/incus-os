@@ -1,4 +1,4 @@
-// Package main populates PCRs when using a swtpm-backed TPM.
+// Package main provides IncusOS utility commands that run in the initrd.
 package main
 
 import (
@@ -15,7 +15,21 @@ import (
 )
 
 func main() {
-	err := run()
+	var err error
+
+	if len(os.Args) == 1 {
+		err = fmt.Errorf("usage: %s <cmd>", os.Args[0])
+	} else {
+		switch os.Args[1] {
+		case "measure-pcrs":
+			err = measurePCRs()
+		case "validate-pe-binaries":
+			err = secureboot.ValidatePEBinaries()
+		default:
+			err = fmt.Errorf("unsupported action '%s'", os.Args[1])
+		}
+	}
+
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %s\n", err.Error())
 
@@ -23,7 +37,8 @@ func main() {
 	}
 }
 
-func run() error {
+// measurePCRs calculates and sets expected PCR7 and PCR11 values in the swtpm.
+func measurePCRs() error {
 	// Open the TPM.
 	tpmDev, err := tpm2.OpenTPM("/dev/tpm0")
 	if err != nil {

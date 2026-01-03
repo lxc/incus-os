@@ -46,3 +46,6 @@ def _create_user_media(f, d, media_type, media_size, media_label):
             subprocess.run(["mcopy", "-s", "-i", f.name+"@@1048576", entry.path, "::" + entry.path.removeprefix(d)], capture_output=True, check=True)
     else:
         subprocess.run(["mkisofs", "-V", media_label, "-joliet-long", "-rock", "-o", f.name, d], capture_output=True, check=True)
+
+def _remove_secureboot_keys(image):
+    subprocess.run([ "mdeltree", "-i", image+"@@1048576", "::loader/keys/auto/"], capture_output=True, check=True)

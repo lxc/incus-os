@@ -41,44 +41,81 @@ var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running IncusOS.
 func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
+	// Check if Secure Boot is enabled.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		return err
+	}
+
+	// Check if a TPM device, either hardware or swtpm, is present and working.
+	_, tpmErr := subprocess.RunCommandContext(ctx, "tpm2_selftest")
+
+	// Determine if there's a working physical TPM.
+	workingPhysicalTPM := tpmErr == nil && !secureboot.GetSWTPMInUse()
+
+	// If Secure Boot is disabled and there's no working physical TPM, refuse to continue.
+	if !sbEnabled && !workingPhysicalTPM {
+		return errors.New("cannot run if Secure Boot is disabled and no physical TPM is present")
+	}
+
 	// Get the install seed, if it exists.
 	installSeed, err := seed.GetInstall()
 	if err != nil && !seed.IsMissing(err) && !errors.Is(err, io.EOF) {
 		return errors.New("unable to get install seed: " + err.Error())
 	}
 
-	// Validate that the install seed, if present, doesn't attempt to disable both Secure Boot and TPM requirements.
+	// Validate that the install seed, if present, doesn't attempt to configure an invalid degraded security state.
 	if installSeed != nil && installSeed.Security != nil {
 		if installSeed.Security.MissingTPM && installSeed.Security.MissingSecureBoot {
 			return errors.New("install seed cannot enable both Secure Boot and TPM degraded security options")
 		}
-	}
 
-	// Check if Secure Boot is enabled.
-	sbEnabled, err := secureboot.Enabled()
-	if err != nil {
-		return err
-	} else if !sbEnabled {
-		return errors.New("Secure Boot is not enabled") //nolint:staticcheck
-	}
-
-	// Check if a TPM device, either hardware or swtpm, is present and working. If not, attempt to
-	// initialize swtpm for use on next boot.
-	_, err = subprocess.RunCommandContext(ctx, "tpm2_selftest")
-	if err == nil {
-		// Return an error if there's a working TPM but the install seed wants to configure swtpm.
-		if installSeed != nil && installSeed.Security != nil && installSeed.Security.MissingTPM {
-			return errors.New("a working TPM was found, but install seed wants to configure a swtpm-backed TPM")
+		// Return an error if there's a physical TPM but the install seed wants to configure swtpm.
+		if workingPhysicalTPM && installSeed.Security.MissingTPM {
+			return errors.New("a physical TPM was found, but install seed wants to configure a swtpm-backed TPM")
 		}
-	} else {
+
+		// Return an error if Secure Boot is enabled but the install seed expects it to be disabled.
+		if sbEnabled && installSeed.Security.MissingSecureBoot {
+			return errors.New("Secure Boot is enabled, but install seed expects it to be disabled") //nolint:staticcheck
+		}
+	}
+
+	// If Secure Boot is enabled, but there's no working TPM, attempt to initialize swtpm for use on next boot.
+	if sbEnabled && tpmErr != nil {
 		// Return an error if there's no working TPM and the install seed doesn't allow using swtpm.
 		if installSeed != nil && (installSeed.Security == nil || !installSeed.Security.MissingTPM) {
-			return errors.New("no working TPM found, and install seed doesn't allow for use of swtpm")
+			return errors.New("no working TPM found, but install seed doesn't allow for use of swtpm")
 		}
 
 		err := configureSWTPM(ctx, t, installSeed != nil)
 		if err != nil {
 			return err
+		}
+	}
+
+	// If Secure Boot is disabled and there's a working physical TPM, allow running.
+	if !sbEnabled && workingPhysicalTPM {
+		// Return an error if Secure Boot is disabled and the install seed doesn't allow this.
+		if installSeed != nil && (installSeed.Security == nil || !installSeed.Security.MissingSecureBoot) {
+			return errors.New("Secure Boot is disabled, but install seed doesn't allow this") //nolint:staticcheck
+		}
+
+		// Only display warning during install or first live boot.
+		_, err := os.Stat("/boot/sb-disabled")
+		if err != nil && errors.Is(err, os.ErrNotExist) {
+			displayDegradedSecurityWarning(t, "Disabling Secure Boot")
+
+			// Create the flag file here if live boot, otherwise it will be created on the new
+			// ESP partition at the conclusion of the install.
+			if installSeed == nil {
+				fd, err := os.Create("/boot/sb-disabled")
+				if err != nil {
+					return err
+				}
+
+				_ = fd.Close()
+			}
 		}
 	}
 
@@ -613,6 +650,21 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		if err != nil {
 			return err
 		}
+	}
+
+	// If Secure Boot is disabled, create the flag file on the ESP partition.
+	sbEnabled, err := secureboot.Enabled()
+	if err != nil {
+		return err
+	}
+
+	if !sbEnabled {
+		fd, err := os.Create("/boot/sb-disabled")
+		if err != nil {
+			return err
+		}
+
+		_ = fd.Close()
 	}
 
 	// Finally, run `bootctl install`.

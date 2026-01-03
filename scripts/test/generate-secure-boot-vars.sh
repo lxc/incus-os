@@ -20,21 +20,21 @@ fi
 mkdir -p certs/efi/
 
 # PK
-openssl x509 -in "certs/${OS_NAME}-secureboot-PK-R1.crt" -out certs/efi/PK.der -outform DER
+openssl x509 -in "certs/${OS_NAME}-secureboot-PK-R1.crt" -out certs/efi/secureboot-PK-R1.der -outform DER
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-PK-R1.crt" certs/efi/PK.esl
 sign-efi-sig-list -g "${UUID}" -c "certs/${OS_NAME}-secureboot-PK-R1.crt" -k "certs/${OS_NAME}-secureboot-PK-R1.key" PK certs/efi/PK.esl certs/efi/PK.auth
 
 # KEKs
-openssl x509 -in "certs/${OS_NAME}-secureboot-KEK-R1.crt" -out certs/efi/KEK_1.der -outform DER
-openssl x509 -in "certs/${OS_NAME}-secureboot-KEK-R2.crt" -out certs/efi/KEK_2.der -outform DER
+openssl x509 -in "certs/${OS_NAME}-secureboot-KEK-R1.crt" -out certs/efi/secureboot-KEK-R1.der -outform DER
+openssl x509 -in "certs/${OS_NAME}-secureboot-KEK-R2.crt" -out certs/efi/secureboot-KEK-R2.der -outform DER
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-KEK-R1.crt" "certs/efi/${OS_NAME}-kek-1.esl"
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-KEK-R2.crt" "certs/efi/${OS_NAME}-kek-2.esl"
 cat "certs/efi/${OS_NAME}-kek-1.esl" "certs/efi/${OS_NAME}-kek-2.esl" > certs/efi/KEK.esl
 sign-efi-sig-list -g "${UUID}" -c "certs/${OS_NAME}-secureboot-PK-R1.crt" -k "certs/${OS_NAME}-secureboot-PK-R1.key" KEK certs/efi/KEK.esl certs/efi/KEK.auth
 
 # First two trusted secure boot keys
-openssl x509 -in "certs/${OS_NAME}-secureboot-1-R1.crt" -out certs/efi/db_1.der -outform DER
-openssl x509 -in "certs/${OS_NAME}-secureboot-2-R1.crt" -out certs/efi/db_2.der -outform DER
+openssl x509 -in "certs/${OS_NAME}-secureboot-1-R1.crt" -out certs/efi/secureboot-DB-1.der -outform DER
+openssl x509 -in "certs/${OS_NAME}-secureboot-2-R1.crt" -out certs/efi/secureboot-DB-2.der -outform DER
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-1-R1.crt" "certs/efi/${OS_NAME}-secureboot-1.esl"
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-2-R1.crt" "certs/efi/${OS_NAME}-secureboot-2.esl"
 cat "certs/efi/${OS_NAME}-secureboot-1.esl" "certs/efi/${OS_NAME}-secureboot-2.esl" > certs/efi/db.esl

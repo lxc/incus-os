@@ -37,6 +37,10 @@ The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus
 - `force_reboot`: If true, reboot after install without waiting for removal of
   install media.
 
+- `security`: An optional struct to enable IncusOS to run in a degraded security
+  state. WARNING: This shouldn't be set unless you know exactly what you are doing
+  and understand the security implications.
+
 - `target`: An optional selector used to determine the install target device.
   If not specified, IncusOS will expect a single unused drive to be present
   during install.

@@ -6,6 +6,7 @@ require (
 	github.com/FuturFusion/migration-manager v0.2.2
 	github.com/FuturFusion/operations-center v0.1.2
 	github.com/cavaliergopher/cpio v1.0.1
+	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.5
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v72 v72.0.0
@@ -76,6 +77,7 @@ require (
 	github.com/rootless-containers/proto/go-proto v0.0.0-20230421021042-4cd87ebadd67 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vbatts/go-mtree v0.6.1-0.20250911112631-8307d76bc1b9 // indirect
