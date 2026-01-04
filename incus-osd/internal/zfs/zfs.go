@@ -852,7 +852,7 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 
 	pool := api.SystemStoragePool{}
 
-	for _, p := range info.State.Pools {
+	for _, p := range info.Pools {
 		if p.Name == poolName {
 			pool = p
 		}
@@ -879,7 +879,7 @@ func ScrubAllPools(ctx context.Context) error {
 	}
 
 	// Scrub every pool sequentially.
-	for _, pool := range info.State.Pools {
+	for _, pool := range info.Pools {
 		slog.InfoContext(ctx, "Scrubbing pool", slog.String("pool", pool.Name))
 
 		// If a scrub is already in progress for a pool, skip it.
@@ -902,7 +902,7 @@ func ScrubAllPools(ctx context.Context) error {
 
 			latestPoolInfo := api.SystemStoragePool{}
 
-			for _, p := range latestInfo.State.Pools {
+			for _, p := range latestInfo.Pools {
 				if p.Name == pool.Name {
 					latestPoolInfo = p
 				}

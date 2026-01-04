@@ -503,8 +503,8 @@ func calculateScrubProgress(stats zpoolScanStats) string {
 }
 
 // GetStorageInfo returns current SMART data for each drive and the status of each local zpool.
-func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
-	ret := api.SystemStorage{}
+func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
+	ret := api.SystemStorageState{}
 
 	type zpoolStatusRaw struct {
 		Pools map[string]json.RawMessage `json:"pools"`
@@ -530,7 +530,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			return ret, err
 		}
 
-		ret.State.Pools = append(ret.State.Pools, poolConfig)
+		ret.Pools = append(ret.Pools, poolConfig)
 	}
 
 	// Get a list of all local drives.
@@ -672,7 +672,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 			smartStatus = nil
 		}
 
-		ret.State.Drives = append(ret.State.Drives, api.SystemStorageDrive{
+		ret.Drives = append(ret.Drives, api.SystemStorageDrive{
 			ID:              deviceID,
 			ModelFamily:     modelFamily,
 			ModelName:       modelName,
@@ -690,7 +690,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorage, error) {
 
 	// Sort the list of returned drives by the device's ID. This ensures a
 	// consistent ordering, which is useful for some tests.
-	slices.SortFunc(ret.State.Drives, func(a, b api.SystemStorageDrive) int {
+	slices.SortFunc(ret.Drives, func(a, b api.SystemStorageDrive) int {
 		return strings.Compare(a.ID, b.ID)
 	})
 
@@ -797,7 +797,7 @@ func WipeDrive(ctx context.Context, drive string) error {
 		return err
 	}
 
-	for _, d := range drives.State.Drives {
+	for _, d := range drives.Drives {
 		if d.ID == drive {
 			if d.Boot {
 				return errors.New("cannot wipe boot drive")

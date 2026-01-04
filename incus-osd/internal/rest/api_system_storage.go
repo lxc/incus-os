@@ -85,15 +85,17 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		ret, err := storage.GetStorageInfo(r.Context())
+		info, err := storage.GetStorageInfo(r.Context())
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
 			return
 		}
 
-		// Populate config with the current system config.
-		ret.Config = s.state.System.Storage.Config
+		ret := api.SystemStorage{
+			State:  info,
+			Config: s.state.System.Storage.Config,
+		}
 
 		// Return the current system storage state.
 		_ = response.SyncResponse(true, ret).Render(w)
@@ -101,20 +103,12 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// Ensure any state updates are persisted.
 		defer s.state.Save()
 
-		// Get the current configuration.
-		current, err := storage.GetStorageInfo(r.Context())
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
-
-			return
-		}
-
 		// Read the new config.
 		storageStruct := &api.SystemStorage{}
 
 		counter := &countWrapper{ReadCloser: r.Body}
 
-		err = json.NewDecoder(counter).Decode(storageStruct)
+		err := json.NewDecoder(counter).Decode(storageStruct)
 		if err != nil && counter.n > 0 {
 			_ = response.BadRequest(err).Render(w)
 
@@ -140,13 +134,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 
 		// Create or update a pool.
 		if len(storageStruct.Config.Pools) == 0 {
-			if len(current.Config.Pools) == 0 {
-				_ = response.EmptySyncResponse.Render(w)
-
-				return
-			}
-
-			_ = response.BadRequest(errors.New("no pool configuration provided")).Render(w)
+			_ = response.EmptySyncResponse.Render(w)
 
 			return
 		}
