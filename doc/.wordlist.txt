@@ -6,6 +6,7 @@ CDROM
 Ceph
 CIDR
 CPUs
+cron
 customizations
 customizer
 datastore
