@@ -4,6 +4,8 @@ IncusOS allows for the configuration of complex ZFS storage pools. Each pool is 
 
 When creating a storage pool, IncusOS can use local devices, or remote devices made available via a [service](../services.md), such as iSCSI.
 
+To maintain data integrity, IncusOS automatically performs a weekly scrub of all storage pools in the system. The scrub schedule defaults to Sunday at 04:00, but can be configured by the user. It is also possible to manually trigger a scrub of any given pool.
+
 It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
 ```{note}
@@ -19,6 +21,7 @@ Configuration fields are defined in the [`SystemStorageConfig` struct](https://g
 The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
+* `scrub_schedule`: A cron expression with five fields defining when to perform an automatic scrub of all the storage pools. Defaults to 0 4 * * 0.
 
 ```{note}
 When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
@@ -26,11 +29,12 @@ When specifying devices for a pool, order is important. IncusOS will always retu
 
 ### Examples
 
-Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device:
+Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device, setting the automatic scrub to run every Saturday at 00:00:
 
 ```
 {
   "config": {
+    "scrub_schedule":  "0 0 * * 6",
     "pools": [
       {
         "name": "mypool",
@@ -58,6 +62,7 @@ Replace failed device `/dev/sdb` with `/dev/sdh`:
 ```
 {
   "config": {
+    "scrub_schedule":  "0 0 * * 6",
     "pools": [
       {
         "name": "mypool",
@@ -101,6 +106,14 @@ Delete the storage pool `mypool` by running
 
 ```
 incus admin os system storage delete-pool -d '{"name":"mypool"}'
+```
+
+## Scrubbing a storage pool
+
+Start a scrub for the storage pool `mypool` by running
+
+```
+incus admin os system storage scrub-pool -d '{"name":"mypool"}'
 ```
 
 ## Wiping a drive
