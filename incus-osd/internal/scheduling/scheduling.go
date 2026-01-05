@@ -23,7 +23,7 @@ type Scheduler struct {
 type JobFunc func(context.Context) error
 
 // ErrInvalidCronTab is returned when an invalid crontab expression is provided.
-var ErrInvalidCronTab error = errors.New("invalid crontab expression")
+var ErrInvalidCronTab = errors.New("invalid crontab expression")
 
 // NewScheduler creates a new Scheduler.
 func NewScheduler() (Scheduler, error) {
