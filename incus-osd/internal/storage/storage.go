@@ -361,7 +361,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 			case "raidz3-0":
 				zpoolType = "zfs-raidz3"
 			default:
-				return api.SystemStoragePool{}, errors.New("unable to determine pool type for " + zpoolName)
+				return api.SystemStoragePool{}, fmt.Errorf("got unexpected zpool type '%s' in zpool '%s'", vdevName, zpoolName)
 			}
 
 			for memberVdevName, memberVdev := range vdev.Vdevs {
