@@ -530,14 +530,47 @@ func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInte
 			txStats := 0
 
 			if transfer != nil {
-				output, err := units.ParseByteSizeString(strings.ReplaceAll(transfer[1], " ", ""))
+				cleanValue := func(val string) string {
+					var (
+						fraction bool
+						cleanVal strings.Builder
+					)
+
+					// Strip spaces and any fraction before handing it over to the Incus units parser.
+					for _, chr := range []byte(val) {
+						// Strip spaces.
+						if chr == ' ' {
+							continue
+						}
+
+						// Detect fractions.
+						if chr == '.' {
+							fraction = true
+
+							continue
+						}
+
+						// Skip any integer after a fraction.
+						_, err := strconv.Atoi(string([]byte{chr}))
+						if err == nil && fraction {
+							continue
+						}
+
+						// Keep the rest (leading integers and suffix).
+						_, _ = cleanVal.Write([]byte{chr})
+					}
+
+					return cleanVal.String()
+				}
+
+				output, err := units.ParseByteSizeString(cleanValue(transfer[1]))
 				if err != nil {
 					return api.SystemNetworkInterfaceState{}, err
 				}
 
 				rxStats = int(output)
 
-				output, err = units.ParseByteSizeString(strings.ReplaceAll(transfer[2], " ", ""))
+				output, err = units.ParseByteSizeString(cleanValue(transfer[2]))
 				if err != nil {
 					return api.SystemNetworkInterfaceState{}, err
 				}
