@@ -354,6 +354,22 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 
 	ret = append(ret, scsiTargets.BlockDevices...)
 
+	// Get MMC drives third.
+	mmcTargets := storage.LsblkOutput{}
+
+	// MMC block devices have major number 179 (https://www.kernel.org/doc/Documentation/admin-guide/devices.txt)
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-I", "179", "-iJnpb", "-o", "KNAME,ID_LINK,SIZE")
+	if err != nil {
+		return []storage.BlockDevices{}, err
+	}
+
+	err = json.Unmarshal([]byte(output), &mmcTargets)
+	if err != nil {
+		return []storage.BlockDevices{}, err
+	}
+
+	ret = append(ret, mmcTargets.BlockDevices...)
+
 	// Get virtual drives last.
 	virtualTargets := storage.LsblkOutput{}
 
@@ -849,11 +865,11 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 }
 
 // GetPartitionPrefix returns the necessary partition prefix, if any, for a give device.
-// nvme devices have partitions named "pN", while traditional disk partitions are just "N".
+// nvme and mmc devices have partitions named "pN", while traditional disk partitions are just "N".
 func GetPartitionPrefix(device string) string {
 	cdromMatched, _ := regexp.MatchString(`/mapper/sr\d+`, device)
 
-	if strings.Contains(device, "/nvme") || cdromMatched {
+	if strings.Contains(device, "/nvme") || strings.Contains(device, "/mmcblk") || cdromMatched {
 		return "p"
 	}
 
