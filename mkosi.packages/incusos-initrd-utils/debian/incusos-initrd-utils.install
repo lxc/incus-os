@@ -1,8 +1,8 @@
 incusos-initrd-utils     usr/bin/
-initrd-debug-info.sh     usr/bin/
+#initrd-debug-info.sh     usr/bin/
 initrd-startup-checks.sh usr/bin/
 
-initrd-debug-info.service     usr/lib/systemd/system/
+#initrd-debug-info.service     usr/lib/systemd/system/
 initrd-startup-checks.service usr/lib/systemd/system/
 initrd-swtpm.service          usr/lib/systemd/system/
 initrd-tmpfs-root.service     usr/lib/systemd/system/
