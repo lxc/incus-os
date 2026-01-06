@@ -64,6 +64,7 @@ OVMF
 OVN
 OVS
 parsable
+PCI
 PCR
 PCRs
 PEM
