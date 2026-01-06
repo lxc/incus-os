@@ -467,7 +467,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         if len(result["metadata"]["state"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
 
-        if len(result["metadata"]["config"]["scrub_schedule"]) != "0 4 * * 0":
+        if result["metadata"]["config"]["scrub_schedule"] != "0 4 * * 0":
             raise IncusOSException("expected scrub schedule to start with '0 4 * * 0' as the default value")
 
         # Update the scrub schedule
@@ -480,5 +480,5 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
-        if len(result["metadata"]["config"]["scrub_schedule"]) != "0 0 * * 5":
+        if result["metadata"]["config"]["scrub_schedule"] != "0 0 * * 5":
             raise IncusOSException("expected scrub schedule to be updated")
