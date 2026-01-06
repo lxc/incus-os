@@ -12,7 +12,7 @@ type SystemLoggingConfig struct {
 	Syslog SystemLoggingSyslog `json:"syslog" yaml:"syslog"`
 }
 
-// SystemLoggingState represents state for the systme's logging configuration.
+// SystemLoggingState represents state for the system's logging configuration.
 type SystemLoggingState struct{}
 
 // SystemLogging defines a struct to hold information about the system's logging configuration.

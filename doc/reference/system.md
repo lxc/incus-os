@@ -11,6 +11,7 @@ as well as relevant actions.
 :maxdepth: 1
 
 Backup/Restore </reference/system/backup>
+Kernel </reference/system/kernel>
 Logging </reference/system/logging>
 Network </reference/system/network>
 Power </reference/system/power>

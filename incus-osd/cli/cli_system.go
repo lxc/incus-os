@@ -88,6 +88,11 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 
 	subCommands := []subCommand{
 		{
+			name:        "kernel",
+			description: "System kernel configuration",
+			isWritable:  true,
+		},
+		{
 			name:        "logging",
 			description: "System logging",
 			isWritable:  true,

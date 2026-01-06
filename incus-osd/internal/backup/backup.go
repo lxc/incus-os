@@ -327,6 +327,7 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 	newState.Services.NVME.State = api.ServiceNVMEState{}
 	newState.Services.OVN.State = api.ServiceOVNState{}
 	newState.Services.USBIP.State = api.ServiceUSBIPState{}
+	newState.System.Kernel.State = api.SystemKernelState{}
 	newState.System.Logging.State = api.SystemLoggingState{}
 	newState.System.Network.State = api.SystemNetworkState{}
 	newState.System.Provider.State = api.SystemProviderState{}
