@@ -907,6 +907,9 @@ func configureSWTPM(ctx context.Context, t *tui.TUI, isInstall bool) error {
 
 	_ = systemd.SystemReboot(ctx)
 
+	// Prevent further system start up in the half second or so before things reboot.
+	time.Sleep(60 * time.Second)
+
 	return nil
 }
 
