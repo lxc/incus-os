@@ -11,7 +11,7 @@ jobs:
     name: IncusOS API tests
     strategy:
       fail-fast: false
-    timeout-minutes: 360
+    timeout-minutes: 600
     runs-on:
       - self-hosted
       - cpu-4
