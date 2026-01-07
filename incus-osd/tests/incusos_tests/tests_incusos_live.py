@@ -47,7 +47,7 @@ def TestIncusOSLiveSWTPM(install_image):
         # Start the VM and expect swtpm configuration to happen
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "Configuring swtpm-backed TPM on first live boot, restarting in five seconds")
+        vm.WaitExpectedLog("incus-osd", "Configuring swtpm-backed TPM on first boot, restarting in five seconds")
         vm.LogDoesntContain("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
 
         # After auto-reboot, expect IncusOS to start running immediately
