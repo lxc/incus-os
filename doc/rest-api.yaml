@@ -2,7 +2,7 @@ definitions:
     ACMEChallengeType:
         title: ACMEChallengeType represents challenge types for ACME configuration.
         type: string
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Access:
         items:
             $ref: '#/definitions/AccessEntry'
@@ -621,20 +621,20 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterCertificatePut:
-        description: ClusterCertificatePut represents the certificate and key pair for all cluster members
         properties:
             cluster_certificate:
-                description: The new certificate (X509 PEM encoded) for the cluster
+                description: The new certificate (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate
                 type: string
                 x-go-name: ClusterCertificate
             cluster_certificate_key:
-                description: The new certificate key (X509 PEM encoded) for the cluster
+                description: The new certificate key (X509 PEM encoded) for the cluster.
                 example: X509 PEM certificate key
                 type: string
                 x-go-name: ClusterCertificateKey
+        title: ClusterCertificatePut represents the certificate and key pair for all cluster members.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterGroup:
         properties:
             config:
@@ -1096,47 +1096,21 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterPut:
+        description: |-
+            ClusterPut defines the updateable part of a cluster of servers running
+            Hypervisor OS.
         properties:
-            cluster_address:
-                description: The address of the cluster you wish to join
-                example: 10.0.0.1:8443
+            connection_url:
+                description: |-
+                    URL, hostname or IP address of the cluster endpoint.
+                    This is only user facing, e.g. the address of a load balancer infront of
+                    the cluster and not used by Operations Center for direct communication
+                    Operations Center relies on the connection URL of the cluster members.
+                example: https://incus.local:6443
                 type: string
-                x-go-name: ClusterAddress
-            cluster_certificate:
-                description: The expected certificate (X509 PEM encoded) for the cluster
-                example: X509 PEM certificate
-                type: string
-                x-go-name: ClusterCertificate
-            cluster_token:
-                description: The cluster join token for the cluster you're trying to join
-                example: blah
-                type: string
-                x-go-name: ClusterToken
-            enabled:
-                description: Whether clustering is enabled
-                example: true
-                type: boolean
-                x-go-name: Enabled
-            member_config:
-                description: List of member configuration keys (used during join)
-                example: []
-                items:
-                    $ref: '#/definitions/ClusterMemberConfigKey'
-                type: array
-                x-go-name: MemberConfig
-            server_address:
-                description: The local address to use for cluster communication
-                example: 10.0.0.2:8443
-                type: string
-                x-go-name: ServerAddress
-            server_name:
-                description: Name of the cluster member answering the request
-                example: server01
-                type: string
-                x-go-name: ServerName
-        title: ClusterPut represents the fields required to bootstrap or join a cluster.
+                x-go-name: ConnectionURL
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ClusterTemplate:
         description: |-
             ClusterTemplate defines a template, which can be used to form a cluster
@@ -1285,7 +1259,7 @@ definitions:
             map[string]string it provides unmarshal methods for JSON and YAML, which
             gracefully handle numbers and bools.
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     DevicesMap:
         additionalProperties:
             additionalProperties:
@@ -2109,112 +2083,122 @@ definitions:
     Instance:
         properties:
             architecture:
-                description: Architecture name
+                description: Architecture of the Instance.
                 example: x86_64
                 type: string
                 x-go-name: Architecture
+            background_import:
+                description: Whether the Instance supports background-import migrations.
+                example: true
+                type: boolean
+                x-go-name: BackgroundImport
             config:
                 additionalProperties:
                     type: string
-                description: Instance configuration (see doc/instances.md)
+                description: Additional configuration of the Instance.
                 example:
                     security.nesting: "true"
                 type: object
                 x-go-name: Config
-            created_at:
-                description: Instance creation timestamp
-                example: "2021-03-23T20:00:00-04:00"
-                format: date-time
-                type: string
-                x-go-name: CreatedAt
+            cpus:
+                description: Number of CPUs assigned to the Instance.
+                example: 4
+                format: int64
+                type: integer
+                x-go-name: CPUs
             description:
-                description: Instance description
-                example: My test instance
+                description: Description of the Instance.
+                example: Windows Server 2025
                 type: string
                 x-go-name: Description
-            devices:
-                description: Instance devices (see doc/instances.md)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: Devices
-            ephemeral:
-                description: Whether the instance is ephemeral (deleted on shutdown)
-                example: false
-                type: boolean
-                x-go-name: Ephemeral
-            expanded_config:
-                description: Expanded configuration (all profiles and local config merged)
-                example:
-                    security.nesting: "true"
-                type: object
-                x-go-name: ExpandedConfig
-            expanded_devices:
-                description: Expanded devices (all profiles and local devices merged)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: ExpandedDevices
-            last_used_at:
-                description: Last start timestamp
-                example: "2021-03-23T20:00:00-04:00"
+            disks:
+                description: List of disks assigned to the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesDisk'
+                type: array
+                x-go-name: Disks
+            last_update_from_source:
+                description: Last synced update from the source.
+                example: "2025-01-01 01:00:00"
                 format: date-time
                 type: string
-                x-go-name: LastUsedAt
+                x-go-name: LastUpdateFromSource
+            legacy_boot:
+                description: Whether the Instance uses legacy (CSM) boot.
+                example: true
+                type: boolean
+                x-go-name: LegacyBoot
             location:
-                description: What cluster member this instance is located on
-                example: server01
+                description: Location path of the Instance.
+                example: /path/to/instance_name
                 type: string
                 x-go-name: Location
+            memory:
+                description: Memory in bytes assigned to the Instance.
+                example: 1073741824
+                format: int64
+                type: integer
+                x-go-name: Memory
             name:
-                description: Instance name
-                example: foo
+                description: Name of the Instance.
+                example: myVM
                 type: string
                 x-go-name: Name
-            profiles:
-                description: List of profiles applied to the instance
-                example:
-                    - default
+            nics:
+                description: List of network interface cards assigned to the Instance.
                 items:
-                    type: string
+                    $ref: '#/definitions/InstancePropertiesNIC'
                 type: array
-                x-go-name: Profiles
-            project:
-                description: Instance project name
-                example: foo
+                x-go-name: NICs
+            os:
+                description: OS name of the Instance.
+                example: Ubuntu
                 type: string
-                x-go-name: Project
-            restore:
-                description: If set, instance will be restored to the provided snapshot name
-                example: snap0
+                x-go-name: OS
+            os_version:
+                description: OS version of the Instance.
+                example: "24.04"
                 type: string
-                x-go-name: Restore
-            stateful:
-                description: Whether the instance currently has saved state on disk
-                example: false
+                x-go-name: OSVersion
+            overrides:
+                $ref: '#/definitions/InstanceOverride'
+            running:
+                description: Whether the Instance was running when the sync was performed.
+                example: true
                 type: boolean
-                x-go-name: Stateful
-            status:
-                description: Instance status (see instance_state)
-                example: Running
+                x-go-name: Running
+            secure_boot:
+                description: Whether the Instance has secure-boot enabled.
+                example: true
+                type: boolean
+                x-go-name: SecureBoot
+            snapshots:
+                description: List of snapshots for the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesSnapshot'
+                type: array
+                x-go-name: Snapshots
+            source:
+                description: The originating source name for this instance
+                example: MySource
                 type: string
-                x-go-name: Status
-            status_code:
-                $ref: '#/definitions/StatusCode'
-            type:
-                description: The type of instance (container or virtual-machine)
-                example: container
+                x-go-name: Source
+            source_type:
+                $ref: '#/definitions/SourceType'
+            tpm:
+                description: Whether the Instance has a TPM.
+                example: true
+                type: boolean
+                x-go-name: TPM
+            uuid:
+                description: Unique identifier of the Instance.
+                example: a2095069-a527-4b2a-ab23-1739325dcac7
+                format: uuid
                 type: string
-                x-go-name: Type
-        title: Instance represents an instance.
+                x-go-name: UUID
+        title: Instance defines a VM instance to be migrated.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     InstanceBackup:
         properties:
             created_at:
@@ -7136,18 +7120,18 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerPut:
-        description: ServerPut represents the modifiable fields of a server configuration
         properties:
-            config:
-                additionalProperties:
-                    type: string
-                description: Server configuration map (refer to doc/server.md)
-                example:
-                    core.https_address: :8443
-                type: object
-                x-go-name: Config
+            public_connection_url:
+                description: |-
+                    Public URL, hostname or IP address of the server endpoint for user facing
+                    communication with the server. Only required, if it differs from
+                    connection_url, e.g. because the server is behind a reverse proxy.
+                example: https://incus.local:6443
+                type: string
+                x-go-name: PublicConnectionURL
+        title: ServerPut defines the updateable part of a server running Hypervisor OS.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     ServerSelfUpdate:
         properties:
             connection_url:
@@ -7178,18 +7162,6 @@ definitions:
     ServerUntrusted:
         description: ServerUntrusted represents a server configuration for an untrusted client
         properties:
-            api_extensions:
-                description: List of supported API extensions
-                example:
-                    - etag
-                    - patch
-                    - network
-                    - storage
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: APIExtensions
             api_status:
                 description: Support status of the current API (one of "devel", "stable" or "deprecated")
                 example: stable
@@ -7222,17 +7194,11 @@ definitions:
                     type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :8443
+                    core.https_address: :6443
                 type: object
                 x-go-name: Config
-            public:
-                description: Whether the server is public-only (only public endpoints are implemented)
-                example: false
-                readOnly: true
-                type: boolean
-                x-go-name: Public
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Source:
         properties:
             name:
@@ -8861,9 +8827,6 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemSecurityOpenFGA:
-        description: |-
-            SystemSecurityOpenFGA is the OpenFGA related part of the system's security
-            configuration.
         properties:
             api_token:
                 description: API token used for communication with the OpenFGA system.
@@ -8877,8 +8840,9 @@ definitions:
                 description: ID of the OpenFGA store.
                 type: string
                 x-go-name: StoreID
+        title: SystemSecurityOpenFGA is the OpenFGA related part of the system's security configuration.
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     SystemSecurityPut:
         description: |-
             SystemSecurityPut represents the fields available for an update of the
@@ -8949,27 +8913,13 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemSettings:
         properties:
-            disable_auto_sync:
-                description: Whether automatic periodic sync of all sources should be disabled.
-                type: boolean
-                x-go-name: DisableAutoSync
             log_level:
                 description: Daemon log level.
                 type: string
                 x-go-name: LogLevel
-            log_targets:
-                description: Additional logging targets.
-                items:
-                    $ref: '#/definitions/SystemSettingsLog'
-                type: array
-                x-go-name: LogTargets
-            sync_interval:
-                description: Interval over which data from all sources will be periodically resynced.
-                type: string
-                x-go-name: SyncInterval
         title: SystemSettings represents global system settings.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     SystemSettingsLog:
         properties:
             address:
@@ -9712,66 +9662,72 @@ definitions:
     Warning:
         properties:
             count:
-                description: Number of times the warning has been seen.
-                example: 10
+                description: The number of times this warning occurred
+                example: 1
                 format: int64
                 type: integer
                 x-go-name: Count
-            first_seen_date:
-                description: First time the warning was seen.
-                example: "2025-01-01 01:00:00"
+            entity_url:
+                description: The entity affected by this warning
+                example: /1.0/instances/c1?project=default
+                type: string
+                x-go-name: EntityURL
+            first_seen_at:
+                description: The first time this warning occurred
+                example: "2021-03-23T17:38:37.753398689-04:00"
                 format: date-time
                 type: string
-                x-go-name: FirstSeenDate
-            last_seen_date:
-                description: Most recent time the warning was seen.
-                example: "2025-01-01 01:00:00"
+                x-go-name: FirstSeenAt
+            last_message:
+                description: The warning message
+                example: Couldn't find the CGroup blkio.weight, disk priority will be ignored
+                type: string
+                x-go-name: LastMessage
+            last_seen_at:
+                description: The last time this warning occurred
+                example: "2021-03-23T17:38:37.753398689-04:00"
                 format: date-time
                 type: string
-                x-go-name: LastSeenDate
-            messages:
-                description: Messages associated with the warning type.
-                example: list of messages
-                items:
-                    type: string
-                type: array
-                x-go-name: Messages
-            scope:
-                $ref: '#/definitions/WarningScope'
+                x-go-name: LastSeenAt
+            location:
+                description: What cluster member this warning occurred on
+                example: server01
+                type: string
+                x-go-name: Location
+            project:
+                description: The project the warning occurred in
+                example: default
+                type: string
+                x-go-name: Project
+            severity:
+                description: The severity of this warning
+                example: low
+                type: string
+                x-go-name: Severity
             status:
                 $ref: '#/definitions/WarningStatus'
-                description: Status of the warning (new, acknowledged, or resolved)
-                example: new
                 type: string
-                x-go-name: Status
             type:
-                $ref: '#/definitions/WarningType'
-            updated_date:
-                description: Last time the warning was changed.
-                example: "2025-01-01 01:00:00"
-                format: date-time
+                description: Type type of warning
+                example: Couldn't find CGroup
                 type: string
-                x-go-name: UpdatedDate
+                x-go-name: Type
             uuid:
-                description: Unique identifier of the warning.
-                example: a2095069-a527-4b2a-ab23-1739325dcac7
-                format: uuid
+                description: UUID of the warning
+                example: e9e9da0d-2538-4351-8047-46d4a8ae4dbb
                 type: string
                 x-go-name: UUID
-        title: Warning represents a record of a warning.
+        title: Warning represents a warning entry.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     WarningPut:
         properties:
             status:
                 $ref: '#/definitions/WarningStatus'
-                description: Status of the warning (new, acknowledged, or resolved)
-                example: new
                 type: string
-                x-go-name: Status
-        title: WarningPut represents configurable properties of a warning.
+        title: WarningPut represents the modifiable fields of a warning.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     WarningScope:
         properties:
             entity:
@@ -9855,6 +9811,7 @@ paths:
                                         hostname: af94e64e-1993-41b6-8f10-a8eebb828fce
                                         os_name: IncusOS
                                         os_version: "202511041601"
+                                        os_version_next: 202511152230
                                 type: json
                             status:
                                 description: Status description
