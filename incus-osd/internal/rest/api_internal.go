@@ -13,6 +13,12 @@ import (
 func (*Server) apiInternalTUI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
 
