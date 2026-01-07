@@ -49,6 +49,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router := http.NewServeMux()
 
 	router.HandleFunc("/", s.apiRoot)
+	router.HandleFunc("/internal/auth/:generate-token", s.apiInternalToken)
 	router.HandleFunc("/internal/tui/:write-message", s.apiInternalTUI)
 	router.HandleFunc("/1.0", s.apiRoot10)
 	router.HandleFunc("/1.0/applications", s.apiApplications)

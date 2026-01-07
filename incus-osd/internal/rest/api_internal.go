@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
@@ -52,4 +53,29 @@ func (*Server) apiInternalTUI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.EmptySyncResponse.Render(w)
+}
+
+func (*Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	token, err := auth.GenerateToken(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, token).Render(w)
 }
