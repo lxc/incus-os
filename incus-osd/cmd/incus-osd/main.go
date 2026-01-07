@@ -478,6 +478,16 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 			s.System.Provider.Config.Name = provider
 			s.System.Provider.Config.Config = providerConfig
 		}
+
+		// Apply the update seed config (if present).
+		updateSeed, err := seed.GetUpdate(ctx)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
+
+		if updateSeed != nil {
+			s.System.Update.Config = updateSeed.SystemUpdateConfig
+		}
 	}
 
 	p, err := providers.Load(ctx, s)
