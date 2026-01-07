@@ -70,9 +70,10 @@ type apiImagesPostSeeds struct {
 	Incus            *apiseed.Incus            `json:"incus"             yaml:"incus"`
 	Install          *apiseed.Install          `json:"install"           yaml:"install"`
 	MigrationManager *apiseed.MigrationManager `json:"migration-manager" yaml:"migration-manager"` //nolint:tagliatelle
-	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
 	Network          *apiseed.Network          `json:"network"           yaml:"network"`
+	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
 	Provider         *apiseed.Provider         `json:"provider"          yaml:"provider"`
+	Update           *apiseed.Update           `json:"update"            yaml:"update"`
 }
 
 func main() {
@@ -574,6 +575,16 @@ func writeSeed(writer io.Writer, seeds apiImagesPostSeeds) (int, error) {
 		}
 
 		archiveContents = append(archiveContents, []string{"provider.yaml", string(yamlContents)})
+	}
+
+	// Create update yaml contents.
+	if seeds.Update != nil {
+		yamlContents, err := yaml.Marshal(seeds.Update)
+		if err != nil {
+			return -1, err
+		}
+
+		archiveContents = append(archiveContents, []string{"update.yaml", string(yamlContents)})
 	}
 
 	// Put a size counter in place.

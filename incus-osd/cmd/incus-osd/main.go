@@ -466,17 +466,27 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	if s.System.Provider.Config.Name == "" {
+		// Apply the provider seed config (if present).
 		providerSeed, err := seed.GetProvider(ctx)
 		if err != nil && !seed.IsMissing(err) {
 			return err
 		}
 
 		if providerSeed != nil {
-			s.System.Provider.Config.Name = providerSeed.Name
-			s.System.Provider.Config.Config = providerSeed.Config
+			s.System.Provider.Config = providerSeed.SystemProviderConfig
 		} else {
 			s.System.Provider.Config.Name = provider
 			s.System.Provider.Config.Config = providerConfig
+		}
+
+		// Apply the update seed config (if present).
+		updateSeed, err := seed.GetUpdate(ctx)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
+
+		if updateSeed != nil {
+			s.System.Update.Config = updateSeed.SystemUpdateConfig
 		}
 	}
 
