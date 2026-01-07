@@ -90,3 +90,8 @@ This file provides preseed information to configure a given provider, which is u
 to fetch IncusOS updates and applications.
 
 The structure used is the [provider API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_provider.go).
+
+### `update.{json,yml,yaml}`
+This file provides update configuration for the system.
+
+The structure used is the [update API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_update.go).
