@@ -59,7 +59,7 @@
         ]
     },
     "migration-manager": {
-        "version": "0.2.2",
+        "version": "0.3.0",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -168,7 +168,7 @@
         ]
     },
     "tailscale": {
-        "version": "1.92.4",
+        "version": "1.92.5",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
