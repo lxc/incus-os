@@ -19,7 +19,7 @@ def TestIncusOSAPIDebug(install_image):
         if len(result["metadata"]) != 2:
             raise IncusOSException("expected two debug endpoints")
 
-        for endpoint in ["/1.0/debug/log", "/1.0/debug/tui"]:
+        for endpoint in ["/1.0/debug/log"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
 
@@ -33,13 +33,13 @@ def TestIncusOSAPIDebug(install_image):
             raise IncusOSException("got unexpected final log line: '" + lines[-1] + "'")
 
         # Test sending log messages via API.
-        result = vm.APIRequest("/1.0/debug/tui/:write-message", method="POST", body='{"level":"INFO","message":"Test message one"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"INFO","message":"Test message one"}')
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
-        result = vm.APIRequest("/1.0/debug/tui/:write-message", method="POST", body='{"level":"WARN","message":"Test message two"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"WARN","message":"Test message two"}')
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
-        result = vm.APIRequest("/1.0/debug/tui/:write-message", method="POST", body='{"level":"ERROR","message":"Test message three"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"ERROR","message":"Test message three"}')
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 

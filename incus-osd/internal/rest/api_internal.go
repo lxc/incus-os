@@ -7,43 +7,18 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
-// swagger:operation POST /1.0/debug/tui/:write-message debug debug_post_tui_write_log
-//
-//	Log a message
-//
-//	Send a message that should be logged by the system.
-//
-//	---
-//	consumes:
-//	  - application/json
-//	produces:
-//	  - application/json
-//	parameters:
-//	  - in: body
-//	    name: message
-//	    description: Message to be logged
-//	    required: true
-//	    schema:
-//	      type: object
-//	      properties:
-//	        level:
-//	          type: string
-//	          description: The log level
-//	          example: INFO
-//	        message:
-//	          type: string
-//	          description: The log message
-//	          example: Hello, world
-//	responses:
-//	  "200":
-//	    $ref: "#/responses/EmptySyncResponse"
-//	  "400":
-//	    $ref: "#/responses/BadRequest"
-func (*Server) apiDebugTUI(w http.ResponseWriter, r *http.Request) {
+func (*Server) apiInternalTUI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
 
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
@@ -78,4 +53,29 @@ func (*Server) apiDebugTUI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.EmptySyncResponse.Render(w)
+}
+
+func (*Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	token, err := auth.GenerateToken(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, token).Render(w)
 }
