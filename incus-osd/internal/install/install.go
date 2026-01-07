@@ -101,7 +101,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
 			return errors.New("Secure Boot is disabled, but install seed doesn't allow this") //nolint:staticcheck
 		}
 
-		// Only display warning during install or first live boot.
+		// Only display warning during install or first boot.
 		_, err := os.Stat("/boot/sb-disabled")
 		if err != nil && errors.Is(err, os.ErrNotExist) {
 			displayDegradedSecurityWarning(t, "Disabling Secure Boot")
@@ -901,11 +901,14 @@ func configureSWTPM(ctx context.Context, t *tui.TUI, isInstall bool) error {
 		return err
 	}
 
-	slog.InfoContext(ctx, "Configuring swtpm-backed TPM on first live boot, restarting in five seconds")
+	slog.InfoContext(ctx, "Configuring swtpm-backed TPM on first boot, restarting in five seconds")
 
 	time.Sleep(5 * time.Second)
 
 	_ = systemd.SystemReboot(ctx)
+
+	// Prevent further system start up in the half second or so before things reboot.
+	time.Sleep(60 * time.Second)
 
 	return nil
 }

@@ -78,10 +78,13 @@ class IncusTestVM:
 
         subprocess.run(["incus", "start", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def StopVM(self, timeout=120):
+    def StopVM(self, timeout=120, force=False):
         """Stop the VM and wait up to 120 seconds by default for the command to return."""
 
-        subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
+        if force:
+            subprocess.run(["incus", "stop", "-f", self.vm_name], capture_output=True, check=True, timeout=timeout)
+        else:
+            subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
     def WaitSystemReady(self, incusos_version, source="/dev/sdb", target="/dev/sda", application="incus", remove_devices=[]):
         """Wait for the system install to complete, the given application to be configured and the system become ready for use."""

@@ -133,7 +133,13 @@ func PerformOSFactoryReset(ctx context.Context, resetSeed *api.SystemReset) erro
 		}
 	}
 
-	// Third, wipe system partitions (swap, root, and local-data).
+	// Third, wipe any configuration that might exist if the system was operating in a degraded
+	// security state. If the system is still in a degraded security state when it reboots, first-boot
+	// logic will take care of re-configuring the system as appropriate.
+	_ = os.RemoveAll("/boot/swtpm/")
+	_ = os.Remove("/boot/sb-disabled")
+
+	// Fourth, wipe system partitions (swap, root, and local-data).
 	for _, partitionIndex := range []string{"9", "10", "11"} {
 		_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-d", partitionIndex, underlyingDevice)
 		if err != nil {
