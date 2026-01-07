@@ -107,7 +107,7 @@ func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 //	        metadata:
 //	          type: json
 //	          description: Basic server information
-//	          example: {"environment":{"hostname":"af94e64e-1993-41b6-8f10-a8eebb828fce","os_name":"IncusOS","os_version":"202511041601"}}
+//	          example: {"environment":{"hostname":"af94e64e-1993-41b6-8f10-a8eebb828fce","os_name":"IncusOS","os_version":"202511041601","os_version_next":202511152230}}
 func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -119,9 +119,10 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]any{
 		"environment": map[string]any{
-			"hostname":   s.state.Hostname(),
-			"os_name":    s.state.OS.Name,
-			"os_version": s.state.OS.RunningRelease,
+			"hostname":        s.state.Hostname(),
+			"os_name":         s.state.OS.Name,
+			"os_version":      s.state.OS.RunningRelease,
+			"os_version_next": s.state.OS.NextRelease,
 		},
 	}
 
