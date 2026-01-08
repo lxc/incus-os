@@ -60,13 +60,13 @@ def build(artifact):
         if version == "main":
             subprocess.run(["git", "pull"], cwd=artifact, check=True)
         else:
-            subprocess.run(["git", "fetch", "--depth", "1", "origin", "v"+version+":refs/tags/v"+version], cwd=artifact, check=True)
+            subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/v"+version], cwd=artifact, check=True)
             subprocess.run(["git", "checkout", "v"+version], cwd=artifact, check=True)
     else:
         if version == "main":
             subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
         else:
-            subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", "v"+version], check=True)
+            subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
 
     # Apply any patches
     for patch in applications[artifact].get("patches", []):
