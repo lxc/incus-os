@@ -275,6 +275,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case assetName == "debug.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentDebug
 			assetType = apiupdate.UpdateFileTypeApplication
+		case assetName == "gpu-support.raw.gz":
+			assetComponent = apiupdate.UpdateFileComponentGPUSupport
+			assetType = apiupdate.UpdateFileTypeApplication
 		case assetName == "incus.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncus
 			assetType = apiupdate.UpdateFileTypeApplication
