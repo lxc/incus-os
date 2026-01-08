@@ -8,7 +8,7 @@ import (
 
 // KillUnit kills the systemd unit(s) using the specified signal.
 func KillUnit(ctx context.Context, signal string, units ...string) error {
-	args := []string{"kill", "--signal=" + signal}
+	args := []string{"kill", "--signal=" + signal} //nolint:prealloc
 	args = append(args, units...)
 
 	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)
@@ -21,7 +21,7 @@ func KillUnit(ctx context.Context, signal string, units ...string) error {
 
 // StartUnit instructs systemd to start the provided unit(s).
 func StartUnit(ctx context.Context, units ...string) error {
-	args := []string{"start"}
+	args := []string{"start"} //nolint:prealloc
 	args = append(args, units...)
 
 	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)
@@ -34,7 +34,7 @@ func StartUnit(ctx context.Context, units ...string) error {
 
 // RestartUnit instructs systemd to restart the provided unit(s).
 func RestartUnit(ctx context.Context, units ...string) error {
-	args := []string{"restart"}
+	args := []string{"restart"} //nolint:prealloc
 	args = append(args, units...)
 
 	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)
@@ -47,7 +47,7 @@ func RestartUnit(ctx context.Context, units ...string) error {
 
 // StopUnit instructs systemd to stop the provided unit(s).
 func StopUnit(ctx context.Context, units ...string) error {
-	args := []string{"stop"}
+	args := []string{"stop"} //nolint:prealloc
 	args = append(args, units...)
 
 	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)

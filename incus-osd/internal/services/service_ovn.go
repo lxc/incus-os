@@ -126,13 +126,14 @@ func (*OVN) Struct() any {
 // configure takes care of configuring the running OVS and (re)spawning the OVN controller.
 func (n *OVN) configure(ctx context.Context) error {
 	// Apply the OVS configuration.
-	args := []string{"set", "open_vswitch", "."}
-
-	args = append(args, "external_ids:hostname="+n.state.Hostname())
-	args = append(args, "external_ids:ovn-remote="+n.state.Services.OVN.Config.Database)
-	args = append(args, "external_ids:ovn-encap-type="+n.state.Services.OVN.Config.TunnelProtocol)
-	args = append(args, "external_ids:ovn-encap-ip="+n.state.Services.OVN.Config.TunnelAddress)
-	args = append(args, fmt.Sprintf("external_ids:ovn-is-interconn=%v", n.state.Services.OVN.Config.ICChassis))
+	args := []string{
+		"set", "open_vswitch", ".",
+		"external_ids:hostname=" + n.state.Hostname(),
+		"external_ids:ovn-remote=" + n.state.Services.OVN.Config.Database,
+		"external_ids:ovn-encap-type=" + n.state.Services.OVN.Config.TunnelProtocol,
+		"external_ids:ovn-encap-ip=" + n.state.Services.OVN.Config.TunnelAddress,
+		fmt.Sprintf("external_ids:ovn-is-interconn=%v", n.state.Services.OVN.Config.ICChassis),
+	}
 
 	_, err := subprocess.RunCommand("ovs-vsctl", args...)
 	if err != nil {

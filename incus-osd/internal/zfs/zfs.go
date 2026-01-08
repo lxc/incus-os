@@ -815,7 +815,7 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 
 // CreateDataset creates a new dataset in the specified pool and applies some optional properties.
 func CreateDataset(ctx context.Context, poolName string, name string, properties map[string]string) error {
-	args := []string{"create", poolName + "/" + name}
+	args := []string{"create", poolName + "/" + name} //nolint:prealloc
 
 	for k, v := range properties {
 		args = append(args, "-o", k+"="+v)
