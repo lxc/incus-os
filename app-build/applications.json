@@ -37,7 +37,7 @@
         ]
     },
     "lego": {
-        "version": "v4.30.1",
+        "version": "v4.31.0",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -150,7 +150,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.1.2",
+        "version": "v0.2.0",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
