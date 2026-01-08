@@ -95,6 +95,18 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 		}
 	}
 
+	if newUKIFile == "" {
+		return errors.New("unable to find UKI file for system update version " + version)
+	}
+
+	if newUsrImageFile == "" {
+		return errors.New("unable to find usr image file for system update version " + version)
+	}
+
+	if newUsrImageVeritySigFile == "" {
+		return errors.New("unable to find usr verity signature file for system update version " + version)
+	}
+
 	// Verify that the UKI and usr image file are signed by a trusted certificate.
 	sigFile, err := os.Open(newUsrImageVeritySigFile) //nolint:gosec
 	if err != nil {
