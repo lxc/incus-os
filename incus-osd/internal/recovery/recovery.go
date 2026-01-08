@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -246,6 +247,27 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string, installed
 	err = systemd.RefreshExtensions(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Ensure that each application installed/updated as part of the recovery
+	// action is properly recorded in the state.
+	for _, appName := range installedApplications {
+		app, ok := s.Applications[appName]
+		if !ok {
+			// Add the application to the state, then let normal startup
+			// logic handle starting and initializing after the recovery
+			// actions are complete.
+			s.Applications[appName] = api.Application{
+				State: api.ApplicationState{
+					Initialized: false,
+					Version:     update.Version,
+				},
+			}
+		} else {
+			// Update the existing application's version.
+			app.State.Version = update.Version
+			s.Applications[appName] = app
+		}
 	}
 
 	// Apply the OS update.
