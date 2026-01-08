@@ -10,6 +10,9 @@ const (
 	// UpdateFileComponentDebug represents a debug application update.
 	UpdateFileComponentDebug UpdateFileComponent = "debug"
 
+	// UpdateFileComponentGPUSupport represents a GPU support package.
+	UpdateFileComponentGPUSupport UpdateFileComponent = "gpu-support"
+
 	// UpdateFileComponentIncus represents an Incus application update.
 	UpdateFileComponentIncus UpdateFileComponent = "incus"
 
@@ -30,6 +33,7 @@ const (
 var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentOS:               {},
 	UpdateFileComponentDebug:            {},
+	UpdateFileComponentGPUSupport:       {},
 	UpdateFileComponentIncus:            {},
 	UpdateFileComponentIncusCeph:        {},
 	UpdateFileComponentIncusLinstor:     {},
