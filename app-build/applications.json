@@ -58,6 +58,30 @@
             "usr/local/bin/lego"
         ]
     },
+    "linux-firmware": {
+        "version": "20251125",
+        "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
+        "build_targets": [],
+        "install_targets": [
+            [
+                "amdgpu",
+                "usr/lib/firmware/"
+            ],
+            [
+                "i915",
+                "usr/lib/firmware/"
+            ],
+            [
+                "nvidia",
+                "usr/lib/firmware/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/lib/firmware/amdgpu",
+            "usr/lib/firmware/i915",
+            "usr/lib/firmware/nvidia"
+        ]
+    },
     "migration-manager": {
         "version": "v0.3.1",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
