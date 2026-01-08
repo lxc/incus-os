@@ -79,6 +79,12 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		apps = append(apps, app)
 	}
 
+	// Similar to normal startup logic, if no applications are installed default
+	// to selecting incus.
+	if len(apps) == 0 {
+		apps = append(apps, "incus")
+	}
+
 	err = applyUpdate(ctx, s, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
 	if err != nil {
 		return err
