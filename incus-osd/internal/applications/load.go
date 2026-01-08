@@ -17,6 +17,8 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	switch name {
 	case "debug":
 		app = &debug{common: common{state: s}}
+	case "gpu-support":
+		app = &gpuSupport{common: common{state: s}}
 	case "incus":
 		app = &incus{common: common{state: s}}
 	case "incus-ceph":

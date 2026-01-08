@@ -173,6 +173,7 @@ test-applications:
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
 
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
+	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
@@ -190,6 +191,7 @@ test-update:
 	incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
 	incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
+	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/

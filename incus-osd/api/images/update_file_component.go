@@ -7,6 +7,12 @@ const (
 	// UpdateFileComponentOS represents an OS update.
 	UpdateFileComponentOS UpdateFileComponent = "os"
 
+	// UpdateFileComponentDebug represents a debug application update.
+	UpdateFileComponentDebug UpdateFileComponent = "debug"
+
+	// UpdateFileComponentGPUSupport represents a GPU support package.
+	UpdateFileComponentGPUSupport UpdateFileComponent = "gpu-support"
+
 	// UpdateFileComponentIncus represents an Incus application update.
 	UpdateFileComponentIncus UpdateFileComponent = "incus"
 
@@ -16,25 +22,23 @@ const (
 	// UpdateFileComponentIncusLinstor represents a Linstor application update for Incus.
 	UpdateFileComponentIncusLinstor UpdateFileComponent = "incus-linstor"
 
-	// UpdateFileComponentOperationsCenter represents an Operations Center application update.
-	UpdateFileComponentOperationsCenter UpdateFileComponent = "operations-center"
-
 	// UpdateFileComponentMigrationManager represents a Migration Manager application update.
 	UpdateFileComponentMigrationManager UpdateFileComponent = "migration-manager"
 
-	// UpdateFileComponentDebug represents a debug application update.
-	UpdateFileComponentDebug UpdateFileComponent = "debug"
+	// UpdateFileComponentOperationsCenter represents an Operations Center application update.
+	UpdateFileComponentOperationsCenter UpdateFileComponent = "operations-center"
 )
 
 // UpdateFileComponents is a map of the supported update file components.
 var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentOS:               {},
+	UpdateFileComponentDebug:            {},
+	UpdateFileComponentGPUSupport:       {},
 	UpdateFileComponentIncus:            {},
 	UpdateFileComponentIncusCeph:        {},
 	UpdateFileComponentIncusLinstor:     {},
 	UpdateFileComponentMigrationManager: {},
 	UpdateFileComponentOperationsCenter: {},
-	UpdateFileComponentDebug:            {},
 }
 
 func (u *UpdateFileComponent) String() string {
