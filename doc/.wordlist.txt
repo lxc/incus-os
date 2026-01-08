@@ -27,6 +27,7 @@ Furo
 FuturFusion
 GiB
 Github
+GPUs
 homelab
 hotfix
 HTTPS
