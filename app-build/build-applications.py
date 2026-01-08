@@ -20,6 +20,9 @@ with open("applications.json", "r") as f:
 
 images = [
     ["base", ["incus-osd", "kpx", "tailscale"]],
+    ["gpu-support", [
+        "linux-firmware"]
+    ],
     ["migration-manager", [
         "lego",
         "migration-manager"]
@@ -106,32 +109,34 @@ def create_application_manifest(artifact, version):
         "version": version,
         "repo": applications[artifact]["repo"],
         "installed_artifacts": [],
-        "go_compiler": subprocess.run(["go", "version"], capture_output=True, check=True).stdout.strip().decode("utf-8"),
-        "go_packages": [],
     }
 
     for target in applications[artifact]["install_targets"]:
         manifest["installed_artifacts"].append(os.path.join("/", target[1], os.path.basename(target[0])))
 
-    direct_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if not (or .Indirect .Main)}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
-    for line in direct_deps.split("\n"):
-        parts = line.split(" ")
-        manifest["go_packages"].append({
-            "type": "go",
-            "name": parts[0],
-            "version": parts[1],
-            "direct": True
-        })
+    if os.path.exists("go.mod"):
+        manifest["go_compiler"] = subprocess.run(["go", "version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
+        manifest["go_packages"] = []
 
-    indirect_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if .Indirect}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
-    for line in indirect_deps.split("\n"):
-        parts = line.split(" ")
-        manifest["go_packages"].append({
-            "type": "go",
-            "name": parts[0],
-            "version": parts[1],
-            "direct": False
-        })
+        direct_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if not (or .Indirect .Main)}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
+        for line in direct_deps.split("\n"):
+            parts = line.split(" ")
+            manifest["go_packages"].append({
+                "type": "go",
+                "name": parts[0],
+                "version": parts[1],
+                "direct": True
+            })
+
+        indirect_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if .Indirect}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
+        for line in indirect_deps.split("\n"):
+            parts = line.split(" ")
+            manifest["go_packages"].append({
+                "type": "go",
+                "name": parts[0],
+                "version": parts[1],
+                "direct": False
+            })
 
     if applications[artifact].get("build_ui"):
         manifest["yarn_version"] = subprocess.run(["yarnpkg", "--version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
