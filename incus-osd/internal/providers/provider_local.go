@@ -46,6 +46,10 @@ func (*local) Type() string {
 	return "local"
 }
 
+func (*local) GetSigningCACert() (string, error) {
+	return "", errors.New("no signing CA certificate available")
+}
+
 func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)

@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -66,8 +65,19 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 	defer unix.Unmount(mountDir, 0)
 
+	// Get the expected CA certificate to validate the update metadata.
+	p, err := providers.Load(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	updateCA, err := p.GetSigningCACert()
+	if err != nil {
+		return err
+	}
+
 	// Run the hotfix script, if any.
-	err = runHotfix(ctx, mountDir)
+	err = runHotfix(ctx, updateCA, mountDir)
 	if err != nil {
 		return err
 	}
@@ -85,7 +95,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		apps = append(apps, "incus")
 	}
 
-	err = applyUpdate(ctx, s, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
+	err = applyUpdate(ctx, s, updateCA, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
 	if err != nil {
 		return err
 	}
@@ -95,7 +105,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	return nil
 }
 
-func runHotfix(ctx context.Context, mountDir string) error {
+func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 	// Check if hotfix.sh.sig exists.
 	_, err := os.Stat(filepath.Join(mountDir, "hotfix.sh.sig"))
 	if err != nil {
@@ -112,7 +122,7 @@ func runHotfix(ctx context.Context, mountDir string) error {
 
 	defer os.Remove(rootCA.Name())
 
-	_, err = fmt.Fprintf(rootCA, "%s", providers.LXCUpdateCA)
+	_, err = rootCA.WriteString(updateCA)
 	if err != nil {
 		return err
 	}
@@ -156,7 +166,7 @@ func runHotfix(ctx context.Context, mountDir string) error {
 	return err
 }
 
-func applyUpdate(ctx context.Context, s *state.State, mountDir string, installedApplications []string, luksPassword string) error {
+func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string, installedApplications []string, luksPassword string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -181,7 +191,7 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string, installed
 
 	defer os.Remove(rootCA.Name())
 
-	_, err = fmt.Fprintf(rootCA, providers.LXCUpdateCA)
+	_, err = rootCA.WriteString(updateCA)
 	if err != nil {
 		return err
 	}
