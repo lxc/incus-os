@@ -1146,7 +1146,7 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html
 func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
-	ret := []networkdConfigFile{}
+	ret := []networkdConfigFile{} //nolint:prealloc
 
 	generateEthernet := func(s *api.SystemNetworkEthernet) string {
 		if s == nil {
@@ -1236,7 +1236,7 @@ Name=_p%s
 // generateNetdevFileContents generates the contents of systemd.netdev files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.netdev.html
 func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
-	ret := []networkdConfigFile{}
+	ret := []networkdConfigFile{} //nolint:prealloc
 
 	// Create bridge and veth devices for each interface.
 	for _, i := range networkCfg.Interfaces {
@@ -1410,7 +1410,7 @@ PublicKey=%s
 // generateNetworkFileContents generates the contents of systemd.network files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html
 func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
-	ret := []networkdConfigFile{}
+	ret := []networkdConfigFile{} //nolint:prealloc
 
 	// Create networks for each interface and its bridge.
 	for _, i := range networkCfg.Interfaces {
@@ -2046,8 +2046,8 @@ func getMacForInterface(ctx context.Context, iface string) (string, error) {
 }
 
 func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetworkConfig) []string {
-	devices := []string{}
-	ret := []string{}
+	devices := []string{} //nolint:prealloc
+	ret := []string{}     //nolint:prealloc
 
 	// Get a list of all the expected "_p" physical devices referenced by the interfaces or bond
 	// members in the given network configuration.

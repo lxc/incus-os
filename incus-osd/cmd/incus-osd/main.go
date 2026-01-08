@@ -814,7 +814,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 			if apps != nil {
 				// We have valid seed data.
-				toInstall = []string{}
+				toInstall = make([]string, 0, len(apps.Applications))
 
 				for _, app := range apps.Applications {
 					toInstall = append(toInstall, app.Name)
@@ -822,7 +822,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			}
 		} else {
 			// We have an existing application list.
-			toInstall = []string{}
+			toInstall = make([]string, 0, len(s.Applications))
 
 			for name := range s.Applications {
 				toInstall = append(toInstall, name)

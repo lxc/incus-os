@@ -93,7 +93,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 		endpoint, _ := url.JoinPath(getAPIRoot(r), "applications")
 
-		urls := []string{}
+		urls := make([]string, 0, len(names))
 
 		for _, application := range names {
 			appURL, _ := url.JoinPath(endpoint, application)
