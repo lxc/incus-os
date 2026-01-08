@@ -284,11 +284,11 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case assetName == "incus-linstor.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncusLinstor
 			assetType = apiupdate.UpdateFileTypeApplication
-		case assetName == "operations-center.raw.gz":
-			assetComponent = apiupdate.UpdateFileComponentOperationsCenter
-			assetType = apiupdate.UpdateFileTypeApplication
 		case assetName == "migration-manager.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentMigrationManager
+			assetType = apiupdate.UpdateFileTypeApplication
+		case assetName == "operations-center.raw.gz":
+			assetComponent = apiupdate.UpdateFileComponentOperationsCenter
 			assetType = apiupdate.UpdateFileTypeApplication
 		case strings.HasSuffix(assetName, ".efi.gz"):
 			assetComponent = apiupdate.UpdateFileComponentOS
