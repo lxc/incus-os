@@ -696,13 +696,6 @@ func (o *operationsCenterSecureBootCertUpdate) GetFilename() string {
 }
 
 func (o *operationsCenterSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	// Prior to distributing SecureBoot updates via the normal update channel,
-	// we had a hard-coded release URL. The latest version there was 202601010000,
-	// which we need to temporarily allow to downgrade until we pass Jan 1, 2026.
-	if otherVersion == "202601010000" {
-		return datetimeComparison(o.latestUpdate.Version, "202510272025")
-	}
-
 	return datetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
