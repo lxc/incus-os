@@ -302,9 +302,8 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	// Record the newly installed OS version.
 	s.OS.NextRelease = update.Version
 	s.System.Update.State.NeedsReboot = s.OS.RunningRelease != s.OS.NextRelease
-	_ = s.Save()
 
-	return nil
+	return s.Save()
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {
