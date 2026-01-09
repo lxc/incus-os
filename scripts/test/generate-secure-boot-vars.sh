@@ -37,8 +37,8 @@ openssl x509 -in "certs/${OS_NAME}-secureboot-1-R1.crt" -out certs/efi/secureboo
 openssl x509 -in "certs/${OS_NAME}-secureboot-2-R1.crt" -out certs/efi/secureboot-DB-2.der -outform DER
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-1-R1.crt" "certs/efi/${OS_NAME}-secureboot-1.esl"
 cert-to-efi-sig-list -g "${UUID}" "certs/${OS_NAME}-secureboot-2-R1.crt" "certs/efi/${OS_NAME}-secureboot-2.esl"
-cat "certs/efi/${OS_NAME}-secureboot-1.esl" "certs/efi/${OS_NAME}-secureboot-2.esl" > certs/efi/db.esl
-sign-efi-sig-list -g "${UUID}" -c "certs/${OS_NAME}-secureboot-KEK-R1.crt" -k "certs/${OS_NAME}-secureboot-KEK-R1.key" db certs/efi/db.esl certs/efi/db.auth
+cat "certs/efi/${OS_NAME}-secureboot-1.esl" "certs/efi/${OS_NAME}-secureboot-2.esl" > certs/efi/DB.esl
+sign-efi-sig-list -g "${UUID}" -c "certs/${OS_NAME}-secureboot-KEK-R1.crt" -k "certs/${OS_NAME}-secureboot-KEK-R1.key" db certs/efi/DB.esl certs/efi/DB.auth
 
 mkdir -p certs/efi/updates/
 
