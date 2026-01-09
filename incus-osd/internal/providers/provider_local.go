@@ -265,7 +265,7 @@ func (a *localApplication) Version() string {
 }
 
 func (a *localApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.version, otherVersion)
+	return DatetimeComparison(a.version, otherVersion)
 }
 
 func (a *localApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -306,7 +306,7 @@ func (o *localOSUpdate) Version() string {
 }
 
 func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.version, otherVersion)
+	return DatetimeComparison(o.version, otherVersion)
 }
 
 func (o *localOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -371,7 +371,7 @@ func (o *localSecureBootCertUpdate) GetFilename() string {
 }
 
 func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.version, otherVersion)
+	return DatetimeComparison(o.version, otherVersion)
 }
 
 func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {

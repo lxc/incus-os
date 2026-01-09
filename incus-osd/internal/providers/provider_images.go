@@ -286,7 +286,7 @@ func (a *imagesApplication) Version() string {
 }
 
 func (a *imagesApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
 func (a *imagesApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -327,7 +327,7 @@ func (o *imagesOSUpdate) Version() string {
 }
 
 func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -403,7 +403,7 @@ func (o *imagesSecureBootCertUpdate) GetFilename() string {
 }
 
 func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {

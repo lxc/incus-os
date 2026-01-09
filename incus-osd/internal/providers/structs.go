@@ -66,9 +66,9 @@ type Provider interface {
 	load(ctx context.Context) error
 }
 
-// datetimeComparison takes two strings of the format YYYYMMDDhhmm and returns a boolean
+// DatetimeComparison takes two strings of the format YYYYMMDDhhmm and returns a boolean
 // indicating if a > b. If either string can't be converted to an int, false is returned.
-func datetimeComparison(a string, b string) bool {
+func DatetimeComparison(a string, b string) bool {
 	aInt, err := strconv.Atoi(a)
 	if err != nil {
 		return false

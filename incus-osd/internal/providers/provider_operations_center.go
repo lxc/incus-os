@@ -582,7 +582,7 @@ func (a *operationsCenterApplication) Version() string {
 }
 
 func (a *operationsCenterApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
 func (a *operationsCenterApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -622,7 +622,7 @@ func (o *operationsCenterOSUpdate) Version() string {
 }
 
 func (o *operationsCenterOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *operationsCenterOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -696,7 +696,7 @@ func (o *operationsCenterSecureBootCertUpdate) GetFilename() string {
 }
 
 func (o *operationsCenterSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
