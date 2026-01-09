@@ -5,21 +5,6 @@ import (
 	"strconv"
 )
 
-// LXCUpdateCA is used to verify updates.
-const LXCUpdateCA = `-----BEGIN CERTIFICATE-----
-MIIBxTCCAWugAwIBAgIUKFh7jSFs4OIymJR60kMDizaaUu0wCgYIKoZIzj0EAwMw
-ODEbMBkGA1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBD
-b250YWluZXJzMB4XDTI1MDYyNjA4MTA1NFoXDTQ1MDYyMTA4MTA1NFowODEbMBkG
-A1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBDb250YWlu
-ZXJzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkuL+o9TxVlcmn7rQjSQUPtVW
-YhISgnMOWIMbg4sh0hWh5LJeH7mPA41I80TAR84O+rcnj/AtFG+O2dZgTK47UaNT
-MFEwHQYDVR0OBBYEFERR7s37UYWIfjdauwuftLTUULcaMB8GA1UdIwQYMBaAFERR
-7s37UYWIfjdauwuftLTUULcaMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwMD
-SAAwRQIhAId625vznH0/C9E/gLLRz5S95x3mZmqIHOQBFHRf2mLyAiB2kMK4Idcn
-dzfuFuN/tMIqY355bBYk3m6/UAIK5Pum/Q==
------END CERTIFICATE-----
-`
-
 // CommonUpdate defines functions common to all update types.
 type CommonUpdate interface {
 	Version() string
@@ -54,6 +39,7 @@ type Provider interface {
 	ClearCache(ctx context.Context) error
 
 	Type() string
+	GetSigningCACert() (string, error)
 
 	GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error)
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
@@ -66,9 +52,9 @@ type Provider interface {
 	load(ctx context.Context) error
 }
 
-// datetimeComparison takes two strings of the format YYYYMMDDhhmm and returns a boolean
+// DatetimeComparison takes two strings of the format YYYYMMDDhhmm and returns a boolean
 // indicating if a > b. If either string can't be converted to an int, false is returned.
-func datetimeComparison(a string, b string) bool {
+func DatetimeComparison(a string, b string) bool {
 	aInt, err := strconv.Atoi(a)
 	if err != nil {
 		return false

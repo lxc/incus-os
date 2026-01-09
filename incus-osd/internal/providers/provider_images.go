@@ -57,6 +57,23 @@ func (*images) Type() string {
 	return "images"
 }
 
+func (*images) GetSigningCACert() (string, error) {
+	// LXCUpdateCA is used to verify updates from the images provider.
+	return `-----BEGIN CERTIFICATE-----
+MIIBxTCCAWugAwIBAgIUKFh7jSFs4OIymJR60kMDizaaUu0wCgYIKoZIzj0EAwMw
+ODEbMBkGA1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBD
+b250YWluZXJzMB4XDTI1MDYyNjA4MTA1NFoXDTQ1MDYyMTA4MTA1NFowODEbMBkG
+A1UEAwwSSW5jdXMgT1MgLSBSb290IEUxMRkwFwYDVQQKDBBMaW51eCBDb250YWlu
+ZXJzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkuL+o9TxVlcmn7rQjSQUPtVW
+YhISgnMOWIMbg4sh0hWh5LJeH7mPA41I80TAR84O+rcnj/AtFG+O2dZgTK47UaNT
+MFEwHQYDVR0OBBYEFERR7s37UYWIfjdauwuftLTUULcaMB8GA1UdIwQYMBaAFERR
+7s37UYWIfjdauwuftLTUULcaMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwMD
+SAAwRQIhAId625vznH0/C9E/gLLRz5S95x3mZmqIHOQBFHRf2mLyAiB2kMK4Idcn
+dzfuFuN/tMIqY355bBYk3m6/UAIK5Pum/Q==
+-----END CERTIFICATE-----
+`, nil
+}
+
 func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
@@ -157,8 +174,14 @@ func (p *images) load(_ context.Context) error {
 
 	// Basic validation.
 	if p.serverURL == "" {
+		var err error
+
 		p.serverURL = "https://images.linuxcontainers.org/os"
-		p.updateCA = LXCUpdateCA
+
+		p.updateCA, err = p.GetSigningCACert()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -198,7 +221,7 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		return nil, err
 	}
 
-	_, err = fmt.Fprintf(rootCA, "%s", p.updateCA)
+	_, err = rootCA.WriteString(p.updateCA)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +309,7 @@ func (a *imagesApplication) Version() string {
 }
 
 func (a *imagesApplication) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(a.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(a.latestUpdate.Version, otherVersion)
 }
 
 func (a *imagesApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -327,7 +350,7 @@ func (o *imagesOSUpdate) Version() string {
 }
 
 func (o *imagesOSUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
@@ -403,7 +426,7 @@ func (o *imagesSecureBootCertUpdate) GetFilename() string {
 }
 
 func (o *imagesSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
-	return datetimeComparison(o.latestUpdate.Version, otherVersion)
+	return DatetimeComparison(o.latestUpdate.Version, otherVersion)
 }
 
 func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
