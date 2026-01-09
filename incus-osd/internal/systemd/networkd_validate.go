@@ -284,9 +284,9 @@ func validateWireguard(cfg *api.SystemNetworkConfig) error {
 			}
 
 			if peer.Endpoint != "" {
-				endpointishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+:\d+$`)
-				if !endpointishRegex.MatchString(peer.Endpoint) {
-					return fmt.Errorf("wireguard %d peer %d invalid endpoint '%s'", index, peerIndex, peer.Endpoint)
+				_, _, err = net.SplitHostPort(peer.Endpoint)
+				if err != nil {
+					return fmt.Errorf("wireguard %d peer %d invalid endpoint '%s': %w", index, peerIndex, peer.Endpoint, err)
 				}
 			}
 		}
