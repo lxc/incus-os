@@ -160,10 +160,10 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
 
             # Copy the SecureBoot keys into the VM so we can enroll them to enable SecureBoot on next boot
-            subprocess.run(["incus", "file", "push", tmp_dir+"/db.auth", vm.vm_name+"/tmp/"], capture_output=True, check=True)
+            subprocess.run(["incus", "file", "push", tmp_dir+"/DB.auth", vm.vm_name+"/tmp/"], capture_output=True, check=True)
             subprocess.run(["incus", "file", "push", tmp_dir+"/KEK.auth", vm.vm_name+"/tmp/"], capture_output=True, check=True)
             subprocess.run(["incus", "file", "push", tmp_dir+"/PK.auth", vm.vm_name+"/tmp/"], capture_output=True, check=True)
-            vm.RunCommand("efi-updatevar", "-f", "/tmp/db.auth", "db")
+            vm.RunCommand("efi-updatevar", "-f", "/tmp/DB.auth", "db")
             vm.RunCommand("efi-updatevar", "-f", "/tmp/KEK.auth", "KEK")
             vm.RunCommand("efi-updatevar", "-f", "/tmp/PK.auth", "PK")
 
