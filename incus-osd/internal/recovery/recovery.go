@@ -301,7 +301,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 
 	// Record the newly installed OS version.
 	s.OS.NextRelease = update.Version
-	s.System.Update.State.NeedsReboot = true
+	s.System.Update.State.NeedsReboot = s.OS.RunningRelease != s.OS.NextRelease
 	_ = s.Save()
 
 	return nil
