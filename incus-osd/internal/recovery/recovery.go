@@ -216,6 +216,11 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		return errors.New("no files in update")
 	}
 
+	// Refuse to apply any updates that are older than the currently running versions.
+	if providers.DatetimeComparison(s.OS.RunningRelease, update.Version) {
+		return errors.New("refusing to apply update version (" + update.Version + ") that is older than the current running version")
+	}
+
 	for _, dir := range []string{systemd.SystemExtensionsPath, systemd.SystemUpdatesPath} {
 		// Clear the path.
 		err := os.RemoveAll(dir)
