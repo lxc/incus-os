@@ -235,12 +235,12 @@
         "rename_targets": [
             [
                 "terraform-provider-incus",
-                "terraform-provider-incus_@VERSION@"
+                "terraform-provider-incus_@TAG@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-incus_@VERSION@",
+                "terraform-provider-incus_@TAG@",
                 "usr/share/terraform/plugins/registry.opentofu.org/lxc/incus/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -259,12 +259,12 @@
         "rename_targets": [
             [
                 "terraform-provider-null",
-                "terraform-provider-null_@VERSION@"
+                "terraform-provider-null_@TAG@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-null_@VERSION@",
+                "terraform-provider-null_@TAG@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/null/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -283,12 +283,12 @@
         "rename_targets": [
             [
                 "terraform-provider-random",
-                "terraform-provider-random_@VERSION@"
+                "terraform-provider-random_@TAG@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-random_@VERSION@",
+                "terraform-provider-random_@TAG@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/random/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -307,12 +307,12 @@
         "rename_targets": [
             [
                 "terraform-provider-time",
-                "terraform-provider-time_@VERSION@"
+                "terraform-provider-time_@TAG@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-time_@VERSION@",
+                "terraform-provider-time_@TAG@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/time/@VERSION@/linux_@ARCH@/"
             ]
         ],
