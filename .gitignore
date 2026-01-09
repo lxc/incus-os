@@ -25,6 +25,7 @@ incus-osd/incus-osd
 incus-osd/incusos-initrd-utils
 
 mkosi.packages/initrd-tmpfs-root*
+mkosi.packages/microcode-metapackage*
 
 *.swp
 
