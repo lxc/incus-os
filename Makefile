@@ -7,7 +7,7 @@ default: build
 
 .PHONY: clean
 clean:
-	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.packages/initrd-tmpfs-root_*_all.deb
+	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.packages/*.deb
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: incus-osd
@@ -40,6 +40,15 @@ initrd-deb-package: inject-system-certs incusos-initrd-utils
           mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.substvars mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root/ \
           mkosi.packages/initrd-tmpfs-root_*.dsc mkosi.packages/initrd-tmpfs-root_*.tar.xz mkosi.packages/initrd-tmpfs-root_*.build \
           mkosi.packages/initrd-tmpfs-root_*.buildinfo mkosi.packages/initrd-tmpfs-root_*.changes
+
+.PHONY: microcode-metapackage-deb-package
+microcode-metapackage-deb-package:
+	(cd mkosi.packages/microcode-metapackage && debuild)
+	rm -rf mkosi.packages/microcode-metapackage/debian/.debhelper/  mkosi.packages/microcode-metapackage/debian/debhelper-build-stamp \
+          mkosi.packages/microcode-metapackage/debian/files \mkosi.packages/microcode-metapackage/debian/microcode-metapackage.postrm.debhelper \
+          mkosi.packages/microcode-metapackage/debian/microcode-metapackage.substvars mkosi.packages/microcode-metapackage/debian/microcode-metapackage/ \
+          mkosi.packages/microcode-metapackage_*.dsc mkosi.packages/microcode-metapackage_*.tar.xz mkosi.packages/microcode-metapackage_*.build \
+          mkosi.packages/microcode-metapackage_*.buildinfo mkosi.packages/microcode-metapackage_*.changes
 
 .PHONY: static-analysis
 static-analysis:
@@ -74,7 +83,7 @@ endif
 	./scripts/inject-system-certs.sh
 
 .PHONY: build
-build: incus-osd flasher-tool generate-manifests initrd-deb-package
+build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
 	cd app-build/ && ./build-applications.py
 
 	# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.

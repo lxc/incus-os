@@ -1,0 +1,16 @@
+Source: microcode-metapackage
+Section: admin
+Priority: optional
+Build-Depends: debhelper-compat (=13)
+Maintainer: Mathias Gibbens <mathias.gibbens@futurfusion.io>
+Standards-Version: 4.7.2
+
+Package: microcode-metapackage
+Architecture: any
+Depends: ${misc:Depends},
+         amd64-microcode [amd64],
+         intel-microcode [amd64]
+Description: Metapackage for installing CPU microcode
+ mkosi doesn't seem to support architecture-specific limits when installing
+ packages, so this metapackage is used to only install microcode updates as
+ part of amd64 builds.
