@@ -45,15 +45,20 @@ def build(artifact):
     # Apply version substitutions before doing anything else
     for values in applications[artifact]["build_targets"]:
         for i in range(0, len(values)):
-            values[i] = values[i].replace("@VERSION@", version)
+            values[i] = values[i].replace("@TAG@", version)
+            values[i] = values[i].replace("@VERSION@", version.removeprefix("v"))
     for values in applications[artifact]["install_targets"]:
-        values[0] = values[0].replace("@VERSION@", version)
-        values[1] = values[1].replace("@VERSION@", version)
+        values[0] = values[0].replace("@TAG@", version)
+        values[1] = values[1].replace("@TAG@", version)
+        values[0] = values[0].replace("@VERSION@", version.removeprefix("v"))
+        values[1] = values[1].replace("@VERSION@", version.removeprefix("v"))
         values[0] = values[0].replace("@ARCH@", ARCH)
         values[1] = values[1].replace("@ARCH@", ARCH)
     for values in applications[artifact].get("rename_targets", []):
-        values[0] = values[0].replace("@VERSION@", version)
-        values[1] = values[1].replace("@VERSION@", version)
+        values[0] = values[0].replace("@TAG@", version)
+        values[1] = values[1].replace("@TAG@", version)
+        values[0] = values[0].replace("@VERSION@", version.removeprefix("v"))
+        values[1] = values[1].replace("@VERSION@", version.removeprefix("v"))
 
     targets = applications[artifact]["build_targets"]
 
