@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"unicode/utf16"
 
@@ -157,6 +158,13 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 			},
 		},
 		{
+			name: ".ucode",
+			header: eventHeader{
+				pcrIndex:  11,
+				eventType: tcg.Ipl,
+			},
+		},
+		{
 			name: ".uname",
 			header: eventHeader{
 				pcrIndex:  11,
@@ -260,6 +268,12 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 				return nil, err
 			}
 		case tcg.Ipl:
+			// Microcode updates are currently only applied on amd64 systems. For arm64, we shouldn't
+			// create an event log entry for the .ucode PE section.
+			if e.name == ".ucode" && runtime.GOARCH != "amd64" {
+				continue
+			}
+
 			// First entry: the name of the section with a trailing NULL byte.
 			contents = []byte(e.name + "\x00")
 
