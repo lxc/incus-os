@@ -63,8 +63,8 @@ def build(artifact):
         if version == "main":
             subprocess.run(["git", "pull"], cwd=artifact, check=True)
         else:
-            subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/v"+version], cwd=artifact, check=True)
-            subprocess.run(["git", "checkout", "v"+version], cwd=artifact, check=True)
+            subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/"+version], cwd=artifact, check=True)
+            subprocess.run(["git", "checkout", version], cwd=artifact, check=True)
     else:
         if version == "main":
             subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
