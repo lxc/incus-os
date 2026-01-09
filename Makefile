@@ -33,13 +33,13 @@ incusos-initrd-utils:
 .PHONY: initrd-deb-package
 initrd-deb-package: inject-system-certs incusos-initrd-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
-	cp incus-osd/incusos-initrd-utils mkosi.packages/initrd-tmpfs-root/
-	(cd mkosi.packages/initrd-tmpfs-root && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
-	rm -rf mkosi.packages/initrd-tmpfs-root/debian/.debhelper/  mkosi.packages/initrd-tmpfs-root/debian/debhelper-build-stamp \
-          mkosi.packages/initrd-tmpfs-root/debian/files \mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.postrm.debhelper \
-          mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root.substvars mkosi.packages/initrd-tmpfs-root/debian/initrd-tmpfs-root/ \
-          mkosi.packages/initrd-tmpfs-root_*.dsc mkosi.packages/initrd-tmpfs-root_*.tar.xz mkosi.packages/initrd-tmpfs-root_*.build \
-          mkosi.packages/initrd-tmpfs-root_*.buildinfo mkosi.packages/initrd-tmpfs-root_*.changes
+	cp incus-osd/incusos-initrd-utils mkosi.packages/incusos-initrd-utils/
+	(cd mkosi.packages/incusos-initrd-utils && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
+	rm -rf mkosi.packages/incusos-initrd-utils/debian/.debhelper/  mkosi.packages/incusos-initrd-utils/debian/debhelper-build-stamp \
+          mkosi.packages/incusos-initrd-utils/debian/files \mkosi.packages/incusos-initrd-utils/debian/incusos-initrd-utils.postrm.debhelper \
+          mkosi.packages/incusos-initrd-utils/debian/incusos-initrd-utils.substvars mkosi.packages/incusos-initrd-utils/debian/incusos-initrd-utils/ \
+          mkosi.packages/incusos-initrd-utils_*.dsc mkosi.packages/incusos-initrd-utils_*.tar.xz mkosi.packages/incusos-initrd-utils_*.build \
+          mkosi.packages/incusos-initrd-utils_*.buildinfo mkosi.packages/incusos-initrd-utils_*.changes
 
 .PHONY: microcode-metapackage-deb-package
 microcode-metapackage-deb-package:

@@ -39,5 +39,5 @@ for file in certs/efi/secureboot-DBX-*.der; do
 done
 
 # Copy certs into the initrd package source for boot PE binary verification.
-rm -rf mkosi.packages/initrd-tmpfs-root/certs/
-cp -r mkosi.images/base/mkosi.extra/usr/lib/incus-osd/certs/ mkosi.packages/initrd-tmpfs-root/
+rm -rf mkosi.packages/incusos-initrd-utils/certs/
+cp -r mkosi.images/base/mkosi.extra/usr/lib/incus-osd/certs/ mkosi.packages/incusos-initrd-utils/

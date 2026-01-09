@@ -1,0 +1,13 @@
+Source: incusos-initrd-utils
+Section: admin
+Priority: optional
+Build-Depends: debhelper-compat (=13)
+Maintainer: Mathias Gibbens <mathias.gibbens@futurfusion.io>
+Standards-Version: 4.7.2
+
+Package: incusos-initrd-utils
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: IncusOS initrd utilities
+ Various utilities, services, and configuration files needed in the IncusOS
+ initrd.
