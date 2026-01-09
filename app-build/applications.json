@@ -235,12 +235,12 @@
         "rename_targets": [
             [
                 "terraform-provider-incus",
-                "terraform-provider-incus_v@VERSION@"
+                "terraform-provider-incus_@VERSION@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-incus_v@VERSION@",
+                "terraform-provider-incus_@VERSION@",
                 "usr/share/terraform/plugins/registry.opentofu.org/lxc/incus/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -259,12 +259,12 @@
         "rename_targets": [
             [
                 "terraform-provider-null",
-                "terraform-provider-null_v@VERSION@"
+                "terraform-provider-null_@VERSION@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-null_v@VERSION@",
+                "terraform-provider-null_@VERSION@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/null/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -283,12 +283,12 @@
         "rename_targets": [
             [
                 "terraform-provider-random",
-                "terraform-provider-random_v@VERSION@"
+                "terraform-provider-random_@VERSION@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-random_v@VERSION@",
+                "terraform-provider-random_@VERSION@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/random/@VERSION@/linux_@ARCH@/"
             ]
         ],
@@ -307,12 +307,12 @@
         "rename_targets": [
             [
                 "terraform-provider-time",
-                "terraform-provider-time_v@VERSION@"
+                "terraform-provider-time_@VERSION@"
             ]
         ],
         "install_targets": [
             [
-                "terraform-provider-time_v@VERSION@",
+                "terraform-provider-time_@VERSION@",
                 "usr/share/terraform/plugins/registry.opentofu.org/hashicorp/time/@VERSION@/linux_@ARCH@/"
             ]
         ],
