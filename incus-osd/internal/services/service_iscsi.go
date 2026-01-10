@@ -63,7 +63,7 @@ func (n *ISCSI) Update(ctx context.Context, req any) error {
 	n.state.Services.ISCSI.Config = newState.Config
 
 	// Bring the service back up.
-	err = n.Start(ctx)
+	err = n.doStart(ctx)
 	if err != nil {
 		return err
 	}
@@ -104,6 +104,23 @@ func (n *ISCSI) Stop(ctx context.Context) error {
 
 // Start starts the service.
 func (n *ISCSI) Start(ctx context.Context) error {
+	// Attempt to clear any leftover state.
+	_ = os.RemoveAll("/var/lib/iscsi")
+
+	return n.doStart(ctx)
+}
+
+// ShouldStart returns true if the service should be started on boot.
+func (n *ISCSI) ShouldStart() bool {
+	return n.state.Services.ISCSI.Config.Enabled
+}
+
+// Struct returns the API struct for the ISCSI service.
+func (*ISCSI) Struct() any {
+	return &api.ServiceISCSI{}
+}
+
+func (n *ISCSI) doStart(ctx context.Context) error {
 	if !n.state.Services.ISCSI.Config.Enabled {
 		return nil
 	}
@@ -197,14 +214,4 @@ func (n *ISCSI) Start(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// ShouldStart returns true if the service should be started on boot.
-func (n *ISCSI) ShouldStart() bool {
-	return n.state.Services.ISCSI.Config.Enabled
-}
-
-// Struct returns the API struct for the ISCSI service.
-func (*ISCSI) Struct() any {
-	return &api.ServiceISCSI{}
 }
