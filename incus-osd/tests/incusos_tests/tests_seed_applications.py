@@ -47,6 +47,18 @@ def TestSeedApplictionsInvalid(install_image):
         # We shouldn't see anything about loading an application.
         vm.LogDoesntContain("incus-osd", "Downloading application")
 
+def TestSeedApplictionsGPUSupport(install_image):
+    test_name = "seed-applications-gpu-support"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"gpu-support"}]}"""
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version, application="gpu-support")
+
 def TestSeedApplictionsIncus(install_image):
     test_name = "seed-applications-incus"
     test_seed = {
