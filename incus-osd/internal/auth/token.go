@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+
+	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )
 
 const (
@@ -25,12 +27,6 @@ const (
 
 	authCertPath = "/usr/lib/incus-osd/certs/auth.crt"
 )
-
-// Token represents an authentication token.
-type Token struct {
-	MachineID string `json:"machine_id"`
-	Timestamp int64  `json:"timestamp"`
-}
 
 func ensureSigningKey(ctx context.Context) error {
 	// Setup a primary context if missing.
@@ -144,7 +140,7 @@ func GenerateToken(ctx context.Context) (string, error) {
 	}
 
 	// Prepare the token.
-	authToken := Token{
+	authToken := apiupdate.AuthenticationToken{
 		MachineID: machineIDStr,
 		Timestamp: time.Now().UTC().Unix(),
 	}
