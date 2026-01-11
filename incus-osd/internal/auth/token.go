@@ -75,8 +75,8 @@ func ensureSigningKey(ctx context.Context) error {
 	return nil
 }
 
-// PublicKey returns the PEM encoded public certificate for the system TPM-tied certificate.
-func PublicKey(ctx context.Context) (string, error) {
+// publicKey returns the PEM encoded public certificate for the system TPM-tied certificate.
+func publicKey(ctx context.Context) (string, error) {
 	// Ensure we have a key.
 	err := ensureSigningKey(ctx)
 	if err != nil {
@@ -90,6 +90,28 @@ func PublicKey(ctx context.Context) (string, error) {
 	}
 
 	return string(content), nil
+}
+
+// GenerateRegistration generates a registration request struct.
+func GenerateRegistration(ctx context.Context, machineID string, token string) (*apiupdate.AuthenticationRegister, error) {
+	pubKey, err := publicKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	initialToken, err := GenerateToken(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	req := apiupdate.AuthenticationRegister{
+		MachineID: machineID,
+		PublicKey: pubKey,
+		Token:     token,
+		Initial:   initialToken,
+	}
+
+	return &req, nil
 }
 
 // GenerateToken generates a new signed authentication token.
