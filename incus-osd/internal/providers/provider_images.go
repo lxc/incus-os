@@ -17,6 +17,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -26,6 +27,7 @@ type images struct {
 
 	serverURL string
 	updateCA  string
+	token     string
 
 	lastCheck    time.Time // In system's timezone.
 	latestUpdate *apiupdate.UpdateFull
@@ -38,18 +40,60 @@ func (p *images) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (*images) RefreshRegister(_ context.Context) error {
-	// No registration with the images provider.
+func (p *images) RefreshRegister(_ context.Context) error {
+	if p.token != "" {
+		return nil
+	}
+
 	return ErrRegistrationUnsupported
 }
 
-func (*images) Register(_ context.Context, _ bool) error {
+func (p *images) Register(ctx context.Context, _ bool) error {
+	if p.token != "" {
+		// Register our TPM public key with the image server.
+		// This is then used to validate authentication headers.
+		machineID, err := p.state.MachineID()
+		if err != nil {
+			return err
+		}
+
+		req, err := auth.GenerateRegistration(ctx, machineID, p.token)
+		if err != nil {
+			return err
+		}
+
+		reqBody, err := json.Marshal(req)
+		if err != nil {
+			return err
+		}
+
+		// Prepare the request.
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, p.serverURL+"/register", bytes.NewReader(reqBody))
+		if err != nil {
+			return errors.New("unable to create http request: " + err.Error())
+		}
+
+		// Get a reader for the release asset.
+		resp, err := http.DefaultClient.Do(r)
+		if err != nil {
+			return errors.New("unable to get http register response: " + err.Error())
+		}
+
+		defer resp.Body.Close()
+
+		// Check the response.
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
+		}
+
+		return nil
+	}
+
 	// No registration with the images provider.
 	return ErrRegistrationUnsupported
 }
 
 func (*images) Deregister(_ context.Context) error {
-	// Since we can't register, deregister is a no-op.
 	return nil
 }
 
@@ -171,6 +215,7 @@ func (p *images) load(_ context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
+	p.token = p.state.System.Provider.Config.Config["token"]
 
 	// Basic validation.
 	if p.serverURL == "" {
