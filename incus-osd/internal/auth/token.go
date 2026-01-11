@@ -111,7 +111,7 @@ func GenerateRegistration(ctx context.Context, machineID string, token string) (
 }
 
 // GenerateToken generates a new signed authentication token.
-func GenerateToken(ctx context.Context) (string, error) {
+func GenerateToken(ctx context.Context, machineID string) (string, error) {
 	// Check if supported on system.
 	_, err := os.Stat(authCertPath)
 	if err != nil {
@@ -126,22 +126,14 @@ func GenerateToken(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	// Get the system machine ID.
-	machineID, err := os.ReadFile("/etc/machine-id")
-	if err != nil {
-		return "", err
-	}
-
-	machineIDStr := strings.TrimSpace(string(machineID))
-
-	_, err = out.WriteString(machineIDStr + ":")
+	_, err = out.WriteString(machineID + ":")
 	if err != nil {
 		return "", err
 	}
 
 	// Prepare the token.
 	authToken := apiupdate.AuthenticationToken{
-		MachineID: machineIDStr,
+		MachineID: machineID,
 		Timestamp: time.Now().UTC().Unix(),
 	}
 
