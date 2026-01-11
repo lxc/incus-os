@@ -55,7 +55,7 @@ func (*Server) apiInternalTUI(w http.ResponseWriter, r *http.Request) {
 	_ = response.EmptySyncResponse.Render(w)
 }
 
-func (*Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Header.Get("X-IncusOS-Proxy") != "" {
@@ -70,7 +70,14 @@ func (*Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.GenerateToken(r.Context())
+	machineID, err := s.state.MachineID()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	token, err := auth.GenerateToken(r.Context(), machineID)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
