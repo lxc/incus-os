@@ -378,12 +378,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	// Get the machine ID.
-	machineID, err := os.ReadFile("/etc/machine-id")
+	machineID, err := s.MachineID()
 	if err != nil {
-		machineID = []byte("UNKNOWN")
+		machineID = "UNKNOWN"
 	}
 
-	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(string(machineID), "\n"))
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"))
 
 	// Display a warning if we're running with a swtpm-backed TPM.
 	if s.UsingSWTPM {
