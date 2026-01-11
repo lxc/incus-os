@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"net"
 	"os"
 	"slices"
@@ -74,6 +75,20 @@ type State struct {
 	} `json:"system"`
 }
 
+// MachineID returns the system's persistent machine ID.
+func (*State) MachineID() (string, error) {
+	machineID, err := os.ReadFile("/etc/machine-id")
+	if err != nil {
+		return "", err
+	}
+
+	if len(machineID) != 33 {
+		return "", errors.New("invalid length for a machine-id")
+	}
+
+	return strings.TrimSpace(string(machineID)), nil
+}
+
 // Hostname returns the preferred hostname for the system.
 func (s *State) Hostname() string {
 	// Use the configured hostname if set by the user.
@@ -94,10 +109,10 @@ func (s *State) Hostname() string {
 	}
 
 	// Use machine ID if valid.
-	machineID, err := os.ReadFile("/etc/machine-id")
-	if err == nil && len(machineID) == 33 {
+	machineID, err := s.MachineID()
+	if err == nil {
 		// Got what should be a valid UUID, use that.
-		return strings.TrimSpace(string(machineID))
+		return machineID
 	}
 
 	// If all else fails, use the OS name.

@@ -17,8 +17,29 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
+
+type imagesAuthenticatedTransport struct {
+	machineID string
+}
+
+func (t *imagesAuthenticatedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	authToken, err := auth.GenerateToken(context.Background(), t.machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("X-IncusOS-Authentication", authToken)
+
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, errors.New("bad HTTP transport")
+	}
+
+	return transport.Clone().RoundTrip(req)
+}
 
 // The images provider.
 type images struct {
@@ -26,6 +47,8 @@ type images struct {
 
 	serverURL string
 	updateCA  string
+	token     string
+	client    *http.Client
 
 	lastCheck    time.Time // In system's timezone.
 	latestUpdate *apiupdate.UpdateFull
@@ -38,18 +61,60 @@ func (p *images) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (*images) RefreshRegister(_ context.Context) error {
-	// No registration with the images provider.
+func (p *images) RefreshRegister(_ context.Context) error {
+	if p.token != "" {
+		return nil
+	}
+
 	return ErrRegistrationUnsupported
 }
 
-func (*images) Register(_ context.Context, _ bool) error {
+func (p *images) Register(ctx context.Context, _ bool) error {
+	if p.token != "" {
+		// Register our TPM public key with the image server.
+		// This is then used to validate authentication headers.
+		machineID, err := p.state.MachineID()
+		if err != nil {
+			return err
+		}
+
+		req, err := auth.GenerateRegistration(ctx, machineID, p.token)
+		if err != nil {
+			return err
+		}
+
+		reqBody, err := json.Marshal(req)
+		if err != nil {
+			return err
+		}
+
+		// Prepare the request.
+		r, err := http.NewRequestWithContext(ctx, http.MethodPost, p.serverURL+"/register", bytes.NewReader(reqBody))
+		if err != nil {
+			return errors.New("unable to create http request: " + err.Error())
+		}
+
+		// Get a reader for the release asset.
+		resp, err := p.client.Do(r)
+		if err != nil {
+			return errors.New("unable to get http register response: " + err.Error())
+		}
+
+		defer resp.Body.Close()
+
+		// Check the response.
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
+		}
+
+		return nil
+	}
+
 	// No registration with the images provider.
 	return ErrRegistrationUnsupported
 }
 
 func (*images) Deregister(_ context.Context) error {
-	// Since we can't register, deregister is a no-op.
 	return nil
 }
 
@@ -171,6 +236,8 @@ func (p *images) load(_ context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
+	p.token = p.state.System.Provider.Config.Config["token"]
+	p.client = http.DefaultClient
 
 	// Basic validation.
 	if p.serverURL == "" {
@@ -181,6 +248,22 @@ func (p *images) load(_ context.Context) error {
 		p.updateCA, err = p.GetSigningCACert()
 		if err != nil {
 			return err
+		}
+	}
+
+	// Authenticated clients.
+	if p.token != "" {
+		machineID, err := p.state.MachineID()
+		if err != nil {
+			return err
+		}
+
+		transport := &imagesAuthenticatedTransport{
+			machineID: machineID,
+		}
+
+		p.client = &http.Client{
+			Transport: transport,
 		}
 	}
 
@@ -205,7 +288,7 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		return nil, err
 	}
 
-	resp, err := tryRequest(http.DefaultClient, req)
+	resp, err := tryRequest(p.client, req)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +412,7 @@ func (a *imagesApplication) Download(ctx context.Context, targetPath string, pro
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
@@ -376,7 +459,7 @@ func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progre
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
@@ -402,7 +485,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, ta
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
@@ -445,7 +528,7 @@ func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath st
 		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
 
 		// Download the application.
-		err = downloadAsset(ctx, http.DefaultClient, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
+		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
