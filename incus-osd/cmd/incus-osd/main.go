@@ -117,6 +117,17 @@ func main() {
 			tui.EarlyError("unable to blow security fuse: " + err.Error())
 			os.Exit(1)
 		}
+	} else {
+		inAuditMode, err := secureboot.InAuditMode()
+		if err != nil {
+			tui.EarlyError("unable to check Secure Boot Audit Mode: " + err.Error())
+			os.Exit(1)
+		}
+
+		if inAuditMode {
+			tui.EarlyError("unable to run while Secure Boot is in Audit Mode")
+			os.Exit(1)
+		}
 	}
 
 	// Perform the install check here, so we don't render the TUI footer during install.

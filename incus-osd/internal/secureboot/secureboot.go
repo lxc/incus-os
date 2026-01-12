@@ -34,6 +34,26 @@ func Enabled() (bool, error) {
 		return false, err
 	}
 
+	if len(state) == 0 {
+		return false, nil
+	}
+
+	return state[0] == 1, nil
+}
+
+// InAuditMode checks if Secure Boot is running in Audit Mode. Per the spec
+// this shouldn't be possible when Secure Boot is enabled, but buggy UEFI
+// implementations can allow this.
+func InAuditMode() (bool, error) {
+	state, err := readEFIVariable("AuditMode")
+	if err != nil {
+		return false, err
+	}
+
+	if len(state) == 0 {
+		return false, nil
+	}
+
 	return state[0] == 1, nil
 }
 
