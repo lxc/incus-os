@@ -392,6 +392,48 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	return nil
 }
 
+// RestoreWOLMACAddresses attempts to restore the permanent MAC address on any interface with Wake on LAN enabled.
+// This gets called on system shutdown only.
+func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
+	restoreMAC := func(iface string, hwaddr string) error {
+		// Set the MAC address.
+		_, err := subprocess.RunCommandContext(ctx, "ip", "link", "set", "dev", iface, "address", hwaddr)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	for _, i := range s.System.Network.Config.Interfaces {
+		if !i.Ethernet.WakeOnLAN {
+			continue
+		}
+
+		iface := "_p" + strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
+
+		err := restoreMAC(iface, i.Hwaddr)
+		if err != nil {
+			slog.Warn("Unable to restore MAC address", "interface", iface, "err", err)
+		}
+	}
+
+	for _, b := range s.System.Network.Config.Bonds {
+		if !b.Ethernet.WakeOnLAN {
+			continue
+		}
+
+		for _, hwaddr := range b.Members {
+			iface := "_p" + strings.ToLower(strings.ReplaceAll(hwaddr, ":", ""))
+
+			err := restoreMAC(iface, hwaddr)
+			if err != nil {
+				slog.Warn("Unable to restore MAC address", "interface", iface, "err", err)
+			}
+		}
+	}
+}
+
 // getWireguardState runs various commands to gather wireguard state for a specific wireguard interface.
 func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInterfaceState, error) {
 	// Get IPs for the interface.
