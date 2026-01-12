@@ -602,6 +602,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 		switch action {
 		case "shutdown":
+			systemd.RestoreWOLMACAddresses(ctx, s)
 			_ = systemd.SystemPowerOff(ctx)
 		case "reboot":
 			_ = systemd.SystemReboot(ctx)
