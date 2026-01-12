@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+
+	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )
 
 const (
@@ -25,12 +27,6 @@ const (
 
 	authCertPath = "/usr/lib/incus-osd/certs/auth.crt"
 )
-
-// Token represents an authentication token.
-type Token struct {
-	MachineID string `json:"machine_id"`
-	Timestamp int64  `json:"timestamp"`
-}
 
 func ensureSigningKey(ctx context.Context) error {
 	// Setup a primary context if missing.
@@ -75,8 +71,8 @@ func ensureSigningKey(ctx context.Context) error {
 	return nil
 }
 
-// PublicKey returns the PEM encoded public certificate for the system TPM-tied certificate.
-func PublicKey(ctx context.Context) (string, error) {
+// publicKey returns the PEM encoded public certificate for the system TPM-tied certificate.
+func publicKey(ctx context.Context) (string, error) {
 	// Ensure we have a key.
 	err := ensureSigningKey(ctx)
 	if err != nil {
@@ -92,8 +88,30 @@ func PublicKey(ctx context.Context) (string, error) {
 	return string(content), nil
 }
 
+// GenerateRegistration generates a registration request struct.
+func GenerateRegistration(ctx context.Context, machineID string, token string) (*apiupdate.AuthenticationRegister, error) {
+	pubKey, err := publicKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	initialToken, err := GenerateToken(ctx, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	req := apiupdate.AuthenticationRegister{
+		MachineID: machineID,
+		PublicKey: pubKey,
+		Token:     token,
+		Initial:   initialToken,
+	}
+
+	return &req, nil
+}
+
 // GenerateToken generates a new signed authentication token.
-func GenerateToken(ctx context.Context) (string, error) {
+func GenerateToken(ctx context.Context, machineID string) (string, error) {
 	// Check if supported on system.
 	_, err := os.Stat(authCertPath)
 	if err != nil {
@@ -108,22 +126,14 @@ func GenerateToken(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	// Get the system machine ID.
-	machineID, err := os.ReadFile("/etc/machine-id")
-	if err != nil {
-		return "", err
-	}
-
-	machineIDStr := strings.TrimSpace(string(machineID))
-
-	_, err = out.WriteString(machineIDStr + ":")
+	_, err = out.WriteString(machineID + ":")
 	if err != nil {
 		return "", err
 	}
 
 	// Prepare the token.
-	authToken := Token{
-		MachineID: machineIDStr,
+	authToken := apiupdate.AuthenticationToken{
+		MachineID: machineID,
 		Timestamp: time.Now().UTC().Unix(),
 	}
 
