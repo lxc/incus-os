@@ -15,6 +15,14 @@ if [ -e /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8
     raw_secure_boot_state=$(tail -c 1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c)
     secure_boot_state=$(printf "%d" "'$raw_secure_boot_state")
 
+    # Refuse to boot if in Audit Mode; we know of at least one buggy UEFI implementation that marks SecureBoot as enabled while in Audit Mode.
+    if [ -e /sys/firmware/efi/efivars/AuditMode-8be4df61-93ca-11d2-aa0d-00e098032b8c ]; then
+        for TTY in $TTYS; do
+            echo "\033[31m$OS_NAME cannot boot while SecureBoot is in Audit Mode.\033[0m" > "$TTY" || true
+        done
+        sleep 3600
+    fi
+
     if [ "$secure_boot_state" != 1 ]; then
         for TTY in $TTYS; do
             echo "\033[0;33mSecureBoot is disabled. $OS_NAME will attempt to fall back to a less-secure boot logic.\033[0m" > "$TTY" || true
