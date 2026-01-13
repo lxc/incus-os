@@ -2,8 +2,11 @@ package applications
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
@@ -23,6 +26,29 @@ func (*gpuSupport) Start(ctx context.Context, _ string) error {
 		_, err := os.Stat("/sys/module/" + module)
 		if err != nil {
 			continue
+		}
+
+		// Unbind the devices.
+		entries, err := os.ReadDir("/sys/bus/pci/drivers/" + module)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			slog.Warn("Failed to check kernel module", "module", module)
+
+			continue
+		}
+
+		for _, entry := range entries {
+			address := filepath.Base(entry.Name())
+
+			if !strings.Contains(address, ":") || !strings.Contains(address, ".") {
+				continue
+			}
+
+			err := os.WriteFile("/sys/bus/pci/drivers/"+module+"/unbind", []byte(address), 0o600)
+			if err != nil {
+				slog.Warn("Failed to unbind device", "module", module, "address", address)
+
+				continue
+			}
 		}
 
 		// Unload the module.
