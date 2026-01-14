@@ -536,7 +536,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 	// Get a list of all local drives.
 	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
 	// Exclude devices with major numbers 1 (RAM disk), 2 (floppy disks), 7 (loopback), 147 (DRBD), 230 (zvols), 251 (Ceph RBD)
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,147,230,251", "-o", "KNAME,SIZE,RM")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,147,230,251", "-o", "KNAME,ID_LINK,SIZE,RM")
 	if err != nil {
 		return ret, err
 	}
@@ -555,6 +555,11 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 
 	// Get SMART data and populate struct for each drive.
 	for _, drive := range drives.BlockDevices {
+		// Skip devices that don't have a link ID, such as mmcblk0boot0.
+		if drive.ID == "" {
+			continue
+		}
+
 		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
 		output, _ := subprocess.RunCommandContext(ctx, "smartctl", "-aj", drive.KName)
 
