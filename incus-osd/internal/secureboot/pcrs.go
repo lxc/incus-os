@@ -60,12 +60,12 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 	// Get the current PCR4 and PCR7 values directly from the TPM. Don't bother replaying the event log and computing the
 	// values, since they should be the same.
-	pcr4, err := readPCR("4")
+	pcr4, err := ReadPCR("4")
 	if err != nil {
 		return err
 	}
 
-	pcr7, err := readPCR("7")
+	pcr7, err := ReadPCR("7")
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	return nil
 }
 
-// readPCR returns the current PCR value from the TPM.
-func readPCR(index string) ([]byte, error) {
+// ReadPCR returns the current PCR value from the TPM.
+func ReadPCR(index string) ([]byte, error) {
 	pcrFile, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/" + index) //nolint:gosec
 	if err != nil {
 		return nil, err

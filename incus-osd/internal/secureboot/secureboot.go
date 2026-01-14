@@ -76,12 +76,7 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 	}
 
 	// Pre-checks -- Verify that the TPM event log matches current TPM values.
-	eventLog, err := readTPMEventLog()
-	if err != nil {
-		return err
-	}
-
-	err = validateUntrustedTPMEventLog(eventLog)
+	eventLog, err := GetValidatedTPMEventLog()
 	if err != nil {
 		return err
 	}
@@ -160,12 +155,7 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 	}
 
 	// Get and verify the current PCR states.
-	eventLog, err := readTPMEventLog()
-	if err != nil {
-		return err
-	}
-
-	err = validateUntrustedTPMEventLog(eventLog)
+	eventLog, err := GetValidatedTPMEventLog()
 	if err != nil {
 		return err
 	}
@@ -177,7 +167,7 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 	}
 
 	// PCR7 won't change when the UKI is updated.
-	pcr7, err := readPCR("7")
+	pcr7, err := ReadPCR("7")
 	if err != nil {
 		return err
 	}
@@ -256,12 +246,7 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 // certificate.
 func ValidatePEBinaries() error {
 	// Get and verify the current PCR states.
-	eventLog, err := readTPMEventLog()
-	if err != nil {
-		return err
-	}
-
-	err = validateUntrustedTPMEventLog(eventLog)
+	eventLog, err := GetValidatedTPMEventLog()
 	if err != nil {
 		return err
 	}
