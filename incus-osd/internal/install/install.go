@@ -392,6 +392,11 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 			continue
 		}
 
+		if entry.ID == "" {
+			// Skip devices that don't have a link ID, such as mmcblk0boot0.
+			continue
+		}
+
 		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
 			// Virtual BMC devices on DELL servers.
 			continue
