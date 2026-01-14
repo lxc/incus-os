@@ -1,14 +1,17 @@
 package rest
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 
+	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -187,6 +190,102 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.SyncResponse(true, jsonObj).Render(w)
+}
+
+// swagger:operation GET /1.0/debug/secureboot/event-log debug debug_get_secureboot_event_log
+//
+//	Get TPM event log
+//
+//	Get the system's TPM event log for PCRs 4, 7, & 11 and final values for PCRs 4 & 7. All digests are assumed to be SHA256.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: filtered TPM event log
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: object
+//	          description: TPM event log information
+//	          properties:
+//	            event_log:
+//	              description: Filtered TPM event log
+//	              type: list
+//	              example: [{"Index":7,"Type":2147483649,"Data":"Yd/ki8qT0hGqDQDgmAMrjAoAAAAAAAAAAQAAAAAAAABTAGUAYwB1AHIAZQBCAG8AbwB0AAE=","Digest":"zPxLsyiIo0W8iuraulUrYn2ZNIx2doGrMUH1sB5ApA4="}]
+//	            pcr4:
+//	              description: Final PCR4 value
+//	              type: string
+//	              example: 63d3f130685f6566dff2eaf957c99fc6bb6e0616eb5ecb8492f9102a6def81ca
+//	            pcr7:
+//	              description: Final PCR7 value
+//	              type: string
+//	              example: ab0565daf964cf56a89b220ce95df061884393691b035d11174e26196be062b0
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiDebugSecureBootEventLog(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	eventLog, err := secureboot.ReadTPMEventLog()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Only return events for PCRs 4, 7, & 11.
+	eventLog = slices.DeleteFunc(eventLog, func(e tcg.Event) bool {
+		return e.Index != 4 && e.Index != 7 && e.Index != 11
+	})
+
+	pcr4Value, err := secureboot.ReadPCR("4")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	pcr7Value, err := secureboot.ReadPCR("7")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	type retStruct struct {
+		EventLog []tcg.Event `json:"event_log"`
+		PCR4     string      `json:"pcr4"`
+		PCR7     string      `json:"pcr7"`
+	}
+
+	ret := retStruct{
+		EventLog: eventLog,
+		PCR4:     hex.EncodeToString(pcr4Value),
+		PCR7:     hex.EncodeToString(pcr7Value),
+	}
+
+	_ = response.SyncResponse(true, ret).Render(w)
 }
 
 // swagger:operation POST /1.0/debug/secureboot/:update debug debug_post_secureboot_update
