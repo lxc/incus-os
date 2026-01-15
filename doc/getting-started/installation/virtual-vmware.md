@@ -77,7 +77,7 @@ In the options tab, under `Boot Options`, make sure that `Secure Boot` is enable
 
 ![Enable Secure Boot](../../images/vsphere-create-vm7.png)
 
-In the additional options tab, add the following entries:
+In the `Advanced Parameters` tab, add the following entries:
 
 - `uefi.secureBoot.kekDefault.file0` set to `secureboot-KEK-R1.der`
 - `uefi.secureBoot.dbDefault.file0` set to `secureboot-2025-R1.der`
