@@ -20,10 +20,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/api"
+	incusapi "github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/osarch"
 	incustls "github.com/lxc/incus/v6/shared/tls"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -83,7 +84,7 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
 	}
 
 	// Get the management address.
-	mgmtAddr := p.state.ManagementAddress()
+	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
 		return ErrRegistrationUnsupported
 	}
@@ -119,7 +120,7 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Get the management address.
-	mgmtAddr := p.state.ManagementAddress()
+	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
 		return ErrRegistrationUnsupported
 	}
@@ -136,7 +137,7 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Register.
-	var resp *api.Response
+	var resp *incusapi.Response
 	if p.state.System.Provider.Config.Config["server_token"] != "" {
 		resp, err = p.apiRequest(ctx, http.MethodPost, "/1.0/provisioning/servers?token="+p.state.System.Provider.Config.Config["server_token"], bytes.NewReader(data))
 		if err != nil {
@@ -406,7 +407,7 @@ func (p *operationsCenter) configureClientCertificate(ctx context.Context, tlsCo
 	return nil
 }
 
-func (p *operationsCenter) apiRequest(ctx context.Context, method string, path string, data io.Reader) (*api.Response, error) {
+func (p *operationsCenter) apiRequest(ctx context.Context, method string, path string, data io.Reader) (*incusapi.Response, error) {
 	// Prepare the request.
 	req, err := http.NewRequestWithContext(ctx, method, p.serverURL+path, data)
 	if err != nil {
@@ -472,7 +473,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 	}
 
 	// Convert to an Incus response struct.
-	apiResp := &api.Response{}
+	apiResp := &incusapi.Response{}
 
 	err = json.Unmarshal(content, apiResp)
 	if err != nil {
