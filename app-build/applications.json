@@ -59,7 +59,7 @@
         ]
     },
     "linux-firmware": {
-        "version": "20251125",
+        "version": "20260110",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "build_targets": [],
         "install_targets": [
@@ -132,7 +132,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.11.2",
+        "version": "v1.11.3",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -192,7 +192,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.92.5",
+        "version": "v1.94.0",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
@@ -273,7 +273,7 @@
         ]
     },
     "terraform-provider-random": {
-        "version": "v3.7.2",
+        "version": "v3.8.0",
         "repo": "https://github.com/hashicorp/terraform-provider-random.git",
         "build_targets": [
             [
