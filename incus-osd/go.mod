@@ -1,13 +1,13 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.24.7
+go 1.24.12
 
 require (
 	github.com/FuturFusion/migration-manager v0.3.2
 	github.com/FuturFusion/operations-center v0.2.1
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
-	github.com/gdamore/tcell/v2 v2.13.6
+	github.com/gdamore/tcell/v2 v2.13.7
 	github.com/go-co-op/gocron/v2 v2.19.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v72 v72.0.0
@@ -32,7 +32,7 @@ require (
 	github.com/apex/log v1.9.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/clipperhouse/displaywidth v0.6.2 // indirect
+	github.com/clipperhouse/displaywidth v0.7.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -79,20 +79,20 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rootless-containers/proto/go-proto v0.0.0-20260109132551-5f4e706f2d5d // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	github.com/zitadel/logging v0.6.2 // indirect
-	github.com/zitadel/oidc/v3 v3.45.1 // indirect
+	github.com/zitadel/logging v0.7.0 // indirect
+	github.com/zitadel/oidc/v3 v3.45.3 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
