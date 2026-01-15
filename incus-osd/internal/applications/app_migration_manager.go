@@ -13,8 +13,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/FuturFusion/migration-manager/shared/api"
+	mmapi "github.com/FuturFusion/migration-manager/shared/api"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -107,7 +108,7 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 
 	// Apply SystemNetwork, if any.
 	if mmSeed.Preseed.SystemNetwork == nil {
-		mmSeed.Preseed.SystemNetwork = new(api.SystemNetwork)
+		mmSeed.Preseed.SystemNetwork = new(mmapi.SystemNetwork)
 	}
 
 	{
@@ -116,7 +117,7 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 			mmSeed.Preseed.SystemNetwork.Address = "[::]:8443"
 
 			// Get the management address.
-			mgmtAddr := mm.state.ManagementAddress()
+			mgmtAddr := mm.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 			if mgmtAddr != nil {
 				mmSeed.Preseed.SystemNetwork.WorkerEndpoint = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
 			}
@@ -135,7 +136,7 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 
 	// Apply SystemSecurity, if any.
 	if mmSeed.Preseed.SystemSecurity == nil && len(mmSeed.TrustedClientCertificates) > 0 {
-		mmSeed.Preseed.SystemSecurity = new(api.SystemSecurity)
+		mmSeed.Preseed.SystemSecurity = new(mmapi.SystemSecurity)
 	}
 
 	if mmSeed.Preseed.SystemSecurity != nil {
@@ -223,7 +224,7 @@ func (*migrationManager) AddTrustedCertificate(ctx context.Context, _ string, ce
 		return err
 	}
 
-	sec := &api.SystemSecurity{}
+	sec := &mmapi.SystemSecurity{}
 
 	err = json.Unmarshal(body, sec)
 	if err != nil {

@@ -2,9 +2,7 @@ package state
 
 import (
 	"errors"
-	"net"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 
@@ -117,56 +115,4 @@ func (s *State) Hostname() string {
 
 	// If all else fails, use the OS name.
 	return s.OS.Name
-}
-
-// ManagementAddress returns the preferred IP address at which to reach this server for management purposes.
-// A nil value is returned if none could be found.
-func (s *State) ManagementAddress() net.IP {
-	if len(s.System.Network.State.Interfaces) == 0 {
-		return nil
-	}
-
-	var (
-		ipv4Address net.IP
-		ipv6Address net.IP
-	)
-
-	for _, iface := range s.System.Network.State.Interfaces {
-		// Skip if missing management role.
-		if !slices.Contains(iface.Roles, api.SystemNetworkInterfaceRoleManagement) {
-			continue
-		}
-
-		for _, address := range iface.Addresses {
-			addrIP := net.ParseIP(address)
-			if addrIP == nil {
-				continue
-			}
-
-			if addrIP.To4() == nil {
-				if ipv6Address == nil {
-					ipv6Address = addrIP
-				}
-			} else {
-				if ipv4Address == nil {
-					ipv4Address = addrIP
-				}
-			}
-		}
-
-		// Break early if we have an IPv6 address as we'll prefer that anyway.
-		if ipv6Address != nil {
-			break
-		}
-	}
-
-	if ipv6Address != nil {
-		return ipv6Address
-	}
-
-	if ipv4Address != nil {
-		return ipv4Address
-	}
-
-	return nil
 }

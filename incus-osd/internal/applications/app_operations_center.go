@@ -13,8 +13,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/FuturFusion/operations-center/shared/api"
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -107,14 +108,14 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 
 	// Apply SystemNetwork, if any.
 	if ocSeed.Preseed.SystemNetwork == nil {
-		ocSeed.Preseed.SystemNetwork = new(api.SystemNetworkPut)
+		ocSeed.Preseed.SystemNetwork = new(ocapi.SystemNetworkPut)
 	}
 
 	{
 		// If no IP address is provided, default to listening on all addresses on port 8443.
 		if ocSeed.Preseed.SystemNetwork.OperationsCenterAddress == "" && ocSeed.Preseed.SystemNetwork.RestServerAddress == "" {
 			// Get the management address.
-			mgmtAddr := oc.state.ManagementAddress()
+			mgmtAddr := oc.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 			if mgmtAddr != nil {
 				ocSeed.Preseed.SystemNetwork.OperationsCenterAddress = "https://" + net.JoinHostPort(mgmtAddr.String(), "8443")
 			} else {
@@ -137,7 +138,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 
 	// Apply SystemSecurity, if any.
 	if ocSeed.Preseed.SystemSecurity == nil && len(ocSeed.TrustedClientCertificates) > 0 {
-		ocSeed.Preseed.SystemSecurity = new(api.SystemSecurityPut)
+		ocSeed.Preseed.SystemSecurity = new(ocapi.SystemSecurityPut)
 	}
 
 	if ocSeed.Preseed.SystemSecurity != nil {
@@ -238,7 +239,7 @@ func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, ce
 		return err
 	}
 
-	sec := &api.SystemSecurity{}
+	sec := &ocapi.SystemSecurity{}
 
 	err = json.Unmarshal(body, sec)
 	if err != nil {
