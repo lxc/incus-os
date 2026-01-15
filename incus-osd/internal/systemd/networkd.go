@@ -1324,6 +1324,16 @@ Name=_i%s
 		}
 
 		// Bond.
+		var sbMode strings.Builder
+		if b.Mode != "" {
+			_, _ = sbMode.WriteString("Mode=" + b.Mode)
+
+			if b.Mode == "802.3ad" {
+				_, _ = sbMode.WriteString("\nTransmitHashPolicy=layer3+4")
+				_, _ = sbMode.WriteString("\nLACPTransmitRate=fast")
+			}
+		}
+
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("11-_b%s.netdev", b.Name),
 			Contents: fmt.Sprintf(`[NetDev]
@@ -1332,8 +1342,8 @@ Kind=bond
 %s
 
 [Bond]
-Mode=%s
-`, b.Name, mtuString, b.Mode),
+%s
+`, b.Name, mtuString, sbMode.String()),
 		})
 
 		// Bridge.
