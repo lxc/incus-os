@@ -79,7 +79,7 @@ func (n *Ceph) Start(_ context.Context) error {
 	}
 
 	// Create the Ceph config directory if missing.
-	err := os.Mkdir("/etc/ceph", 0o700)
+	err := os.Mkdir("/etc/ceph", 0o755)
 	if err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
