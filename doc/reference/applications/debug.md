@@ -1,6 +1,6 @@
 # Debug
 
-The Debug application provides several additional tools that can be useful for developers working on debugging issues in an IncusOS system:
+The Debug (`debug`) application provides several additional tools that can be useful for developers working on debugging issues in an IncusOS system:
 
 * `htop`
 * `ifstat`
