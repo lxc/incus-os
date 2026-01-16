@@ -406,7 +406,7 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 	}
 
 	for _, i := range s.System.Network.Config.Interfaces {
-		if !i.Ethernet.WakeOnLAN {
+		if i.Ethernet == nil || !i.Ethernet.WakeOnLAN {
 			continue
 		}
 
@@ -419,7 +419,7 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 	}
 
 	for _, b := range s.System.Network.Config.Bonds {
-		if !b.Ethernet.WakeOnLAN {
+		if b.Ethernet == nil || !b.Ethernet.WakeOnLAN {
 			continue
 		}
 
