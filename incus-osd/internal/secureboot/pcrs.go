@@ -175,6 +175,11 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 						// Open the PE binary from disk and compute its authenticode.
 						peFile, err := os.Open(peName) //nolint:gosec
 						if err != nil {
+							// If the referenced binary doesn't exist under /boot/, there's nothing to do.
+							if os.IsNotExist(err) {
+								break
+							}
+
 							return nil, err
 						}
 						defer peFile.Close() //nolint:revive
@@ -196,8 +201,10 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 					}
 				}
 
-				// When Secure Boot is disabled, there seems to be some sort of raw EFIBootServicesApplication measurement after PCR11 measures
-				// the UKI's various sections. Since there's no actual PE binary for this, re-use the existing digest from the event log.
+				// If we didn't find the PE binary under /boot/, it's likely some sort of BMC early boot binary measured by the TPM
+				// before booting the configured EFI application (ie, systemd-boot -> IncusOS UKI). Certain systems also seem to have
+				// some sort of raw EFIBootServicesApplication measurement after PCR11 measures the UKI's various sections. In either
+				// case, since there's no actual PE binary we can read, re-use the existing digest from the event log.
 				if !foundPE {
 					actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, e.ReplayedDigest(), false)
 					if err != nil {
