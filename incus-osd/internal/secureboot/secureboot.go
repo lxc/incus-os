@@ -257,6 +257,12 @@ func ValidatePEBinaries() error {
 		return err
 	}
 
+	// Get expected file paths for the systemd-boot PEs.
+	efiFiles, err := getArchEFIFiles()
+	if err != nil {
+		return err
+	}
+
 	// As we begin checking PE binaries, set two flags to indicate we've passed the
 	// EFI Action "Calling EFI Application" checkpoint and that we were indeed able
 	// to validate at least one PE binary from the event log.
@@ -264,6 +270,7 @@ func ValidatePEBinaries() error {
 	atLeastOnePEBinaryVerified := false
 
 	// Validate each PE binary referenced in the PCR4 event log.
+outer:
 	for _, e := range eventLog {
 		// We only care about PCR4.
 		if e.Index == 4 { //nolint:nestif
@@ -275,12 +282,6 @@ func ValidatePEBinaries() error {
 					beginCheckingPEBinaries = true
 				}
 			case tcg.EFIBootServicesApplication:
-				// Skip checking any early-boot PE binaries, such as some seen from
-				// enterprise BMCs.
-				if !beginCheckingPEBinaries {
-					continue
-				}
-
 				r := bytes.NewReader(e.Data)
 
 				efiImageLoad, err := tcg.ParseEFIImageLoad(r)
@@ -303,6 +304,21 @@ func ValidatePEBinaries() error {
 
 						// Convert the EFI-style path to the real path.
 						peName = "/boot" + strings.ReplaceAll(peName, "\\", "/")
+
+						// Workaround for buggy UEFI implementations, typically seen on consumer-grade laptops.
+						// These systems don't properly measure the required EFIAction when booting, which was
+						// causing us to never check the expected PE binaries for IncusOS and failing to boot.
+						// To address this, when we see the systemd-boot PE, also toggle that we should begin
+						// verifying PE binaries.
+						if peName == efiFiles["systemdEFI"] || peName == efiFiles["bootEFI"] {
+							beginCheckingPEBinaries = true
+						}
+
+						// Skip checking any early-boot PE binaries, such as some seen from
+						// enterprise BMCs.
+						if !beginCheckingPEBinaries {
+							continue outer
+						}
 
 						// Open the PE binary from disk and compute its authenticode.
 						peFile, err := os.Open(peName) //nolint:gosec
