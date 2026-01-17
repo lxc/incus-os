@@ -257,12 +257,30 @@ func ValidatePEBinaries() error {
 		return err
 	}
 
+	// As we begin checking PE binaries, set two flags to indicate we've passed the
+	// EFI Action "Calling EFI Application" checkpoint and that we were indeed able
+	// to validate at least one PE binary from the event log.
+	beginCheckingPEBinaries := false
+	atLeastOnePEBinaryVerified := false
+
 	// Validate each PE binary referenced in the PCR4 event log.
 	for _, e := range eventLog {
 		// We only care about PCR4.
 		if e.Index == 4 { //nolint:nestif
 			switch e.Type { //nolint:exhaustive
+			case tcg.EFIAction:
+				// Check if this is the "Calling EFI Application" checkpoint.
+				s := sha256.Sum256([]byte(tcg.CallingEFIApplication))
+				if bytes.Equal(e.ReplayedDigest(), s[:]) {
+					beginCheckingPEBinaries = true
+				}
 			case tcg.EFIBootServicesApplication:
+				// Skip checking any early-boot PE binaries, such as some seen from
+				// enterprise BMCs.
+				if !beginCheckingPEBinaries {
+					continue
+				}
+
 				r := bytes.NewReader(e.Data)
 
 				efiImageLoad, err := tcg.ParseEFIImageLoad(r)
@@ -319,12 +337,18 @@ func ValidatePEBinaries() error {
 							return errors.New("PE binary " + peName + " not signed by any trusted certificate")
 						}
 
+						atLeastOnePEBinaryVerified = true
+
 						break
 					}
 				}
 			default:
 			}
 		}
+	}
+
+	if !atLeastOnePEBinaryVerified {
+		return errors.New("failed to verify any PE binary from TPM event log")
 	}
 
 	return nil

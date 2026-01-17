@@ -4,6 +4,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/google/go-eventlog/register"
@@ -15,6 +16,9 @@ import (
 )
 
 func main() {
+	// Silence all logging output.
+	slog.SetDefault(slog.New(slog.DiscardHandler))
+
 	var err error
 
 	if len(os.Args) == 1 {
