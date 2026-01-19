@@ -76,6 +76,11 @@ def build(artifact):
         else:
             subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
 
+    # Handle git submodules
+    if applications[artifact].get("submodules", False):
+        subprocess.run(["git", "submodule", "init"], cwd=artifact, check=True)
+        subprocess.run(["git", "submodule", "update"], cwd=artifact, check=True)
+
     # Apply any patches
     for patch in applications[artifact].get("patches", []):
         subprocess.run(["patch", "-p1", "-i", patch], cwd=artifact, check=True)
