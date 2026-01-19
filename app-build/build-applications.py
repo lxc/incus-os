@@ -194,6 +194,15 @@ def create_image_manifest(image, applications):
 
 if __name__ == "__main__":
     for app in applications:
+        skip = False
+        for requirement in applications[app].get("requires", []):
+            if not os.path.exists(requirement):
+                print("Skipping " + app + " due to missing requirement")
+                skip = True
+                break
+        if skip:
+            continue
+
         if app == "incus-osd":
             # incus-osd is already built, so we only need to generate its manifest
             create_application_manifest("incus-osd", "main")
