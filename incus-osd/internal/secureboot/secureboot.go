@@ -269,13 +269,21 @@ func ValidatePEBinaries() error {
 	beginCheckingPEBinaries := false
 	atLeastOnePEBinaryVerified := false
 
+	// To assist with debugging various UEFI issues, build a string containing basic
+	// information about each PCR4 event to display in case of an error.
+	var b strings.Builder
+
 	// Validate each PE binary referenced in the PCR4 event log.
 outer:
 	for _, e := range eventLog {
 		// We only care about PCR4.
 		if e.Index == 4 { //nolint:nestif
+			_, _ = b.WriteString("PCR4 Event: " + e.Type.String() + "\n")
+
 			switch e.Type { //nolint:exhaustive
 			case tcg.EFIAction:
+				_, _ = b.WriteString("  " + hex.EncodeToString(e.ReplayedDigest()) + "\n")
+
 				// Check if this is the "Calling EFI Application" checkpoint.
 				s := sha256.Sum256([]byte(tcg.CallingEFIApplication))
 				if bytes.Equal(e.ReplayedDigest(), s[:]) {
@@ -301,6 +309,8 @@ outer:
 						if err != nil {
 							return err
 						}
+
+						_, _ = b.WriteString("  " + peName + "\n")
 
 						// Convert the EFI-style path to the real path.
 						peName = "/boot" + strings.ReplaceAll(peName, "\\", "/")
@@ -367,7 +377,7 @@ outer:
 	}
 
 	if !atLeastOnePEBinaryVerified {
-		return errors.New("failed to verify any PE binary from TPM event log")
+		return errors.New("failed to verify any PE binary from TPM event log\n" + b.String())
 	}
 
 	return nil
