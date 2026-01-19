@@ -310,7 +310,10 @@ outer:
 						// causing us to never check the expected PE binaries for IncusOS and failing to boot.
 						// To address this, when we see the systemd-boot PE, also toggle that we should begin
 						// verifying PE binaries.
-						if peName == efiFiles["systemdEFI"] || peName == efiFiles["bootEFI"] {
+						//
+						// Additionally, use strings.EqualFold() to perform case-insensitive file path comparisons
+						// because some UEFI implementations capitalize the entire path.
+						if strings.EqualFold(peName, efiFiles["systemdEFI"]) || strings.EqualFold(peName, efiFiles["bootEFI"]) {
 							beginCheckingPEBinaries = true
 						}
 
