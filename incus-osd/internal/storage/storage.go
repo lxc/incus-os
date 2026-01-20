@@ -106,6 +106,8 @@ type zfsGetPartialParse struct {
 }
 
 type smartOutput struct {
+	err error
+
 	Device struct {
 		Type string `json:"type"`
 	} `json:"device"`
@@ -561,13 +563,15 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		}
 
 		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
-		output, _ := subprocess.RunCommandContext(ctx, "smartctl", "-aj", drive.KName)
-
 		smart := smartOutput{}
 
-		err = json.Unmarshal([]byte(output), &smart)
-		if err != nil {
-			return ret, err
+		output, _ := subprocess.RunCommandContext(ctx, "smartctl", "-aj", drive.KName)
+		if output != "" {
+			err = json.Unmarshal([]byte(output), &smart)
+			if err != nil {
+				smart.SMARTSupport.Available = true
+				smart.err = err
+			}
 		}
 
 		// Determine if this is a remote device (NVMEoTCP, FC, etc).
@@ -634,6 +638,10 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		if smart.SMARTSupport.Available { //nolint:nestif
 			smartStatus.Enabled = smart.SMARTSupport.Enabled
 			smartStatus.Passed = smart.SMARTStatus.Passed
+
+			if smart.err != nil {
+				smartStatus.Error = fmt.Sprintf("Bad SMART data from drive: %v", smart.err)
+			}
 
 			if smart.PowerOnTime.Hours > 0 {
 				smartStatus.PowerOnHours = smart.PowerOnTime.Hours
