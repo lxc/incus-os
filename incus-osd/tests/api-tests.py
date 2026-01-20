@@ -70,7 +70,7 @@ num_pass = 0
 num_fail = 0
 
 # Run the tests
-with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
     tests = IncusOSTests(prior_image_img, current_image_img, current_image_iso)
     futures = {executor.submit(fn, image): name for name,fn,image in tests.GetTests()}
 
