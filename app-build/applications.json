@@ -11,6 +11,17 @@
             "usr/local/bin/incus-osd"
         ]
     },
+    "edk2": {
+        "version": "edk2-stable202511",
+        "repo": "https://github.com/tianocore/edk2",
+        "submodules": true,
+        "build_targets": [],
+        "install_targets": [],
+        "clean_targets": [],
+        "requires": [
+            "../patches/edk2-logo.bmp"
+        ]
+    },
     "kpx": {
         "version": "v1.12.3",
         "repo": "https://github.com/momiji/kpx.git",
