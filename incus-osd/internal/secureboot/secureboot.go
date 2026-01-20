@@ -448,8 +448,8 @@ func getPublicKeyFromUKI(ukiFile string) ([]byte, error) {
 	pcrpkeyData, err := pcrpkeySection.Data()
 	if err != nil {
 		return nil, err
-	} else if len(pcrpkeyData) != 512 {
-		return nil, fmt.Errorf("only read %d of 512 bytes while getting UKI public key from '%s'", len(pcrpkeyData), ukiFile)
+	} else if len(pcrpkeyData) != int(pcrpkeySection.Size) {
+		return nil, fmt.Errorf("only read %d of %d bytes while getting UKI public key from '%s'", len(pcrpkeyData), pcrpkeySection.Size, ukiFile)
 	}
 
 	// Trim null bytes from returned buffer.
