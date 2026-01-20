@@ -171,6 +171,8 @@ func GetUnderlyingDevice() (string, error) {
 		}
 
 		rootDev = fmt.Sprintf("%d:%d\n", major, minor)
+
+		break
 	}
 
 	if rootDev == "" {
