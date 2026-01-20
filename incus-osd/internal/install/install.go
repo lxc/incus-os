@@ -412,6 +412,13 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 			continue
 		}
 
+		if slices.ContainsFunc(filtered, func(a storage.BlockDevices) bool {
+			return a.ID == entry.ID
+		}) {
+			// Skip any duplicate device IDs.
+			continue
+		}
+
 		filtered = append(filtered, entry)
 	}
 
