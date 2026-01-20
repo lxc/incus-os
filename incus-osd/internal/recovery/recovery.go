@@ -66,6 +66,13 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 	defer unix.Unmount(mountDir, 0)
 
+	// Workaround for recovery running on first boot when no provider has been set yet.
+	if s.System.Provider.Config.Name == "" {
+		s.System.Provider.Config.Name = "images"
+
+		defer func() { s.System.Provider.Config.Name = "" }()
+	}
+
 	// Get the expected CA certificate to validate the update metadata.
 	p, err := providers.Load(ctx, s)
 	if err != nil {
