@@ -93,8 +93,9 @@ type SystemStorageDrive struct {
 
 // SystemStorageDriveSMART defines a struct to return basic SMART information about a specific device.
 type SystemStorageDriveSMART struct {
-	Enabled bool `json:"enabled" yaml:"enabled"`
-	Passed  bool `json:"passed"  yaml:"passed"`
+	Enabled bool   `json:"enabled"         yaml:"enabled"`
+	Passed  bool   `json:"passed"          yaml:"passed"`
+	Error   string `json:"error,omitempty" yaml:"error,omitempty"`
 
 	PowerOnHours       int `json:"power_on_hours,omitempty"      yaml:"power_on_hours,omitempty"`
 	DataUnitsRead      int `json:"data_units_read,omitempty"     yaml:"data_units_read,omitempty"`
