@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -194,19 +195,20 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 // UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed
 // with a different Secure Boot certificate than the one that signed the currently running system.
 func UKIHasDifferentSecureBootCertificate(ukiFile string) (bool, error) {
-	currentCert := make([]byte, 451)
-
 	file, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
 	if err != nil {
 		return false, err
 	}
 	defer file.Close()
 
-	count, err := file.Read(currentCert)
+	buf, err := io.ReadAll(file)
 	if err != nil {
 		return false, err
-	} else if count != 451 {
-		return false, fmt.Errorf("only read %d of 451 bytes while getting current public key from /run/systemd/tpm2-pcr-public-key.pem", count)
+	}
+
+	currentCert, err := getPEMBytes(buf)
+	if err != nil {
+		return false, err
 	}
 
 	newCert, err := getPublicKeyFromUKI(ukiFile)
@@ -453,7 +455,18 @@ func getPublicKeyFromUKI(ukiFile string) ([]byte, error) {
 	}
 
 	// Trim null bytes from returned buffer.
-	return pcrpkeyData[:451], nil
+	return getPEMBytes(pcrpkeyData)
+}
+
+// getPEMBytes attempts to decode a PEM-encoded public key from the supplied buffer
+// and returns its bytes.
+func getPEMBytes(buf []byte) ([]byte, error) {
+	cert, _ := pem.Decode(buf)
+	if cert == nil || cert.Type != "PUBLIC KEY" {
+		return nil, errors.New("unable to parse PEM public key")
+	}
+
+	return pem.EncodeToMemory(cert), nil
 }
 
 // updateEFIBootStub synchronizes the systemd-boot EFI stub when the Secure Boot signing key is rotated.
