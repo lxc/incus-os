@@ -22,6 +22,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -83,16 +84,32 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 
 	// Apply the update(s), if any.
-	apps := []string{}
-
-	for app := range s.Applications {
-		apps = append(apps, app)
-	}
 
 	// Similar to normal startup logic, if no applications are installed default
 	// to selecting incus.
-	if len(apps) == 0 {
-		apps = append(apps, "incus")
+	apps := []string{"incus"}
+
+	if len(s.Applications) == 0 {
+		// Assume first start of the daemon.
+		appSeed, err := seed.GetApplications(ctx)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
+
+		if appSeed != nil {
+			apps = make([]string, 0, len(appSeed.Applications))
+
+			for _, app := range appSeed.Applications {
+				apps = append(apps, app.Name)
+			}
+		}
+	} else {
+		// We have an existing application list.
+		apps = make([]string, 0, len(s.Applications))
+
+		for name := range s.Applications {
+			apps = append(apps, name)
+		}
 	}
 
 	err = applyUpdate(ctx, s, updateCA, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
@@ -249,9 +266,22 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 			continue
 		}
 
-		// Don't process any applications that are not already installed.
+		// Don't bother with an OS update if already on the same version.
+		if s.OS.RunningRelease == update.Version && file.Type != apiupdate.UpdateFileTypeApplication {
+			continue
+		}
+
 		if file.Type == apiupdate.UpdateFileTypeApplication {
-			if !slices.Contains(installedApplications, filepath.Base(strings.TrimSuffix(file.Filename, ".raw.gz"))) {
+			appName := filepath.Base(strings.TrimSuffix(file.Filename, ".raw.gz"))
+
+			// Don't process any applications that are not meant to be installed.
+			if !slices.Contains(installedApplications, appName) {
+				continue
+			}
+
+			// Don't bother with an app update if already on the same version.
+			_, ok := s.Applications[appName]
+			if ok && s.OS.RunningRelease == update.Version && file.Type != apiupdate.UpdateFileTypeApplication {
 				continue
 			}
 		}
@@ -292,16 +322,18 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	}
 
 	// Apply the OS update.
-	slog.InfoContext(ctx, "Applying OS update(s)")
+	if s.OS.RunningRelease != update.Version {
+		slog.InfoContext(ctx, "Applying OS update(s)")
 
-	err = systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, false)
-	if err != nil {
-		return err
+		err = systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, false)
+		if err != nil {
+			return err
+		}
+
+		// Record the newly installed OS version.
+		s.OS.NextRelease = update.Version
+		s.System.Update.State.NeedsReboot = s.OS.RunningRelease != s.OS.NextRelease
 	}
-
-	// Record the newly installed OS version.
-	s.OS.NextRelease = update.Version
-	s.System.Update.State.NeedsReboot = s.OS.RunningRelease != s.OS.NextRelease
 
 	return s.Save()
 }
