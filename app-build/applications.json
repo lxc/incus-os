@@ -163,6 +163,9 @@
     "operations-center": {
         "version": "v0.2.2",
         "repo": "https://github.com/FuturFusion/operations-center.git",
+        "patches": [
+            "../../patches/operations-center-0001-offline-import.patch"
+        ],
         "build_targets": [
             [
                 "./cmd/operations-centerd"
