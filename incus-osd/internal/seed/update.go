@@ -8,10 +8,16 @@ import (
 
 // GetUpdate extracts the update configuration from the seed data.
 func GetUpdate(_ context.Context) (*apiseed.Update, error) {
-	// Get the install configuration.
+	// Get the update configuration.
 	var config apiseed.Update
 
 	err := parseFileContents(getSeedPath(), "update", &config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the seed is valid.
+	err = config.Validate()
 	if err != nil {
 		return nil, err
 	}
