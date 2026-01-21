@@ -14,6 +14,7 @@ import (
 
 	"github.com/foxboron/go-uefi/authenticode"
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
@@ -187,6 +188,9 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	if err != nil {
 		return err
 	}
+
+	// Flush all writes to get a consistent ESP if the system gets forcefully rebooted by the user.
+	unix.Sync()
 
 	if reboot {
 		// Wait 10s to allow time for the system to reboot.
