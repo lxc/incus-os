@@ -480,7 +480,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// Apply the provider seed config (if present).
 		providerSeed, err := seed.GetProvider(ctx)
 		if err != nil && !seed.IsMissing(err) {
-			return err
+			return errors.New("unable to parse provider seed: " + err.Error())
 		}
 
 		if providerSeed != nil {
@@ -491,9 +491,9 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 
 		// Apply the update seed config (if present).
-		updateSeed, err := seed.GetUpdate(ctx)
+		updateSeed, err := seed.GetUpdate(ctx, &s.System.Update.Config)
 		if err != nil && !seed.IsMissing(err) {
-			return err
+			return errors.New("unable to parse update seed: " + err.Error())
 		}
 
 		if updateSeed != nil {

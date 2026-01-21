@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"slices"
 	"time"
 )
 
@@ -35,6 +37,40 @@ type SystemUpdateMaintenanceWindow struct {
 	EndDayOfWeek   Weekday `json:"end_day_of_week,omitempty"   yaml:"end_day_of_week,omitempty"`
 	EndHour        int     `json:"end_hour"                    yaml:"end_hour"`
 	EndMinute      int     `json:"end_minute"                  yaml:"end_minute"`
+}
+
+// Validate performs basic sanity checks against update configuration.
+func (c *SystemUpdateConfig) Validate() error {
+	// Check the update channel is valid.
+	if !slices.Contains([]string{"stable", "testing"}, c.Channel) {
+		return errors.New("invalid update channel '" + c.Channel + "'")
+	}
+
+	// Check the update frequency is valid.
+	if c.CheckFrequency != "never" {
+		_, err := time.ParseDuration(c.CheckFrequency)
+		if err != nil {
+			return errors.New("invalid update check frequency: " + err.Error())
+		}
+	}
+
+	// Basic maintenance window validation.
+	for _, mw := range c.MaintenanceWindows {
+		// To simplify logic, we don't allow a week-long migration window
+		// to start and end on the same day.
+		if mw.StartDayOfWeek != NONE && mw.StartDayOfWeek == mw.EndDayOfWeek {
+			if mw.EndHour*60+mw.EndMinute < mw.StartHour*60+mw.StartMinute {
+				return errors.New("invalid migration window: end time is before start time")
+			}
+		}
+
+		// If either StartDayOfWeek or EndDayOfWeek is specified, the other must be too.
+		if (mw.StartDayOfWeek == NONE && mw.EndDayOfWeek != NONE) || (mw.StartDayOfWeek != NONE && mw.EndDayOfWeek == NONE) {
+			return errors.New("invalid migration window: both StartDayOfWeek and EndDayOfWeek must be provided")
+		}
+	}
+
+	return nil
 }
 
 // IsCurrentlyActive returns true if the maintenance window is active.

@@ -2,9 +2,7 @@ package rest
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
-	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -90,34 +88,12 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Basic validation.
-		for _, mw := range newConfig.Config.MaintenanceWindows {
-			// To simplify logic, we don't allow a week-long migration window
-			// to start and end on the same day.
-			if mw.StartDayOfWeek != api.NONE && mw.StartDayOfWeek == mw.EndDayOfWeek {
-				if mw.EndHour*60+mw.EndMinute < mw.StartHour*60+mw.StartMinute {
-					_ = response.BadRequest(errors.New("invalid migration window: end time is before start time")).Render(w)
+		// Ensure the new configuration is valid.
+		err = newConfig.Config.Validate()
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
 
-					return
-				}
-			}
-
-			// If either StartDayOfWeek or EndDayOfWeek is specified, the other must be too.
-			if (mw.StartDayOfWeek == api.NONE && mw.EndDayOfWeek != api.NONE) || (mw.StartDayOfWeek != api.NONE && mw.EndDayOfWeek == api.NONE) {
-				_ = response.BadRequest(errors.New("invalid migration window: both StartDayOfWeek and EndDayOfWeek must be provided")).Render(w)
-
-				return
-			}
-		}
-
-		// Check the update frequency is valid.
-		if newConfig.Config.CheckFrequency != "never" {
-			_, err = time.ParseDuration(newConfig.Config.CheckFrequency)
-			if err != nil {
-				_ = response.BadRequest(errors.New("invalid update check frequency")).Render(w)
-
-				return
-			}
+			return
 		}
 
 		// Apply the updated configuration.
