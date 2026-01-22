@@ -716,22 +716,44 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 	}
 
 	for {
+		// Determine if a primary application is installed or not.
+		primaryApplication, err := applications.GetPrimary(ctx, s)
+		if err != nil && !errors.Is(err, applications.ErrNoPrimary) {
+			s.System.Update.State.Status = "Failed to check if a primary application is installed"
+			slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+
+			break
+		}
+
 		// If updates are disabled, skip for an hour.
 		if !isUserRequested && s.System.Update.Config.CheckFrequency == "never" {
-			if isStartupCheck {
-				break
+			// Only respect the request to disable update checks if a primary application is installed.
+			// If not, we can find ourselves in a situation where IncusOS boots but is inaccessible
+			// because no primary application is running, and IncusOS would never attempt to install one.
+			if primaryApplication != nil {
+				if isStartupCheck {
+					break
+				}
+
+				time.Sleep(time.Hour)
+
+				continue
 			}
-
-			time.Sleep(time.Hour)
-
-			continue
 		}
 
 		// Sleep at the top of each loop, except if we're performing a startup or manual check.
 		if !isStartupCheck && !isUserRequested {
 			timeSinceCheck := time.Since(s.System.Update.State.LastCheck)
+			rawFrequency := s.System.Update.Config.CheckFrequency
 
-			frequency, err := time.ParseDuration(s.System.Update.Config.CheckFrequency)
+			// If no primary application is installed and the check frequency is never, override
+			// that value to six hours. Once a primary application is successfully installed,
+			// we will honor the request to disable update checks.
+			if primaryApplication == nil && rawFrequency == "never" {
+				rawFrequency = "6h"
+			}
+
+			frequency, err := time.ParseDuration(rawFrequency)
 			if err != nil {
 				// Shouldn't be possible, we validate on update.
 				s.System.Update.State.Status = "Failed to parse update frequency"
