@@ -460,7 +460,7 @@ func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apisee
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
-func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
+func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error { //nolint:revive
 	// Get architecture name.
 	archName, err := osarch.ArchitectureGetLocal()
 	if err != nil {
@@ -699,6 +699,12 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 
 		_ = fd.Close()
 	}
+
+	// Perform a reset of the TPM. This is to address a few systems we've seen that fail on
+	// first-boot running systemd-repart because the TPM was in a weird state. This is allowed
+	// to fail, since some physical TPMs may not allow a reset from userspace, or if swtpm is
+	// configured that service won't be running yet.
+	_, _ = subprocess.RunCommandContext(ctx, "tpm2_clear")
 
 	// Finally, run `bootctl install`.
 	_, err = subprocess.RunCommandContext(ctx, "bootctl", "--graceful", "install")
