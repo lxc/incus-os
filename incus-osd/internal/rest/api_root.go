@@ -3,6 +3,9 @@ package rest
 import (
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
@@ -107,12 +110,36 @@ func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 //	        metadata:
 //	          type: json
 //	          description: Basic server information
-//	          example: {"environment":{"hostname":"af94e64e-1993-41b6-8f10-a8eebb828fce","os_name":"IncusOS","os_version":"202511041601","os_version_next":202511152230}}
+//	          example: {"environment":{"hostname":"af94e64e-1993-41b6-8f10-a8eebb828fce","os_name":"IncusOS","os_version":"202511041601","os_version_next":"202511152230","uptime":"3237039"}}
 func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
 		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	getUptime := func() (int64, error) {
+		content, err := os.ReadFile("/proc/uptime")
+		if err != nil {
+			return -1, err
+		}
+
+		fields := strings.Fields(string(content))
+		uptimeStr := strings.Split(fields[0], ".")[0]
+
+		uptime, err := strconv.ParseInt(uptimeStr, 10, 64)
+		if err != nil {
+			return -1, err
+		}
+
+		return uptime, nil
+	}
+
+	uptime, err := getUptime()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -123,6 +150,7 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 			"os_name":         s.state.OS.Name,
 			"os_version":      s.state.OS.RunningRelease,
 			"os_version_next": s.state.OS.NextRelease,
+			"uptime":          uptime,
 		},
 	}
 
