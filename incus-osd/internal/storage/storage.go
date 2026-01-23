@@ -564,6 +564,11 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			continue
 		}
 
+		// Skip BMC virtual devices.
+		if IsBMC(drive) {
+			continue
+		}
+
 		// Ignore error here, since smartctl returns non-zero if the device doesn't support SMART, such as a QEMU virtual drive.
 		smart := smartOutput{}
 
@@ -826,4 +831,24 @@ func WipeDrive(ctx context.Context, drive string) error {
 	}
 
 	return errors.New("drive '" + drive + "' doesn't exist")
+}
+
+// IsBMC checks whether the provided block device is a BMC virtual device.
+func IsBMC(entry BlockDevices) bool {
+	if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
+		// Virtual BMC devices on DELL servers.
+		return true
+	}
+
+	if strings.HasPrefix(entry.ID, "usb-Cisco_") {
+		// Virtual BMC devices on Cisco servers.
+		return true
+	}
+
+	if strings.HasPrefix(entry.ID, "usb-AMI_Virtual_") {
+		// Virtual BMC devices on Asus servers.
+		return true
+	}
+
+	return false
 }
