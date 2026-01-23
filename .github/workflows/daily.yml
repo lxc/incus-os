@@ -15,9 +15,9 @@ jobs:
     timeout-minutes: 600
     runs-on:
       - self-hosted
-      - cpu-8
+      - cpu-16
       - mem-32G
-      - disk-100G
+      - disk-200G
       - arch-amd64
       - image-debian-13
     steps:
