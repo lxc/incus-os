@@ -185,6 +185,15 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 	for _, volume := range luksVolumes {
 		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
 		if err != nil {
+			// Binding to PCR4 is a bit fragile. This is because it will change if the "normal" boot order changes. (For example,
+			// entering the system BIOS, then exiting and booting into IncusOS will produce a different PCR4 hash than just booting
+			// IncusOS.) We have no way to preemptively determine if this has happened, though, since the TPM event log will contain
+			// a different set of PCR4 events but still validate correctly. systemd-cryptenroll returns an ugly error, so detect if
+			// that's the case and return something more informative to the user.
+			if strings.Contains(err.Error(), "No TPM2 metadata matching the current system state found in LUKS2 header") {
+				return errors.New("unable to update PCR4+7 encryption bindings; if the system was booted with a recovery passphrase, please re-bind the TPM and try again")
+			}
+
 			return err
 		}
 	}
