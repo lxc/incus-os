@@ -136,7 +136,13 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error {
 			return fmt.Errorf("source device '%s' is too small (%0.2fGiB), must be at least 50GiB", sourceDevice, float64(sourceDeviceSize)/(1024.0*1024.0*1024.0))
 		}
 
-		return errors.New("no install seed provided, and failed to run systemd-repart for live system")
+		// systemd-repart has failed for some reason; attempt to get its logs from the journal.
+		output, err := subprocess.RunCommandContext(ctx, "journalctl", "_COMM=systemd-repart", "-I", "-o", "cat", "-u", "systemd-repart")
+		if err != nil {
+			return errors.New("failed to run systemd-repart and unable to get any logs")
+		}
+
+		return errors.New("failed to run systemd-repart:\n" + output)
 	}
 
 	// Perform install-specific checks.
