@@ -413,6 +413,11 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 			continue
 		}
 
+		if strings.HasPrefix(entry.ID, "usb-AMI_Virtual_") {
+			// Virtual BMC devices on Asus servers.
+			continue
+		}
+
 		if cdromRegex.MatchString(entry.KName) {
 			// Ignore all CDROM devices.
 			continue
