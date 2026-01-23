@@ -12,6 +12,8 @@ Additionally, the following limitations are imposed compared to normal operation
 
 * Because disk encryption is additionally bound to PCR4, when booting into a prior version of IncusOS you will always need to provide an encryption recovery passphrase.
 
+* The need for an encryption recovery passphrase can also be triggered if the system's boot order is changed, for example by the addition or modification of a BMC agent. If this is an expected change, you will need to manually [reset the TPM bindings](system/security.md).
+
 * Trusted certificates are baked into the IncusOS image, rather than being updated via Secure Boot. This means that when a new Secure Boot key is rolled out IncusOS cannot use that key until an OS update is applied that includes it. This could potentially lead to upgrade issues if an IncusOS server is severely out of date and all available updates are signed by the new Secure Boot key.
 
 Running IncusOS in an enterprise environment without Secure Boot is **NOT RECOMMENDED**.
