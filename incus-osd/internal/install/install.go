@@ -403,13 +403,8 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 			continue
 		}
 
-		if strings.HasPrefix(entry.ID, "usb-Linux_Virtual_") {
-			// Virtual BMC devices on DELL servers.
-			continue
-		}
-
-		if strings.HasPrefix(entry.ID, "usb-Cisco_") {
-			// Virtual BMC devices on Cisco servers.
+		if storage.IsBMC(entry) {
+			// Skip all BMC virtual devices.
 			continue
 		}
 
