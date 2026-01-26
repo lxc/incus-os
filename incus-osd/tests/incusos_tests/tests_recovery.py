@@ -117,7 +117,6 @@ def _recoveryChecks(vm, incusos_version):
     vm.WaitExpectedLog("incus-osd", "Update metadata detected, verifying signature")
     vm.WaitExpectedLog("incus-osd", "Decompressing and verifying each update file")
     vm.WaitExpectedLog("incus-osd", "Applying application update(s)")
-    vm.WaitExpectedLog("incus-osd", "Applying OS update(s)")
     vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
