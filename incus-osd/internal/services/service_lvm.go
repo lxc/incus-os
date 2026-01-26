@@ -208,6 +208,10 @@ func (n *LVM) configure(_ context.Context) error {
 local {
 	host_id = %d
 }
+
+devices {
+	filter = [ "r|/dev/zd*|" ]
+}
 `, n.state.Services.LVM.Config.SystemID)
 
 	err = os.WriteFile("/etc/lvm/lvmlocal.conf", []byte(lvmlocal), 0o600)
