@@ -49,7 +49,7 @@ if [ -e /sys/class/tpm/tpm0/tpm_version_major ]; then
 
     if [ "$tpm_version" != 2 ]; then
         for TTY in $TTYS; do
-            echo "\033[31mUnsupported TPM version detected. $OS_NAME requires a v2.0 TPM.\033[0m" > "$TTY" || true
+            echo "\033[31mDetected an unsupported v1.2 TPM; $OS_NAME requires a v2.0 TPM. Please upgrade the TPM or disable it in the system's firmware and configure $OS_NAME to use swtpm.\033[0m" > "$TTY" || true
         done
         sleep 3600
     fi
