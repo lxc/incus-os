@@ -20,7 +20,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/util"
@@ -44,13 +43,20 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 			return nil, err
 		}
 
-		parsedVal := tcg.UEFIVariableData{
-			VariableData: val,
-		}
-
-		certs, _, err = parsedVal.SignatureData()
+		certList, err := parseEfiSignatureList(val)
 		if err != nil {
 			return nil, err
+		}
+
+		// Check for and report if any certificate failed to parse.
+		for i, certInfo := range certList {
+			if certInfo.err != nil {
+				slog.Warn(fmt.Sprintf("Failed to parse Secure Boot variable '%s' certificate at index %d: %s", varName, i, certInfo.err.Error()))
+
+				continue
+			}
+
+			certs = append(certs, *certInfo.cert)
 		}
 	} else {
 		// When Secure Boot is disabled, rely on any certificates present in /usr/lib/incus-osd/certs/.
@@ -345,18 +351,18 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	headerSize := binary.LittleEndian.Uint32(buf[16:20])
 	offset := 16 + headerSize
 
-	efiVar := tcg.UEFIVariableData{
-		VariableData: buf[offset:],
-	}
-
-	certs, _, err := efiVar.SignatureData()
+	certList, err := parseEfiSignatureList(buf[offset:])
 	if err != nil {
 		return err
-	} else if len(certs) != 1 {
-		return fmt.Errorf("expected exactly one certificate in dbx update, got %d", len(certs))
+	} else if len(certList) != 1 {
+		return fmt.Errorf("expected exactly one certificate in dbx update, got %d", len(certList))
 	}
 
-	publicKeyDer, err := x509.MarshalPKIXPublicKey(certs[0].PublicKey)
+	if certList[0].err != nil {
+		return errors.New("Failed to parse dbx certificate: " + certList[0].err.Error())
+	}
+
+	publicKeyDer, err := x509.MarshalPKIXPublicKey(certList[0].cert.PublicKey)
 	if err != nil {
 		return err
 	}

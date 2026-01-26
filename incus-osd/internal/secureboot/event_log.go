@@ -71,6 +71,17 @@ type efiSignatureListHeader struct {
 	SignatureSize       uint32
 }
 
+type efiSignatureData struct {
+	SignatureOwner [16]byte
+	SignatureData  []byte
+}
+
+type efiSignatureList struct {
+	Header        efiSignatureListHeader
+	SignatureData []byte
+	Signatures    []byte
+}
+
 // SynthesizeTPMEventLog creates a very simple TPM event log covering expected PCR7 and PCR11 values
 // that would have been measured while booting with a physical TPM. Since this code runs in user space
 // post-boot, it is vulnerable to tampering by a malicious actor. When running swtpm, we rely on this
@@ -338,17 +349,15 @@ func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
 	return nil
 }
 
-// This function is largely based on tcg.parseEfiSignatureList(), but that function drops the
-// signature owner's GUID which we need when creating the event log.
+// getSigningCertBytes searches for and returns an array of bytes consisting of the owner
+// GUID and raw certificate used to sign the currently running UKI.
 func getSigningCertBytes(contents []byte) ([]byte, error) {
-	maxDataLen := uint32(1024 * 1024)
-	certX509SigGUID := [16]byte{0xa1, 0x59, 0xc0, 0xa5, 0xe4, 0x94, 0xa7, 0x4a, 0x87, 0xb5, 0xab, 0x15, 0x5c, 0x2b, 0xf0, 0x72} // EFI_CERT_X509_GUID
-
 	// Get the RSA public key used by the running kernel.
 	fd, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
 	if err != nil {
 		return nil, err
 	}
+	defer fd.Close()
 
 	pubKeyBytes, err := io.ReadAll(fd)
 	if err != nil {
@@ -364,78 +373,43 @@ func getSigningCertBytes(contents []byte) ([]byte, error) {
 
 	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
 	if !ok {
-		return nil, errors.New("not an rsa public key")
+		return nil, errors.New("/run/systemd/tpm2-pcr-public-key.pem is not an RSA public key")
 	}
 
-	buf := bytes.NewReader(contents)
-	header := efiSignatureListHeader{}
+	certList, err := parseEfiSignatureList(contents)
+	if err != nil {
+		return nil, err
+	}
 
-	for buf.Len() > 0 {
-		err := binary.Read(buf, binary.LittleEndian, &header)
-		if err != nil {
-			return nil, err
+	for i, certInfo := range certList {
+		if certInfo.err != nil {
+			return nil, fmt.Errorf("failed to parse EFIVariableAuthority certificate at index %d: %s", i, certInfo.err.Error())
 		}
 
-		if header.SignatureHeaderSize > maxDataLen {
-			return nil, fmt.Errorf("signature header too large: %d > %d", header.SignatureHeaderSize, maxDataLen)
+		publicKey, ok := certInfo.cert.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			return nil, errors.New("unsupported public key algorithm " + certInfo.cert.PublicKeyAlgorithm.String())
 		}
 
-		if header.SignatureListSize > maxDataLen {
-			return nil, fmt.Errorf("signature list too large: %d > %d", header.SignatureListSize, maxDataLen)
-		}
+		// If we found the right certificate, return the bytes for just this certificate and its owner GUID.
+		if rsaPubKey.Equal(publicKey) {
+			var b bytes.Buffer
 
-		if header.SignatureType != certX509SigGUID {
-			return nil, errors.New("only certX509SigGUID signatures are supported")
-		}
-
-		// Iterate through each certificate in the signature list and find the one that was
-		// used to sign the UKI.
-		for sigOffset := uint32(0); sigOffset < header.SignatureListSize-28; {
-			signatureOwner := make([]byte, 16)
-			signatureData := make([]byte, header.SignatureSize-16)
-
-			err := binary.Read(buf, binary.LittleEndian, &signatureOwner)
+			_, err = b.Write(certInfo.ownerGUID[:])
 			if err != nil {
 				return nil, err
 			}
 
-			err = binary.Read(buf, binary.LittleEndian, &signatureData)
+			_, err = b.Write(certInfo.cert.Raw)
 			if err != nil {
 				return nil, err
 			}
 
-			cert, err := x509.ParseCertificate(signatureData)
-			if err != nil {
-				return nil, err
-			}
-
-			sigOffset += header.SignatureSize
-
-			publicKey, ok := cert.PublicKey.(*rsa.PublicKey)
-			if !ok {
-				return nil, errors.New("unsupported public key algorithm " + cert.PublicKeyAlgorithm.String())
-			}
-
-			// If we found the right certificate, return the bytes for just this certificate and its owner GUID.
-			if rsaPubKey.Equal(publicKey) {
-				var b bytes.Buffer
-
-				_, err = b.Write(signatureOwner)
-				if err != nil {
-					return nil, err
-				}
-
-				_, err = b.Write(signatureData)
-				if err != nil {
-					return nil, err
-				}
-
-				return b.Bytes(), nil
-			}
+			return b.Bytes(), nil
 		}
 	}
 
-	return nil, errors.New("no cert found")
+	return nil, errors.New("failed to find certificate for /run/systemd/tpm2-pcr-public-key.pem")
 }
 
 // Determine what UKI was booted, so we can compute the proper PCR11 values.
