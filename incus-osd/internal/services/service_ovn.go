@@ -105,8 +105,16 @@ func (n *OVN) Start(ctx context.Context) error {
 		return nil
 	}
 
+	// Disable writing log output to files, and bump syslog level. Because of how the systemd services
+	// are defined, empty log files will be created under /var/log/openvswitch/.
+	err := os.WriteFile("/etc/default/openvswitch-switch", []byte(`OVS_CTL_OPTS='--ovsdb-server-options="-vsyslog:info -vfile:off" --ovs-vswitchd-options="-vsyslog:info -vfile:off"'
+`), 0o644)
+	if err != nil {
+		return err
+	}
+
 	// Start OVS.
-	err := systemd.StartUnit(ctx, "ovs-vswitchd.service")
+	err = systemd.StartUnit(ctx, "ovs-vswitchd.service")
 	if err != nil {
 		return err
 	}
