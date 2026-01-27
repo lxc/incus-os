@@ -219,5 +219,12 @@ devices {
 		return err
 	}
 
+	// Disable writing log output to files, although an empty file will still be created.
+	err = os.WriteFile("/etc/default/sanlock", []byte(`sanlock_opts='-L -1'
+`), 0o644)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
