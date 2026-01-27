@@ -73,10 +73,12 @@ func (n *OVN) Update(ctx context.Context, req any) error {
 		}
 	}
 
-	// Configure the service.
-	err := n.configure(ctx)
-	if err != nil {
-		return err
+	// Configure the service if enabled.
+	if newState.Config.Enabled {
+		err := n.configure(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
