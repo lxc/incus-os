@@ -4,6 +4,6 @@ Documentation=https://github.com/FuturFusion/migration-manager
 
 [Service]
 EnvironmentFile=-/etc/environment
-ExecStart=/usr/local/bin/migration-managerd
+ExecStart=/usr/local/bin/migration-managerd --logfile ""
 KillMode=process
 Restart=on-failure

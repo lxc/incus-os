@@ -4,6 +4,6 @@ Documentation=https://github.com/FuturFusion/operations-center
 
 [Service]
 EnvironmentFile=-/etc/environment
-ExecStart=/usr/local/bin/operations-centerd
+ExecStart=/usr/local/bin/operations-centerd --logfile ""
 KillMode=process
 Restart=on-failure
