@@ -43,7 +43,7 @@ func getTrustedVerityCertificate(ctx context.Context, certificateFingerprint str
 			for _, key := range kernelKeys {
 				// Return the trusted certificate that matches the verity fingerprint.
 				if key.Fingerprint == hex.EncodeToString(cert.SubjectKeyId) {
-					return &cert, nil
+					return cert, nil
 				}
 			}
 
