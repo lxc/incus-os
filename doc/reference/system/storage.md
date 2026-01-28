@@ -31,58 +31,46 @@ When specifying devices for a pool, order is important. IncusOS will always retu
 
 Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device, setting the automatic scrub to run every Saturday at 00:00:
 
-```
-{
-  "config": {
-    "scrub_schedule":  "0 0 * * 6",
-    "pools": [
-      {
-        "name": "mypool",
-        "type": "zfs-raidz1",
-        "devices": [
-          "/dev/sdb",
-          "/dev/sdc",
-          "/dev/sdd",
-          "/dev/sde"
-        ],
-        "cache": [
-          "/dev/sdf"
-        ],
-        "log": [
-          "/dev/sdg"
-        ]
-      }
-    ]
-  }
-}
+```yaml
+config:
+  scrub_schedule: "0 0 * * 6"
+  pools:
+  - name: "mypool"
+    type: "zfs-raidz1"
+
+    devices:
+    - "/dev/sdb"
+    - "/dev/sdc"
+    - "/dev/sdd"
+    - "/dev/sde"
+
+    cache:
+    - "/dev/sdf"
+
+    log:
+    - "/dev/sdg"
 ```
 
 Replace failed device `/dev/sdb` with `/dev/sdh`:
 
-```
-{
-  "config": {
-    "scrub_schedule":  "0 0 * * 6",
-    "pools": [
-      {
-        "name": "mypool",
-        "type": "zfs-raidz1",
-        "devices": [
-          "/dev/sdh",
-          "/dev/sdc",
-          "/dev/sdd",
-          "/dev/sde"
-        ],
-        "cache": [
-          "/dev/sdf"
-        ],
-        "log": [
-          "/dev/sdg"
-        ]
-      }
-    ]
-  }
-}
+```yaml
+config:
+  scrub_schedule: "0 0 * * 6"
+  pools:
+  - name: "mypool"
+    type: "zfs-raidz1"
+
+    devices:
+    - "/dev/sdh"
+    - "/dev/sdc"
+    - "/dev/sdd"
+    - "/dev/sde"
+
+    cache:
+    - "/dev/sdf"
+
+    log:
+    - "/dev/sdg"
 ```
 
 Get the pool encryption keys for safe storage (base64 encoded):
