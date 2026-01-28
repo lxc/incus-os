@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
-	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // PlatformKeyring is the SecureBoot platform keyring.
@@ -69,16 +69,16 @@ func GetKeys(_ context.Context, keyring string) ([]Key, error) {
 		return keys, nil
 	}
 
-	// When Secure Boot is disabled, rely on any certificates present in /usr/lib/incus-osd/certs/db.crt.
-	// Since that file is part of the usr-verity image, it is read-only and the verity image
-	// has been verified both during install/upgrade as well as boot-time checks against the TPM
-	// event log. Therefore it should to be relatively safe to trust the contents.
-	certs, err := util.GetFilesystemTrustedCerts("db.crt")
+	// When Secure Boot is disabled, rely on the db certificates baked into the IncusOS daemon.
+	// Since the executable is part of the usr-verity image, it is read-only and the verity
+	// image has been verified both during install/upgrade as well as boot-time checks against
+	// the TPM event log. Therefore it should to be relatively safe to trust the contents.
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, cert := range certs {
+	for _, cert := range embeddedCerts.SecureBootCertificates.DB {
 		description := ""
 		val, ok := cert.Subject.Names[0].Value.(string)
 

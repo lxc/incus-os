@@ -365,7 +365,7 @@ outer:
 
 						// Second check: PE is properly signed by a trusted certificate.
 						for _, cert := range trustedCerts {
-							_, err := authenticodeContents.Verify(&cert)
+							_, err := authenticodeContents.Verify(cert)
 							if err == nil {
 								peProperlySigned = true
 
@@ -400,7 +400,7 @@ outer:
 // that's a reasonable assumption, but nothing security critical depends on this. Mostly
 // it's just another easy check to help ensure we only install valid UKIs.)
 func validatePKICertificate(cert []byte) error {
-	certEqualityFunc := func(c x509.Certificate) bool {
+	certEqualityFunc := func(c *x509.Certificate) bool {
 		publicKeyDer, err := x509.MarshalPKIXPublicKey(c.PublicKey)
 		if err != nil {
 			return false
