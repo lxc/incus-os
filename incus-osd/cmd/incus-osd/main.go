@@ -20,6 +20,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
@@ -360,17 +361,18 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	// Determine runtime mode.
 	mode := "unsafe"
 
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		return err
+	}
+
 	for _, key := range keys {
-		// UEFI 2025 key.
-		if key.Fingerprint == "6cdc880c5df31b18176ddaa3528394aa03791f91" {
+		// Check if we're using a production signing key.
+		if slices.Contains(embeddedCerts.ProductionCertSubjectKeyIDs, key.Fingerprint) {
 			mode = "production"
 		}
 
-		// UEFI 2026 key.
-		if key.Fingerprint == "65fdb45e95aba8c36d58f90610f49eeebc0dd451" {
-			mode = "production"
-		}
-
+		// Check if we're using a development signing key.
 		if mode == "unsafe" && (strings.HasPrefix(key.Description, "mkosi of ") || strings.HasPrefix(key.Description, "TestOS - Secure Boot ")) {
 			mode = "dev"
 		}
