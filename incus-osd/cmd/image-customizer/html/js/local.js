@@ -131,7 +131,7 @@ function download() {
 
     // Add the network seed if provided.
     if (document.getElementById("networkConfiguration").value != "") {
-        network = JSON.parse(document.getElementById("networkConfiguration").value);
+        network = jsyaml.load(document.getElementById("networkConfiguration").value);
 
         req.seeds.network = network;
     }

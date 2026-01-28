@@ -52,12 +52,6 @@ jobs:
             qemu-utils \
             yarnpkg
 
-      - name: Setup Incus
-        run: |
-          curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
-          sudo chmod 666 /var/lib/incus/unix.socket
-          incus admin init --auto
-
       - name: Setup mkosi
         run: |
           pipx install git+https://github.com/systemd/mkosi.git@v25.3

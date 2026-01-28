@@ -9,3 +9,7 @@ div.card, div.accordion-item {
 label {
     margin-left: 0.5em;
 }
+
+textarea {
+    font-family:Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;
+}

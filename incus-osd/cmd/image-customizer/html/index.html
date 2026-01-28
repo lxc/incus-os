@@ -22,6 +22,7 @@
         </svg>
         <div class="container w-75">
             <script src="/ui/js/bootstrap.min.js"></script>
+            <script src="/ui/js/js-yaml.min.js"></script>
             <script src="/ui/js/local.js"></script>
 
             <h1>IncusOS image downloader</h1>
@@ -268,7 +269,7 @@
                                     Supported options and examples can be <a href="https://linuxcontainers.org/incus-os/docs/main/reference/system/network/" target="_blank">found here</a>.
                                 </p>
 
-                                <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='{&#10;  "interfaces": [&#10;    {&#10;      "name": "management",&#10;      "hwaddr": "00:11:22:33:44:55",&#10;      "addresses": [&#10;        "dhcp4",&#10;        "slaac"&#10;      ]&#10;    }&#10;  ]&#10;}'></textarea>
+                                <textarea class="form-control" id="networkConfiguration" rows="12" placeholder='interfaces:&#10;- name: "management"&#10;   hwaddr: "00:11:22:33:44:55"&#10;   addresses:&#10;   - "dhcp4"&#10;   - "slaac"&#10;'></textarea>
 
                                 <br>
                                 <div class="alert alert-primary d-flex align-items-center" role="alert">
