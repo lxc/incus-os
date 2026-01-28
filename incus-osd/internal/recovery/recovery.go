@@ -74,12 +74,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 
 	// Get the expected CA certificate to validate the update metadata.
-	p, err := providers.Load(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	updateCA, err := p.GetSigningCACert()
+	updateCA, err := providers.GetUpdateCACert()
 	if err != nil {
 		return err
 	}
