@@ -9,7 +9,6 @@ certs/
 
 mkosi.images/base/mkosi.extra/boot/EFI/
 mkosi.images/base/mkosi.extra/usr/local/bin/
-mkosi.images/base/mkosi.extra/usr/lib/incus-osd/certs/
 mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 mkosi.images/gpu-support/mkosi.extra/usr/lib/firmware/
 mkosi.images/migration-manager/mkosi.extra/

@@ -80,7 +80,9 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 
-	./scripts/inject-system-certs.sh
+	rm -rf mkosi.images/base/mkosi.extra/usr/lib/verity.d/
+	mkdir -p mkosi.images/base/mkosi.extra/usr/lib/verity.d/
+	cp incus-osd/certs/files/secureboot-DB-*.crt mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 
 .PHONY: build
 build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
