@@ -1,3 +1,6 @@
+AMI
+Aptio
+Asus
 authenticode
 backend
 BMC
@@ -6,8 +9,10 @@ CDN
 CDROM
 Ceph
 CIDR
+Cisco
 CPUs
 cron
+CSM
 customizations
 customizer
 datastore
@@ -15,6 +20,7 @@ db
 dbx
 DCO
 decrypt
+DELL
 DHCP
 DNS
 ECDSA
@@ -31,6 +37,7 @@ Github
 GPUs
 homelab
 hotfix
+HP
 HTTPS
 IMG
 Incus
@@ -42,6 +49,7 @@ ISO
 JSON
 KEK
 Kerberos
+Lenovo
 libvirt
 Linstor
 LLDP
@@ -49,8 +57,8 @@ LLMs
 LUKS
 LVM
 MAC
-MACs
 MacOS
+MACs
 MOK
 MTU
 multipath
@@ -84,6 +92,7 @@ RSA
 SLAAC
 struct
 structs
+SuperMicro
 syslog
 systemd
 systemd's
@@ -92,13 +101,14 @@ TCP
 TDB
 TLS
 TPM
+UCS
 UDP
 UEFI
 UI
 UKI
 Uncheck
-Unencrypted
 unencrypted
+Unencrypted
 unmanaged
 Unmount
 USBIP
