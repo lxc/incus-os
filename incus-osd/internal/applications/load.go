@@ -27,6 +27,8 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 		app = &incusLinstor{common: common{state: s}}
 	case "migration-manager":
 		app = &migrationManager{common: common{state: s}}
+	case "openfga":
+		app = &openfga{common: common{state: s}}
 	case "operations-center":
 		app = &operationsCenter{common: common{state: s}}
 	default:
