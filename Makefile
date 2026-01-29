@@ -80,7 +80,7 @@ endif
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 
-	./scripts/inject-system-certs.sh
+	#./scripts/inject-system-certs.sh
 
 .PHONY: build
 build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
