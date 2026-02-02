@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/certs"
 )
 
 const (
@@ -24,8 +26,6 @@ const (
 	privatePath = "/var/lib/incus-os/tpm-auth.priv"
 	publicPath  = "/var/lib/incus-os/tpm-auth.pub"
 	pemPath     = "/var/lib/incus-os/tpm-auth.pem"
-
-	authCertPath = "/usr/lib/incus-osd/certs/auth.crt"
 )
 
 func ensureSigningKey(ctx context.Context) error {
@@ -113,9 +113,35 @@ func GenerateRegistration(ctx context.Context, machineID string, token string) (
 // GenerateToken generates a new signed authentication token.
 func GenerateToken(ctx context.Context, machineID string) (string, error) {
 	// Check if supported on system.
-	_, err := os.Stat(authCertPath)
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
 	if err != nil {
+		return "", err
+	}
+
+	if embeddedCerts.AuthenticationKey == nil {
 		return "", errors.New("authentication token generation isn't supported on this system")
+	}
+
+	authKeyFile, err := os.CreateTemp("", "incus-os-auth-key")
+	if err != nil {
+		return "", err
+	}
+
+	defer os.Remove(authKeyFile.Name())
+
+	var b bytes.Buffer
+
+	err = pem.Encode(&b, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: embeddedCerts.AuthenticationKey.Raw,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	_, err = authKeyFile.WriteString(b.String())
+	if err != nil {
+		return "", err
 	}
 
 	var out strings.Builder
@@ -158,7 +184,7 @@ func GenerateToken(ctx context.Context, machineID string) (string, error) {
 
 	var stdout bytes.Buffer
 
-	err = subprocess.RunCommandWithFds(ctx, bytes.NewReader(tokenStr), io.MultiWriter(&stdout, gz), "openssl", "smime", "-encrypt", "-binary", "-aes-256-cbc", "-in", "/dev/stdin", "-out", "/dev/stdout", "-outform", "DER", authCertPath)
+	err = subprocess.RunCommandWithFds(ctx, bytes.NewReader(tokenStr), io.MultiWriter(&stdout, gz), "openssl", "smime", "-encrypt", "-binary", "-aes-256-cbc", "-in", "/dev/stdin", "-out", "/dev/stdout", "-outform", "DER", authKeyFile.Name())
 	if err != nil {
 		return "", err
 	}
