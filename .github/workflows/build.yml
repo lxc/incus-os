@@ -58,16 +58,10 @@ jobs:
 
       - name: Load the signing keys
         run: |
-          echo "${{ secrets.SB_CERT }}" > mkosi.crt
-          chmod 644 mkosi.crt
+          ln -s incus-osd/certs/files/secureboot-DB-2026-R1.crt mkosi.crt
 
           echo "${{ secrets.SB_KEY }}" > mkosi.key
           chmod 600 mkosi.key
-
-          mkdir -p certs
-          cd certs
-          echo "${{ secrets.SB_CERTS }}" | base64 -d | tar zxv
-          cd ..
 
       - name: Build the images
         run: |
