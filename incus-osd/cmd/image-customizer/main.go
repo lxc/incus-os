@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
 	"gopkg.in/yaml.v3"
 
+	apicustomizer "github.com/lxc/incus-os/incus-osd/api/customizer"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
-	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
@@ -43,41 +44,12 @@ const (
 )
 
 var (
-	images   map[string]apiImagesPost
+	images   map[string]apicustomizer.ImagesPost
 	imagesMu sync.Mutex
 )
 
-type apiCertificateGet struct {
-	Certificate string `json:"certificate"`
-	Key         string `json:"key"`
-	PFX         string `json:"pfx"`
-}
-
-type apiOIDCGet struct {
-	Issuer   string `json:"issuer"`
-	ClientID string `json:"client_id"`
-}
-
-type apiImagesPost struct {
-	Architecture string             `json:"architecture" yaml:"architecture"`
-	Type         string             `json:"type"         yaml:"type"`
-	Seeds        apiImagesPostSeeds `json:"seeds"        yaml:"seeds"`
-	Channel      string             `json:"channel"      yaml:"channel"`
-}
-
-type apiImagesPostSeeds struct {
-	Applications     *apiseed.Applications     `json:"applications"      yaml:"applications"`
-	Incus            *apiseed.Incus            `json:"incus"             yaml:"incus"`
-	Install          *apiseed.Install          `json:"install"           yaml:"install"`
-	MigrationManager *apiseed.MigrationManager `json:"migration-manager" yaml:"migration-manager"` //nolint:tagliatelle
-	Network          *apiseed.Network          `json:"network"           yaml:"network"`
-	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
-	Provider         *apiseed.Provider         `json:"provider"          yaml:"provider"`
-	Update           *apiseed.Update           `json:"update"            yaml:"update"`
-}
-
 func main() {
-	images = map[string]apiImagesPost{}
+	images = map[string]apicustomizer.ImagesPost{}
 
 	err := do(context.TODO())
 	if err != nil {
@@ -93,13 +65,31 @@ func do(ctx context.Context) error {
 		return errors.New("missing image path")
 	}
 
-	// Start REST server.
+	// Setup the listener.
 	lc := &net.ListenConfig{}
 
-	listener, err := lc.Listen(ctx, "tcp", ":8080")
+	tlsCert := os.Getenv("TLS_CERT")
+	tlsKey := os.Getenv("TLS_KEY")
+
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		if tlsCert != "" && tlsKey != "" {
+			listenAddress = ":8443"
+		} else {
+			listenAddress = ":8080"
+		}
+	}
+
+	listener, err := lc.Listen(ctx, "tcp", listenAddress)
 	if err != nil {
 		return err
 	}
+
+	// Support proxy protocol.
+	proxyListener := &proxyproto.Listener{Listener: listener}
+	defer proxyListener.Close()
+
+	listener = proxyListener
 
 	// Server the embedded pages.
 	fsUI, err := fs.Sub(fs.FS(staticFiles), "html")
@@ -124,6 +114,10 @@ func do(ctx context.Context) error {
 
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
+	}
+
+	if tlsCert != "" && tlsKey != "" {
+		return server.ServeTLS(proxyListener, tlsCert, tlsKey)
 	}
 
 	return server.Serve(listener)
@@ -196,7 +190,7 @@ func apiCertificate(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("certificate generated", "client", clientAddress(r))
 
-	resp := apiCertificateGet{
+	resp := apicustomizer.CertificateGet{
 		Certificate: string(cert),
 		Key:         string(key),
 		PFX:         base64.StdEncoding.EncodeToString(pfx),
@@ -229,7 +223,7 @@ func apiOIDC(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("oidc generated", "client", clientAddress(r), "username", userName)
 
-	resp := apiOIDCGet{
+	resp := apicustomizer.OIDCGet{
 		Issuer:   issuer,
 		ClientID: clientID,
 	}
@@ -254,7 +248,7 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse the request.
-	var req apiImagesPost
+	var req apicustomizer.ImagesPost
 
 	err := yaml.NewDecoder(http.MaxBytesReader(w, r.Body, 1024*1024)).Decode(&req)
 	if err != nil {
@@ -504,7 +498,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	slog.Info("image retrieve: retrieved", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture)
 }
 
-func writeSeed(writer io.Writer, seeds apiImagesPostSeeds) (int, error) {
+func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, error) {
 	archiveContents := [][]string{}
 
 	// Create applications yaml contents.
