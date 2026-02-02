@@ -16,6 +16,7 @@ require (
 	github.com/klauspost/compress v1.18.3
 	github.com/lxc/incus/v6 v6.21.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
+	github.com/pires/go-proxyproto v0.9.0
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
 	github.com/spf13/cobra v1.10.2

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
 	"gopkg.in/yaml.v3"
 
@@ -93,13 +94,31 @@ func do(ctx context.Context) error {
 		return errors.New("missing image path")
 	}
 
-	// Start REST server.
+	// Setup the listener.
 	lc := &net.ListenConfig{}
 
-	listener, err := lc.Listen(ctx, "tcp", ":8080")
+	tlsCert := os.Getenv("TLS_CERT")
+	tlsKey := os.Getenv("TLS_KEY")
+
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		if tlsCert != "" && tlsKey != "" {
+			listenAddress = ":8443"
+		} else {
+			listenAddress = ":8080"
+		}
+	}
+
+	listener, err := lc.Listen(ctx, "tcp", listenAddress)
 	if err != nil {
 		return err
 	}
+
+	// Support proxy protocol.
+	proxyListener := &proxyproto.Listener{Listener: listener}
+	defer proxyListener.Close()
+
+	listener = proxyListener
 
 	// Server the embedded pages.
 	fsUI, err := fs.Sub(fs.FS(staticFiles), "html")
@@ -124,6 +143,10 @@ func do(ctx context.Context) error {
 
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
+	}
+
+	if tlsCert != "" && tlsKey != "" {
+		return server.ServeTLS(proxyListener, tlsCert, tlsKey)
 	}
 
 	return server.Serve(listener)
