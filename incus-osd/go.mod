@@ -3,7 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.24.12
 
 require (
-	github.com/FuturFusion/migration-manager v0.4.0
+	github.com/FuturFusion/migration-manager v0.4.1
 	github.com/FuturFusion/operations-center v0.2.2
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
@@ -90,9 +90,9 @@ require (
 	github.com/zitadel/oidc/v3 v3.45.3 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.39.0 // indirect
-	go.opentelemetry.io/otel/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.39.0 // indirect
+	go.opentelemetry.io/otel v1.40.0 // indirect
+	go.opentelemetry.io/otel/metric v1.40.0 // indirect
+	go.opentelemetry.io/otel/trace v1.40.0 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
