@@ -157,6 +157,29 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 
 				// Iterate through the device paths for this event, until we get to the actual PE binary.
 				for _, dev := range devPaths {
+					// EFI Vendor-defined data
+					if dev.Type == tcg.MediaDevice && dev.Subtype == 3 {
+						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
+						// from the UKI.
+						if bytes.Equal(systemdStubGUID[:], dev.Data) {
+							buf, err := computeVmlinuzAuthenticodeHash(newUkiImage)
+							if err != nil {
+								return nil, err
+							}
+
+							// Extend the PCR4 value.
+							actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, buf, false)
+							if err != nil {
+								return nil, err
+							}
+
+							foundPE = true
+
+							break
+						}
+					}
+
+					// EFI File Path
 					if dev.Type == tcg.MediaDevice && dev.Subtype == 4 {
 						peName, err := util.UTF16ToString(dev.Data)
 						if err != nil {
@@ -202,9 +225,8 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 				}
 
 				// If we didn't find the PE binary under /boot/, it's likely some sort of BMC early boot binary measured by the TPM
-				// before booting the configured EFI application (ie, systemd-boot -> IncusOS UKI). Certain systems also seem to have
-				// some sort of raw EFIBootServicesApplication measurement after PCR11 measures the UKI's various sections. In either
-				// case, since there's no actual PE binary we can read, re-use the existing digest from the event log.
+				// before booting the configured EFI application (ie, systemd-boot -> IncusOS UKI). In this case, since there's no
+				// actual PE binary we can read, re-use the existing digest from the event log.
 				if !foundPE {
 					actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, e.ReplayedDigest(), false)
 					if err != nil {
@@ -224,6 +246,35 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 	}
 
 	return actualPCR4Buf, nil
+}
+
+func computeVmlinuzAuthenticodeHash(ukiFile string) ([]byte, error) {
+	// Extract vmlinuz from the UKI.
+	peFile, err := pe.Open(ukiFile)
+	if err != nil {
+		return nil, err
+	}
+	defer peFile.Close()
+
+	vmlinuzSection := peFile.Section(".linux")
+	if vmlinuzSection == nil {
+		return nil, fmt.Errorf("failed to read .linux section from '%s'", ukiFile)
+	}
+
+	vmlinuzData, err := vmlinuzSection.Data()
+	if err != nil {
+		return nil, err
+	} else if len(vmlinuzData) != int(vmlinuzSection.Size) {
+		return nil, fmt.Errorf("only read %d of %d bytes while getting .linux section from '%s'", len(vmlinuzData), vmlinuzSection.Size, ukiFile)
+	}
+
+	// Get the authenticode of the vmlinuz section. We use VirtualSize, since the section is padded with null bytes.
+	authenticodeContents, err := authenticode.Parse(bytes.NewReader(vmlinuzData[0:vmlinuzSection.VirtualSize]))
+	if err != nil {
+		return nil, err
+	}
+
+	return authenticodeContents.Hash(crypto.SHA256), nil
 }
 
 // computeNewPCR7Value will compute the future PCR7 value after the KEK, db, and/or dbx EFI variables are updated.

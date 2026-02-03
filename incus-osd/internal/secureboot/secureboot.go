@@ -28,6 +28,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
+var systemdStubGUID = [16]byte{0xf8, 0xd1, 0xc5, 0x55, 0xcd, 0x4, 0xb5, 0x46, 0x8a, 0x20, 0xe5, 0x6c, 0xbb, 0x30, 0x52, 0xd0}
+
 // Enabled checks if Secure Boot is currently enabled.
 func Enabled() (bool, error) {
 	state, err := readEFIVariable("SecureBoot")
@@ -255,7 +257,7 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 // ValidatePEBinaries checks that each PE binary measured in the TPM's PCR4 event log
 // still matches when read back from disk and that it is signed with a trusted IncusOS
 // certificate.
-func ValidatePEBinaries() error {
+func ValidatePEBinaries() error { //nolint:revive
 	// Get and verify the current PCR states.
 	eventLog, err := GetValidatedTPMEventLog()
 	if err != nil {
@@ -315,6 +317,33 @@ outer:
 
 				// Iterate through the device paths for this event, until we get to the actual PE binary.
 				for _, dev := range devPaths {
+					// EFI Vendor-defined data
+					if dev.Type == tcg.MediaDevice && dev.Subtype == 3 {
+						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
+						// from the UKI.
+						if bytes.Equal(systemdStubGUID[:], dev.Data) {
+							ukiFile, err := getUKIImage()
+							if err != nil {
+								return err
+							}
+
+							_, _ = b.WriteString("  .linux section of " + ukiFile + "\n")
+
+							buf, err := computeVmlinuzAuthenticodeHash(ukiFile)
+							if err != nil {
+								return err
+							}
+
+							// Verify that the authenticode from disk matches the TPM event log.
+							if !bytes.Equal(buf, e.ReplayedDigest()) {
+								return fmt.Errorf("authenticode mismatch for .linux section in file '%s'", ukiFile)
+							}
+
+							break
+						}
+					}
+
+					// EFI File Path
 					if dev.Type == tcg.MediaDevice && dev.Subtype == 4 {
 						peName, err := util.UTF16ToString(dev.Data)
 						if err != nil {
