@@ -10,8 +10,8 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-if [ ! -d certs/ ]; then
-    echo "Directory './certs/' doesn't exist, exiting"
+if [ ! -d incus-osd/certs/files/ ]; then
+    echo "Directory './incus-osd/certs/files/' doesn't exist, exiting"
     exit 1
 fi
 
@@ -35,8 +35,8 @@ mdel -i "$1"@@$OFFSET ::mkosi.der || true
 
 # Push the new enrollment keys.
 mmd -i "$1"@@$OFFSET ::loader/keys/auto
-mcopy -i "$1"@@$OFFSET certs/efi/*.auth ::loader/keys/auto/
+mcopy -i "$1"@@$OFFSET incus-osd/certs/files/*.auth ::loader/keys/auto/
 
 # Push the keys as DER.
 mmd -i "$1"@@$OFFSET ::keys
-mcopy -i "$1"@@$OFFSET certs/efi/*.der ::keys/ || true
+mcopy -i "$1"@@$OFFSET incus-osd/certs/files/*.der ::keys/ || true

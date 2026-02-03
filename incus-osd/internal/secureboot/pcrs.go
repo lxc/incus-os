@@ -399,7 +399,7 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Find the matching certificate.
-	index := slices.IndexFunc(certs, func(c x509.Certificate) bool {
+	index := slices.IndexFunc(certs, func(c *x509.Certificate) bool {
 		return c.Equal(existingCert)
 	})
 	if index < 0 {

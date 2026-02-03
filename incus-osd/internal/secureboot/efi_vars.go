@@ -22,12 +22,13 @@ import (
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
+	incusoscerts "github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // GetCertificatesFromVar returns a list of certificates currently in a given EFI variable.
-func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
-	var certs []x509.Certificate
+func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
 
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
@@ -56,16 +57,29 @@ func GetCertificatesFromVar(varName string) ([]x509.Certificate, error) {
 				continue
 			}
 
-			certs = append(certs, *certInfo.cert)
+			certs = append(certs, certInfo.cert)
 		}
 	} else {
-		// When Secure Boot is disabled, rely on any certificates present in /usr/lib/incus-osd/certs/.
-		// Since those files are part of the usr-verity image, they are read-only and the verity
+		// When Secure Boot is disabled, rely on any certificates baked into the IncusOS daemon.
+		// Since the executable is part of the usr-verity image, it is read-only and the verity
 		// image has been verified both during install/upgrade as well as boot-time checks against
 		// the TPM event log. Therefore it should to be relatively safe to trust the contents.
-		certs, err = util.GetFilesystemTrustedCerts(varName + ".crt")
+		embeddedCerts, err := incusoscerts.GetEmbeddedCertificates()
 		if err != nil {
 			return nil, err
+		}
+
+		switch varName {
+		case "PK":
+			certs = []*x509.Certificate{embeddedCerts.SecureBootCertificates.PK}
+		case "KEK":
+			certs = embeddedCerts.SecureBootCertificates.KEK
+		case "db":
+			certs = embeddedCerts.SecureBootCertificates.DB
+		case "dbx":
+			certs = embeddedCerts.SecureBootCertificates.DBX
+		default:
+			return nil, errors.New("unable to get SecureBoot certificates from daemon for variable " + varName)
 		}
 	}
 
@@ -200,7 +214,7 @@ func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[st
 			return false, err
 		}
 
-		if slices.ContainsFunc(existingCerts, func(c x509.Certificate) bool {
+		if slices.ContainsFunc(existingCerts, func(c *x509.Certificate) bool {
 			cFingerprint := sha256.Sum256(c.Raw)
 
 			return bytes.Equal(certFingerprintBytes, cFingerprint[:])

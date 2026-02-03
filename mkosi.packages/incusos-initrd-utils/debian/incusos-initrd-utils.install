@@ -12,5 +12,3 @@ systemd-fsck.conf      usr/lib/systemd/system/systemd-fsck@dev-disk-by\x2dpartla
 systemd-repart.conf    usr/lib/systemd/system/systemd-repart.service.d/
 
 99-add-cdrom-partitions.rules usr/lib/udev/rules.d/
-
-certs/ usr/lib/incus-osd/
