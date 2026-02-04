@@ -39,6 +39,7 @@ homelab
 hotfix
 HP
 HTTPS
+hugepages
 IMG
 Incus
 IncusOS
