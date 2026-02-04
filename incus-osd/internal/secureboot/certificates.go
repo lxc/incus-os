@@ -92,7 +92,7 @@ func parseEfiSignatureList(b []byte) ([]parsedSignatureList, error) {
 				sigOffset += signatures.Header.SignatureSize
 			}
 		default:
-			err = fmt.Errorf("unhandled signature type %s", signatureType)
+			err = fmt.Errorf("unhandled signature EFI_GUID type '%x-%x-%x-%x-%x'", signatureType[:4], signatureType[4:6], signatureType[6:8], signatureType[8:10], signatureType[10:])
 		}
 
 		if err != nil {
