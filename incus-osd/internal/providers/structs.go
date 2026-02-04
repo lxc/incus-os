@@ -82,7 +82,7 @@ func GetUpdateCACert() (string, error) {
 
 	err = pem.Encode(&b, &pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: embeddedCerts.UpdateCACertificate.Raw,
+		Bytes: embeddedCerts.RootCACertificate.Raw,
 	})
 	if err != nil {
 		return "", err
