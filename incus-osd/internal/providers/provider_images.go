@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -313,9 +314,18 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 	// Get the latest update for the expected channel.
 	var latestUpdate *apiupdate.UpdateFull
 
+	channelExists := false
+
 	for _, update := range index.Updates {
 		// Skip any update targeting the wrong channel(s).
-		if update.Version != p.state.OS.RunningRelease && p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+			continue
+		}
+
+		channelExists = true
+
+		// Skip the current version.
+		if update.Version != p.state.OS.RunningRelease {
 			continue
 		}
 
@@ -345,6 +355,10 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		latestUpdate = &update
 
 		break
+	}
+
+	if !channelExists {
+		slog.Warn("The configured update channel doesn't currently hold any image", "channel", p.state.System.Update.Config.Channel)
 	}
 
 	if latestUpdate == nil {

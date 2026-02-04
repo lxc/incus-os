@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"slices"
 	"time"
 )
 
@@ -41,11 +40,6 @@ type SystemUpdateMaintenanceWindow struct {
 
 // Validate performs basic sanity checks against update configuration.
 func (c *SystemUpdateConfig) Validate() error {
-	// Check the update channel is valid.
-	if !slices.Contains([]string{"stable", "testing"}, c.Channel) {
-		return errors.New("invalid update channel '" + c.Channel + "'")
-	}
-
 	// Check the update frequency is valid.
 	if c.CheckFrequency != "never" {
 		_, err := time.ParseDuration(c.CheckFrequency)
