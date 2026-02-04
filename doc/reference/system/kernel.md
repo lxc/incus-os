@@ -10,6 +10,9 @@ The following configuration options can be set:
 
 * `blacklist_modules`: A list of one or more kernel modules to blacklist. Typically useful when passing through PCI devices to virtual machines.
 
+* `memory`: Change `sysctl` values that impact the system's memory configuration
+   * `persistent_hugepages`: Optional; number of persistent hugepages to allocate.
+
 * `network`: Change `sysctl` values that impact the system's network configuration.
    * `buffer_size`: Optional; configure the maximum buffer size used when setting the `net.ipv4.tcp_rmem`, `net.ipv4.tcp_wmem`, `net.core.rmem_max`, and `net.core.wmem_max` `sysctl` fields.
 
