@@ -36,9 +36,15 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	return app, nil
 }
 
-// GetPrimary returns the current primary application.
+// GetPrimary returns the current primary application once initialized.
 func GetPrimary(ctx context.Context, s *state.State) (Application, error) {
-	for appName := range s.Applications {
+	for appName, v := range s.Applications {
+		// Skip uninitialized applications.
+		if !v.State.Initialized {
+			continue
+		}
+
+		// Load the application.
 		app, err := Load(ctx, s, appName)
 		if err != nil {
 			return nil, err
