@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -513,15 +514,28 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	// Get the latest update for the expected channel.
 	var latestUpdate *operationsCenterUpdate
 
+	channelExists := false
+
 	for _, update := range updates {
 		// Skip any update targeting the wrong channel(s).
-		if update.Version != p.state.OS.RunningRelease && p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
+			continue
+		}
+
+		channelExists = true
+
+		// Skip the current version.
+		if update.Version != p.state.OS.RunningRelease {
 			continue
 		}
 
 		latestUpdate = &update
 
 		break
+	}
+
+	if !channelExists {
+		slog.Warn("The configured update channel doesn't currently hold any image", "channel", p.state.System.Update.Config.Channel)
 	}
 
 	if latestUpdate == nil {
