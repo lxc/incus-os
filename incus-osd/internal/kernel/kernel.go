@@ -25,7 +25,7 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 	}
 
 	// Update network sysctl configuration.
-	err = updateNetworkSysctlConfig(ctx, config.Network)
+	err = updateSysctlConfig(ctx, config.Network, config.Memory)
 	if err != nil {
 		return err
 	}
@@ -84,14 +84,20 @@ func updateBlacklistModules(modules []string) error {
 	return nil
 }
 
-func updateNetworkSysctlConfig(ctx context.Context, config *api.SystemKernelConfigNetwork) error {
+func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNetwork, memConfig *api.SystemKernelConfigMemory) error {
 	// Perform simple validation checks.
-	if config != nil {
-		if config.BufferSize < 0 {
+	if memConfig != nil {
+		if memConfig.PersistentHugepages < 0 {
+			return errors.New("persistent hugepages count cannot be negative")
+		}
+	}
+
+	if netConfig != nil {
+		if netConfig.BufferSize < 0 {
 			return errors.New("buffer size cannot be negative")
 		}
 
-		if config.TCPCongestionAlgorithm != "" {
+		if netConfig.TCPCongestionAlgorithm != "" {
 			output, err := subprocess.RunCommand("sysctl", "-n", "net.ipv4.tcp_available_congestion_control")
 			if err != nil {
 				return err
@@ -99,22 +105,23 @@ func updateNetworkSysctlConfig(ctx context.Context, config *api.SystemKernelConf
 
 			output = strings.TrimSuffix(output, "\n")
 
-			if !slices.Contains(strings.Split(output, " "), config.TCPCongestionAlgorithm) {
+			if !slices.Contains(strings.Split(output, " "), netConfig.TCPCongestionAlgorithm) {
 				return fmt.Errorf("unsupported tcp_congestion_control value, must be one of %v", strings.Split(output, " "))
 			}
 		}
 	}
 
-	// Remove the existing configuration file, if it exists.
-	err := os.Remove("/etc/sysctl.d/99-local-network-sysctl.conf")
+	// Remove the existing configuration files, if they exist.
+	err := os.Remove("/etc/sysctl.d/99-local-sysctl.conf")
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 
-	// If no sysctls are provided, there's nothing else to do.
-	if config == nil {
-		// Restart the systemd-sysctl service to pickup changes.
-		return systemd.RestartUnit(ctx, "systemd-sysctl.service")
+	// Remove legacy sysctl configuration.
+	// NOTE: Can be removed in April 2026.
+	err = os.Remove("/etc/sysctl.d/99-local-network-sysctl.conf")
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
 	// Ensure the sysctl.d directory exists.
@@ -124,29 +131,34 @@ func updateNetworkSysctlConfig(ctx context.Context, config *api.SystemKernelConf
 	}
 
 	// Create the new configuration file.
-	fd, err := os.Create("/etc/sysctl.d/99-local-network-sysctl.conf")
+	fd, err := os.Create("/etc/sysctl.d/99-local-sysctl.conf")
 	if err != nil {
 		return err
 	}
 	defer fd.Close()
 
 	// Write the file contents.
-	if config.BufferSize != 0 {
-		_, err := fmt.Fprintf(fd, "net.ipv4.tcp_rmem = 4096 65536 %d\nnet.ipv4.tcp_wmem = 4096 65536 %d\nnet.core.rmem_max = %d\nnet.core.wmem_max = %d\n", config.BufferSize, config.BufferSize, config.BufferSize, config.BufferSize)
+	_, err = fmt.Fprintf(fd, "vm.nr_hugepages = %d\n", memConfig.PersistentHugepages)
+	if err != nil {
+		return err
+	}
+
+	if netConfig.BufferSize != 0 {
+		_, err := fmt.Fprintf(fd, "net.ipv4.tcp_rmem = 4096 65536 %d\nnet.ipv4.tcp_wmem = 4096 65536 %d\nnet.core.rmem_max = %d\nnet.core.wmem_max = %d\n", netConfig.BufferSize, netConfig.BufferSize, netConfig.BufferSize, netConfig.BufferSize)
 		if err != nil {
 			return err
 		}
 	}
 
-	if config.QueuingDiscipline != "" {
-		_, err := fd.WriteString("net.core.default_qdisc = " + config.QueuingDiscipline + "\n")
+	if netConfig.QueuingDiscipline != "" {
+		_, err := fd.WriteString("net.core.default_qdisc = " + netConfig.QueuingDiscipline + "\n")
 		if err != nil {
 			return err
 		}
 	}
 
-	if config.TCPCongestionAlgorithm != "" {
-		_, err := fd.WriteString("net.ipv4.tcp_congestion_control = " + config.TCPCongestionAlgorithm + "\n")
+	if netConfig.TCPCongestionAlgorithm != "" {
+		_, err := fd.WriteString("net.ipv4.tcp_congestion_control = " + netConfig.TCPCongestionAlgorithm + "\n")
 		if err != nil {
 			return err
 		}
