@@ -29,6 +29,10 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	processesCmd := cmdAdminOSDebugProcesses{os: c.os}
 	cmd.AddCommand(processesCmd.command())
 
+	// Secure boot.
+	secureBootCmd := cmdAdminOSDebugSecureBoot{os: c.os}
+	cmd.AddCommand(secureBootCmd.command())
+
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
@@ -205,4 +209,40 @@ func (c *cmdAdminOSDebugProcesses) run(cmd *cobra.Command, args []string) error 
 	}
 
 	return nil
+}
+
+// IncusOS debug secureboot command.
+type cmdAdminOSDebugSecureBoot struct {
+	os *cmdAdminOS
+}
+
+func (c *cmdAdminOSDebugSecureBoot) command() *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Use = cli.Usage("secureboot")
+	cmd.Short = "Debug IncusOS secureboot"
+	cmd.Long = cli.FormatSection("Description", "Debug IncusOS secureboot")
+
+	// Event log.
+	eventLogCmd := cmdGenericShow{
+		os:          c.os,
+		endpoint:    "debug/secureboot/event-log",
+		name:        "event-log",
+		description: "Show the TPM event log",
+	}
+	cmd.AddCommand(eventLogCmd.command())
+
+	// Update.
+	updateCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "update",
+		description: "Update the secureboot keys",
+		endpoint:    "debug/secureboot",
+	}
+	cmd.AddCommand(updateCmd.command())
+
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
+	cmd.Args = cobra.NoArgs
+	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
+
+	return cmd
 }
