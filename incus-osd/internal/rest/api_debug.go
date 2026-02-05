@@ -53,7 +53,7 @@ import (
 //	          description: List of debug endpoints
 //	          items:
 //	            type: string
-//	          example: ["/1.0/debug/log","/1.0/debug/tui"]
+//	          example: ["/1.0/debug/log","/1.0/debug/secureboot"]
 func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -67,7 +67,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"log", "tui"} {
+	for _, debug := range []string{"log", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}
@@ -190,6 +190,63 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.SyncResponse(true, jsonObj).Render(w)
+}
+
+// swagger:operation GET /1.0/debug/secureboot debug debug_secureboot_get
+//
+//	Get secureboot debug endpoints
+//
+//	Returns a list of secureboot debug endpoints (URLs).
+//
+//	These endpoints have no guarantee of API stability, and should not be used in normal day-to-day operations.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: API endpoints
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: array
+//	          description: List of secureboot debug endpoints
+//	          items:
+//	            type: string
+//	          example: ["/1.0/debug/secureboot/event-log"]
+func (*Server) apiDebugSecureBoot(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	endpoint, _ := url.JoinPath(getAPIRoot(r), "debug", "secureboot")
+
+	urls := []string{}
+
+	for _, debug := range []string{"event-log"} {
+		debugURL, _ := url.JoinPath(endpoint, debug)
+		urls = append(urls, debugURL)
+	}
+
+	_ = response.SyncResponse(true, urls).Render(w)
 }
 
 // swagger:operation GET /1.0/debug/secureboot/event-log debug debug_get_secureboot_event_log
