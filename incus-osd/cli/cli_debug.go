@@ -25,6 +25,14 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	logCmd := cmdAdminOSDebugLog{os: c.os}
 	cmd.AddCommand(logCmd.command())
 
+	// Processes.
+	processesCmd := cmdAdminOSDebugProcesses{os: c.os}
+	cmd.AddCommand(processesCmd.command())
+
+	// Secure boot.
+	secureBootCmd := cmdAdminOSDebugSecureBoot{os: c.os}
+	cmd.AddCommand(secureBootCmd.command())
+
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
@@ -141,4 +149,100 @@ func (c *cmdAdminOSDebugLog) run(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// Processes.
+type cmdAdminOSDebugProcesses struct {
+	os *cmdAdminOS
+}
+
+func (c *cmdAdminOSDebugProcesses) command() *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Use = cli.Usage("processes")
+	cmd.Short = "Get the system processes"
+
+	cmd.Long = cli.FormatSection("Description", "Get the system processes")
+	if c.os.args.SupportsTarget {
+		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
+	}
+
+	cmd.RunE = c.run
+
+	return cmd
+}
+
+func (c *cmdAdminOSDebugProcesses) run(cmd *cobra.Command, args []string) error {
+	// Quick checks.
+	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	if exit {
+		return err
+	}
+
+	// Parse remote.
+	remote := ""
+	if len(args) > 0 {
+		remote, _ = parseRemote(args[0])
+	}
+
+	// Prepare the URL.
+	u, err := url.Parse("/os/1.0/debug/processes")
+	if err != nil {
+		return err
+	}
+
+	// Get the log.
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", u.String(), nil, nil, "")
+	if err != nil {
+		return err
+	}
+
+	var data string
+
+	err = resp.MetadataAsStruct(&data)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Print(data) //nolint:forbidigo
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IncusOS debug secureboot command.
+type cmdAdminOSDebugSecureBoot struct {
+	os *cmdAdminOS
+}
+
+func (c *cmdAdminOSDebugSecureBoot) command() *cobra.Command {
+	cmd := &cobra.Command{}
+	cmd.Use = cli.Usage("secureboot")
+	cmd.Short = "Debug IncusOS secureboot"
+	cmd.Long = cli.FormatSection("Description", "Debug IncusOS secureboot")
+
+	// Event log.
+	eventLogCmd := cmdGenericShow{
+		os:          c.os,
+		endpoint:    "debug/secureboot/event-log",
+		name:        "event-log",
+		description: "Show the TPM event log",
+	}
+	cmd.AddCommand(eventLogCmd.command())
+
+	// Update.
+	updateCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "update",
+		description: "Update the secureboot keys",
+		endpoint:    "debug/secureboot",
+	}
+	cmd.AddCommand(updateCmd.command())
+
+	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
+	cmd.Args = cobra.NoArgs
+	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
+
+	return cmd
 }
