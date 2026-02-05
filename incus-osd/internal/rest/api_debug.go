@@ -53,7 +53,7 @@ import (
 //	          description: List of debug endpoints
 //	          items:
 //	            type: string
-//	          example: ["/1.0/debug/log","/1.0/debug/secureboot"]
+//	          example: ["/1.0/debug/log","/1.0/debug/processes","/1.0/debug/secureboot"]
 func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -67,7 +67,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"log", "secureboot"} {
+	for _, debug := range []string{"log", "processes", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}
@@ -190,6 +190,60 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.SyncResponse(true, jsonObj).Render(w)
+}
+
+// swagger:operation GET /1.0/debug/processes debug debug_get_processes
+//
+//	Get process list
+//
+//	Return a list of all system processes
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: text list of system processes
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          type: array
+//	          description: Text list of system processes
+//	          items:
+//	            type: string
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiDebugProcesses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	output, err := subprocess.RunCommandContext(r.Context(), "ps", "fauxww")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, output).Render(w)
 }
 
 // swagger:operation GET /1.0/debug/secureboot debug debug_secureboot_get
