@@ -8,8 +8,8 @@ IncusOS utilizes `systemd-repart` to automatically partition the main system dri
     A-side root partition hashes (100MiB)
     A-side root partition (1GiB)
     B-side root partition signing (16KiB)
-    B-side root partition hashes (100Mib)
-    B-side root partition (1GiB
+    B-side root partition hashes (100MiB)
+    B-side root partition (1GiB)
     LUKS encrypted swap (4GiB)
     LUKS encrypted ext4 system data (25 GiB)
     ZFS encrypted pool "local" (remaining space)
