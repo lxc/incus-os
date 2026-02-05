@@ -435,13 +435,16 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 type cmdGenericShow struct {
 	os *cmdAdminOS
 
+	name        string
+	description string
 	endpoint    string
 	entity      string
 	entityShort string
 }
 
 func (c *cmdGenericShow) command() *cobra.Command {
-	name := "Show details"
+	description := "Show details"
+	name := "show"
 
 	usage := ""
 	if c.os.args.SupportsRemote {
@@ -449,14 +452,22 @@ func (c *cmdGenericShow) command() *cobra.Command {
 	}
 
 	if c.entity != "" {
-		name = "Show " + c.entity + " details"
+		description = "Show " + c.entity + " details"
 		usage += "<" + c.entityShort + ">"
 	}
 
+	if c.description != "" {
+		description = c.description
+	}
+
+	if c.name != "" {
+		name = c.name
+	}
+
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("show", usage)
-	cmd.Short = name
-	cmd.Long = cli.FormatSection("Description", name)
+	cmd.Use = cli.Usage(name, usage)
+	cmd.Short = description
+	cmd.Long = cli.FormatSection("Description", description)
 
 	if c.os.args.SupportsTarget {
 		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
