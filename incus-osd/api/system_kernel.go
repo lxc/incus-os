@@ -3,8 +3,14 @@ package api
 // SystemKernelConfig holds the kernel-level configuration data.
 type SystemKernelConfig struct {
 	BlacklistModules []string                   `json:"blacklist_modules,omitempty" yaml:"blacklist_modules,omitempty"`
+	Memory           *SystemKernelConfigMemory  `json:"memory,omitempty"            yaml:"memory,omitempty"`
 	Network          *SystemKernelConfigNetwork `json:"network,omitempty"           yaml:"network,omitempty"`
 	PCI              *SystemKernelConfigPCI     `json:"pci,omitempty"               yaml:"pci,omitempty"`
+}
+
+// SystemKernelConfigMemory holds memory-specific kernel configuration.
+type SystemKernelConfigMemory struct {
+	PersistentHugepages int `json:"persistent_hugepages" yaml:"persistent_hugepages"`
 }
 
 // SystemKernelConfigNetwork holds network-specific kernel configuration.
