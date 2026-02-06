@@ -60,11 +60,11 @@ Before the install commences, a warning message will be displayed for 30 seconds
 
 Finally, IncusOS will begin its installation.
 
-![Proxmox VM installing IncusOS](../../images/hyperv-vm-install.png)
+![Hyper-V VM installing IncusOS](../../images/hyperv-vm-install.png)
 
 Upon completion of the install, stop the virtual machine and remove the second hard disk.
 
-![Proxmox VM installation complete](../../images/hyperv-vm-install-complete.png)
+![Hyper-V VM installation complete](../../images/hyperv-vm-install-complete.png)
 
 ## IncusOS is ready for use
 
@@ -72,4 +72,4 @@ Start the virtual machine, and IncusOS will perform its first boot configuration
 
 Because Secure Boot is disabled, a prominent header will display a warning about the degraded security state of the system.
 
-![Proxmox VM running IncusOS](../../images/hyperv-vm-incusos-running.png)
+![Hyper-V VM running IncusOS](../../images/hyperv-vm-incusos-running.png)
