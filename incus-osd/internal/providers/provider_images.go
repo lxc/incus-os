@@ -325,7 +325,7 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		channelExists = true
 
 		// Skip the current version.
-		if update.Version != p.state.OS.RunningRelease {
+		if update.Version == p.state.OS.RunningRelease {
 			continue
 		}
 
