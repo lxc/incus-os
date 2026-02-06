@@ -187,6 +187,7 @@ test-applications:
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
 	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
+	incus file push mkosi.output/openfga.raw test-incus-os/root/updates/
 	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
@@ -205,6 +206,7 @@ test-update:
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
 	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
+	incus file push mkosi.output/openfga.raw test-incus-os/root/updates/
 	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
