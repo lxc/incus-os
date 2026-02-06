@@ -525,7 +525,7 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 		channelExists = true
 
 		// Skip the current version.
-		if update.Version != p.state.OS.RunningRelease {
+		if update.Version == p.state.OS.RunningRelease {
 			continue
 		}
 
