@@ -58,3 +58,7 @@ incus cluster list my-cluster:
 This will get `server2` to join `my-cluster`, then remove the
 server-specific `server2` remote and show an overview of the servers in
 the cluster.
+
+```{note}
+Use `local/incus` as the value for the `source` and `zfs.pool_name` keys on the `local` storage pool.
+```
