@@ -15,11 +15,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	ghapi "github.com/google/go-github/v72/github"
 	"github.com/lxc/incus/v6/shared/osarch"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )
@@ -109,6 +111,10 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the image files.
+	var muDownload sync.Mutex
+
+	g := new(errgroup.Group)
+
 	for imageArch, imageURL := range releaseURLs {
 		// Convert the architecture name.
 		archID, err := osarch.ArchitectureID(imageArch)
@@ -124,12 +130,25 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		// Download the image.
 		targetPath := filepath.Join(targetPath, releaseName)
 
-		files, err := c.downloadImage(ctx, archName, imageURL, targetPath)
-		if err != nil {
-			return err
-		}
+		g.Go(func() error {
+			files, err := c.downloadImage(ctx, archName, imageURL, targetPath)
+			if err != nil {
+				return err
+			}
 
-		metaUpdate.Files = append(metaUpdate.Files, files...)
+			muDownload.Lock()
+
+			metaUpdate.Files = append(metaUpdate.Files, files...)
+
+			muDownload.Unlock()
+
+			return nil
+		})
+	}
+
+	err = g.Wait()
+	if err != nil {
+		return err
 	}
 
 	// Include the SecureBoot update (if present).

@@ -519,14 +519,13 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	for _, update := range updates {
 		// Skip any update targeting the wrong channel(s).
 		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
-			continue
-		}
-
-		channelExists = true
-
-		// Skip the current version.
-		if update.Version == p.state.OS.RunningRelease {
-			continue
+			// If dealing with an image other than the current one, skip.
+			if update.Version != p.state.OS.RunningRelease {
+				continue
+			}
+		} else {
+			// Record that we found the channel in the remote list.
+			channelExists = true
 		}
 
 		latestUpdate = &update
