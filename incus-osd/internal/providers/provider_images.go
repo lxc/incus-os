@@ -319,14 +319,13 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 	for _, update := range index.Updates {
 		// Skip any update targeting the wrong channel(s).
 		if p.state.System.Update.Config.Channel != "" && !slices.Contains(update.Channels, p.state.System.Update.Config.Channel) {
-			continue
-		}
-
-		channelExists = true
-
-		// Skip the current version.
-		if update.Version == p.state.OS.RunningRelease {
-			continue
+			// If dealing with an image other than the current one, skip.
+			if update.Version != p.state.OS.RunningRelease {
+				continue
+			}
+		} else {
+			// Record that we found the channel in the remote list.
+			channelExists = true
 		}
 
 		// Skip any update with no files.
