@@ -719,7 +719,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 	for {
 		// Determine if a primary application is installed or not.
-		primaryApplication, err := applications.GetPrimary(ctx, s)
+		primaryApplication, err := applications.GetPrimary(ctx, s, false)
 		if err != nil && !errors.Is(err, applications.ErrNoPrimary) {
 			s.System.Update.State.Status = "Failed to check if a primary application is installed"
 			slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())

@@ -159,14 +159,14 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 		return err
 	}
 
-	// Get the primary application.
-	app, err := applications.GetPrimary(ctx, p.state)
-	if err != nil {
-		return err
-	}
-
 	// Get the server certificate.
 	if registrationResp.Certificate != "" {
+		// Get the primary application.
+		app, err := applications.GetPrimary(ctx, p.state, true)
+		if err != nil {
+			return err
+		}
+
 		err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.Certificate)
 		if err != nil {
 			return err
@@ -287,7 +287,7 @@ func (p *operationsCenter) load(ctx context.Context) error {
 	p.serverToken = p.state.System.Provider.Config.Config["server_token"]
 
 	// Check if we're running Operations Center locally.
-	app, err := applications.GetPrimary(ctx, p.state)
+	app, err := applications.GetPrimary(ctx, p.state, false)
 	if err != nil && !errors.Is(err, applications.ErrNoPrimary) {
 		return err
 	}
@@ -370,7 +370,7 @@ func (p *operationsCenter) loadTLS(ctx context.Context) error {
 
 func (p *operationsCenter) configureClientCertificate(ctx context.Context, tlsConfig *tls.Config) error {
 	// Get the primary application.
-	app, err := applications.GetPrimary(ctx, p.state)
+	app, err := applications.GetPrimary(ctx, p.state, true)
 	if err != nil {
 		if errors.Is(err, applications.ErrNoPrimary) {
 			// Don't try to setup the TLS client certificate if no primary application installed yet.
