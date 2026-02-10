@@ -78,6 +78,7 @@ type zpoolStatusPartialParse struct {
 			Vdevs map[string]struct {
 				VdevType   string `json:"vdev_type"`
 				State      string `json:"state"`
+				Path       string `json:"path"`
 				AllocSpace int    `json:"alloc_space"`
 				TotalSpace int    `json:"total_space"`
 				DefSpace   int    `json:"def_space"`
@@ -332,7 +333,8 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	zpoolDevices := make(map[string][]string)
 
 	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
-		if vdev.VdevType == "disk" {
+		switch vdev.VdevType {
+		case "disk":
 			zpoolType = "zfs-raid0"
 
 			// For installs before the storage API was implemented, the "local" ZFS pool was created using
@@ -348,7 +350,13 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 			} else {
 				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], parentDir+vdevName)
 			}
-		} else {
+		case "file":
+			if vdev.State == "ONLINE" {
+				zpoolDevices["devices"] = append(zpoolDevices["devices"], vdev.Path)
+			} else {
+				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], vdev.Path)
+			}
+		default:
 			switch vdevName {
 			case "mirror-0":
 				// Only set the zpoolType if it doesn't already have a value; the ordering of vdevs is random.
