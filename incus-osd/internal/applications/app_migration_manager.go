@@ -285,12 +285,7 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 
 // WipeLocalData removes local data created by the application.
 func (*migrationManager) WipeLocalData() error {
-	err := os.RemoveAll("/var/lib/migration-manager/")
-	if err != nil {
-		return err
-	}
-
-	return os.Remove("/var/log/migration-manager.log")
+	return os.RemoveAll("/var/lib/migration-manager/")
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
