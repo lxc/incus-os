@@ -35,6 +35,10 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("unexpected HTTP status: " + resp.Status)
+	}
+
 	// Setup a sha256 hasher.
 	h := sha256.New()
 
