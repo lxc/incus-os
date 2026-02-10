@@ -1,14 +1,20 @@
-incusos-initrd-utils     usr/bin/
-initrd-debug-info.sh     usr/bin/
-initrd-startup-checks.sh usr/bin/
+incusos-initrd-utils          usr/bin/
+initrd-debug-info.sh          usr/bin/
+initrd-multipath.sh           usr/bin/
+initrd-multipath-partition.sh usr/bin/
+initrd-startup-checks.sh      usr/bin/
 
-initrd-debug-info.service     usr/lib/systemd/system/
-initrd-startup-checks.service usr/lib/systemd/system/
-initrd-swtpm.service          usr/lib/systemd/system/
-initrd-tmpfs-root.service     usr/lib/systemd/system/
+initrd-debug-info.service          usr/lib/systemd/system/
+initrd-multipath.service           usr/lib/systemd/system/
+initrd-multipath-partition.service usr/lib/systemd/system/
+initrd-startup-checks.service      usr/lib/systemd/system/
+initrd-swtpm.service               usr/lib/systemd/system/
+initrd-tmpfs-root.service          usr/lib/systemd/system/
 
 00-device-timeout.conf usr/lib/systemd/system.conf.d/
 systemd-fsck.conf      usr/lib/systemd/system/systemd-fsck@dev-disk-by\x2dpartlabel-esp.service.d/
 systemd-repart.conf    usr/lib/systemd/system/systemd-repart.service.d/
 
 99-add-cdrom-partitions.rules usr/lib/udev/rules.d/
+
+repart.d        usr/lib/incus-os/

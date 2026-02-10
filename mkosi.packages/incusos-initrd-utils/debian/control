@@ -8,6 +8,7 @@ Standards-Version: 4.7.2
 Package: incusos-initrd-utils
 Architecture: any
 Depends: kpartx,
+         multipath-tools,
          pciutils,
          usbutils,
          swtpm-tools,

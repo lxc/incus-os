@@ -1,5 +1,10 @@
-usr/lib/systemd/system/initrd-debug-info.service     usr/lib/systemd/system/emergency.target.wants/initrd-debug-info.service
-usr/lib/systemd/system/initrd-startup-checks.service usr/lib/systemd/system/veritysetup.target.wants/initrd-startup-checks.service
-usr/lib/systemd/system/initrd-swtpm.service          usr/lib/systemd/system/cryptsetup.target.wants/initrd-swtpm.service
-usr/lib/systemd/system/initrd-swtpm.service          usr/lib/systemd/system/systemd-cryptsetup@root.service.wants/initrd-swtpm.service
-usr/lib/systemd/system/initrd-swtpm.service          usr/lib/systemd/system/systemd-repart.service.wants/initrd-swtpm.service
+usr/lib/systemd/system/initrd-debug-info.service          usr/lib/systemd/system/emergency.target.wants/initrd-debug-info.service
+usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/boot.mount.wants/initrd-multipath.service
+usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/swap.target.wants/initrd-multipath.service
+usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/systemd-cryptsetup@root.service.wants/initrd-multipath.service
+usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/systemd-veritysetup@usr.service.wants/initrd-multipath.service
+usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/initrd-multipath-partition.service.wants/initrd-multipath.service
+usr/lib/systemd/system/initrd-multipath-partition.service usr/lib/systemd/system/basic.target.wants/initrd-multipath-partition.service
+usr/lib/systemd/system/initrd-swtpm.service               usr/lib/systemd/system/cryptsetup.target.wants/initrd-swtpm.service
+usr/lib/systemd/system/initrd-swtpm.service               usr/lib/systemd/system/systemd-cryptsetup@root.service.wants/initrd-swtpm.service
+usr/lib/systemd/system/initrd-swtpm.service               usr/lib/systemd/system/systemd-repart.service.wants/initrd-swtpm.service

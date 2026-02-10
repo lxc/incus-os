@@ -1,0 +1,14 @@
+[Unit]
+Description=Partition multipath device(s)
+After=initrd-usr-fs.target initrd-multipath.service initrd-swtpm.service systemd-tpm2-setup-early.service
+Requires=initrd-usr-fs.target initrd-multipath.service initrd-swtpm.service systemd-tpm2-setup-early.service
+Before=basic.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+ExecStart=/usr/bin/initrd-multipath-partition.sh
+
+[Install]
+WantedBy=basic.target

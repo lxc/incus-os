@@ -34,6 +34,7 @@ incusos-initrd-utils:
 initrd-deb-package: inject-system-certs incusos-initrd-utils
 	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
 	cp incus-osd/incusos-initrd-utils mkosi.packages/incusos-initrd-utils/
+	rm -rf mkosi.packages/incusos-initrd-utils/repart.d/ && cp -r mkosi.images/base/mkosi.extra/usr/lib/repart.d/ mkosi.packages/incusos-initrd-utils/
 	(cd mkosi.packages/incusos-initrd-utils && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service && debuild)
 	rm -rf mkosi.packages/incusos-initrd-utils/debian/.debhelper/  mkosi.packages/incusos-initrd-utils/debian/debhelper-build-stamp \
           mkosi.packages/incusos-initrd-utils/debian/files \mkosi.packages/incusos-initrd-utils/debian/incusos-initrd-utils.postrm.debhelper \

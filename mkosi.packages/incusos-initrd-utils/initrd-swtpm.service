@@ -1,7 +1,7 @@
 [Unit]
 Description=Start swtpm
-After=boot.mount
-Requires=boot.mount
+After=boot.mount systemd-tmpfiles-setup.service
+Requires=boot.mount systemd-tmpfiles-setup.service
 Before=cryptsetup.target systemd-cryptsetup@root.service systemd-repart.service
 DefaultDependencies=no
 ConditionPathExists=/boot/swtpm/
