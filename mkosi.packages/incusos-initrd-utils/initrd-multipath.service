@@ -1,0 +1,14 @@
+[Unit]
+Description=Configure basic multipath
+After=modprobe@dm_multipath.service modprobe@dm_service_time.service
+Requires=modprobe@dm_multipath.service modprobe@dm_service_time.service
+Before=initrd-multipath-partition.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+ExecStart=/usr/bin/initrd-multipath.sh
+
+[Install]
+WantedBy=initrd-multipath-partition.service

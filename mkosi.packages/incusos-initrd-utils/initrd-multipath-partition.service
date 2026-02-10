@@ -1,0 +1,14 @@
+[Unit]
+Description=Partition multipath device(s)
+After=tpm2.target initrd-multipath.service
+Requires=tpm2.target initrd-multipath.service
+Before=boot.mount swap.target systemd-repart.service systemd-veritysetup@usr.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+ExecStart=/usr/bin/initrd-multipath-partition.sh
+
+[Install]
+WantedBy=boot.mount swap.target systemd-repart.service systemd-veritysetup@usr.service
