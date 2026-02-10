@@ -306,12 +306,7 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 
 // WipeLocalData removes local data created by the application.
 func (*operationsCenter) WipeLocalData() error {
-	err := os.RemoveAll("/var/lib/operations-center/")
-	if err != nil {
-		return err
-	}
-
-	return os.Remove("/var/log/operations-center.log")
+	return os.RemoveAll("/var/lib/operations-center/")
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
