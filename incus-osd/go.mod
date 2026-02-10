@@ -3,7 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.24.12
 
 require (
-	github.com/FuturFusion/migration-manager v0.4.4
+	github.com/FuturFusion/migration-manager v0.5.0
 	github.com/FuturFusion/operations-center v0.2.2
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
@@ -13,16 +13,17 @@ require (
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.18.3
+	github.com/klauspost/compress v1.18.4
 	github.com/lxc/incus/v6 v6.21.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
-	github.com/pires/go-proxyproto v0.9.2
+	github.com/pires/go-proxyproto v0.10.0
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
-	golang.org/x/sys v0.40.0
+	golang.org/x/sync v0.19.0
+	golang.org/x/sys v0.41.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	software.sslmate.com/src/go-pkcs12 v0.7.0
@@ -33,9 +34,8 @@ require (
 	github.com/apex/log v1.9.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/clipperhouse/displaywidth v0.9.0 // indirect
-	github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
+	github.com/clipperhouse/displaywidth v0.10.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.6.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/rootless-containers/proto/go-proto v0.0.0-20260109132551-5f4e706f2d5d // indirect
+	github.com/rootless-containers/proto/go-proto v0.0.0-20260207013450-f6ee952d53d9 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
@@ -87,16 +87,15 @@ require (
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zitadel/logging v0.7.0 // indirect
-	github.com/zitadel/oidc/v3 v3.45.3 // indirect
+	github.com/zitadel/oidc/v3 v3.45.4 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/oauth2 v0.35.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
