@@ -1059,6 +1059,7 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 		if updateNeeded && s.Applications[appName].State.Version != "" && !update.IsNewerThan(s.Applications[appName].State.Version) {
 			return "", errors.New("local application " + appName + " version (" + s.Applications[appName].State.Version + ") is newer than available update (" + update.Version() + "); skipping")
 		}
+	default:
 	}
 
 	// Apply the update.
@@ -1102,6 +1103,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		targetPath = systemd.SystemUpdatesPath
 	case providers.ApplicationUpdate:
 		targetPath = systemd.SystemExtensionsPath
+	default:
 	}
 
 	err := update.Download(ctx, targetPath, updateModal.UpdateProgress)
@@ -1201,6 +1203,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		s.Applications[appName] = newAppInfo
 		_ = s.Save()
+	default:
 	}
 
 	return update.Version(), nil

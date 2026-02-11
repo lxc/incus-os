@@ -160,6 +160,7 @@ func makeJsonable(data any) any {
 		for i, v := range x {
 			x[i] = makeJsonable(v)
 		}
+	default:
 	}
 
 	return data
