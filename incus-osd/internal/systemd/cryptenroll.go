@@ -20,7 +20,7 @@ import (
 // root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
 func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
 	// Get the underlying LUKS partitions.
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
 	}
 
 	// Get the underlying LUKS partitions.
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 	}
 
 	// Get the underlying LUKS partitions.
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 	ret := []api.SystemSecurityEncryptedVolume{}
 
 	// Get the LUKS partitions.
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return ret, err
 	}

@@ -326,7 +326,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
 	newPCR7String := hex.EncodeToString(newPCR7)
 
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
