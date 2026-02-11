@@ -3,7 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.24.12
 
 require (
-	github.com/FuturFusion/migration-manager v0.5.0
+	github.com/FuturFusion/migration-manager v0.5.1
 	github.com/FuturFusion/operations-center v0.2.2
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
@@ -16,7 +16,7 @@ require (
 	github.com/klauspost/compress v1.18.4
 	github.com/lxc/incus/v6 v6.21.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
-	github.com/pires/go-proxyproto v0.10.0
+	github.com/pires/go-proxyproto v0.11.0
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
 	github.com/spf13/cobra v1.10.2

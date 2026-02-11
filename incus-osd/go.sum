@@ -1,8 +1,8 @@
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/FuturFusion/migration-manager v0.5.0 h1:aENbXxke1uFggABKUes0uqqCxQfWwjpbnfN0JymFMBU=
-github.com/FuturFusion/migration-manager v0.5.0/go.mod h1:N/ZGsq2YPTEZz9KOHSzG13TDLhMgAgMZQSyngdQBDCE=
+github.com/FuturFusion/migration-manager v0.5.1 h1:qxywCG3ETtEs2XUeDzFOfqmCIbe2yHjEUCg1gziBTRM=
+github.com/FuturFusion/migration-manager v0.5.1/go.mod h1:N/ZGsq2YPTEZz9KOHSzG13TDLhMgAgMZQSyngdQBDCE=
 github.com/FuturFusion/operations-center v0.2.2 h1:NeFgpQKiZ3CezNkUiAH+oZjn4KJr8hxjU6yBwcYofXY=
 github.com/FuturFusion/operations-center v0.2.2/go.mod h1:MAg97/XOBiDKfKLpg+Ap/JMwCtBT3jrrQrYjWQlgcRo=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
@@ -161,8 +161,8 @@ github.com/opencontainers/runtime-spec v1.3.0 h1:YZupQUdctfhpZy3TM39nN9Ika5CBWT5
 github.com/opencontainers/runtime-spec v1.3.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/umoci v0.6.1-0.20251213054154-70fc5ee1f4df h1:9hvwN64VeuL1L0Jgp8bxTPmd5IZQoHmeXGWrVqsEhN0=
 github.com/opencontainers/umoci v0.6.1-0.20251213054154-70fc5ee1f4df/go.mod h1:s6d/s4QJAZTF92hEU6ozuHjE0+VRc6kVe1QIWfvL7KY=
-github.com/pires/go-proxyproto v0.10.0 h1:08wrdt9NQYTjLWeag3EBIS7ZNi6Vwl3rGsEjVLaAhvU=
-github.com/pires/go-proxyproto v0.10.0/go.mod h1:ZKAAyp3cgy5Y5Mo4n9AlScrkCZwUy0g3Jf+slqQVcuU=
+github.com/pires/go-proxyproto v0.11.0 h1:gUQpS85X/VJMdUsYyEgyn59uLJvGqPhJV5YvG68wXH4=
+github.com/pires/go-proxyproto v0.11.0/go.mod h1:ZKAAyp3cgy5Y5Mo4n9AlScrkCZwUy0g3Jf+slqQVcuU=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
