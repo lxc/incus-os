@@ -25,7 +25,7 @@ func (*gpuSupport) IsRunning(_ context.Context) bool {
 
 func (*gpuSupport) Start(ctx context.Context, _ string) error {
 	// Reload the modules if loaded.
-	for _, module := range []string{"amdgpu", "i915", "nouveau"} {
+	for _, module := range []string{"amdgpu", "i915", "nouveau", "xe"} {
 		// Check if loaded.
 		_, err := os.Stat("/sys/module/" + module)
 		if err != nil {
