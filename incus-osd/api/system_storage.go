@@ -112,6 +112,17 @@ type SystemStorageWipe struct {
 	ID string `json:"id" yaml:"id"`
 }
 
+// SystemStorageImportEncryptedDrive defines a struct with information about what drive to decrypt.
+type SystemStorageImportEncryptedDrive struct {
+	ID  string `json:"id"  yaml:"id"`
+	Key string `json:"key" yaml:"key"`
+}
+
+// SystemStorageEncrypt defines a struct with information about what drive to encrypt.
+type SystemStorageEncrypt struct {
+	ID string `json:"id" yaml:"id"`
+}
+
 // SystemStoragePoolKey defines a struct used to provide an encryption key when importing an existing pool.
 // Currently the only supported type is "zfs".
 type SystemStoragePoolKey struct {
