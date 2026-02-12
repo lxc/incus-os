@@ -2,11 +2,13 @@ package cli
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -440,6 +442,8 @@ type cmdGenericShow struct {
 	endpoint    string
 	entity      string
 	entityShort string
+
+	flagFormat string
 }
 
 func (c *cmdGenericShow) command() *cobra.Command {
@@ -468,6 +472,7 @@ func (c *cmdGenericShow) command() *cobra.Command {
 	cmd.Use = cli.Usage(name, usage)
 	cmd.Short = description
 	cmd.Long = cli.FormatSection("Description", description)
+	cmd.Flags().StringVarP(&c.flagFormat, "format", "f", "yaml", "Format (json|yaml)")
 
 	if c.os.args.SupportsTarget {
 		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
@@ -495,6 +500,10 @@ func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 	exit, err := cli.CheckArgs(cmd, args, minArgs, maxArgs)
 	if exit {
 		return err
+	}
+
+	if !slices.Contains([]string{"json", "yaml"}, c.flagFormat) {
+		return errors.New("unsupported format: " + c.flagFormat)
 	}
 
 	// Parse remote.
@@ -536,9 +545,24 @@ func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	data, err := yaml.Marshal(rawData)
-	if err != nil {
-		return err
+	var data []byte
+
+	switch c.flagFormat {
+	case "json":
+		data, err = json.MarshalIndent(rawData, "", "    ")
+		if err != nil {
+			return err
+		}
+
+		data = append(data, '\n')
+
+	case "yaml":
+		data, err = yaml.Marshal(rawData)
+		if err != nil {
+			return err
+		}
+
+	default:
 	}
 
 	_, _ = fmt.Printf("%s", data) //nolint:forbidigo
