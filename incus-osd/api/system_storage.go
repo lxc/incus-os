@@ -77,18 +77,20 @@ type SystemStoragePoolScrubStatus struct {
 
 // SystemStorageDrive defines a struct that holds information about a specific drive.
 type SystemStorageDrive struct {
-	ID              string                   `json:"id"                    yaml:"id"`
-	ModelFamily     string                   `json:"model_family"          yaml:"model_family"`
-	ModelName       string                   `json:"model_name"            yaml:"model_name"`
-	SerialNumber    string                   `json:"serial_number"         yaml:"serial_number"`
-	Bus             string                   `json:"bus"                   yaml:"bus"`
-	CapacityInBytes int                      `json:"capacity_in_bytes"     yaml:"capacity_in_bytes"`
-	Boot            bool                     `json:"boot"                  yaml:"boot"`
-	Removable       bool                     `json:"removable"             yaml:"removable"`
-	Remote          bool                     `json:"remote"                yaml:"remote"`
-	WWN             string                   `json:"wwn,omitempty"         yaml:"wwn,omitempty"`
-	SMART           *SystemStorageDriveSMART `json:"smart,omitempty"       yaml:"smart,omitempty"`
-	MemberPool      string                   `json:"member_pool,omitempty" yaml:"member_pool,omitempty"`
+	ID              string                   `json:"id"                     yaml:"id"`
+	ModelFamily     string                   `json:"model_family"           yaml:"model_family"`
+	ModelName       string                   `json:"model_name"             yaml:"model_name"`
+	SerialNumber    string                   `json:"serial_number"          yaml:"serial_number"`
+	Bus             string                   `json:"bus"                    yaml:"bus"`
+	CapacityInBytes int                      `json:"capacity_in_bytes"      yaml:"capacity_in_bytes"`
+	Boot            bool                     `json:"boot"                   yaml:"boot"`
+	Removable       bool                     `json:"removable"              yaml:"removable"`
+	Remote          bool                     `json:"remote"                 yaml:"remote"`
+	WWN             string                   `json:"wwn,omitempty"          yaml:"wwn,omitempty"`
+	SMART           *SystemStorageDriveSMART `json:"smart,omitempty"        yaml:"smart,omitempty"`
+	MemberPool      string                   `json:"member_pool,omitempty"  yaml:"member_pool,omitempty"`
+	Encrypted       bool                     `json:"encrypted,omitempty"    yaml:"encrypted,omitempty"`
+	EncryptedID     string                   `json:"encrypted_id,omitempty" yaml:"encrypted_id,omitempty"`
 }
 
 // SystemStorageDriveSMART defines a struct to return basic SMART information about a specific device.
