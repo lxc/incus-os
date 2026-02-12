@@ -630,3 +630,131 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/storage/:encrypt-drive system system_post_storage_encrypt_drive
+//
+//	Encrypt a raw drive
+//
+//	Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The drive to be encrypted
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Parse the request.
+	encryptStruct := &api.SystemStorageEncrypt{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(encryptStruct)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if encryptStruct.ID == "" {
+		_ = response.BadRequest(errors.New("no drive specified")).Render(w)
+
+		return
+	}
+
+	// Encrypt the drive.
+	err = storage.EncryptDrive(r.Context(), encryptStruct.ID)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/system/storage/:import-encrypted-drive system system_post_storage_import_encrypted_drive
+//
+//	Import an existing encrypted drive
+//
+//	Imports the encryption key needed for an existing encrypted drive.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The drive to be decrypted
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk", "key": "KEY-VALUE"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageImportEncryptedDrive(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Parse the request.
+	decryptStruct := &api.SystemStorageImportEncryptedDrive{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(decryptStruct)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if decryptStruct.ID == "" {
+		_ = response.BadRequest(errors.New("no drive specified")).Render(w)
+
+		return
+	}
+
+	// Import the key for the drive.
+	err = storage.ImportEncryptedDrive(r.Context(), decryptStruct.ID, decryptStruct.Key)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
