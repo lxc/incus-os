@@ -589,6 +589,11 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			}
 		}
 
+		// Fix typo in smartctl JSON output.
+		if smart.Device.Type == "sat" {
+			smart.Device.Type = "sata"
+		}
+
 		// Determine if this is a remote device (NVMEoTCP, FC, etc).
 		isRemote, err := IsRemoteDevice(drive.KName)
 		if err != nil {
