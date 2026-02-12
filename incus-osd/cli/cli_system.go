@@ -165,6 +165,25 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					confirm:     "delete the storage volume",
 				}
 
+				// Encrypt drive.
+				encryptDriveCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "encrypt-drive",
+					description: "Encrypt the drive",
+					endpoint:    "system/storage",
+					hasData:     true,
+					confirm:     "wipe and encrypt the drive",
+				}
+
+				// Import encrypted drive.
+				importEncryptedDriveCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "import-encrypted-drive",
+					description: "Import an existing encrypted drive",
+					endpoint:    "system/storage",
+					hasData:     true,
+				}
+
 				// Import storage pool.
 				importPoolCmd := cmdGenericRun{
 					os:          c.os,
@@ -194,7 +213,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					hasData:     true,
 				}
 
-				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
+				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
 			},
 		},
 		{
