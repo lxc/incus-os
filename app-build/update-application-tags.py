@@ -23,3 +23,4 @@ for app in applications:
 
 with open("applications.json", "w") as f:
     json.dump(applications, f, indent="    ")
+    f.write("\n")
