@@ -146,3 +146,28 @@ incus admin os system storage delete-volume -d '{"pool":"local","name":"my-volum
 ```{note}
 IncusOS automatically creates a new `incus` volume when setting up the `local` storage pool.
 ```
+
+## Raw drive encryption
+
+IncusOS supports encrypting disks that aren't part of one of its pools.
+This may be useful when providing a container or virtual-machine with full block devices.
+
+IncusOS will generate a random key, use it to encrypt the drive using LUKS and then automatically unlocking the drive on boot.
+Existing encrypted drives can also be added to the system by providing IncusOS with their encryption key.
+
+Wipe and encrypt drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk` by running:
+
+```
+./incus admin os system storage encrypt-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
+```
+
+Import and decrypt an existing drive by running:
+
+```
+./incus admin os system storage import-encrypted-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk", "key": "BASE64-OF-KEYFILE"}'
+```
+
+Encrypted drives that are managed by IncusOS get two additional properties in `incus admin os system storage show`:
+
+* Encrypted (indicates whether the drive is encrypted)
+* Encrypted ID (provides the path to the decrypted block device)
