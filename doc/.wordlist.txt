@@ -20,6 +20,7 @@ db
 dbx
 DCO
 decrypt
+decrypted
 DELL
 DHCP
 DNS
