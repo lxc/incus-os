@@ -533,9 +533,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	// Ensure any locally-defined pools are available.
-	slog.InfoContext(ctx, "Bringing up the local storage")
-
-	err = zfs.LoadPools(ctx, s)
+	err = setupLocalStorage(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -1220,4 +1218,20 @@ func setTimezone(ctx context.Context) error {
 	_, err = subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", config.Time.Timezone)
 
 	return err
+}
+
+func setupLocalStorage(ctx context.Context, s *state.State) error {
+	slog.InfoContext(ctx, "Bringing up the local storage")
+
+	err := storage.DecryptDrives(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = zfs.LoadPools(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

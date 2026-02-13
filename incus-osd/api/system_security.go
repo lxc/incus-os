@@ -4,6 +4,7 @@ package api
 type SystemSecurityState struct {
 	EncryptedVolumes                []SystemSecurityEncryptedVolume       `incusos:"-"                               json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
 	EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
+	DriveRecoveryKeys               map[string]string                     `incusos:"-"                               json:"drive_recovery_keys"                yaml:"drive_recovery_keys"`
 	PoolRecoveryKeys                map[string]string                     `incusos:"-"                               json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
 	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`

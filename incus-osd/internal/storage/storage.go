@@ -653,6 +653,21 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			}
 		}
 
+		// Check if the drive is encrypted (and we have a key).
+		devName := filepath.Base(deviceID)
+		keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+
+		var (
+			encrypted   bool
+			encryptedID string
+		)
+
+		_, err = os.Stat(keyfilePath)
+		if err == nil {
+			encrypted = true
+			encryptedID = "/dev/mapper/luks-" + devName
+		}
+
 		// Populate SMART info if available.
 		smartStatus := new(api.SystemStorageDriveSMART)
 		if smart.SMARTSupport.Available { //nolint:nestif
@@ -718,6 +733,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			WWN:             wwnString,
 			SMART:           smartStatus,
 			MemberPool:      driveZpool,
+			Encrypted:       encrypted,
+			EncryptedID:     encryptedID,
 		})
 	}
 

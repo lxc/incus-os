@@ -83,6 +83,8 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/system/security/:tpm-rebind", s.apiSystemSecurityTPMRebind)
 	router.HandleFunc("/1.0/system/storage", s.apiSystemStorage)
 	router.HandleFunc("/1.0/system/storage/:create-volume", s.apiSystemStorageCreateVolume)
+	router.HandleFunc("/1.0/system/storage/:import-encrypted-drive", s.apiSystemStorageImportEncryptedDrive)
+	router.HandleFunc("/1.0/system/storage/:encrypt-drive", s.apiSystemStorageEncryptDrive)
 	router.HandleFunc("/1.0/system/storage/:delete-pool", s.apiSystemStorageDeletePool)
 	router.HandleFunc("/1.0/system/storage/:delete-volume", s.apiSystemStorageDeleteVolume)
 	router.HandleFunc("/1.0/system/storage/:import-pool", s.apiSystemStorageImportPool)

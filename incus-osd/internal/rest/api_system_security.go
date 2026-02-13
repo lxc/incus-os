@@ -9,6 +9,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 	"github.com/lxc/incus-os/incus-osd/internal/zfs"
@@ -45,7 +46,7 @@ import (
 //	        metadata:
 //	          type: json
 //	          description: State and configuration for the system security
-//	          example: {"config":{"encryption_recovery_keys":["fkrjjenn-tbtjbjgh-jtvvchjr-ctienevu-crknfkvi-vjlvblhl-kbneribu-htjtldch"]},"state":{"encryption_recovery_keys_retrieved":true,"encrypted_volumes":[{"volume":"root","state":"unlocked (TPM)"},{"volume":"swap","state":"unlocked (TPM)"}],"secure_boot_enabled":true,"secure_boot_certificates":[{"type":"PK","fingerprint":"26dce4dbb3de2d72bd16ae91a85cfeda84535317d3ee77e0d4b2d65e714cf111","subject":"CN=Incus OS - Secure Boot PK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"KEK","fingerprint":"9a42866f496834bde7e1b26a862b1e1b6dea7b78b91a948aecfc4e6ef79ea6c1","subject":"CN=Incus OS - Secure Boot KEK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"21b6f423cf80fe6c436dfea0683460312f276debe2a14285bfdc22da2d00fc20","subject":"CN=Incus OS - Secure Boot 2025 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"2243c49fcf6f84fe670f100ecafa801389dc207536cb9ca87aa2c062ddebfde5","subject":"CN=Incus OS - Secure Boot 2026 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"}],"tpm_status":"ok","pool_recovery_keys":{"local":"F7zrtdHEaivKqofZbVFs2EeANyK77DbLi6Z8sqYVhr0="},"system_state_is_trusted":true}}
+//	          example: {"config":{"encryption_recovery_keys":["fkrjjenn-tbtjbjgh-jtvvchjr-ctienevu-crknfkvi-vjlvblhl-kbneribu-htjtldch"]},"state":{"drive_recovery_keys": {"scsi-0QEMU_QEMU_HARDDISK_incus_extra": "F7zrtdHEaivKqofZbVFs2EeANyK77DbLi6Z8sqYVhr0="}, "encryption_recovery_keys_retrieved":true,"encrypted_volumes":[{"volume":"root","state":"unlocked (TPM)"},{"volume":"swap","state":"unlocked (TPM)"}],"secure_boot_enabled":true,"secure_boot_certificates":[{"type":"PK","fingerprint":"26dce4dbb3de2d72bd16ae91a85cfeda84535317d3ee77e0d4b2d65e714cf111","subject":"CN=Incus OS - Secure Boot PK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"KEK","fingerprint":"9a42866f496834bde7e1b26a862b1e1b6dea7b78b91a948aecfc4e6ef79ea6c1","subject":"CN=Incus OS - Secure Boot KEK R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"21b6f423cf80fe6c436dfea0683460312f276debe2a14285bfdc22da2d00fc20","subject":"CN=Incus OS - Secure Boot 2025 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"},{"type":"db","fingerprint":"2243c49fcf6f84fe670f100ecafa801389dc207536cb9ca87aa2c062ddebfde5","subject":"CN=Incus OS - Secure Boot 2026 R1,O=Linux Containers","issuer":"CN=Incus OS - Secure Boot E1,O=Linux Containers"}],"tpm_status":"ok","pool_recovery_keys":{"local":"F7zrtdHEaivKqofZbVFs2EeANyK77DbLi6Z8sqYVhr0="},"system_state_is_trusted":true}}
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 
@@ -111,6 +112,14 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 
 		// Get TPM status.
 		s.state.System.Security.State.TPMStatus = secureboot.TPMStatus()
+
+		// Get drive encryption keys.
+		s.state.System.Security.State.DriveRecoveryKeys, err = storage.GetDriveKeys()
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
 
 		// Get zpool encryption keys.
 		s.state.System.Security.State.PoolRecoveryKeys, err = zfs.GetZpoolEncryptionKeys()
