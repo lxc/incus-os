@@ -19,7 +19,7 @@ with open("applications.json", "r") as f:
     applications = json.load(f)
 
 images = [
-    ["base", ["incus-osd", "kpx", "linux-firmware-base", "tailscale"]],
+    ["base", ["incus-osd", "kpx", "linux-firmware-base", "netbird", "tailscale"]],
     ["gpu-support", [
         "linux-firmware-gpu"]
     ],
