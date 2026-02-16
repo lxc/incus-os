@@ -25,7 +25,7 @@ Incus command line tool using `incus remote add`.
 At that point, you're ready to make it a cluster with:
 
 ```
-incus config set server1:cluster.https_address=10.0.0.10:8443
+incus config set server1: cluster.https_address=10.0.0.10:8443
 incus cluster enable server1: server1
 
 incus remote add my-cluster 10.0.0.10:8443
