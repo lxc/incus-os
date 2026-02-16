@@ -44,6 +44,7 @@ func (c *cmdPromote) run(cmd *cobra.Command, args []string) error {
 
 	// Open the image metadata.
 	metaPath := filepath.Join(args[0], args[1], "update.json")
+	signedMetaPath := filepath.Join(args[0], args[1], "update.sjson")
 
 	meta, err := os.OpenFile(metaPath, os.O_RDWR, 0) //nolint:gosec
 	if err != nil {
@@ -93,6 +94,17 @@ func (c *cmdPromote) run(cmd *cobra.Command, args []string) error {
 	}
 
 	err = json.NewEncoder(meta).Encode(image)
+	if err != nil {
+		return err
+	}
+
+	err = meta.Close()
+	if err != nil {
+		return err
+	}
+
+	// Sign the updated metadata.
+	err = sign(ctx, metaPath, signedMetaPath)
 	if err != nil {
 		return err
 	}

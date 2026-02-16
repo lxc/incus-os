@@ -219,6 +219,11 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	err = wr.Close()
+	if err != nil {
+		return err
+	}
+
 	err = sign(ctx, filepath.Join(targetPath, releaseName, "update.json"), filepath.Join(targetPath, releaseName, "update.sjson"))
 	if err != nil {
 		return err
