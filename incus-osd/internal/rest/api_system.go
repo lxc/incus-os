@@ -113,3 +113,29 @@ func (s *Server) apiSystemReboot(w http.ResponseWriter, r *http.Request) {
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/:suspend system system_post_suspend
+//
+//	Suspend the system
+//
+//	Suspends the system.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+func (s *Server) apiSystemSuspend(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	close(s.state.TriggerSuspend)
+
+	_ = response.EmptySyncResponse.Render(w)
+}

@@ -40,6 +40,7 @@ type State struct {
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
 	TriggerShutdown chan error `json:"-"`
+	TriggerSuspend  chan error `json:"-"`
 	TriggerUpdate   chan bool  `json:"-"`
 
 	SecureBoot         SecureBoot `json:"secure_boot"`

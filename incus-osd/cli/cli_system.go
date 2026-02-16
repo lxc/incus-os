@@ -78,6 +78,16 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 	}
 	cmd.AddCommand(restoreCmd.command())
 
+	// Suspend.
+	suspendCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "suspend",
+		description: "Suspend the system",
+		endpoint:    "system",
+		confirm:     "suspend the system",
+	}
+	cmd.AddCommand(suspendCmd.command())
+
 	// Add sub-commands.
 	type subCommand struct {
 		name          string

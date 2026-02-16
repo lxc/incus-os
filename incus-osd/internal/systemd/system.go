@@ -25,3 +25,13 @@ func SystemReboot(ctx context.Context) error {
 
 	return nil
 }
+
+// SystemSuspend triggers a system suspend.
+func SystemSuspend(ctx context.Context) error {
+	_, err := subprocess.RunCommandContext(ctx, "systemctl", "suspend")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

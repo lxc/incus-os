@@ -15,3 +15,11 @@ IncusOS can be safely powered off via
 ```
 incus admin os system poweroff
 ```
+
+## Suspending IncusOS
+
+IncusOS can be safely suspended via
+
+```
+incus admin os system suspend
+```

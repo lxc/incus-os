@@ -585,6 +585,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan error, 1)
 	s.TriggerShutdown = make(chan error, 1)
+	s.TriggerSuspend = make(chan error, 1)
 	s.TriggerUpdate = make(chan bool, 1)
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, unix.SIGTERM)
@@ -600,6 +601,13 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 			action = "reboot"
 		case <-s.TriggerShutdown:
 			action = "shutdown"
+		case <-s.TriggerSuspend:
+			action = "suspend"
+
+			systemd.RestoreWOLMACAddresses(ctx, s)
+			_ = systemd.SystemSuspend(ctx)
+
+			goto waitSignal
 		case <-s.TriggerUpdate:
 			updateChecker(ctx, s, t, p, false, true)
 
