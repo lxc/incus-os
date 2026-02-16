@@ -99,7 +99,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.5.3",
+        "version": "v0.5.4",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -211,7 +211,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.94.1",
+        "version": "v1.94.2",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
@@ -292,7 +292,7 @@
         ]
     },
     "terraform-provider-random": {
-        "version": "v3.8.1",
+        "version": "v3.8.0",
         "repo": "https://github.com/hashicorp/terraform-provider-random.git",
         "build_targets": [
             [
