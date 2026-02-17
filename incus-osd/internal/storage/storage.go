@@ -838,6 +838,13 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 	return false, nil
 }
 
+// IsMultipathDevice determines if a given device is a member of a multipath device.
+func IsMultipathDevice(ctx context.Context, deviceName string) bool {
+	_, err := subprocess.RunCommandContext(ctx, "multipath", "-c", deviceName)
+
+	return err == nil
+}
+
 // WipeDrive will wipe all data on the given drive, unless it is the boot device,
 // a remote device, or currently a member of a storage pool.
 func WipeDrive(ctx context.Context, drive string) error {
