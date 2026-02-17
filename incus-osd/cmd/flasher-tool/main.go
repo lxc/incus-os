@@ -224,7 +224,7 @@ func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error 
 
 		_, _ = menuPrompt.WriteString("\nCustomization options:\n")
 		for i := range menuOptions {
-			_, _ = menuPrompt.WriteString(fmt.Sprintf("%s) %s\n", menuSelectionOptions[i], menuOptions[i]))
+			_, _ = fmt.Fprintf(&menuPrompt, "%s) %s\n", menuSelectionOptions[i], menuOptions[i])
 		}
 
 		_, _ = menuPrompt.WriteString("\nSelection: ")
@@ -341,7 +341,7 @@ func selectApplications(asker ask.Asker) error {
 
 	_, _ = menuPrompt.WriteString("\nApplication selection:\n")
 	for i := range menuOptions {
-		_, _ = menuPrompt.WriteString(fmt.Sprintf("%d) %s\n", i+1, menuOptions[i]))
+		_, _ = fmt.Fprintf(&menuPrompt, "%d) %s\n", i+1, menuOptions[i])
 	}
 
 	_, _ = menuPrompt.WriteString("\nSelection: ")
