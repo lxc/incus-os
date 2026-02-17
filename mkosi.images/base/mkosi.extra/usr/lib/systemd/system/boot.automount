@@ -1,0 +1,10 @@
+# Copied and modified from the auto-generated automount, for
+# use when booting from a multipath-backed device that
+# won't auto-generate an appropriate automount file.
+
+[Unit]
+Description=EFI System Partition Automount
+Documentation=man:systemd-gpt-auto-generator(8)
+[Automount]
+Where=/boot
+TimeoutIdleSec=120

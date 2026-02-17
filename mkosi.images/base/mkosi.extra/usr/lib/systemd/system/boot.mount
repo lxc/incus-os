@@ -1,0 +1,16 @@
+# Copied and modified from the auto-generated mount, for
+# use when booting from a multipath-backed device that
+# won't auto-generate an appropriate mount file.
+
+[Unit]
+Description=EFI System Partition Automount
+Documentation=man:systemd-gpt-auto-generator(8)
+Requires=systemd-fsck@dev-disk-by\x2dpartlabel-esp.service
+After=systemd-fsck@dev-disk-by\x2dpartlabel-esp.service
+After=blockdev@dev-disk-by\x2dpartlabel-esp.target
+
+[Mount]
+What=/dev/disk/by-partlabel/esp
+Where=/boot
+Type=vfat
+Options=umask=0077,rw,nodev,nosuid,noexec,nosymfollow
