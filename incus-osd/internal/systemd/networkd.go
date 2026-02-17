@@ -1414,7 +1414,7 @@ Id=%d
 
 		var cfgBuffer strings.Builder
 
-		_, _ = cfgBuffer.WriteString(fmt.Sprintf(`[NetDev]
+		_, _ = fmt.Fprintf(&cfgBuffer, `[NetDev]
 Name=%s
 Kind=wireguard
 %s
@@ -1423,31 +1423,31 @@ Kind=wireguard
 PrivateKey=%s
 %s
 
-`, w.Name, mtuString, w.PrivateKey, listenPort))
+`, w.Name, mtuString, w.PrivateKey, listenPort)
 
 		for _, peer := range w.Peers {
 			var options strings.Builder
 			for _, addr := range peer.AllowedIPs {
-				_, _ = options.WriteString(fmt.Sprintf("AllowedIPs=%s\n", addr))
+				_, _ = fmt.Fprintf(&options, "AllowedIPs=%s\n", addr)
 			}
 
 			if peer.PresharedKey != "" {
-				_, _ = options.WriteString(fmt.Sprintf("PresharedKey=%s\n", peer.PresharedKey))
+				_, _ = fmt.Fprintf(&options, "PresharedKey=%s\n", peer.PresharedKey)
 			}
 
 			if peer.Endpoint != "" {
-				_, _ = options.WriteString(fmt.Sprintf("Endpoint=%s\n", peer.Endpoint))
+				_, _ = fmt.Fprintf(&options, "Endpoint=%s\n", peer.Endpoint)
 			}
 
 			if peer.PersistentKeepalive > 0 {
-				_, _ = options.WriteString(fmt.Sprintf("PersistentKeepalive=%d\n", peer.PersistentKeepalive))
+				_, _ = fmt.Fprintf(&options, "PersistentKeepalive=%d\n", peer.PersistentKeepalive)
 			}
 
-			_, _ = cfgBuffer.WriteString(fmt.Sprintf(`[WireGuardPeer]
+			_, _ = fmt.Fprintf(&cfgBuffer, `[WireGuardPeer]
 PublicKey=%s
 %s
 
-`, peer.PublicKey, options.String()))
+`, peer.PublicKey, options.String())
 		}
 
 		ret = append(ret, networkdConfigFile{
@@ -1732,7 +1732,7 @@ func processAddresses(addresses []string) string {
 			acceptIPv6RA = true
 
 		default:
-			_, _ = ret.WriteString(fmt.Sprintf("Address=%s\n", addr))
+			_, _ = fmt.Fprintf(&ret, "Address=%s\n", addr)
 		}
 	}
 
@@ -1765,10 +1765,10 @@ func processRoutes(routes []api.SystemNetworkRoute) string {
 		case "slaac":
 			_, _ = ret.WriteString("Gateway=_ipv6ra\n")
 		default:
-			_, _ = ret.WriteString(fmt.Sprintf("Gateway=%s\n", route.Via))
+			_, _ = fmt.Fprintf(&ret, "Gateway=%s\n", route.Via)
 		}
 
-		_, _ = ret.WriteString(fmt.Sprintf("Destination=%s\n", route.To))
+		_, _ = fmt.Fprintf(&ret, "Destination=%s\n", route.To)
 	}
 
 	return ret.String()
@@ -1781,25 +1781,25 @@ func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, 
 
 	for _, v := range vlans {
 		if v.Parent == name {
-			_, _ = ret.WriteString(fmt.Sprintf("VLAN=%s\n", v.Name))
+			_, _ = fmt.Fprintf(&ret, "VLAN=%s\n", v.Name)
 		}
 	}
 
 	// If there are search domains or name servers, add those to the config.
 	if dns != nil {
 		if len(dns.SearchDomains) > 0 {
-			_, _ = ret.WriteString(fmt.Sprintf("Domains=%s\n", strings.Join(dns.SearchDomains, " ")))
+			_, _ = fmt.Fprintf(&ret, "Domains=%s\n", strings.Join(dns.SearchDomains, " "))
 		}
 
 		for _, ns := range dns.Nameservers {
-			_, _ = ret.WriteString(fmt.Sprintf("DNS=%s\n", ns))
+			_, _ = fmt.Fprintf(&ret, "DNS=%s\n", ns)
 		}
 	}
 
 	// If there are time servers defined, add them to the config.
 	if timeCfg != nil {
 		for _, ts := range timeCfg.NTPServers {
-			_, _ = ret.WriteString(fmt.Sprintf("NTP=%s\n", ts))
+			_, _ = fmt.Fprintf(&ret, "NTP=%s\n", ts)
 		}
 	}
 
@@ -1838,7 +1838,7 @@ func generateVLANContents(devName string, additionalVLANTags []int, vlans []api.
 	if len(vlanTags) > 0 {
 		for _, tag := range vlanTags {
 			_, _ = ret.WriteString("\n[BridgeVLAN]\n")
-			_, _ = ret.WriteString(fmt.Sprintf("VLAN=%d\n", tag))
+			_, _ = fmt.Fprintf(&ret, "VLAN=%d\n", tag)
 		}
 	}
 
