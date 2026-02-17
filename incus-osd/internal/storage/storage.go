@@ -728,6 +728,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
 			Boot:            drive.KName == bootDevice,
+			Multipath:       IsMultipathDevice(ctx, drive.KName),
 			Removable:       drive.RM,
 			Remote:          isRemote,
 			WWN:             wwnString,
