@@ -1,0 +1,16 @@
+[Unit]
+Description=Display early boot message
+Before=boot.mount
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+Environment=OS_NAME="@OSNAME@"
+Environment=TTYS="/dev/tty1 /dev/ttyS0"
+
+ExecStart=/usr/bin/initrd-boot-message.sh
+
+[Install]
+WantedBy=boot.mount

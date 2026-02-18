@@ -1,9 +1,11 @@
 incusos-initrd-utils          usr/bin/
+initrd-boot-message.sh        usr/bin/
 initrd-debug-info.sh          usr/bin/
 initrd-multipath.sh           usr/bin/
 initrd-multipath-partition.sh usr/bin/
 initrd-startup-checks.sh      usr/bin/
 
+initrd-boot-message.service        usr/lib/systemd/system/
 initrd-debug-info.service          usr/lib/systemd/system/
 initrd-multipath.service           usr/lib/systemd/system/
 initrd-multipath-partition.service usr/lib/systemd/system/

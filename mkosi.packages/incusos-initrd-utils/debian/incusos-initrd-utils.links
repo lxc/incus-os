@@ -1,3 +1,4 @@
+usr/lib/systemd/system/initrd-boot-message.service        usr/lib/systemd/system/boot.mount.wants/initrd-boot-message.service
 usr/lib/systemd/system/initrd-debug-info.service          usr/lib/systemd/system/emergency.target.wants/initrd-debug-info.service
 usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/boot.mount.wants/initrd-multipath.service
 usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/swap.target.wants/initrd-multipath.service
