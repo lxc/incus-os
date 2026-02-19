@@ -99,7 +99,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.5.4",
+        "version": "v0.5.5",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
