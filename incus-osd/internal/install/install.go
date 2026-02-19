@@ -288,7 +288,7 @@ func runningFromCDROM() bool {
 }
 
 // getSourceDevice determines the underlying device incus-osd is running on and if it is read-only.
-func getSourceDevice(ctx context.Context) (string, bool, int, error) { //nolint:revive
+func getSourceDevice(ctx context.Context) (string, bool, int, error) {
 	// Check if we're running from a CDROM.
 	if runningFromCDROM() {
 		return cdromMappedDevice, true, -1, nil
@@ -461,7 +461,7 @@ func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apisee
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
-func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error { //nolint:revive
+func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
 	// Get architecture name.
 	archName, err := osarch.ArchitectureGetLocal()
 	if err != nil {

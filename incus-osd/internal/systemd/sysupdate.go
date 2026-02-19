@@ -23,7 +23,7 @@ import (
 var ErrReleaseNotFound = errors.New("couldn't determine current OS release")
 
 // GetCurrentRelease returns the current NAME and IMAGE_VERSION from the os-release file.
-func GetCurrentRelease(_ context.Context) (string, string, error) { //nolint:revive
+func GetCurrentRelease(_ context.Context) (string, string, error) {
 	// Open the os-release file.
 	fd, err := os.Open("/lib/os-release")
 	if err != nil {
