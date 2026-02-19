@@ -39,6 +39,18 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	}
 	cmd.AddCommand(backupCmd.command())
 
+	// Debug.
+	debugCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "debug",
+		description: "Debug the application",
+		endpoint:    "applications",
+		entity:      "application",
+		hasData:     true,
+		defaultData: "{}",
+	}
+	cmd.AddCommand(debugCmd.command())
+
 	// Factory reset.
 	factoryResetCmd := cmdGenericRun{
 		os:          c.os,
