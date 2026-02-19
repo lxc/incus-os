@@ -10422,6 +10422,7 @@ paths:
                                     - /1.0/services/linstor
                                     - /1.0/services/lvm
                                     - /1.0/services/multipath
+                                    - /1.0/services/netbird
                                     - /1.0/services/nvme
                                     - /1.0/services/ovn
                                     - /1.0/services/tailscale
