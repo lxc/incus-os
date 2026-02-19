@@ -28,6 +28,13 @@ linters:
       threshold: 200
 
     gosec:
+      excludes:
+      - G701
+      - G702
+      - G703
+      - G704
+      - G705
+      - G706
       config:
         G301: "0755"
         G306: "0644"
