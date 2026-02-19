@@ -30,3 +30,15 @@ Two additional applications exist which extend the main Incus application:
 
 * `incus-ceph`: Adds [Ceph](../services/ceph.md) client support
 * `incus-linstor`: Adds [Linstor](../services/linstor.md) satellite support
+
+## Debugging
+
+The Incus application supports the following debug actions:
+
+* `get-logs`: Returns a `.tar.gz` of the content of `/run/incus` and `/var/log/incus`
+
+You can run debug actions using:
+
+```
+incus admin os application debug incus -d '{"action": "get-logs"}' > logs.tar.gz
+```
