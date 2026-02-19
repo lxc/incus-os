@@ -109,7 +109,7 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	}
 
 	// Verify that the UKI and usr image file are signed by a trusted certificate.
-	sigFile, err := os.Open(newUsrImageVeritySigFile) //nolint:gosec
+	sigFile, err := os.Open(newUsrImageVeritySigFile)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 	}
 
 	// Verify the UKI image.
-	ukiImage, err := os.Open(newUKIFile) //nolint:gosec
+	ukiImage, err := os.Open(newUKIFile)
 	if err != nil {
 		return err
 	}

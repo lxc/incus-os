@@ -155,7 +155,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	updateSecureboot := os.Getenv("UPDATE_SECUREBOOT")
 	if updateSecureboot != "" {
 		// Open the update tarball.
-		f, err := os.Open(updateSecureboot) //nolint:gosec
+		f, err := os.Open(updateSecureboot)
 		if err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		r := io.TeeReader(f, h)
 
 		// Create the target file.
-		w, err := os.Create(filepath.Join(targetPath, releaseName, filepath.Base(updateSecureboot))) //nolint:gosec
+		w, err := os.Create(filepath.Join(targetPath, releaseName, filepath.Base(updateSecureboot)))
 		if err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Write the update metadata.
-	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json")) //nolint:gosec
+	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json"))
 	if err != nil {
 		return err
 	}

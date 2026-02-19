@@ -407,7 +407,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	compress := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 
 	// Open the image file.
-	imageFile, err := os.Open(imageFilePath) //nolint:gosec
+	imageFile, err := os.Open(imageFilePath)
 	if err != nil {
 		slog.Warn("image retrieve: bad image", "client", clientAddress(r), "err", err)
 

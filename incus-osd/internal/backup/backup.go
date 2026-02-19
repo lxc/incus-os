@@ -135,13 +135,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 
 	copyFile := func(srcPath string, dstPath string) error {
 		// Copy the existing local pool key.
-		oldKey, err := os.Open(srcPath) //nolint:gosec
+		oldKey, err := os.Open(srcPath)
 		if err != nil {
 			return err
 		}
 		defer oldKey.Close()
 
-		newKey, err := os.Create(dstPath) //nolint:gosec
+		newKey, err := os.Create(dstPath)
 		if err != nil {
 			return err
 		}

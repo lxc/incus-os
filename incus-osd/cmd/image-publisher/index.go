@@ -29,7 +29,7 @@ func generateIndex(ctx context.Context, targetPath string) error {
 			continue
 		}
 
-		updateFile, err := os.Open(filepath.Join(targetPath, entry.Name(), "update.json")) //nolint:gosec
+		updateFile, err := os.Open(filepath.Join(targetPath, entry.Name(), "update.json"))
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
@@ -77,7 +77,7 @@ func generateIndex(ctx context.Context, targetPath string) error {
 	})
 	slices.Reverse(metaIndex.Updates)
 
-	wr, err := os.Create(filepath.Join(targetPath, "index.json")) //nolint:gosec
+	wr, err := os.Create(filepath.Join(targetPath, "index.json"))
 	if err != nil {
 		return err
 	}

@@ -137,7 +137,7 @@ func GetDriveKeys() (map[string]string, error) {
 
 		devID := strings.TrimSuffix(strings.TrimPrefix(entryName, "luks."), ".key")
 
-		devKey, err := os.ReadFile("/var/lib/incus-os/" + entryName) //nolint:gosec
+		devKey, err := os.ReadFile("/var/lib/incus-os/" + entryName)
 		if err != nil {
 			return nil, err
 		}

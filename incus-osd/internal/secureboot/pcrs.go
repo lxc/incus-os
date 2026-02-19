@@ -111,7 +111,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 // ReadPCR returns the current PCR value from the TPM.
 func ReadPCR(index string) ([]byte, error) {
-	pcrFile, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/" + index) //nolint:gosec
+	pcrFile, err := os.Open("/sys/class/tpm/tpm0/pcr-sha256/" + index)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 						}
 
 						// Open the PE binary from disk and compute its authenticode.
-						peFile, err := os.Open(peName) //nolint:gosec
+						peFile, err := os.Open(peName)
 						if err != nil {
 							// If the referenced binary doesn't exist under /boot/, there's nothing to do.
 							if os.IsNotExist(err) {
