@@ -24,7 +24,7 @@ func IsBlockdev(fm os.FileMode) bool {
 // An offset can be specified to only reset a part of a device.
 func ClearBlock(blockPath string, blockOffset int64) error {
 	// Open the block device for checking.
-	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o644)
+	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o600)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// If the file is missing, there is nothing to clear.
