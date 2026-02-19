@@ -48,7 +48,7 @@ Network features:
 - Robust NTP support
 - Remote logging support through syslog (UDP, TCP, TLS)
 - OVS/OVN support for software defined networking
-- Native support for Tailscale (Netbird coming soon)
+- Native support for Tailscale and NetBird
 
 Management features:
 
