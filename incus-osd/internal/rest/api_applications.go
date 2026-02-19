@@ -209,6 +209,75 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 	_ = response.SyncResponse(true, app).Render(w)
 }
 
+// swagger:operation POST /1.0/applications/{name}/:debug applications applications_post_debug
+//
+//	Perform debug actions or retrieve debug data for an application
+//
+//	Triggers a debug action or debug data capture.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsDebug(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	_, ok := s.state.Applications[name]
+	if !ok {
+		w.Header().Set("Content-Type", "application/json")
+
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Trigger the debug call.
+	dest := app.DebugStruct()
+	decoder := json.NewDecoder(r.Body)
+
+	err = decoder.Decode(dest)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = app.Debug(r.Context(), dest).Render(w)
+}
+
 // swagger:operation POST /1.0/applications/{name}/:factory-reset applications applications_post_reset
 //
 //	Perform a factory reset of the application
