@@ -24,7 +24,7 @@ func IsBlockdev(fm os.FileMode) bool {
 // An offset can be specified to only reset a part of a device.
 func ClearBlock(blockPath string, blockOffset int64) error {
 	// Open the block device for checking.
-	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o644) //nolint:gosec
+	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o600)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// If the file is missing, there is nothing to clear.
@@ -166,7 +166,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), "-s", blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath) //nolint:gosec
+		fd, err := os.Open(blockPath)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath) //nolint:gosec
+		fd, err := os.Open(blockPath)
 		if err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), "-z", blockPath)
 	if err == nil {
 		// Check if the markers are gone.
-		fd, err := os.Open(blockPath) //nolint:gosec
+		fd, err := os.Open(blockPath)
 		if err != nil {
 			return err
 		}

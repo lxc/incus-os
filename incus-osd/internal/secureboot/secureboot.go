@@ -374,7 +374,7 @@ outer:
 						}
 
 						// Open the PE binary from disk and compute its authenticode.
-						peFile, err := os.Open(peName) //nolint:gosec
+						peFile, err := os.Open(peName)
 						if err != nil {
 							return err
 						}

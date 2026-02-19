@@ -322,7 +322,7 @@ func trimChildManifest(parent IncusOSManifest, child IncusOSManifest) IncusOSMan
 	return ret
 }
 
-func diffPackages(previous []MkosiManifestPackages, current []MkosiManifestPackages) ([]MkosiManifestPackages, []MkosiManifestPackages, [][]MkosiManifestPackages) { //nolint:revive
+func diffPackages(previous []MkosiManifestPackages, current []MkosiManifestPackages) ([]MkosiManifestPackages, []MkosiManifestPackages, [][]MkosiManifestPackages) {
 	added := []MkosiManifestPackages{}
 	removed := []MkosiManifestPackages{}
 	updated := [][]MkosiManifestPackages{}

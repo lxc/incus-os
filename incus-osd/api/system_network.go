@@ -112,7 +112,7 @@ type SystemNetworkWireguard struct {
 	Name              string                       `json:"name"                          yaml:"name"`
 	Peers             []SystemNetworkWireguardPeer `json:"peers,omitempty"               yaml:"peers,omitempty"`
 	Port              int                          `json:"port,omitempty"                yaml:"port,omitempty"`
-	PrivateKey        string                       `json:"private_key,omitempty"         yaml:"private_key,omitempty"`
+	PrivateKey        string                       `json:"private_key,omitempty"         yaml:"private_key,omitempty"` //nolint:gosec
 	RequiredForOnline string                       `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                     `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute         `json:"routes,omitempty"              yaml:"routes,omitempty"`
@@ -157,7 +157,7 @@ type SystemNetworkProxy struct {
 type SystemNetworkProxyServer struct {
 	Auth     string `json:"auth"               yaml:"auth"`
 	Host     string `json:"host"               yaml:"host"`
-	Password string `json:"password,omitempty" yaml:"password,omitempty"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty"` //nolint:gosec
 	Realm    string `json:"realm,omitempty"    yaml:"realm,omitempty"`
 	Username string `json:"username,omitempty" yaml:"username,omitempty"`
 	UseTLS   bool   `json:"use_tls"            yaml:"use_tls"`

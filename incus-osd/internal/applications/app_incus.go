@@ -409,12 +409,12 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 
 func (*incus) getCertificate(name string) (*tls.Certificate, error) {
 	// Load the certificate.
-	tlsCert, err := os.ReadFile("/var/lib/incus/" + name + ".crt") //nolint:gosec
+	tlsCert, err := os.ReadFile("/var/lib/incus/" + name + ".crt")
 	if err != nil {
 		return nil, err
 	}
 
-	tlsKey, err := os.ReadFile("/var/lib/incus/" + name + ".key") //nolint:gosec
+	tlsKey, err := os.ReadFile("/var/lib/incus/" + name + ".key")
 	if err != nil {
 		return nil, err
 	}

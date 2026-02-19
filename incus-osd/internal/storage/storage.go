@@ -190,7 +190,7 @@ func GetUnderlyingDevice() (string, error) {
 	for _, entry := range entries {
 		entryPath := filepath.Join("/sys/class/block", entry.Name())
 
-		dev, err := os.ReadFile(filepath.Join(entryPath, "dev")) //nolint:gosec
+		dev, err := os.ReadFile(filepath.Join(entryPath, "dev"))
 		if err != nil {
 			continue
 		}

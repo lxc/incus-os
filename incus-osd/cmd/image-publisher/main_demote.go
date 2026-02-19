@@ -47,7 +47,7 @@ func (c *cmdDemote) run(cmd *cobra.Command, args []string) error {
 	metaPath := filepath.Join(args[0], args[1], "update.json")
 	signedMetaPath := filepath.Join(args[0], args[1], "update.sjson")
 
-	meta, err := os.OpenFile(metaPath, os.O_RDWR, 0) //nolint:gosec
+	meta, err := os.OpenFile(metaPath, os.O_RDWR, 0)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("no such image %q", args[1])

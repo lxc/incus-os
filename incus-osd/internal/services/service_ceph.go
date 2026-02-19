@@ -86,7 +86,7 @@ func (n *Ceph) Start(_ context.Context) error {
 
 	writeConfig := func(clusterName string, cluster api.ServiceCephCluster) error {
 		// Generate the main configuration file.
-		rw, err := os.Create(filepath.Join("/etc/ceph", clusterName+".conf")) //nolint:gosec
+		rw, err := os.Create(filepath.Join("/etc/ceph", clusterName+".conf"))
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ mon_host = %s
 
 	writeKeyring := func(clusterName string, keyringName string, keyring api.ServiceCephKeyring) error {
 		// Generate the keyring file.
-		rw, err := os.Create(filepath.Join("/etc/ceph", clusterName+".client."+keyringName+".keyring")) //nolint:gosec
+		rw, err := os.Create(filepath.Join("/etc/ceph", clusterName+".client."+keyringName+".keyring"))
 		if err != nil {
 			return err
 		}

@@ -163,7 +163,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 	for _, file := range files {
 		switch file.Name() {
 		case filename + ".json":
-			f, err := os.Open(filepath.Join(mountDir, filename+".json")) //nolint:gosec
+			f, err := os.Open(filepath.Join(mountDir, filename+".json"))
 			if err != nil {
 				return err
 			}
@@ -180,7 +180,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			return nil
 
 		case filename + ".yaml":
-			f, err := os.Open(filepath.Join(mountDir, filename+".yaml")) //nolint:gosec
+			f, err := os.Open(filepath.Join(mountDir, filename+".yaml"))
 			if err != nil {
 				return err
 			}
@@ -197,7 +197,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			return nil
 
 		case filename + ".yml":
-			f, err := os.Open(filepath.Join(mountDir, filename+".yml")) //nolint:gosec
+			f, err := os.Open(filepath.Join(mountDir, filename+".yml"))
 			if err != nil {
 				return err
 			}
@@ -223,7 +223,7 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 // parseFileContentsFromRawTar searches for a given file in the seed partition on the install media and returns its contents as a byte array if found.
 func parseFileContentsFromRawTar(partition string, filename string, target any) error {
 	// Open the seed-data partition.
-	f, err := os.Open(partition) //nolint:gosec
+	f, err := os.Open(partition)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ErrNoSeedPartition

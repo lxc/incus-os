@@ -44,7 +44,7 @@ func oidcZitadelQuery(ctx context.Context, endpoint string, reqStruct any, respS
 
 func oidcGetZitadelUser(ctx context.Context, userName string) (string, error) {
 	// Prepare the request.
-	type usersReq struct { //nolint:tagliatelle
+	type usersReq struct {
 		Queries []map[string]map[string]string `json:"queries"`
 	}
 

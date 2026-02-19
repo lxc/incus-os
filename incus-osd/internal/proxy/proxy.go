@@ -39,7 +39,7 @@ type kpxProxy struct {
 
 type kpxCredential struct {
 	Login    string `yaml:"login"`
-	Password string `yaml:"password"`
+	Password string `yaml:"password"` //nolint:gosec
 }
 
 type kpxRule struct {
