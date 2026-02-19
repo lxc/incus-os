@@ -1278,7 +1278,7 @@ Name=_p%s
 // generateNetdevFileContents generates the contents of systemd.netdev files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.netdev.html
 func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
-	ret := []networkdConfigFile{} //nolint:prealloc
+	ret := make([]networkdConfigFile, 0, 2*len(networkCfg.Interfaces)+3*len(networkCfg.Bonds)+len(networkCfg.Wireguard))
 
 	// Create bridge and veth devices for each interface.
 	for _, i := range networkCfg.Interfaces {
