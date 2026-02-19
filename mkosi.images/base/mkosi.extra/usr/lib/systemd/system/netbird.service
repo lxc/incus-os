@@ -1,0 +1,11 @@
+[Unit]
+Description=NetBird mesh network client
+
+[Service]
+StartLimitInterval=5
+StartLimitBurst=10
+ExecStart=/usr/bin/netbird service run --log-level info --daemon-addr unix:///var/run/netbird.sock --log-file /var/log/netbird/client.log
+StandardOutput=file:/var/log/netbird/netbird.out
+StandardError=file:/var/log/netbird/netbird.err
+Restart=on-failure
+RestartSec=5
