@@ -13,10 +13,15 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
+
+type incusDebug struct {
+	Action string `json:"action"`
+}
 
 type incus struct {
 	common
@@ -50,6 +55,36 @@ func (*incusLinstor) Name() string {
 // GetDependencies returns a list of other applications this application depends on.
 func (*incusLinstor) GetDependencies() []string {
 	return []string{"incus"}
+}
+
+// Debug runs a debug action.
+func (*incus) Debug(ctx context.Context, data any) response.Response {
+	req, ok := data.(*incusDebug)
+	if !ok {
+		return response.BadRequest(errors.New("invalid request data type"))
+	}
+
+	switch req.Action {
+	case "get-logs":
+		pr, pw := io.Pipe()
+
+		go func() {
+			_ = subprocess.RunCommandWithFds(ctx, nil, pw, "tar", "-zcf", "-", "/run/incus/", "/var/log/incus/")
+			_ = pw.Close()
+		}()
+
+		return response.PipeResponse(pr)
+
+	default:
+		return response.NotImplemented(nil)
+	}
+}
+
+// DebugStruct returns the struct to fill with debug request data.
+func (*incus) DebugStruct() any {
+	data := &incusDebug{}
+
+	return data
 }
 
 // Start starts all the systemd units.

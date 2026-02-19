@@ -27,6 +27,7 @@ import (
 	"github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/revert"
 
+	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -42,6 +43,18 @@ func (*common) Name() string {
 // AddTrustedCertificate adds a new trusted certificate to the application.
 func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) error {
 	return errors.New("not supported")
+}
+
+// Debug runs a debug action.
+func (*common) Debug(_ context.Context, _ any) response.Response {
+	return response.NotImplemented(nil)
+}
+
+// DebugStruct returns the struct to fill with debug request data.
+func (*common) DebugStruct() any {
+	var data any
+
+	return &data
 }
 
 // GetClientCertificate gets the client certificate for the application.
