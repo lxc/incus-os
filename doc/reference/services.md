@@ -13,6 +13,7 @@ iSCSI </reference/services/iscsi>
 Linstor </reference/services/linstor>
 LVM </reference/services/lvm>
 Multipath </reference/services/multipath>
+NetBird </reference/services/netbird>
 NVMe </reference/services/nvme>
 OVN </reference/services/ovn>
 Tailscale </reference/services/tailscale>
