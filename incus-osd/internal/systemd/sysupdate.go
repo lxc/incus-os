@@ -172,7 +172,7 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 		}
 	} else if !sbEnabled {
 		// If Secure Boot is disabled, we always must update the PCR4 bindings for the new UKI.
-		err := secureboot.UpdatePCR4Binding(ctx, newUKIFile)
+		err := secureboot.UpdatePCR4Binding(ctx, luksPassword, newUKIFile)
 		if err != nil {
 			return err
 		}
