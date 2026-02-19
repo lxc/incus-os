@@ -4,11 +4,15 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+
+	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
 // Application represents an installed application.
 type Application interface { //nolint:interfacebloat
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
+	Debug(ctx context.Context, data any) response.Response
+	DebugStruct() any
 	FactoryReset(ctx context.Context) error
 	GetBackup(archive io.Writer, complete bool) error
 	GetClientCertificate() (*tls.Certificate, error)
