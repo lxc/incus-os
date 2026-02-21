@@ -3,8 +3,8 @@ module github.com/lxc/incus-os/incus-osd
 go 1.25.0
 
 require (
-	github.com/FuturFusion/migration-manager v0.5.6
-	github.com/FuturFusion/operations-center v0.2.2
+	github.com/FuturFusion/migration-manager v0.5.7
+	github.com/FuturFusion/operations-center v0.3.0
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.8
@@ -68,7 +68,7 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.2.0 // indirect
 	github.com/olekukonko/ll v0.1.6 // indirect
-	github.com/olekukonko/tablewriter v1.1.3 // indirect
+	github.com/olekukonko/tablewriter v1.1.4-0.20260212195134-54408fee90b7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
