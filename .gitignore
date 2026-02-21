@@ -12,6 +12,7 @@ mkosi.images/base/mkosi.extra/usr/local/bin/
 mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 mkosi.images/gpu-support/mkosi.extra/usr/lib/firmware/
 mkosi.images/migration-manager/mkosi.extra/
+mkosi.images/openfga/mkosi.extra/
 mkosi.images/operations-center/mkosi.extra/
 
 app-build/
