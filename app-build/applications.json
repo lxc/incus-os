@@ -152,6 +152,26 @@
             "usr/share/migration-manager/"
         ]
     },
+    "netbird": {
+        "version": "v0.64.6",
+        "repo": "https://github.com/netbirdio/netbird.git",
+        "build_targets": [
+            [
+                "-o",
+                "netbird",
+                "./client"
+            ]
+        ],
+        "install_targets": [
+            [
+                "netbird",
+                "usr/local/bin/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/local/bin/netbird"
+        ]
+    },
     "opentofu": {
         "version": "v1.11.5",
         "repo": "https://github.com/opentofu/opentofu.git",

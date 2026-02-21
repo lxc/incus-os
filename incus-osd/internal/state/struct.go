@@ -57,6 +57,7 @@ type State struct {
 		Linstor   api.ServiceLinstor   `json:"linstor"`
 		LVM       api.ServiceLVM       `json:"lvm"`
 		Multipath api.ServiceMultipath `json:"multipath"`
+		Netbird   api.ServiceNetbird   `json:"netbird"`
 		NVME      api.ServiceNVME      `json:"nvme"`
 		OVN       api.ServiceOVN       `json:"ovn"`
 		Tailscale api.ServiceTailscale `json:"tailscale"`
