@@ -128,7 +128,7 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String
 	}
 
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func UpdatePCR4Binding(ctx context.Context, luksPassword string, ukiFile string)
 	newPCR4String := hex.EncodeToString(newPCR4)
 	pcr7String := hex.EncodeToString(pcr7)
 
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}

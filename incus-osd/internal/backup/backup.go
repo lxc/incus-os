@@ -355,7 +355,7 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 		// As the final step, reset the recovery passphrase(s) based on what's in the new state.
 		// This is done at the end, since we really don't want to try to handle reverting the
 		// new passphrase(s) to the old ones if some other part of the backup restore process failed.
-		luksVolumes, err := util.GetLUKSVolumePartitions()
+		luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 		if err != nil {
 			return err
 		}

@@ -727,7 +727,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			SerialNumber:    smart.SerialNumber,
 			Bus:             smart.Device.Type,
 			CapacityInBytes: drive.Size,
-			Boot:            drive.KName == bootDevice,
+			Boot:            isBootDevice(ctx, drive.KName, bootDevice),
+			Multipath:       IsMultipathDevice(ctx, drive.KName),
 			Removable:       drive.RM,
 			Remote:          isRemote,
 			WWN:             wwnString,
@@ -836,6 +837,28 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 
 	// Default to saying the device is local.
 	return false, nil
+}
+
+// IsMultipathDevice determines if a given device is a member of a multipath device.
+func IsMultipathDevice(ctx context.Context, deviceName string) bool {
+	_, err := subprocess.RunCommandContext(ctx, "multipath", "-c", deviceName)
+
+	return err == nil
+}
+
+func isBootDevice(ctx context.Context, deviceName string, bootDevice string) bool {
+	// If the boot device isn't mapped, we can rely on simple exact string comparison.
+	if !strings.HasPrefix(bootDevice, "/dev/dm-") {
+		return deviceName == bootDevice
+	}
+
+	// When the boot device is multipath, more than one device may be the boot device.
+	output, err := subprocess.RunCommandContext(ctx, "dmsetup", "deps", "-o", "blkdevname", bootDevice)
+	if err != nil {
+		return false
+	}
+
+	return strings.Contains(output, "("+filepath.Base(deviceName)+")")
 }
 
 // WipeDrive will wipe all data on the given drive, unless it is the boot device,

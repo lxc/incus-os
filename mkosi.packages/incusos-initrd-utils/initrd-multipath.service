@@ -1,0 +1,14 @@
+[Unit]
+Description=Configure basic multipath
+After=modprobe@dm_multipath.service modprobe@dm_service_time.service systemd-udev-settle.service
+Requires=modprobe@dm_multipath.service modprobe@dm_service_time.service systemd-udev-settle.service
+Before=boot.mount swap.target systemd-cryptsetup@root.service systemd-veritysetup@usr.service initrd-multipath-partition.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+
+ExecStart=/usr/bin/initrd-multipath.sh
+
+[Install]
+WantedBy=boot.mount swap.target systemd-cryptsetup@root.service systemd-veritysetup@usr.service initrd-multipath-partition.service

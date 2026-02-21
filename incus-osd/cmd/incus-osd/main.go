@@ -179,7 +179,22 @@ func main() {
 
 func firstBootActions(ctx context.Context) error {
 	// Ensure the system timezone is set properly.
-	return setTimezone(ctx)
+	err := setTimezone(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Ensure that the /etc/resolv.conf symlink exists. For some reason, when booted
+	// from a multipath device systemd-resolved doesn't create this automatically.
+	_, err = os.Stat("/etc/resolv.conf")
+	if err != nil && os.IsNotExist(err) {
+		err := os.Symlink("../run/systemd/resolve/stub-resolv.conf", "/etc/resolv.conf")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func run(ctx context.Context, s *state.State, t *tui.TUI) error {

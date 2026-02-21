@@ -25,6 +25,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // Install holds information necessary to perform an installation.
@@ -418,6 +419,26 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 		}) {
 			// Skip any duplicate device IDs.
 			continue
+		}
+
+		// Test if this device is part of a multipath configuration.
+		isMultipath := storage.IsMultipathDevice(ctx, entry.KName)
+
+		if isMultipath {
+			// Convert the "disk/by-id" symlink to a nicer "mapper" one.
+			linkDest, err := os.Readlink("/dev/disk/by-id/" + entry.ID)
+			if err != nil {
+				return []storage.BlockDevices{}, err
+			}
+
+			mappedDev := filepath.Join("/dev/disk/by-id/", linkDest)
+
+			mappedDev, err = util.ResolveMapperSymlink(ctx, mappedDev)
+			if err != nil {
+				return []storage.BlockDevices{}, err
+			}
+
+			entry.KName = mappedDev
 		}
 
 		filtered = append(filtered, entry)
@@ -890,11 +911,16 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 
 // GetPartitionPrefix returns the necessary partition prefix, if any, for a give device.
 // nvme and mmc devices have partitions named "pN", while traditional disk partitions are just "N".
+// Multipath devices have their partitions named "-partN".
 func GetPartitionPrefix(device string) string {
 	cdromMatched, _ := regexp.MatchString(`/mapper/sr\d+`, device)
 
 	if strings.Contains(device, "/nvme") || strings.Contains(device, "/mmcblk") || cdromMatched {
 		return "p"
+	}
+
+	if strings.Contains(device, "/dev/mapper/") {
+		return "-part"
 	}
 
 	return ""

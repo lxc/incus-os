@@ -36,7 +36,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	// Refuse to do anything if the TPM can unlock all LUKS volumes.
-	luksVolumes, err := util.GetLUKSVolumePartitions()
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}

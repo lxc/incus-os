@@ -84,6 +84,7 @@ type SystemStorageDrive struct {
 	Bus             string                   `json:"bus"                    yaml:"bus"`
 	CapacityInBytes int                      `json:"capacity_in_bytes"      yaml:"capacity_in_bytes"`
 	Boot            bool                     `json:"boot"                   yaml:"boot"`
+	Multipath       bool                     `json:"multipath"              yaml:"multipath"`
 	Removable       bool                     `json:"removable"              yaml:"removable"`
 	Remote          bool                     `json:"remote"                 yaml:"remote"`
 	WWN             string                   `json:"wwn,omitempty"          yaml:"wwn,omitempty"`
