@@ -1,9 +1,11 @@
 # Installing in a VMware virtual machine
 
-IncusOS can be easily installed in a VMware virtual machine when running with vSphere.
+IncusOS can be easily installed in a VMware virtual machine when running with vSphere or standalone ESXi.
 
 ```{note}
-IncusOS requires the use of a virtual TPM device, this appears to require the use of vSphere and won't work on standalone ESXi.
+IncusOS requires the use of a TPM device.
+When using vSphere, this can be done through the key provider and virtual machine TPM device (see below).
+When installing on a standalone ESXi, an image set up for degraded boot security (no TPM 2.0) needs to be used instead.
 ```
 
 ## Configure a key provider
