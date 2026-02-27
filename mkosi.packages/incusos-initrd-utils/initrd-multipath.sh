@@ -9,7 +9,7 @@ fi
 ROOT_DEVICE=$(lsblk -o pkname -dn /dev/disk/by-partlabel/esp)
 ROOT_DEVICE="/dev/$ROOT_DEVICE"
 ROOT_WWN=$(lsblk -o WWN -dn "$ROOT_DEVICE")
-TOTAL_ROOT_WWNS=$(lsblk -o WWN -dn | grep -v "^$" | grep -c "$ROOT_WWN")
+TOTAL_ROOT_WWNS=$(lsblk -o WWN -dn | grep -v "^$" | grep -c "^$ROOT_WWN$")
 
 if [ "$TOTAL_ROOT_WWNS" -gt 1 ]; then
     multipath -a "$ROOT_DEVICE"
