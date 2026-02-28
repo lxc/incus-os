@@ -22,6 +22,8 @@ The following configuration options can be set:
 
 * `serve_port`: TCP port to expose the HTTPS server to, for example `443` would expose the Incus application on: `https://{hostname}.{tailnet}.ts.net:443/`
 
+* `serve_service`: Tailscale [Service](https://tailscale.com/docs/features/tailscale-services) to expose the service as. Corresponds to the `--service=` flag in `tailscale serve`, not passed if empty. Note: At time of writing this feature is [not supported in Headscale](https://github.com/juanfont/headscale/issues/2845).
+
 ```{note}
 Enabling Tailscale Serve requires provisioning HTTPS certificates on the dashboard beforehand ([documentation](https://tailscale.com/kb/1153/enabling-https#configure-https))
 ```

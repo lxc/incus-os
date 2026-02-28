@@ -145,7 +145,19 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		_, err = subprocess.RunCommandContext(ctx, "tailscale", "serve", "--bg", "--https="+strconv.Itoa(n.state.Services.Tailscale.Config.ServePort), "https+insecure://localhost:8443")
+		// Prepare argument list, which gets appended to in the case serve_service is set to non-empty.
+		args := []string{
+			"serve",
+			"--bg",
+			"--https=" + strconv.Itoa(n.state.Services.Tailscale.Config.ServePort),
+			"https+insecure://localhost:8443",
+		}
+
+		if n.state.Services.Tailscale.Config.ServeService != "" {
+			args = append(args, "--service="+n.state.Services.Tailscale.Config.ServeService)
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "tailscale", args...)
 		if err != nil {
 			return err
 		}

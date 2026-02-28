@@ -36,6 +36,7 @@ FuturFusion
 GiB
 Github
 GPUs
+Headscale
 homelab
 hotfix
 HP
