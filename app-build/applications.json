@@ -171,7 +171,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.3.2",
+        "version": "v0.4.0",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
