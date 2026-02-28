@@ -27,12 +27,12 @@ for MP in $(dmsetup ls --target multipath | cut -f1); do
 
     # Attempt to unlock swap and root partitions.
     if [ -e "/dev/mapper/${MP}-part9" ]; then
-        # Unlock swap and manually activate since it's not automatically picked up by systemd.
-        systemd-cryptsetup attach swap "/dev/mapper/${MP}-part9"
-        swapon /dev/mapper/swap
-
         # Unlock root partition, which will be automatically detected and then mounted.
-        systemd-cryptsetup attach root "/dev/mapper/${MP}-part10"
+        systemd-cryptsetup attach "root" "/dev/mapper/${MP}-part10" "" "tpm2-device=auto,tpm2-measure-pcr=yes,tries=0"
+
+        # Unlock swap and manually activate since it's not automatically picked up by systemd.
+        systemd-cryptsetup attach "swap" "/dev/mapper/${MP}-part9" "" "tpm2-device=auto,tpm2-measure-pcr=yes,tries=0"
+        swapon /dev/mapper/swap
     fi
 
     break
