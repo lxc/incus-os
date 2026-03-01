@@ -85,29 +85,34 @@ func updateBlacklistModules(modules []string) error {
 }
 
 func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNetwork, memConfig *api.SystemKernelConfigMemory) error {
-	// Perform simple validation checks.
-	if memConfig != nil {
-		if memConfig.PersistentHugepages < 0 {
-			return errors.New("persistent hugepages count cannot be negative")
-		}
+	// Initialize if nil.
+	if memConfig == nil {
+		memConfig = &api.SystemKernelConfigMemory{}
 	}
 
-	if netConfig != nil {
-		if netConfig.BufferSize < 0 {
-			return errors.New("buffer size cannot be negative")
+	if netConfig == nil {
+		netConfig = &api.SystemKernelConfigNetwork{}
+	}
+
+	// Perform simple validation checks.
+	if memConfig.PersistentHugepages < 0 {
+		return errors.New("persistent hugepages count cannot be negative")
+	}
+
+	if netConfig.BufferSize < 0 {
+		return errors.New("buffer size cannot be negative")
+	}
+
+	if netConfig.TCPCongestionAlgorithm != "" {
+		output, err := subprocess.RunCommand("sysctl", "-n", "net.ipv4.tcp_available_congestion_control")
+		if err != nil {
+			return err
 		}
 
-		if netConfig.TCPCongestionAlgorithm != "" {
-			output, err := subprocess.RunCommand("sysctl", "-n", "net.ipv4.tcp_available_congestion_control")
-			if err != nil {
-				return err
-			}
+		output = strings.TrimSuffix(output, "\n")
 
-			output = strings.TrimSuffix(output, "\n")
-
-			if !slices.Contains(strings.Split(output, " "), netConfig.TCPCongestionAlgorithm) {
-				return fmt.Errorf("unsupported tcp_congestion_control value, must be one of %v", strings.Split(output, " "))
-			}
+		if !slices.Contains(strings.Split(output, " "), netConfig.TCPCongestionAlgorithm) {
+			return fmt.Errorf("unsupported tcp_congestion_control value, must be one of %v", strings.Split(output, " "))
 		}
 	}
 
