@@ -150,12 +150,14 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 			"serve",
 			"--bg",
 			"--https=" + strconv.Itoa(n.state.Services.Tailscale.Config.ServePort),
-			"https+insecure://localhost:8443",
 		}
 
 		if n.state.Services.Tailscale.Config.ServeService != "" {
 			args = append(args, "--service="+n.state.Services.Tailscale.Config.ServeService)
 		}
+
+		// tailscale serve is sensitive to argument order, so append the url last.
+		args = append(args, "https+insecure://localhost:8443")
 
 		_, err = subprocess.RunCommandContext(ctx, "tailscale", args...)
 		if err != nil {
