@@ -69,9 +69,25 @@
             "usr/local/bin/lego"
         ]
     },
-    "linux-firmware": {
+    "linux-firmware-base": {
         "version": "20260221",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
+        "directory": "linux-firmware",
+        "build_targets": [],
+        "install_targets": [
+            [
+                "qed",
+                "usr/lib/firmware/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/lib/firmware/qed"
+        ]
+    },
+    "linux-firmware-gpu": {
+        "version": "20260221",
+        "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
+        "directory": "linux-firmware",
         "build_targets": [],
         "install_targets": [
             [
