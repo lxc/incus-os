@@ -78,7 +78,7 @@ def TestInstallDriveWithGPT(install_image):
             # Perform IncusOS install.
             vm.StartVM()
             vm.WaitAgentRunning()
-            vm.WaitExpectedLog("incus-osd", "a partition table already exists on device '/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root', and `ForceInstall` from install configuration isn't true")
+            vm.WaitExpectedLog("incus-osd", "a partition table already exists on device '/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1', and `ForceInstall` from install configuration isn't true")
 
 def TestInstallCantDisableSBandTPM(install_image):
     test_name = "cant-disable-sb-and-tpm"
