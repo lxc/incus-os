@@ -19,9 +19,9 @@ with open("applications.json", "r") as f:
     applications = json.load(f)
 
 images = [
-    ["base", ["incus-osd", "kpx", "tailscale"]],
+    ["base", ["incus-osd", "kpx", "linux-firmware-base", "tailscale"]],
     ["gpu-support", [
-        "linux-firmware"]
+        "linux-firmware-gpu"]
     ],
     ["migration-manager", [
         "lego",
@@ -41,6 +41,7 @@ images = [
 def build(artifact):
     version = applications[artifact]["version"]
     repo = applications[artifact]["repo"]
+    directory = applications[artifact].get("directory", artifact)
 
     # Apply version substitutions before doing anything else
     for values in applications[artifact]["build_targets"]:
@@ -63,56 +64,58 @@ def build(artifact):
     targets = applications[artifact]["build_targets"]
 
     # Clone/update the git repo
-    if os.path.isdir(artifact):
-        subprocess.run(["git", "reset", "--hard"], cwd=artifact, check=True)
+    if os.path.isdir(directory):
+        subprocess.run(["git", "reset", "--hard"], cwd=directory, check=True)
         if version == "main":
-            subprocess.run(["git", "pull"], cwd=artifact, check=True)
+            subprocess.run(["git", "pull"], cwd=directory, check=True)
         else:
-            subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/"+version], cwd=artifact, check=True)
-            subprocess.run(["git", "checkout", version], cwd=artifact, check=True)
+            subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/"+version], cwd=directory, check=True)
+            subprocess.run(["git", "checkout", version], cwd=directory, check=True)
     else:
         if version == "main":
-            subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
+            subprocess.run(["git", "clone", repo, directory, "--depth", "1", "-b", version], check=True)
         else:
-            subprocess.run(["git", "clone", repo, artifact, "--depth", "1", "-b", version], check=True)
+            subprocess.run(["git", "clone", repo, directory, "--depth", "1", "-b", version], check=True)
 
     # Handle git submodules
     if applications[artifact].get("submodules", False):
-        subprocess.run(["git", "submodule", "init"], cwd=artifact, check=True)
-        subprocess.run(["git", "submodule", "update"], cwd=artifact, check=True)
+        subprocess.run(["git", "submodule", "init"], cwd=directory, check=True)
+        subprocess.run(["git", "submodule", "update"], cwd=directory, check=True)
 
     # Apply any patches
     for patch in applications[artifact].get("patches", []):
-        subprocess.run(["patch", "-p1", "-i", patch], cwd=artifact, check=True)
+        subprocess.run(["patch", "-p1", "-i", patch], cwd=directory, check=True)
 
     # Build the targets
     for target in targets:
-        subprocess.run(["go", "build", *target], cwd=artifact, check=True)
+        subprocess.run(["go", "build", *target], cwd=directory, check=True)
 
     if applications[artifact].get("build_ui"):
         env = os.environ.copy()
         env["YARN_ENABLE_HARDENED_MODE"] = "0"
         env["YARN_ENABLE_IMMUTABLE_INSTALLS"] = "false"
-        subprocess.run(["yarnpkg", "install"], cwd=os.path.join(artifact, "ui"), env=env, check=True)
-        subprocess.run(["yarnpkg", "build"], cwd=os.path.join(artifact, "ui"), env=env, check=True)
+        subprocess.run(["yarnpkg", "install"], cwd=os.path.join(directory, "ui"), env=env, check=True)
+        subprocess.run(["yarnpkg", "build"], cwd=os.path.join(directory, "ui"), env=env, check=True)
 
     # Symlink targets
     for link in applications[artifact].get("link_targets", []):
-        subprocess.run(["rm", "-f", link[1]], cwd=artifact, check=True)
-        subprocess.run(["ln", "-s", *link], cwd=artifact, check=True)
+        subprocess.run(["rm", "-f", link[1]], cwd=directory, check=True)
+        subprocess.run(["ln", "-s", *link], cwd=directory, check=True)
 
     # Generate the application's manifest
     create_application_manifest(artifact, version)
 
     # Rename any files or directories after everything is done
     for rename in applications[artifact].get("rename_targets", []):
-        subprocess.run(["rm", "-rf", rename[1]], cwd=artifact, check=True)
-        subprocess.run(["mv", rename[0], rename[1]], cwd=artifact, check=True)
+        subprocess.run(["rm", "-rf", rename[1]], cwd=directory, check=True)
+        subprocess.run(["mv", rename[0], rename[1]], cwd=directory, check=True)
 
 def create_application_manifest(artifact, version):
+    directory = applications[artifact].get("directory", artifact)
+
     # If building from main, set the version to be the current commit
     if version == "main":
-        version = subprocess.run(["git", "rev-parse", "HEAD"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
+        version = subprocess.run(["git", "rev-parse", "HEAD"], cwd=directory, capture_output=True, check=True).stdout.strip().decode("utf-8")
 
     manifest = {
         "name": artifact,
@@ -128,7 +131,7 @@ def create_application_manifest(artifact, version):
         manifest["go_compiler"] = subprocess.run(["go", "version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
         manifest["go_packages"] = []
 
-        direct_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if not (or .Indirect .Main)}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
+        direct_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if not (or .Indirect .Main)}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=directory, capture_output=True, check=True).stdout.strip().decode("utf-8")
         for line in direct_deps.split("\n"):
             parts = line.split(" ")
             manifest["go_packages"].append({
@@ -138,7 +141,7 @@ def create_application_manifest(artifact, version):
                 "direct": True
             })
 
-        indirect_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if .Indirect}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=artifact, capture_output=True, check=True).stdout.strip().decode("utf-8")
+        indirect_deps = subprocess.run(["go", "list", "-mod=mod", "-m", "-f", "{{if .Indirect}}{{.Path}} {{.Version}}{{end}}", "all"], cwd=directory, capture_output=True, check=True).stdout.strip().decode("utf-8")
         for line in indirect_deps.split("\n"):
             parts = line.split(" ")
             manifest["go_packages"].append({
@@ -152,7 +155,7 @@ def create_application_manifest(artifact, version):
         manifest["yarn_version"] = subprocess.run(["yarnpkg", "--version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
         manifest["yarn_packages"] = []
 
-        yarn_info = subprocess.run(["yarnpkg", "info", "--json", "--name-only"], cwd=os.path.join(artifact, "ui"), capture_output=True, check=True).stdout.strip().decode("utf-8")
+        yarn_info = subprocess.run(["yarnpkg", "info", "--json", "--name-only"], cwd=os.path.join(directory, "ui"), capture_output=True, check=True).stdout.strip().decode("utf-8")
         for line in yarn_info.split("\n"):
             parts = line.replace("\"", "").rsplit("@", 1)
             manifest["yarn_packages"].append({
@@ -167,19 +170,20 @@ def create_application_manifest(artifact, version):
 
 def install(image, artifact):
     base_path = "../mkosi.images/"+image+"/mkosi.extra"
+    directory = applications[artifact].get("directory", artifact)
 
     for target in applications[artifact]["clean_targets"]:
         # Clean any previously installed files
         subprocess.run(["rm", "-rf", os.path.join(base_path, target)], check=True)
 
     for target in applications[artifact]["install_targets"]:
-        if os.path.isfile(os.path.join(artifact, target[0])):
+        if os.path.isfile(os.path.join(directory, target[0])):
             # Strip the binary
-            subprocess.run(["strip", target[0]], cwd=artifact, check=True)
+            subprocess.run(["strip", target[0]], cwd=directory, check=True)
 
         # Copy the target into the mkosi image filesystem
         subprocess.run(["mkdir", "-p", os.path.join(base_path, target[1])], check=True)
-        subprocess.run(["cp", "-r", os.path.join(artifact, target[0]), os.path.join(base_path, target[1])], check=True)
+        subprocess.run(["cp", "-r", os.path.join(directory, target[0]), os.path.join(base_path, target[1])], check=True)
 
 def create_image_manifest(image, applications):
     manifest = []
