@@ -142,7 +142,22 @@ func (c *cmdAdminOSDebugLog) run(cmd *cobra.Command, args []string) error {
 		// Get the message itself.
 		message, ok := line["MESSAGE"].(string)
 		if !ok {
-			continue
+			messageSlice, ok := line["MESSAGE"].([]any)
+			if !ok {
+				continue
+			}
+
+			messageBytes := make([]byte, len(messageSlice))
+			for i, b := range messageSlice {
+				cFloat, ok := b.(float64)
+				if !ok {
+					continue
+				}
+
+				messageBytes[i] = byte(cFloat)
+			}
+
+			message = string(messageBytes)
 		}
 
 		_, _ = fmt.Printf("[%s] %s: %s\n", ts.Format(dateLayoutSecond), section, message) //nolint:forbidigo
