@@ -111,13 +111,13 @@ UDP
 UEFI
 UI
 UKI
-UTM
 Uncheck
 unencrypted
 Unencrypted
 unmanaged
 Unmount
 USBIP
+UTM
 VirtIO
 VirtualBox
 VLAN
