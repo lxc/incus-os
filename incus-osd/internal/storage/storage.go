@@ -372,8 +372,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 				if zpoolType == "" {
 					zpoolType = "zfs-raid1"
 				}
-			case "mirror-1", "mirror-2", "mirror-3", "mirror-4", "mirror-5":
-				// raid10 gets a bit weird when additional mirror vdevs are added to it...
+			case "mirror-1":
 				zpoolType = "zfs-raid10"
 			case "raidz1-0":
 				zpoolType = "zfs-raidz1"

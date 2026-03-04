@@ -27,6 +27,8 @@ const (
 	PoolScrubJob scheduling.JobName = "pool_scrub"
 )
 
+var supportedPoolTypes = []string{"zfs-raid0", "zfs-raid1", "zfs-raid10", "zfs-raidz1", "zfs-raidz2", "zfs-raidz3"}
+
 // LoadPools will import all managed ZFS pools on the local system and attempt to load
 // their corresponding encryption keys. If the "local" pool doesn't exist, it will also
 // be created as an encrypted ZFS pool in the partition labeled "local-data".
@@ -181,13 +183,18 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 	}
 
 	// Verify we are given a supported type.
-	if !slices.Contains([]string{"zfs-raid0", "zfs-raid1", "zfs-raid10", "zfs-raidz1", "zfs-raidz2", "zfs-raidz3"}, zpool.Type) {
+	if !slices.Contains(supportedPoolTypes, zpool.Type) {
 		return errors.New("unsupported pool type " + zpool.Type)
 	}
 
 	// Verify at least one device was specified.
 	if len(zpool.Devices) == 0 {
 		return errors.New("at least one device must be specified")
+	}
+
+	// Verify at least two devices were specified if asked to create a mirror.
+	if zpool.Type == "zfs-raid1" && len(zpool.Devices) < 2 {
+		return errors.New("at least two devices must be specified when creating a raid1 pool")
 	}
 
 	// If asked to create a raid10 pool, ensure an even number of devices greater than or equal to four was specified.
@@ -426,6 +433,11 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		return err
 	}
 
+	// Verify we are given a supported type.
+	if !slices.Contains(supportedPoolTypes, currentConfig.Type) {
+		return errors.New("unsupported pool type " + currentConfig.Type)
+	}
+
 	// Verify the update contains at least as many device entries as exist in the current config.
 	if len(newConfig.Devices) < len(currentConfig.Devices) {
 		return fmt.Errorf("only %d devices provided in update, expected at least %d", len(newConfig.Devices), len(currentConfig.Devices))
@@ -475,22 +487,6 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		}
 	}
 
-	vdevName := ""
-
-	switch newConfig.Type {
-	case "zfs-raid0":
-	case "zfs-raid1", "zfs-raid10":
-		vdevName = "mirror"
-	case "zfs-raidz1":
-		vdevName = "raidz1-0"
-	case "zfs-raidz2":
-		vdevName = "raidz2-0"
-	case "zfs-raidz3":
-		vdevName = "raidz3-0"
-	default:
-		return errors.New("unsupported pool type " + newConfig.Type)
-	}
-
 	// Apply updates.
 
 	if currentConfig.Type == "zfs-raid0" && newConfig.Type == "zfs-raid1" {
@@ -501,18 +497,23 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		}
 	} else {
 		// Perform a normal update of the zpool's storage device(s).
-		err := updateZpoolHelper(ctx, newConfig.Name, vdevName, currentConfig.Devices, newConfig.Devices)
+		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Type, currentConfig.Devices, newConfig.Devices)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = updateZpoolHelper(ctx, newConfig.Name, "log", currentConfig.Log, newConfig.Log)
+	logType := "zfs-raid0"
+	if len(newConfig.Log) > 1 {
+		logType = "zfs-raid1"
+	}
+
+	err = updateZpoolHelper(ctx, newConfig.Name, logType, currentConfig.Log, newConfig.Log)
 	if err != nil {
 		return err
 	}
 
-	err = updateZpoolHelper(ctx, newConfig.Name, "cache", currentConfig.Cache, newConfig.Cache)
+	err = updateZpoolHelper(ctx, newConfig.Name, "zfs-raid0", currentConfig.Cache, newConfig.Cache)
 	if err != nil {
 		return err
 	}
@@ -573,7 +574,7 @@ func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePoo
 	return err
 }
 
-func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, currentDevices []string, newDevices []string) error {
+func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, newDevices []string) error {
 	// Compare the two lists of devices and apply updates as needed.
 	for idx := range currentDevices {
 		if newDevices[idx] == "" { //nolint:nestif
@@ -583,10 +584,9 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 				return err
 			}
 
-			zpoolCmd := "remove"
-
-			if vdevName == "mirror" || strings.HasPrefix(vdevName, "raidz") {
-				zpoolCmd = "offline"
+			zpoolCmd := "offline"
+			if zpoolType == "zfs-raid0" {
+				zpoolCmd = "remove"
 			}
 
 			_, err = subprocess.RunCommandContext(ctx, "zpool", zpoolCmd, zpoolName, actualDev)
@@ -617,7 +617,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 			// When replacing a device after converting to RAID1, we attempt to partition
 			// the second device in a similar fashion so the two underlying devices are the
 			// same size.
-			if zpoolName == "local" && vdevName == "mirror" {
+			if zpoolName == "local" && zpoolType == "zfs-raid1" {
 				// Create the partition at the correct offset
 				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", actualDevNew)
 				if err != nil {
@@ -644,79 +644,84 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 	}
 
 	// Add any additional new devices.
-	if vdevName == "mirror" { //nolint:nestif
-		if len(newDevices)-len(currentDevices) == 1 {
-			// Bit of an edge case where a single "new" device might be an offlined member of the mirror. As such, it's still part
-			// of the pool, so try to bring it back online.
-			actualDev, err := storage.DeviceToID(ctx, newDevices[len(currentDevices)])
-			if err != nil {
-				return err
-			}
+	devicesToAdd := newDevices[len(currentDevices):]
 
-			_, err = subprocess.RunCommandContext(ctx, "zpool", "online", zpoolName, actualDev)
-			if err != nil {
-				// If we couldn't online the device, then it's brand new, but ZFS requires at least two devices when adding a new mirror.
-				return errors.New("adding to a mirror requires at least two devices")
-			}
-		} else if len(currentDevices) < len(newDevices) {
-			args := []string{"add", zpoolName, "mirror"}
+	if len(devicesToAdd) == 0 {
+		// Can return here if there are no devices to add.
+		return nil
+	}
 
-			for _, dev := range newDevices[len(currentDevices):] {
-				actualDev, err := storage.DeviceToID(ctx, dev)
-				if err != nil {
-					return err
-				}
+	if zpoolType == "zfs-raid0" { //nolint:nestif
+		args := []string{"add", zpoolName}
 
-				args = append(args, actualDev)
-			}
-
-			_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		for idx := len(currentDevices); idx < len(newDevices); idx++ {
-			args := []string{}
-
-			if vdevName == "" || vdevName == "log" || vdevName == "cache" {
-				args = append(args, "add")
-			} else {
-				args = append(args, "attach")
-
-				// Expanding a vdev triggers a scrub/expand, during which time we can't add an additional device.
-				// Rather than a somewhat cryptic error, return a nicer message.
-				if len(newDevices)-len(currentDevices) > 1 {
-					return errors.New("expanding a pool by more than one device at a time isn't supported, due to necessary array resync")
-				}
-			}
-
-			args = append(args, zpoolName)
-
-			if vdevName != "" {
-				args = append(args, vdevName)
-			}
-
-			actualDev, err := storage.DeviceToID(ctx, newDevices[idx])
+		for _, dev := range devicesToAdd {
+			actualDev, err := storage.DeviceToID(ctx, dev)
 			if err != nil {
 				return err
 			}
 
 			args = append(args, actualDev)
+		}
 
-			_, err = subprocess.RunCommandContext(ctx, "zpool", args...)
+		_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
+		if err != nil {
+			return err
+		}
+	} else {
+		actualNewDev, err := storage.DeviceToID(ctx, devicesToAdd[0])
+		if err != nil {
+			return err
+		}
+
+		// Bit of an edge case where a single "new" device might be an offlined member of the pool.
+		// If so, try to bring it back online.
+		if len(devicesToAdd) == 1 {
+			_, err = subprocess.RunCommandContext(ctx, "zpool", "online", zpoolName, actualNewDev)
+			if err == nil {
+				// Successfully onlined the device, nothing else to do.
+				return nil
+			}
+		}
+
+		// Check that either one or two new devices are specified. raid10 requires two devices, one for each mirror vdev
+		// while raid1 and raidz requires a single device when expanding. Because we return immediately, we only support
+		// incremental expansion of an existing pool because a resilver event must complete afterwards.
+		if zpoolType == "zfs-raid10" {
+			if len(devicesToAdd) != 2 {
+				return errors.New("expanding a raid10 pool requires a pair of new devices")
+			}
+		} else {
+			if len(devicesToAdd) != 1 {
+				return errors.New("expanding a pool can only be performed one device at a time, due to a required resilver between expansions")
+			}
+		}
+
+		// Get the current list of devices that comprise this pool.
+		currentConfig, err := storage.GetZpoolMembers(ctx, zpoolName)
+		if err != nil {
+			return err
+		}
+
+		attachDevice := currentConfig.Devices[0]
+		if strings.HasPrefix(zpoolType, "zfs-raidz") {
+			attachDevice = strings.TrimPrefix(zpoolType, "zfs-") + "-0"
+		}
+
+		// Expand the storage pool.
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", zpoolName, attachDevice, actualNewDev)
+		if err != nil {
+			return err
+		}
+
+		if zpoolType == "zfs-raid10" {
+			secondNewDev, err := storage.DeviceToID(ctx, devicesToAdd[1])
 			if err != nil {
-				if !strings.Contains(err.Error(), actualDev+"-part1 is part of active pool '"+zpoolName+"'") || !strings.HasPrefix(vdevName, "raidz") {
-					return err
-				}
+				return err
+			}
 
-				// Bit of an edge case where the "new" device might be an offlined member of the raidz. As such, it's still part
-				// of the pool, so try to bring it back online.
-				_, newErr := subprocess.RunCommandContext(ctx, "zpool", "online", zpoolName, actualDev)
-				if newErr != nil {
-					// Return the original error, so we don't confuse the user with a failed "online" command.
-					return err
-				}
+			_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", zpoolName, currentConfig.Devices[len(currentConfig.Devices)-1], secondNewDev)
+			if err != nil {
+				return err
 			}
 		}
 	}
