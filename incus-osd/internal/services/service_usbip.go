@@ -52,8 +52,7 @@ func (n *USBIP) Update(ctx context.Context, req any) error {
 
 // Start starts the service.
 func (n *USBIP) Start(ctx context.Context) error {
-	// If nothing to be attached, we're done.
-	if len(n.state.Services.USBIP.Config.Targets) == 0 {
+	if !n.state.Services.USBIP.Config.Enabled {
 		return nil
 	}
 
@@ -77,7 +76,7 @@ func (n *USBIP) Start(ctx context.Context) error {
 
 // ShouldStart returns true if the service should be started on boot.
 func (n *USBIP) ShouldStart() bool {
-	return len(n.state.Services.USBIP.Config.Targets) > 0
+	return n.state.Services.USBIP.Config.Enabled
 }
 
 // Struct returns the API struct for the USBIP service.

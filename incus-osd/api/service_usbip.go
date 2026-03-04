@@ -8,6 +8,7 @@ type ServiceUSBIPTarget struct {
 
 // ServiceUSBIPConfig represents additional configuration for the USBIP service.
 type ServiceUSBIPConfig struct {
+	Enabled bool                 `json:"enabled" yaml:"enabled"`
 	Targets []ServiceUSBIPTarget `json:"targets" yaml:"targets"`
 }
 
