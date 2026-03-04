@@ -1,4 +1,5 @@
 AMI
+anonymize
 Aptio
 Asus
 authenticode
