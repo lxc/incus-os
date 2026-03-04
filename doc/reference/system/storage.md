@@ -85,6 +85,37 @@ state:
     mypool: zh9gkAgGsKenO48y7dwNg6aBFaD6OoedgSlSsivEq0Q=
 ```
 
+## Converting a single device pool to a mirrored pool
+
+It is possible to convert a singe device storage pool to a mirrored pool with two storage devices. The new device to be used for mirroring the data must be at least as large as the original device.
+
+Given an existing storage pool:
+
+```yaml
+state:
+  pools:
+  - name: "mypool"
+    type: "zfs-raid0"
+
+    devices:
+    - "/dev/sdb"
+```
+
+IncusOS can convert this to a mirrored storage pool using new device `/dev/sdc` with the following configuration. Note the change of pool type from `zfs-raid0` to `zfs-raid1`.
+
+```yaml
+config:
+  pools:
+  - name: "mypool"
+    type: "zfs-raid1"
+
+    devices:
+    - "/dev/sdb"
+    - "/dev/sdc"
+```
+
+IncusOS does not support other forms of in-place storage pool conversions.
+
 ## Deleting a storage pool
 
 ```{warning}

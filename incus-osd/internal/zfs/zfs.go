@@ -422,21 +422,6 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		return err
 	}
 
-	// The "local" zpool is special. It is automatically created on first boot, but
-	// can be extended into a RAID0 or RAID1 configuration by adding another drive.
-	// This is the only pool that we allow such modifications.
-	if newConfig.Name == "local" {
-		err := prepareLocalPoolUpdate(ctx, currentConfig, newConfig)
-		if err != nil {
-			return err
-		}
-
-		// If we've just converted the local pool to a mirror there's nothing left to do.
-		if newConfig.Type == "zfs-raid1" && currentConfig.Type == "zfs-raid0" {
-			return nil
-		}
-	}
-
 	// Verify the update contains at least as many device entries as exist in the current config.
 	if len(newConfig.Devices) < len(currentConfig.Devices) {
 		return fmt.Errorf("only %d devices provided in update, expected at least %d", len(newConfig.Devices), len(currentConfig.Devices))
@@ -448,6 +433,42 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 
 	if len(newConfig.Cache) < len(currentConfig.Cache) {
 		return fmt.Errorf("only %d cache devices provided in update, expected at least %d", len(newConfig.Cache), len(currentConfig.Cache))
+	}
+
+	// Perform "local" pool specific checks.
+	if newConfig.Name == "local" {
+		// The only supported pool types are zfs-raid0 or zfs-raid1.
+		if newConfig.Type != "zfs-raid0" && newConfig.Type != "zfs-raid1" {
+			return errors.New("special zpool 'local' type must be either zfs-raid0 or zfs-raid1")
+		}
+
+		// Must have exactly one or two data devices and no log or cache.
+		if len(newConfig.Devices) > 2 {
+			return errors.New("special zpool 'local' cannot consist of more than two devices")
+		}
+
+		if len(newConfig.Log) > 0 {
+			return errors.New("special zpool 'local' cannot have any log devices")
+		}
+
+		if len(newConfig.Cache) > 0 {
+			return errors.New("special zpool 'local' cannot have any cache devices")
+		}
+
+		// The main system drive must ALWAYS be a member of the pool.
+		rootDev, err := storage.GetUnderlyingDevice()
+		if err != nil {
+			return err
+		}
+
+		actualrootDev, err := storage.DeviceToID(ctx, rootDev)
+		if err != nil {
+			return err
+		}
+
+		if !slices.Contains(newConfig.Devices, actualrootDev+"-part11") {
+			return errors.New("special zpool 'local' must always include main system partition '" + actualrootDev + "-part11'")
+		}
 	}
 
 	vdevName := ""
@@ -467,9 +488,19 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	}
 
 	// Apply updates.
-	err = updateZpoolHelper(ctx, newConfig.Name, vdevName, currentConfig.Devices, newConfig.Devices)
-	if err != nil {
-		return err
+
+	if currentConfig.Type == "zfs-raid0" && newConfig.Type == "zfs-raid1" {
+		// Handle special case of converting a single device zpool to a mirrored zpool.
+		err := convertPoolToMirror(ctx, currentConfig, newConfig)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Perform a normal update of the zpool's storage device(s).
+		err := updateZpoolHelper(ctx, newConfig.Name, vdevName, currentConfig.Devices, newConfig.Devices)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = updateZpoolHelper(ctx, newConfig.Name, "log", currentConfig.Log, newConfig.Log)
@@ -485,92 +516,57 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	return nil
 }
 
-// Helper function to handle the special edge case of updating the "local" zpool.
-func prepareLocalPoolUpdate(ctx context.Context, currentConfig api.SystemStoragePool, newConfig api.SystemStoragePool) error {
-	// The only supported pool types are zfs-raid0 or zfs-raid1.
-	if newConfig.Type != "zfs-raid0" && newConfig.Type != "zfs-raid1" {
-		return errors.New("special zpool 'local' type must be either zfs-raid0 or zfs-raid1")
+func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePool, newConfig api.SystemStoragePool) error {
+	// Basic checks
+	if len(currentConfig.Devices) != 1 {
+		return errors.New("cannot convert a pool with more than one device to a mirrored pool")
 	}
 
-	// Must have exactly one or two data devices and no log or cache.
-	if len(newConfig.Devices) > 2 {
-		return errors.New("special zpool 'local' cannot consist of more than two devices")
+	if len(newConfig.Devices) != 2 {
+		return errors.New("converting to a mirrored pool requires exactly two devices")
 	}
 
-	if len(newConfig.Log) > 0 {
-		return errors.New("special zpool 'local' cannot have any log devices")
-	}
-
-	if len(newConfig.Cache) > 0 {
-		return errors.New("special zpool 'local' cannot have any cache devices")
-	}
-
-	// The main system drive must ALWAYS be a member of the pool.
-	rootDev, err := storage.GetUnderlyingDevice()
+	// Get the device from the existing zpool.
+	existingPoolDevice, err := storage.DeviceToID(ctx, currentConfig.Devices[0])
 	if err != nil {
 		return err
 	}
 
-	actualrootDev, err := storage.DeviceToID(ctx, rootDev)
+	// Get the new device we'll use to convert this zpool into a mirror.
+	newPoolDevice, err := storage.DeviceToID(ctx, newConfig.Devices[0])
 	if err != nil {
 		return err
 	}
 
-	if !slices.Contains(newConfig.Devices, actualrootDev+"-part11") {
-		return errors.New("special zpool 'local' must always include main system partition '" + actualrootDev + "-part11'")
-	}
-
-	// RAID1 has an additional constraint that the devices must be the same size. To achieve this, we will create
-	// a new partition at a ~35GiB offset to match the main system drive. We also automatically append the "-part11"
-	// to each device's by-id path if not already present.
-	if newConfig.Type == "zfs-raid1" { //nolint:nestif
-		for i := range newConfig.Devices {
-			// The device is a whole disk, which needs to be partitioned first.
-			if newConfig.Devices[i] != "" && !strings.HasSuffix(newConfig.Devices[i], "-part11") {
-				actualDevice, err := storage.DeviceToID(ctx, newConfig.Devices[i])
-				if err != nil {
-					return err
-				}
-
-				// Wipe the disk first.
-				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", actualDevice)
-				if err != nil {
-					return err
-				}
-
-				// Create the partition at the correct offset
-				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", actualDevice)
-				if err != nil {
-					return err
-				}
-
-				newConfig.Devices[i] += "-part11"
-
-				// Sleep for a bit, otherwise there's a race between udev updating symlinks and
-				// ZFS trying to add the device to the pool.
-				time.Sleep(500 * time.Millisecond)
-			}
-		}
-
-		// Special logic to convert local pool type.
-		if currentConfig.Type == "zfs-raid0" {
-			if len(currentConfig.Devices) != 1 {
-				return errors.New("cannot convert 'local' zpool to mirror: already consists of two devices")
-			}
-
-			// Figure out what the new device to add is.
-			newDevice := newConfig.Devices[1]
-			if newDevice == currentConfig.Devices[0] {
-				newDevice = newConfig.Devices[0]
-			}
-
-			_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", "local", currentConfig.Devices[0], newDevice)
-
+	if newPoolDevice == existingPoolDevice {
+		newPoolDevice, err = storage.DeviceToID(ctx, newConfig.Devices[1])
+		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	// The "local" zpool is special. It is automatically created on first boot, but
+	// can be extended into a RAID0 or RAID1 configuration by adding another drive.
+	// When converting to RAID1, we attempt to partition the second device in a similar
+	// fashion so the two underlying devices are the same size.
+	if newConfig.Name == "local" {
+		// Create the partition at the correct offset
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", newPoolDevice)
+		if err != nil {
+			return err
+		}
+
+		newPoolDevice += "-part11"
+
+		// Sleep for a bit, otherwise there's a race between udev updating symlinks and
+		// ZFS trying to add the device to the pool.
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Convert the pool to a mirror.
+	_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", newConfig.Name, existingPoolDevice, newPoolDevice)
+
+	return err
 }
 
 func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, currentDevices []string, newDevices []string) error {
@@ -610,6 +606,25 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, vdevName string, c
 			actualDevNew, err := storage.DeviceToID(ctx, newDevices[idx])
 			if err != nil {
 				return err
+			}
+
+			// The "local" zpool is special. It is automatically created on first boot, but
+			// can be extended into a RAID0 or RAID1 configuration by adding another drive.
+			// When replacing a device after converting to RAID1, we attempt to partition
+			// the second device in a similar fashion so the two underlying devices are the
+			// same size.
+			if zpoolName == "local" && vdevName == "mirror" {
+				// Create the partition at the correct offset
+				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", actualDevNew)
+				if err != nil {
+					return err
+				}
+
+				actualDevNew += "-part11"
+
+				// Sleep for a bit, otherwise there's a race between udev updating symlinks and
+				// ZFS trying to add the device to the pool.
+				time.Sleep(500 * time.Millisecond)
 			}
 
 			_, err = subprocess.RunCommandContext(ctx, "zpool", "replace", zpoolName, actualDevOld, actualDevNew)
