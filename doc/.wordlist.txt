@@ -67,7 +67,8 @@ MTU
 multipath
 Multipath
 NAT'ed
-Netbird
+NetBird
+NetBird's
 NICs
 NTP
 NVMe
