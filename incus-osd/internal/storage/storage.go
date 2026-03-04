@@ -88,8 +88,12 @@ type zpoolStatusPartialParse struct {
 			} `json:"vdevs"`
 		} `json:"vdevs"`
 		Logs map[string]struct {
-			Name  string `json:"name"`
-			State string `json:"state"`
+			Name     string `json:"name"`
+			VdevType string `json:"vdev_type"`
+			State    string `json:"state"`
+			Vdevs    map[string]struct {
+				State string `json:"state"`
+			} `json:"vdevs,omitempty"`
 		} `json:"logs"`
 		L2Cache map[string]struct {
 			Name  string `json:"name"`
@@ -396,10 +400,23 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	}
 
 	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Logs {
-		if vdev.State == "ONLINE" {
-			zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+vdevName)
-		} else {
-			zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+vdevName)
+		switch vdev.VdevType {
+		case "disk":
+			if vdev.State == "ONLINE" {
+				zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+vdevName)
+			} else {
+				zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+vdevName)
+			}
+		case "mirror":
+			for memberVdevName, memberVdev := range vdev.Vdevs {
+				if memberVdev.State == "ONLINE" {
+					zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+memberVdevName)
+				} else {
+					zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+memberVdevName)
+				}
+			}
+		default:
+			return api.SystemStoragePool{}, errors.New("unsupported zpool log vdev type '" + vdev.VdevType + "'")
 		}
 	}
 
