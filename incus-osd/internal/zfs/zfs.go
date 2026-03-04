@@ -273,6 +273,10 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	if len(zpool.Log) > 0 {
 		args = append(args, "log")
+		if len(zpool.Log) > 1 {
+			args = append(args, "mirror")
+		}
+
 		args = append(args, zpool.Log...)
 	}
 
