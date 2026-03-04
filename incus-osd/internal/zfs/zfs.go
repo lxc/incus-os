@@ -276,7 +276,7 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		args = append(args, zpool.Log...)
 	}
 
-	_, err = subprocess.RunCommandContext(ctx, "zpool", args...)
+	err = createZpoolHelper(ctx, args, zpool.AllowMixedDevSizes)
 	if err != nil {
 		// Remove the encryption key file for the failed zpool.
 		_ = os.Remove(keyfilePath)
@@ -286,6 +286,27 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	// Reset encryption retrieval flag when a new zpool is created.
 	s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
+
+	return nil
+}
+
+func createZpoolHelper(ctx context.Context, args []string, allowMixedDevSizes bool) error {
+	_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
+	if err != nil {
+		// If we're trying to create a new zpool with mixed device sizes, only allow if the user has specifically requested this.
+		if strings.Contains(err.Error(), "contains devices of different sizes)") {
+			if allowMixedDevSizes {
+				args = append(args, "-f")
+				_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
+
+				return err
+			}
+
+			return errors.New("refusing to create new zpool with devices of different sizes unless AllowMixedDevSizes is true")
+		}
+
+		return err
+	}
 
 	return nil
 }

@@ -22,6 +22,7 @@ The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
 * `scrub_schedule`: A cron expression with five fields defining when to perform an automatic scrub of all the storage pools. Defaults to 0 4 * * 0.
+* `allow_mixed_dev_sizes`: If true, allow creation of a storage pool with devices of different sizes. Note that in most cases this will result in a storage pool whose total available capacity will be constrained by the smallest device size.
 
 ```{note}
 When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.

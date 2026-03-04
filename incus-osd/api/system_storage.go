@@ -27,6 +27,8 @@ type SystemStoragePool struct {
 	Name string `json:"name" yaml:"name"`
 	// Supported pool types: zfs-raid0, zfs-raid1, zfs-raid10, zfs-raidz1, zfs-raidz2, zfs-raidz3.
 	Type string `json:"type" yaml:"type"`
+	// If true, allow creation of a pool with devices of different sizes.
+	AllowMixedDevSizes bool `json:"allow_mixed_dev_sizes,omitempty" yaml:"allow_mixed_dev_sizes,omitempty"`
 
 	// Devices, Cache, and Log can be modified to add/remove/replace devices in the pool.
 	Devices []string `json:"devices"         yaml:"devices"`
