@@ -171,6 +171,9 @@
     "netbird": {
         "version": "v0.64.6",
         "repo": "https://github.com/netbirdio/netbird.git",
+        "patches": [
+            "../../patches/netbird-0001-fix-go-1.26.patch"
+        ],
         "build_targets": [
             [
                 "-o",
