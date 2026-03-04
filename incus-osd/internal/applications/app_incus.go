@@ -374,7 +374,7 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 		}
 
 		// Create the default volumes.
-		for _, volName := range []string{"backups", "images"} {
+		for _, volName := range []string{"backups", "images", "logs"} {
 			// Create the volume.
 			err = c.CreateStoragePoolVolume("local", incusapi.StorageVolumesPost{
 				Name:        volName,
