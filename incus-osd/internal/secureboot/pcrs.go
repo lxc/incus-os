@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"debug/pe"
@@ -94,9 +95,40 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	for _, volume := range luksVolumes {
-		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+		_, stderr, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
+		}
+
+		// Handle an edge case where the PCR policy is identical, but the TPM is unable to unlock the LUKS keyslot.
+		// This is seen when an existing TPM is replaced by a new one, since the computed PCRs will be the same,
+		// but the internal TPM state will be different and thus unable to properly decrypt the LUKS keyslot blob.
+		//
+		// systemd-cryptenroll doesn't have a --force option to always perform a PCR bind operation, so we need to
+		// first bind a junk PCR policy, then re-apply the correct good one which will then also update the LUKS
+		// keyslot TPM blob.
+		if strings.Contains(stderr, "This PCR set is already enrolled, executing no operation.") {
+			// Generate a random SHA256 PCR7 value.
+			randomPCR := make([]byte, 32)
+
+			_, err := rand.Read(randomPCR)
+			if err != nil {
+				return err
+			}
+
+			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR)
+
+			// Set a bad PCR policy.
+			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
+			if err != nil {
+				return err
+			}
+
+			// Re-bind the expected PCR policy.
+			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
