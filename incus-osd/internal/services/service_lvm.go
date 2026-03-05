@@ -210,7 +210,7 @@ local {
 }
 
 devices {
-	filter = [ "r|/dev/zd*|" ]
+	filter = [ "r|/dev/zd*|/dev/rbd*|/dev/nbd*|" ]
 }
 `, n.state.Services.LVM.Config.SystemID)
 
