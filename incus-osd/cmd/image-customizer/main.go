@@ -132,6 +132,8 @@ func clientAddress(r *http.Request) string {
 }
 
 func apiRoot(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -157,6 +159,8 @@ func apiRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiRoot10(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -169,6 +173,8 @@ func apiRoot10(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiCertificate(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -200,6 +206,8 @@ func apiCertificate(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiOIDC(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -232,6 +240,8 @@ func apiOIDC(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiImages(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	// Set CORS headers.
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -302,6 +312,8 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiImage(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	// Set CORS headers.
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
