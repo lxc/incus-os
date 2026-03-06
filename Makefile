@@ -91,14 +91,6 @@ endif
 build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
 	cd app-build/ && ./build-applications.py
 
-	# Limit building of the Migration Manager worker image to amd64, since the vmware vddk isn't available for arm64.
-ifeq ($(shell uname -m), x86_64)
-	cd app-build/migration-manager/worker && make build
-
-	mkdir -p mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/images/
-	cp app-build/migration-manager/worker/mkosi.output/migration-manager-worker.raw mkosi.images/migration-manager/mkosi.extra/usr/share/migration-manager/images/worker-x86_64.img
-endif
-
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
 	sudo -E $(shell command -v mkosi) --cache-dir .cache/ build
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output

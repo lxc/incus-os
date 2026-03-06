@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 
+import gzip
 import json
 import os
+import os.path
 import platform
+import requests
 import subprocess
+import tarfile
 
 # Detect architecture string for tofu providers
 ARCH = platform.machine()
@@ -90,12 +94,15 @@ def build(artifact):
     for target in targets:
         subprocess.run(["go", "build", *target], cwd=directory, check=True)
 
-    if applications[artifact].get("build_ui"):
-        env = os.environ.copy()
-        env["YARN_ENABLE_HARDENED_MODE"] = "0"
-        env["YARN_ENABLE_IMMUTABLE_INSTALLS"] = "false"
-        subprocess.run(["yarnpkg", "install"], cwd=os.path.join(directory, "ui"), env=env, check=True)
-        subprocess.run(["yarnpkg", "build"], cwd=os.path.join(directory, "ui"), env=env, check=True)
+    if applications[artifact].get("download_ui"):
+        subprocess.run(["rm", "-rf", "ui"], cwd=directory, check=True)
+        download_extract_github_asset("https://github.com/FuturFusion/" + artifact + "/releases/download/" + version + "/ui.tar.gz", os.path.join(directory, "ui"))
+
+    # Conditionally download the Migration Manager worker image if performing an x86_64 build
+    if artifact == "migration-manager" and ARCH == "amd64":
+        subprocess.run(["rm", "-f", "worker-x86_64.img"], cwd=directory, check=True)
+        download_extract_github_asset("https://github.com/FuturFusion/migration-manager/releases/download/" + version + "/migration-manager-worker.img.gz", directory)
+        subprocess.run(["mv", "migration-manager-worker.img", "worker-x86_64.img"], cwd=directory, check=True)
 
     # Symlink targets
     for link in applications[artifact].get("link_targets", []):
@@ -151,20 +158,6 @@ def create_application_manifest(artifact, version):
                 "direct": False
             })
 
-    if applications[artifact].get("build_ui"):
-        manifest["yarn_version"] = subprocess.run(["yarnpkg", "--version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
-        manifest["yarn_packages"] = []
-
-        yarn_info = subprocess.run(["yarnpkg", "info", "--json", "--name-only"], cwd=os.path.join(directory, "ui"), capture_output=True, check=True).stdout.strip().decode("utf-8")
-        for line in yarn_info.split("\n"):
-            parts = line.replace("\"", "").rsplit("@", 1)
-            manifest["yarn_packages"].append({
-                "type": "node",
-                "name": parts[0],
-                "version": parts[1],
-                "direct": True # FIXME -- need to figure out how to determine if a node dependency is direct or indirect
-            })
-
     with open(artifact+".json", "w") as f:
         json.dump(manifest, f)
 
@@ -185,6 +178,11 @@ def install(image, artifact):
         subprocess.run(["mkdir", "-p", os.path.join(base_path, target[1])], check=True)
         subprocess.run(["cp", "-r", os.path.join(directory, target[0]), os.path.join(base_path, target[1])], check=True)
 
+    # Conditionally install the Migration Manager worker image if performing an x86_64 build
+    if artifact == "migration-manager" and ARCH == "amd64":
+        subprocess.run(["mkdir", "-p", os.path.join(base_path, "usr/share/migration-manager/images/")], check=True)
+        subprocess.run(["cp", "migration-manager/worker-x86_64.img", os.path.join(base_path, "usr/share/migration-manager/images/")], check=True)
+
 def create_image_manifest(image, applications):
     manifest = []
 
@@ -194,6 +192,23 @@ def create_image_manifest(image, applications):
 
     with open(image+".json", "w") as f:
         json.dump(manifest, f)
+
+def download_extract_github_asset(asset_url, directory):
+    req = requests.get(asset_url, stream=True)
+    if asset_url.endswith(".tar.gz"):
+        tf = tarfile.open(fileobj=req.raw, mode="r|gz")
+        tf.extractall(path=directory)
+    elif asset_url.endswith(".gz"):
+        with gzip.open(req.raw) as gz:
+            with open(os.path.join(directory, os.path.basename(asset_url).removesuffix(".gz")), "wb") as f:
+                while True:
+                    chunk = gz.read(100*1024*1024)
+                    if not chunk:
+                        break
+
+                    f.write(chunk)
+    else:
+        raise Exception("Unsupported asset: " + asset_url)
 
 
 if __name__ == "__main__":

@@ -43,14 +43,12 @@ jobs:
             binutils \
             debian-archive-keyring \
             devscripts \
-            libnbd-dev \
             make \
             mtools \
             parted \
             pkgconf \
             pipx \
-            qemu-utils \
-            yarnpkg
+            qemu-utils
 
       - name: Setup mkosi
         run: |
