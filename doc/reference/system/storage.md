@@ -74,6 +74,29 @@ config:
     - "/dev/sdg"
 ```
 
+Create a storage pool `mypool` as ZFS raidz1 with three spinning devices, and a special vdev backed by three NVME devices also in a raidz1 configuration:
+
+```yaml
+config:
+  scrub_schedule: "0 0 * * 6"
+  pools:
+  - name: "mypool"
+    type: "zfs-raidz1"
+
+    devices:
+    - "/dev/sdb"
+    - "/dev/sdc"
+    - "/dev/sdd"
+
+    special:
+      type: "zfs-raidz1"
+      special_small_blocks_size_in_kb: 128
+      devices:
+      - "/dev/nvme0n1"
+      - "/dev/nvme1n1"
+      - "/dev/nvme2n1"
+```
+
 Get the pool encryption keys for safe storage (base64 encoded):
 
 ```

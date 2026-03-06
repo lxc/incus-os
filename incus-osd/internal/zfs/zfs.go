@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -163,7 +164,7 @@ func getPoolsWithKnownKeys() ([]string, error) {
 }
 
 // CreateZpool creates a new zpool.
-func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.State) error {
+func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.State) error { //nolint:revive
 	keyfilePath := "/var/lib/incus-os/zpool." + zpool.Name + ".key"
 
 	// Verify a zpool name was provided.
@@ -206,6 +207,28 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		}
 	}
 
+	// Basic special vdev checks.
+	if zpool.Special != nil {
+		// Verify we are given a supported type.
+		if !slices.Contains(supportedPoolTypes, zpool.Special.Type) {
+			return errors.New("unsupported special device type " + zpool.Special.Type)
+		}
+
+		// Verify at least two devices were specified if asked to create a mirror svdev.
+		if zpool.Special.Type == "zfs-raid1" && len(zpool.Special.Devices) < 2 {
+			return errors.New("at least two devices must be specified when creating a raid1 special vdev")
+		}
+
+		// If asked to create a raid10 svdev, ensure an even number of devices greater than or equal to four was specified.
+		if zpool.Special.Type == "zfs-raid10" {
+			if len(zpool.Special.Devices) < 4 {
+				return errors.New("at least four devices must be specified when creating a raid10 special vdev")
+			} else if len(zpool.Special.Devices)%2 != 0 {
+				return errors.New("an even number of devices must be specified when creating a raid10 special vdev")
+			}
+		}
+	}
+
 	// Simple check if the root drive is in the list of devices for this new zpool.
 	rootDev, err := storage.GetUnderlyingDevice()
 	if err != nil {
@@ -235,6 +258,15 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		zpool.Log[i], err = storage.DeviceToID(ctx, dev)
 		if err != nil {
 			return err
+		}
+	}
+
+	if zpool.Special != nil {
+		for i, dev := range zpool.Special.Devices {
+			zpool.Special.Devices[i], err = storage.DeviceToID(ctx, dev)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -287,6 +319,36 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		args = append(args, zpool.Log...)
 	}
 
+	if zpool.Special != nil && len(zpool.Special.Devices) > 0 {
+		args = append(args, "special")
+
+		switch zpool.Special.Type {
+		case "zfs-raid0":
+			args = append(args, zpool.Special.Devices...)
+		case "zfs-raid1":
+			args = append(args, "mirror")
+			args = append(args, zpool.Special.Devices...)
+		case "zfs-raid10":
+			middleIndex := len(zpool.Special.Devices) / 2
+
+			args = append(args, "mirror")
+			args = append(args, zpool.Special.Devices[:middleIndex]...)
+			args = append(args, "mirror")
+			args = append(args, zpool.Special.Devices[middleIndex:]...)
+		case "zfs-raidz1":
+			args = append(args, "raidz1")
+			args = append(args, zpool.Special.Devices...)
+		case "zfs-raidz2":
+			args = append(args, "raidz2")
+			args = append(args, zpool.Special.Devices...)
+		case "zfs-raidz3":
+			args = append(args, "raidz3")
+			args = append(args, zpool.Special.Devices...)
+		default:
+			return errors.New("unsupported special device type " + zpool.Type)
+		}
+	}
+
 	err = createZpoolHelper(ctx, args, zpool.AllowMixedDevSizes)
 	if err != nil {
 		// Remove the encryption key file for the failed zpool.
@@ -297,6 +359,14 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	// Reset encryption retrieval flag when a new zpool is created.
 	s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
+
+	// If a special vdev is defined and SpecialSmallBlocksSizeInKB has a non-zero value, set the pool's special_small_blocks property.
+	if zpool.Special != nil && zpool.Special.SpecialSmallBlocksSizeInKB != 0 {
+		_, err := subprocess.RunCommandContext(ctx, "zfs", "set", "special_small_blocks="+strconv.Itoa(zpool.Special.SpecialSmallBlocksSizeInKB)+"K", zpool.Name)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -383,6 +453,15 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 		}
 	}
 
+	if poolConfig.Special != nil {
+		for _, dev := range poolConfig.Special.Devices {
+			err := clearDevice(ctx, dev)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	for _, dev := range poolConfig.DevicesDegraded {
 		err := clearDevice(ctx, dev)
 		if err != nil {
@@ -398,6 +477,13 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 	}
 
 	for _, dev := range poolConfig.CacheDegraded {
+		err := clearDevice(ctx, dev)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, dev := range poolConfig.SpecialDegraded {
 		err := clearDevice(ctx, dev)
 		if err != nil {
 			return err
@@ -449,6 +535,12 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 
 	if len(newConfig.Cache) < len(currentConfig.Cache) {
 		return fmt.Errorf("only %d cache devices provided in update, expected at least %d", len(newConfig.Cache), len(currentConfig.Cache))
+	}
+
+	if newConfig.Special != nil {
+		if len(newConfig.Special.Devices) < len(currentConfig.Special.Devices) {
+			return fmt.Errorf("only %d special device devices provided in update, expected at least %d", len(newConfig.Special.Devices), len(currentConfig.Special.Devices))
+		}
 	}
 
 	// Perform "local" pool specific checks.
@@ -516,6 +608,13 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	err = updateZpoolHelper(ctx, newConfig.Name, "zfs-raid0", currentConfig.Cache, newConfig.Cache)
 	if err != nil {
 		return err
+	}
+
+	if newConfig.Special != nil {
+		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Special.Type, currentConfig.Special.Devices, newConfig.Special.Devices)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
