@@ -119,6 +119,7 @@ unmanaged
 Unmount
 USBIP
 UTM
+vdev
 VirtIO
 VirtualBox
 VLAN

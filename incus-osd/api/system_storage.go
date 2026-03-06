@@ -27,11 +27,14 @@ type SystemStoragePool struct {
 	Name string `json:"name" yaml:"name"`
 	// Supported pool types: zfs-raid0, zfs-raid1, zfs-raid10, zfs-raidz1, zfs-raidz2, zfs-raidz3.
 	Type string `json:"type" yaml:"type"`
+	// If true, allow creation of a pool with devices of different sizes.
+	AllowMixedDevSizes bool `json:"allow_mixed_dev_sizes,omitempty" yaml:"allow_mixed_dev_sizes,omitempty"`
 
-	// Devices, Cache, and Log can be modified to add/remove/replace devices in the pool.
-	Devices []string `json:"devices"         yaml:"devices"`
-	Cache   []string `json:"cache,omitempty" yaml:"cache,omitempty"`
-	Log     []string `json:"log,omitempty"   yaml:"log,omitempty"`
+	// Devices, Cache, Log, and Special can be modified to add/remove/replace devices in the pool.
+	Devices []string                  `json:"devices"           yaml:"devices"`
+	Cache   []string                  `json:"cache,omitempty"   yaml:"cache,omitempty"`
+	Log     []string                  `json:"log,omitempty"     yaml:"log,omitempty"`
+	Special *SystemStoragePoolSpecial `json:"special,omitempty" yaml:"special"`
 
 	// Read-only fields returned from the server with additional pool information.
 	State                     string                        `json:"state"                         yaml:"state"`
@@ -40,10 +43,21 @@ type SystemStoragePool struct {
 	DevicesDegraded           []string                      `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
 	CacheDegraded             []string                      `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
 	LogDegraded               []string                      `json:"log_degraded,omitempty"        yaml:"log_degraded,omitempty"`
+	SpecialDegraded           []string                      `json:"special_degraded,omitempty"    yaml:"special_degraded,omitempty"`
 	RawPoolSizeInBytes        int                           `json:"raw_pool_size_in_bytes"        yaml:"raw_pool_size_in_bytes"`
 	UsablePoolSizeInBytes     int                           `json:"usable_pool_size_in_bytes"     yaml:"usable_pool_size_in_bytes"`
 	PoolAllocatedSpaceInBytes int                           `json:"pool_allocated_space_in_bytes" yaml:"pool_allocated_space_in_bytes"`
 	Volumes                   []SystemStoragePoolVolume     `json:"volumes"                       yaml:"volumes"`
+}
+
+// SystemStoragePoolSpecial defines a struct that is used to create or update a pool's special vdev.
+type SystemStoragePoolSpecial struct {
+	// Supported special device types: zfs-raid0, zfs-raid1, zfs-raid10, zfs-raidz1, zfs-raidz2, zfs-raidz3.
+	Type string `json:"type" yaml:"type"`
+	// If non-zero, will be used when setting the pool's special_small_blocks property.
+	SpecialSmallBlocksSizeInKB int `json:"special_small_blocks_size_in_kb" yaml:"special_small_blocks_size_in_kb"`
+	// One or more physical devices to create the pool's special vdev.
+	Devices []string `json:"devices" yaml:"devices"`
 }
 
 // SystemStoragePoolVolume represents a single IncusOS-managed volume in a pool.

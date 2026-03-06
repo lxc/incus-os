@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -88,13 +89,25 @@ type zpoolStatusPartialParse struct {
 			} `json:"vdevs"`
 		} `json:"vdevs"`
 		Logs map[string]struct {
-			Name  string `json:"name"`
-			State string `json:"state"`
+			Name     string `json:"name"`
+			VdevType string `json:"vdev_type"`
+			State    string `json:"state"`
+			Vdevs    map[string]struct {
+				State string `json:"state"`
+			} `json:"vdevs,omitempty"`
 		} `json:"logs"`
 		L2Cache map[string]struct {
 			Name  string `json:"name"`
 			State string `json:"state"`
 		} `json:"l2cache"`
+		Special map[string]struct {
+			Name     string `json:"name"`
+			VdevType string `json:"vdev_type"`
+			State    string `json:"state"`
+			Vdevs    map[string]struct {
+				State string `json:"state"`
+			} `json:"vdevs,omitempty"`
+		} `json:"special"`
 	} `json:"pools"`
 }
 
@@ -305,7 +318,7 @@ func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePo
 	return getZpoolMembersHelper(ctx, []byte(output), zpoolName)
 }
 
-func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) {
+func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName string) (api.SystemStoragePool, error) { //nolint:revive
 	zpoolJSON := zpoolStatusPartialParse{}
 
 	err := json.Unmarshal(rawJSONContent, &zpoolJSON)
@@ -368,8 +381,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 				if zpoolType == "" {
 					zpoolType = "zfs-raid1"
 				}
-			case "mirror-1", "mirror-2", "mirror-3", "mirror-4", "mirror-5":
-				// raid10 gets a bit weird when additional mirror vdevs are added to it...
+			case "mirror-1":
 				zpoolType = "zfs-raid10"
 			case "raidz1-0":
 				zpoolType = "zfs-raidz1"
@@ -396,10 +408,70 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	}
 
 	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Logs {
-		if vdev.State == "ONLINE" {
-			zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+vdevName)
-		} else {
-			zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+vdevName)
+		switch vdev.VdevType {
+		case "disk":
+			if vdev.State == "ONLINE" {
+				zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+vdevName)
+			} else {
+				zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+vdevName)
+			}
+		case "mirror":
+			for memberVdevName, memberVdev := range vdev.Vdevs {
+				if memberVdev.State == "ONLINE" {
+					zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+memberVdevName)
+				} else {
+					zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], "/dev/disk/by-id/"+memberVdevName)
+				}
+			}
+		default:
+			return api.SystemStoragePool{}, errors.New("unsupported zpool log vdev type '" + vdev.VdevType + "'")
+		}
+	}
+
+	specialVdevType := ""
+
+	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Special {
+		switch vdev.VdevType {
+		case "disk":
+			specialVdevType = "zfs-raid0"
+
+			if vdev.State == "ONLINE" {
+				zpoolDevices["special"] = append(zpoolDevices["special"], "/dev/disk/by-id/"+vdevName)
+			} else {
+				zpoolDevices["special_degraded"] = append(zpoolDevices["special_degraded"], "/dev/disk/by-id/"+vdevName)
+			}
+		default:
+			switch vdevName {
+			case "mirror-0":
+				// Only set the specialVdevType if it doesn't already have a value; the ordering of vdevs is random.
+				if specialVdevType == "" {
+					specialVdevType = "zfs-raid1"
+				}
+			case "mirror-1":
+				if specialVdevType == "" {
+					specialVdevType = "zfs-raid1"
+				} else {
+					specialVdevType = "zfs-raid10"
+				}
+			case "mirror-2", "mirror-3":
+				specialVdevType = "zfs-raid10"
+			case "raidz1-0", "raidz1-1":
+				specialVdevType = "zfs-raidz1"
+			case "raidz2-0", "raidz2-1":
+				specialVdevType = "zfs-raidz2"
+			case "raidz3-0", "raidz3-1":
+				specialVdevType = "zfs-raidz3"
+			default:
+				return api.SystemStoragePool{}, fmt.Errorf("got unexpected special device type '%s' in zpool '%s'", vdevName, zpoolName)
+			}
+
+			for memberVdevName, memberVdev := range vdev.Vdevs {
+				if memberVdev.State == "ONLINE" {
+					zpoolDevices["special"] = append(zpoolDevices["special"], "/dev/disk/by-id/"+memberVdevName)
+				} else {
+					zpoolDevices["special_degraded"] = append(zpoolDevices["special_degraded"], "/dev/disk/by-id/"+memberVdevName)
+				}
+			}
 		}
 	}
 
@@ -461,9 +533,11 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	slices.Sort(zpoolDevices["devices"])
 	slices.Sort(zpoolDevices["log"])
 	slices.Sort(zpoolDevices["cache"])
+	slices.Sort(zpoolDevices["special"])
 	slices.Sort(zpoolDevices["devices_degraded"])
 	slices.Sort(zpoolDevices["log_degraded"])
 	slices.Sort(zpoolDevices["cache_degraded"])
+	slices.Sort(zpoolDevices["special_degraded"])
 
 	// Get the scrub status, if it exists.
 	var scrubStatus *api.SystemStoragePoolScrubStatus
@@ -478,6 +552,25 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		}
 	}
 
+	var specialVdevInfo *api.SystemStoragePoolSpecial
+	if len(zpoolDevices["special"]) > 0 || len(zpoolDevices["special_degraded"]) > 0 {
+		specialVdevInfo = new(api.SystemStoragePoolSpecial)
+		specialVdevInfo.Type = specialVdevType
+		specialVdevInfo.Devices = zpoolDevices["special"]
+
+		smallBlockSize, err := subprocess.RunCommandContext(ctx, "zfs", "get", "special_small_blocks", "-H", "-o", "value", zpoolName)
+		if err != nil {
+			return api.SystemStoragePool{}, err
+		}
+
+		smallBlockSizeInt, err := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(smallBlockSize, "\n"), "K"))
+		if err != nil {
+			return api.SystemStoragePool{}, err
+		}
+
+		specialVdevInfo.SpecialSmallBlocksSizeInKB = smallBlockSizeInt
+	}
+
 	return api.SystemStoragePool{
 		Name:                      zpoolName,
 		State:                     zpoolJSON.Pools[zpoolName].State,
@@ -487,9 +580,11 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
 		Cache:                     zpoolDevices["cache"],
+		Special:                   specialVdevInfo,
 		DevicesDegraded:           zpoolDevices["devices_degraded"],
 		LogDegraded:               zpoolDevices["log_degraded"],
 		CacheDegraded:             zpoolDevices["cache_degraded"],
+		SpecialDegraded:           zpoolDevices["special_degraded"],
 		RawPoolSizeInBytes:        zpoolTotalSpace,
 		UsablePoolSizeInBytes:     zpoolDefSpace,
 		PoolAllocatedSpaceInBytes: zpoolAllocSpace,
@@ -642,8 +737,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 				return ret, err
 			}
 
-			if isMemberDrive(poolConfig.Devices, deviceID) || isMemberDrive(poolConfig.Log, deviceID) || isMemberDrive(poolConfig.Cache, deviceID) ||
-				isMemberDrive(poolConfig.DevicesDegraded, deviceID) || isMemberDrive(poolConfig.LogDegraded, deviceID) || isMemberDrive(poolConfig.CacheDegraded, deviceID) {
+			if isMemberDrive(poolConfig.Devices, deviceID) || isMemberDrive(poolConfig.Log, deviceID) || isMemberDrive(poolConfig.Cache, deviceID) || (poolConfig.Special != nil && isMemberDrive(poolConfig.Special.Devices, deviceID)) ||
+				isMemberDrive(poolConfig.DevicesDegraded, deviceID) || isMemberDrive(poolConfig.LogDegraded, deviceID) || isMemberDrive(poolConfig.CacheDegraded, deviceID) || isMemberDrive(poolConfig.SpecialDegraded, deviceID) {
 				driveZpool = zpoolName
 
 				break

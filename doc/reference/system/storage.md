@@ -22,6 +22,7 @@ The following configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
 * `scrub_schedule`: A cron expression with five fields defining when to perform an automatic scrub of all the storage pools. Defaults to 0 4 * * 0.
+* `allow_mixed_dev_sizes`: If true, allow creation of a storage pool with devices of different sizes. Note that in most cases this will result in a storage pool whose total available capacity will be constrained by the smallest device size.
 
 ```{note}
 When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
@@ -73,6 +74,29 @@ config:
     - "/dev/sdg"
 ```
 
+Create a storage pool `mypool` as ZFS raidz1 with three spinning devices, and a special vdev backed by three NVME devices also in a raidz1 configuration:
+
+```yaml
+config:
+  scrub_schedule: "0 0 * * 6"
+  pools:
+  - name: "mypool"
+    type: "zfs-raidz1"
+
+    devices:
+    - "/dev/sdb"
+    - "/dev/sdc"
+    - "/dev/sdd"
+
+    special:
+      type: "zfs-raidz1"
+      special_small_blocks_size_in_kb: 128
+      devices:
+      - "/dev/nvme0n1"
+      - "/dev/nvme1n1"
+      - "/dev/nvme2n1"
+```
+
 Get the pool encryption keys for safe storage (base64 encoded):
 
 ```
@@ -83,6 +107,37 @@ state:
     local: vIAKUWSxK5GrNrkn60kjEXh2M4WZdtX+hcyhx0W8q7U=
     mypool: zh9gkAgGsKenO48y7dwNg6aBFaD6OoedgSlSsivEq0Q=
 ```
+
+## Converting a single device pool to a mirrored pool
+
+It is possible to convert a singe device storage pool to a mirrored pool with two storage devices. The new device to be used for mirroring the data must be at least as large as the original device.
+
+Given an existing storage pool:
+
+```yaml
+state:
+  pools:
+  - name: "mypool"
+    type: "zfs-raid0"
+
+    devices:
+    - "/dev/sdb"
+```
+
+IncusOS can convert this to a mirrored storage pool using new device `/dev/sdc` with the following configuration. Note the change of pool type from `zfs-raid0` to `zfs-raid1`.
+
+```yaml
+config:
+  pools:
+  - name: "mypool"
+    type: "zfs-raid1"
+
+    devices:
+    - "/dev/sdb"
+    - "/dev/sdc"
+```
+
+IncusOS does not support other forms of in-place storage pool conversions.
 
 ## Deleting a storage pool
 
