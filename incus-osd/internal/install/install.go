@@ -329,16 +329,13 @@ func getSourceDevice(ctx context.Context) (string, bool, int, error) {
 		return cdromMappedDevice, true, -1, nil
 	}
 
-	// If boot.mount has failed, we're running from a read-only USB stick.
-	// (fsck.fat fails on the read-only ESP partition.) Can't use systemd.IsFailed(),
-	// since systemd doesn't actually report the mount unit as failed, so we
-	// need to check its output.
-	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
+	// Check if systemd-repart has failed because of a read-only source device.
+	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "systemd-repart.service")
 	if err != nil {
 		return "", false, -1, err
 	}
 
-	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
+	isReadonlyInstallFS := strings.Contains(output, ": Read-only file system")
 
 	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
