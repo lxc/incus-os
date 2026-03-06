@@ -4,7 +4,7 @@
 # Install the packages.
 mkdir -p /run/lock
 apt-get update
-apt-get install drbd-utils linstor-satellite lsscsi socat thin-send-recv --yes
+apt-get install bcache-tools drbd-utils linstor-satellite lsscsi socat thin-send-recv --yes
 
 rm \
     "/buildroot/usr/bin/java" \
