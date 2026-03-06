@@ -133,17 +133,7 @@
                 "./cmd/migration-manager-worker"
             ]
         ],
-        "build_ui": true,
-        "rename_targets": [
-            [
-                "ui/",
-                "ui.old/"
-            ],
-            [
-                "ui.old/dist/",
-                "ui/"
-            ]
-        ],
+        "download_ui": true,
         "install_targets": [
             [
                 "migration-managerd",
@@ -220,17 +210,7 @@
                 "./cmd/operations-center"
             ]
         ],
-        "build_ui": true,
-        "rename_targets": [
-            [
-                "ui/",
-                "ui.old/"
-            ],
-            [
-                "ui.old/dist/",
-                "ui/"
-            ]
-        ],
+        "download_ui": true,
         "install_targets": [
             [
                 "operations-centerd",
