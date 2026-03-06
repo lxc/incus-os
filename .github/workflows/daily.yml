@@ -30,18 +30,26 @@ jobs:
           go-version: stable
 
       - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
+          sudo apt-get install --yes \
+            linux-headers-$(uname -r)
           sudo apt-get install --yes \
             dosfstools \
             gdisk \
             genisoimage \
-            mtools
+            mtools \
+            zfsutils-linux
 
       - name: Setup Incus
         run: |
           curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
           sudo chmod 666 /var/lib/incus/unix.socket
-          incus admin init --auto
+          echo "initializing incus with zfs backend and 200MB loop device"
+          incus admin init --auto --storage-backend=zfs --storage-create-loop=200
+          echo "setting zfs sync to disabled for better performance in CI environment"
+          zfs set sync=disabled default
 
       - name: Run API tests
         run: |

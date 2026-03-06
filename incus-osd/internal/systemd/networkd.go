@@ -1975,12 +1975,12 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the wireguard configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Wireguard[oldIndex])
+		oldConfig, err := json.Marshal(oldCfg.Wireguard[oldIndex]) //nolint:gosec
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Wireguard[newIndex])
+		newConfig, err := json.Marshal(newCfg.Wireguard[newIndex]) //nolint:gosec
 		if err != nil {
 			return err
 		}
