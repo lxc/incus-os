@@ -39,7 +39,7 @@ type kpxProxy struct {
 
 type kpxCredential struct {
 	Login    string `yaml:"login"`
-	Password string `yaml:"password"` //nolint:gosec
+	Password string `yaml:"password"`
 }
 
 type kpxRule struct {
@@ -213,7 +213,7 @@ func GenerateKPXConfig(proxyConfig *api.SystemNetworkProxy) ([]byte, error) {
 }
 
 func writeAndSetEnvironment(key string, value string) error {
-	envFile, err := os.OpenFile("/etc/environment", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o0644) //nolint:gosec
+	envFile, err := os.OpenFile("/etc/environment", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o0644) // #nosec G302
 	if err != nil {
 		return err
 	}

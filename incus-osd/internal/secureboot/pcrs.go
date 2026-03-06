@@ -456,7 +456,7 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Update in-memory values.
-	v.Header.VariableDataLength = uint64(newBuf.Len()) //nolint:gosec
+	v.Header.VariableDataLength = uint64(newBuf.Len()) // #nosec G115
 	v.VariableData = newBuf.Bytes()
 
 	// Get the updated buffer and use for PCR calculation.

@@ -128,6 +128,8 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -136,7 +138,7 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseForm()
+	err := r.ParseForm() // #nosec G120
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

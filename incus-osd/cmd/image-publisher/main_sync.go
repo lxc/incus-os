@@ -363,7 +363,7 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		// Extract the file.
 		slog.InfoContext(ctx, "Extracting", "name", assetName, "arch", archName)
 
-		assetHash, assetSize, err := extractFile(f, filepath.Join(targetPath, archName, assetName)) //nolint:gosec
+		assetHash, assetSize, err := extractFile(f, filepath.Join(targetPath, archName, assetName)) // #nosec G305
 		if err != nil {
 			return nil, err
 		}
@@ -372,7 +372,7 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		files = append(files, apiupdate.UpdateFile{
 			Architecture: apiupdate.UpdateFileArchitecture(archName),
 			Component:    assetComponent,
-			Filename:     filepath.Join(archName, assetName), //nolint:gosec
+			Filename:     filepath.Join(archName, assetName), // #nosec G305
 			Sha256:       assetHash,
 			Size:         assetSize,
 			Type:         assetType,

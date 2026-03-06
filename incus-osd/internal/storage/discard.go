@@ -245,7 +245,7 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 
 	defer zero.Close()
 
-	fd, err = os.OpenFile(blockPath, os.O_WRONLY, 0o644) //nolint:gosec
+	fd, err = os.OpenFile(blockPath, os.O_WRONLY, 0o644) // #nosec G302
 	if err != nil {
 		return err
 	}
