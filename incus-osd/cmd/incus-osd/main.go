@@ -178,6 +178,15 @@ func main() {
 }
 
 func firstBootActions(ctx context.Context) error {
+	// Clear the "IncusOSInstallComplete" UEFI variable, if it exists.
+	_, err := subprocess.RunCommandContext(ctx, "chattr", "-i", "/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+	if err == nil {
+		err := os.Remove("/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Ensure the system timezone is set properly.
 	return setTimezone(ctx)
 }
