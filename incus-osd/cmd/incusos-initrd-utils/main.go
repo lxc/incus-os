@@ -66,7 +66,7 @@ func measurePCRs() error {
 
 	// Measure each event into the TPM.
 	for _, event := range events {
-		pcr := tpmutil.Handle(event.Index) //nolint:gosec
+		pcr := tpmutil.Handle(event.Index) // #nosec G115
 
 		err := tpm2.PCRExtend(tpmDev, pcr, tpm2.AlgSHA256, event.ReplayedDigest(), "")
 		if err != nil {

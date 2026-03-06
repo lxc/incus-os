@@ -85,9 +85,9 @@ linters:
           - errcheck
         source: ^\s*defer\s+
       - path: api/
-        text: "avoid meaningless package names"
+        text: "bad package name"
       - path: internal/util/
-        text: "avoid meaningless package names"
+        text: "bad package name"
 
     paths:
       - third_party$

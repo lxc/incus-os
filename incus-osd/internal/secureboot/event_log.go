@@ -334,7 +334,7 @@ func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
 		digest: sha256.Sum256(contents),
 	}
 
-	e.header.eventSize = uint32(len(contents)) //nolint:gosec
+	e.header.eventSize = uint32(len(contents)) // #nosec G115
 
 	err := binary.Write(buf, binary.LittleEndian, e.header)
 	if err != nil {
@@ -354,7 +354,7 @@ func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
 func getSigningCertBytes(contents []byte) ([]byte, error) {
 	// Get the RSA public key used by the running kernel.
 	fd, err := os.Open("/run/systemd/tpm2-pcr-public-key.pem")
-	if err != nil {
+	if err != nil { // #nosec G115
 		return nil, err
 	}
 	defer fd.Close()

@@ -165,7 +165,7 @@ func unixHTTPClient(socketPath string) (*http.Client, error) {
 	// Setup redirect policy
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		// Replicate the headers
-		req.Header = via[len(via)-1].Header
+		req.Header = via[len(via)-1].Header // #nosec G119
 
 		return nil
 	}
@@ -317,7 +317,7 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 			}
 		case info.Mode().IsRegular():
 			// Open the file.
-			// #nosec G304
+			// #nosec G304,G122
 			file, err := os.Open(path)
 			if err != nil {
 				return err
@@ -410,7 +410,7 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 			return fmt.Errorf("cannot restore file outside of application root '%s' (bad file '%s')", archiveRoot, filename)
 		}
 
-		mode := fs.FileMode(header.Mode) //nolint:gosec
+		mode := fs.FileMode(header.Mode) // #nosec G115
 
 		switch header.Typeflag {
 		case tar.TypeDir:

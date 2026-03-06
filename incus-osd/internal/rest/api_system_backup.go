@@ -96,6 +96,8 @@ func (s *Server) apiSystemBackup(w http.ResponseWriter, r *http.Request) {
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemRestore(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {

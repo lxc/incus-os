@@ -159,6 +159,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	// Refresh registration, delaying by 30 seconds if needed to allow the provider to become available,
 	// such as when IncusOS is self-hosting Operations Center.
 	if refresh != nil {
+		// #nosec G118
 		go func() { //nolint:contextcheck
 			if delayRefreshCheck {
 				time.Sleep(30 * time.Second)
@@ -1975,12 +1976,12 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the wireguard configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Wireguard[oldIndex]) //nolint:gosec
+		oldConfig, err := json.Marshal(oldCfg.Wireguard[oldIndex]) // #nosec G117
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Wireguard[newIndex]) //nolint:gosec
+		newConfig, err := json.Marshal(newCfg.Wireguard[newIndex]) // #nosec G117
 		if err != nil {
 			return err
 		}
