@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -87,7 +87,7 @@ func (cth *CustomTextHandler) Handle(_ context.Context, r slog.Record) error {
 			keys = append(keys, k)
 		}
 
-		sort.Strings(keys)
+		slices.Sort(keys)
 
 		_, err = buf.WriteString("[purple]")
 		if err != nil {
