@@ -35,7 +35,7 @@ jobs:
         run: |
           sudo apt-get install --yes \
             linux-headers-$(uname -r)
-          sudo apt-get install --yes \
+          sudo --preserve-env=DEBIAN_FRONTEND apt-get install --yes \
             dosfstools \
             gdisk \
             genisoimage \
