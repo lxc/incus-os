@@ -231,7 +231,7 @@ func (c *cmdGenericList) run(cmd *cobra.Command, args []string) error {
 		data = append(data, []string{strings.TrimPrefix(v, "/os/1.0/"+c.endpoint+"/")})
 	}
 
-	sort.Sort(cli.SortColumnsNaturally(data))
+	sort.Sort(cli.SortColumnsNaturally(data)) //nolint:revive
 
 	header := []string{
 		"NAME",
