@@ -159,7 +159,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	// Refresh registration, delaying by 30 seconds if needed to allow the provider to become available,
 	// such as when IncusOS is self-hosting Operations Center.
 	if refresh != nil {
-		go func() { //nolint:contextcheck
+		go func() { //nolint:contextcheck,gosec
 			if delayRefreshCheck {
 				time.Sleep(30 * time.Second)
 			}
