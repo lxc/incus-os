@@ -43,6 +43,7 @@ jobs:
             binutils \
             debian-archive-keyring \
             devscripts \
+            libnbd-dev \
             make \
             mtools \
             parted \
