@@ -1,0 +1,59 @@
+diff --git a/drbd/drbd_transport_lb-tcp.c b/drbd/drbd_transport_lb-tcp.c
+index 5a9129f9e..f4ccb7074 100644
+--- a/drbd/drbd_transport_lb-tcp.c
++++ b/drbd/drbd_transport_lb-tcp.c
+@@ -623,13 +623,13 @@ dtl_try_connect(struct drbd_transport *transport, struct dtl_path *path, struct
+ 	 * a free one dynamically.
+ 	 */
+ 	what = "bind before connect";
+-	err = sock->ops->bind(sock, (struct sockaddr *) &my_addr, path->path.my_addr_len);
++	err = sock->ops->bind(sock, (struct sockaddr_unsized *) &my_addr, path->path.my_addr_len);
+ 	if (err < 0)
+ 		goto out;
+ 
+ 	/* connect may fail, peer not yet available. stay C_CONNECTING */
+ 	what = "connect";
+-	err = sock->ops->connect(sock, (struct sockaddr *) &peer_addr,
++	err = sock->ops->connect(sock, (struct sockaddr_unsized *) &peer_addr,
+ 				   path->path.peer_addr_len, 0);
+ 	if (err < 0) {
+ 		switch (err) {
+@@ -1078,7 +1078,7 @@ static int dtl_init_listener(struct drbd_transport *transport,
+ 	addr_len = addr->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6)
+ 		: sizeof(struct sockaddr_in);
+ 
+-	err = s_listen->ops->bind(s_listen, (struct sockaddr *)&my_addr, addr_len);
++	err = s_listen->ops->bind(s_listen, (struct sockaddr_unsized *)&my_addr, addr_len);
+ 	if (err < 0) {
+ 		what = "bind before listen";
+ 		goto out;
+diff --git a/drbd/drbd_transport_tcp.c b/drbd/drbd_transport_tcp.c
+index 7ffc20997..a0cf9f5b9 100644
+--- a/drbd/drbd_transport_tcp.c
++++ b/drbd/drbd_transport_tcp.c
+@@ -495,14 +495,14 @@ static int dtt_try_connect(struct dtt_path *path, struct socket **ret_socket)
+ 	*  a free one dynamically.
+ 	*/
+ 	what = "bind before connect";
+-	err = socket->ops->bind(socket, (struct sockaddr *) &my_addr, path->path.my_addr_len);
++	err = socket->ops->bind(socket, (struct sockaddr_unsized *) &my_addr, path->path.my_addr_len);
+ 	if (err < 0)
+ 		goto out;
+ 
+ 	/* connect may fail, peer not yet available.
+ 	 * stay C_CONNECTING, don't go Disconnecting! */
+ 	what = "connect";
+-	err = socket->ops->connect(socket, (struct sockaddr *) &peer_addr,
++	err = socket->ops->connect(socket, (struct sockaddr_unsized *) &peer_addr,
+ 				   path->path.peer_addr_len, 0);
+ 	if (err < 0) {
+ 		switch (err) {
+@@ -1030,7 +1030,7 @@ static int dtt_init_listener(struct drbd_transport *transport,
+ 	addr_len = addr->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6)
+ 		: sizeof(struct sockaddr_in);
+ 
+-	err = s_listen->ops->bind(s_listen, (struct sockaddr *)&my_addr, addr_len);
++	err = s_listen->ops->bind(s_listen, (struct sockaddr_unsized *)&my_addr, addr_len);
+ 	if (err < 0) {
+ 		what = "bind before listen";
+ 		goto out;
