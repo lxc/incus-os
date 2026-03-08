@@ -1,9 +1,14 @@
 #!/bin/sh
+set -eux
+
 KERNEL="$(ls /buildroot/usr/lib/modules/)"
 
 # Install the drbd sources
 mkdir -p /run/lock
 apt-get install --no-install-recommends --yes drbd-dkms || true
+
+cd /buildroot/usr/src/drbd-*/src/
+patch -p1 < /work/src/patches/drbd-0001-fix-6.19.patch
 
 cp "/buildroot/boot/config-${KERNEL}" "/buildroot/usr/src/linux-headers-${KERNEL}/.config"
 apt-get install --no-install-recommends --yes drbd-dkms
