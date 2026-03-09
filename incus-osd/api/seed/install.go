@@ -19,5 +19,12 @@ type InstallSecurity struct {
 
 // InstallTarget defines options used to select the target install disk.
 type InstallTarget struct {
-	ID string `json:"id" yaml:"id"` // Name as listed in /dev/disk/by-id/, glob supported.
+	// The following options are logically AND'ed together when selecting between more than one possible install targets.
+	Bus     string `json:"bus,omitempty"      yaml:"bus,omitempty"`      // Bus type of the disk, for example "NVME", "SCSI", or "USB" (case insensitive).
+	ID      string `json:"id,omitempty"       yaml:"id,omitempty"`       // Disk ID as listed in /dev/disk/by-id/, will be used in a case-sensitive sub-string match.
+	MaxSize string `json:"max_size,omitempty" yaml:"max_size,omitempty"` // Maximum size of the install disk, such as 1TiB.
+	MinSize string `json:"min_size,omitempty" yaml:"min_size,omitempty"` // Minimum size of the install disk, such as 100GiB.
+
+	// If defined, sort potential targets by their capacity and pick the first one.
+	SortOrder string `json:"sort_order,omitempty" yaml:"sort_order,omitempty"` // Either "smallest" or "largest" to sort matching targets by their capacity.
 }

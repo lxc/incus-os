@@ -21,10 +21,11 @@ import (
 
 // BlockDevices stores specific fields for each device reported by `lsblk`.
 type BlockDevices struct {
-	KName string `json:"kname"`
-	ID    string `json:"id-link"` //nolint:tagliatelle
-	Size  int    `json:"size"`
-	RM    bool   `json:"rm"`
+	KName      string `json:"kname"`
+	ID         string `json:"id-link"` //nolint:tagliatelle
+	Size       int    `json:"size"`
+	Subsystems string `json:"subsystems"`
+	RM         bool   `json:"rm"`
 }
 
 // LsblkOutput stores the output of running `lsblk -J ...`.
@@ -648,7 +649,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 	// Get a list of all local drives.
 	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
 	// Exclude devices with major numbers 1 (RAM disk), 2 (floppy disks), 7 (loopback), 43 (NBD), 147 (DRBD), 230 (zvols), 251 (Ceph RBD)
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,43,147,230,251", "-o", "KNAME,ID_LINK,SIZE,RM")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,43,147,230,251", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS,RM")
 	if err != nil {
 		return ret, err
 	}

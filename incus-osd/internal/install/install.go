@@ -17,6 +17,7 @@ import (
 
 	"github.com/lxc/incus/v6/shared/osarch"
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v6/shared/units"
 	"golang.org/x/sys/unix"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -467,38 +468,117 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	return filtered, nil
 }
 
-// getTargetDevice determines the underlying device and its size in bytes to install incus-osd on.
+// getTargetDevice determines the install target based on the provided potential targets and install seed (if any),
+// and returns the device path along with its size in bytes.
 func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apiseed.InstallTarget) (string, int, error) {
-	// Ensure we found at least one potential install device. If no Target configuration was found,
-	// only proceed if exactly one device was found.
+	// Require at least one potential target deivce.
 	if len(potentialTargets) == 0 {
 		return "", -1, errors.New("no potential install devices found")
-	} else if seedTarget == nil && len(potentialTargets) != 1 {
-		return "", -1, errors.New("no target configuration provided, and didn't find exactly one install device")
 	}
 
-	// Loop through all disks, selecting the first one that matches the Target configuration.
-	for _, device := range potentialTargets {
-		// First, check for a simple substring match.
-		if seedTarget == nil || strings.Contains(device.ID, seedTarget.ID) {
-			return device.KName, device.Size, nil
+	// If no install seed was provided, we expect exactly one install target to be present.
+	if seedTarget == nil {
+		if len(potentialTargets) == 1 {
+			return potentialTargets[0].KName, potentialTargets[0].Size, nil
 		}
 
-		// Second, check if the specified target ID and current device are both symlinks to the same underlying device.
-		seedDeviceLink, err := os.Readlink(filepath.Join("/dev/disk/by-id", seedTarget.ID))
-		if err == nil {
+		return "", -1, errors.New("no target install seed provided, and didn't find exactly one install device")
+	}
+
+	// Build a list of all potential install targets that match the install seed selectors.
+	matchingTargets := []storage.BlockDevices{}
+
+	maxSizeBytes := 0
+	minSizeBytes := 0
+
+	if seedTarget.MaxSize != "" {
+		size, err := units.ParseByteSizeString(seedTarget.MaxSize)
+		if err != nil {
+			return "", -1, err
+		}
+
+		maxSizeBytes = int(size)
+	}
+
+	if seedTarget.MinSize != "" {
+		size, err := units.ParseByteSizeString(seedTarget.MinSize)
+		if err != nil {
+			return "", -1, err
+		}
+
+		minSizeBytes = int(size)
+	}
+
+	// Loop over each potential target, and skip those that don't match a provided selector.
+	for _, device := range potentialTargets {
+		// Check for a matching bus type. We look at the SUBSYSTEMS field reported by lsblk, which
+		// is something like "block:scsi:virtio:pci" or "block:nvme:pci". We do a simple substring
+		// search, which allows for flexible matching on any part of the field.
+		if !strings.Contains(device.Subsystems, strings.ToLower(seedTarget.Bus)) {
+			continue
+		}
+
+		// Check if the device ID substring matches.
+		if !strings.Contains(device.ID, seedTarget.ID) {
+			// Also check if the specified target ID and current device are both symlinks to the same underlying device.
+			seedDeviceLink, err := os.Readlink(filepath.Join("/dev/disk/by-id", seedTarget.ID))
+			if err != nil {
+				continue
+			}
+
 			potentialDeviceLink, err := os.Readlink(filepath.Join("/dev/disk/by-id", device.ID))
-			if err == nil && seedDeviceLink == potentialDeviceLink {
-				return device.KName, device.Size, nil
+			if err != nil || seedDeviceLink != potentialDeviceLink {
+				continue
 			}
 		}
+
+		// Check if the device is too large.
+		if maxSizeBytes != 0 && device.Size > maxSizeBytes {
+			continue
+		}
+
+		// Check if the device is too small.
+		if minSizeBytes != 0 && device.Size < minSizeBytes {
+			continue
+		}
+
+		// This target matches, add it to the list.
+		matchingTargets = append(matchingTargets, device)
 	}
 
-	if seedTarget == nil {
-		return "", -1, errors.New("unable to determine target device")
+	// If no devices match all selectors, return an error.
+	if len(matchingTargets) == 0 {
+		return "", -1, errors.New("no target device matched provided install seed selectors")
 	}
 
-	return "", -1, errors.New("no target device matched '" + seedTarget.ID + "'")
+	// If we have exactly one match, return it.
+	if len(matchingTargets) == 1 {
+		return matchingTargets[0].KName, matchingTargets[0].Size, nil
+	}
+
+	// When more than one target matches the selectors, if a sort order was defined use that to
+	// select the best target.
+	if seedTarget.SortOrder != "" {
+		switch strings.ToLower(seedTarget.SortOrder) {
+		case "smallest":
+			slices.SortFunc(matchingTargets, func(a, b storage.BlockDevices) int {
+				return a.Size - b.Size
+			})
+		case "largest":
+			slices.SortFunc(matchingTargets, func(a, b storage.BlockDevices) int {
+				return b.Size - a.Size
+			})
+		default:
+			return "", -1, errors.New("unsupported sort order '" + seedTarget.SortOrder + "'")
+		}
+
+		// Return the first target from the sorted list.
+		return matchingTargets[0].KName, matchingTargets[0].Size, nil
+	}
+
+	// Finally, if a sort order wasn't specified and we didn't have exactly one matching install
+	// target, return an appropriate error.
+	return "", -1, errors.New("more than one target device matched provided install seed selectors")
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
