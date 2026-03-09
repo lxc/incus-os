@@ -103,8 +103,7 @@ jobs:
             mtools \
             pkgconf \
             pipx \
-            qemu-utils \
-            yarnpkg
+            qemu-utils
 
       - name: Setup Incus
         run: |

@@ -163,23 +163,12 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
-		// Sanity check: if we're not running from a CDROM, ensure that the default install media seed partition
-		// exists on the source device. If not, there are at least two IncusOS drives present, the installed system
-		// and an install media. This will result in a weird environment, so raise an error telling the user to
-		// remove the install device.
-		//
-		// This won't catch the case when an external user-provided seed partition is present, and we rely on the
-		// user properly removing their seed device post-install.
-		if !runningFromCDROM() {
-			seedLink, err := os.Readlink("/dev/disk/by-partlabel/seed-data")
-			if err != nil {
-				return err
-			}
-
-			seedPartition := filepath.Join("/dev/disk/by-partlabel", seedLink)
-			if !strings.HasPrefix(seedPartition, sourceDevice) {
-				return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
-			}
+		// Sanity check: If the "IncusOSInstallComplete" UEFI variable is set, that means an IncusOS install
+		// completed successfully but incus-osd hasn't yet cleared this UEFI variable on its first boot. This
+		// means we've likely accidentally booted from the install media rather than the newly installed system.
+		_, err = os.Stat("/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+		if err == nil {
+			return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
 		}
 
 		targetDevice, targetDeviceSize, err := getTargetDevice(targets, installSeed.Target)
@@ -329,16 +318,13 @@ func getSourceDevice(ctx context.Context) (string, bool, int, error) {
 		return cdromMappedDevice, true, -1, nil
 	}
 
-	// If boot.mount has failed, we're running from a read-only USB stick.
-	// (fsck.fat fails on the read-only ESP partition.) Can't use systemd.IsFailed(),
-	// since systemd doesn't actually report the mount unit as failed, so we
-	// need to check its output.
-	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "boot.mount")
+	// Check if systemd-repart has failed because of a read-only source device.
+	output, err := subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "systemd-repart.service")
 	if err != nil {
 		return "", false, -1, err
 	}
 
-	isReadonlyInstallFS := strings.Contains(output, "Dependency failed for boot.mount - EFI System Partition Automount.")
+	isReadonlyInstallFS := strings.Contains(output, ": Read-only file system")
 
 	underlyingDevice, err := storage.GetUnderlyingDevice()
 	if err != nil {
@@ -516,7 +502,7 @@ func getTargetDevice(potentialTargets []storage.BlockDevices, seedTarget *apisee
 }
 
 // performInstall performs the steps to install incus-osd from the given target to the source device.
-func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error {
+func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDevice string, targetDevice string, sourceIsReadonly bool) error { //nolint:revive
 	// Get architecture name.
 	archName, err := osarch.ArchitectureGetLocal()
 	if err != nil {
@@ -774,8 +760,23 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	err = unix.Unmount("/boot", 0)
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Set the "IncusOSInstallComplete" UEFI variable.
+	f, err := os.Create("/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write([]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Copy partition definitions to target device. We can't just do a `sgdisk -R target source`
