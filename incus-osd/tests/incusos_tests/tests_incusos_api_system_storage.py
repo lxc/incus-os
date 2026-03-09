@@ -67,6 +67,129 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
+def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
+    test_name = "incusos-api-system-storage-luks-raw-device"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
+        disk_img.truncate(10*1024*1024*1024)
+
+        with IncusTestVM(test_name, test_image) as vm:
+            vm.AddDevice("disk1", "disk", "source="+disk_img.name)
+
+            vm.WaitSystemReady(incusos_version)
+
+            # Get the current storage state.
+            result = vm.APIRequest("/1.0/system/storage")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if len(result["metadata"]["state"]["drives"]) != 2:
+                raise IncusOSException("expected exactly two drives")
+
+            driveState = result["metadata"]["state"]["drives"][0]
+            if driveState["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
+                driveState = result["metadata"]["state"]["drives"][1]
+
+            if "encrypted" in driveState or "encrypted_id" in driveState:
+                raise IncusOSException("unexpectedly reported that drive is already encrypted")
+
+            # Get the current security state.
+            result = vm.APIRequest("/1.0/system/security")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+                raise IncusOSException("unexpectedly got a drive recovery key")
+
+            # Can't import an unencrypted drive
+            result = vm.APIRequest("/1.0/system/storage/:import-encrypted-drive", method="POST", body="""{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","key":"rdp90erMwMYtGtwX6NNvutGpL06M4ujFG5OBxU2huXA="}""")
+            if result["status_code"] == 200:
+                raise IncusOSException("unexpected success importing unencrypted drive")
+
+            if "Device /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1 is not a valid LUKS device" not in result["error"]:
+                raise IncusOSException("unexpected error message: " + result["error"])
+
+            # Create an encrypted drive
+            result = vm.APIRequest("/1.0/system/storage/:encrypt-drive", method="POST", body="""{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            # Get the updated storage state.
+            result = vm.APIRequest("/1.0/system/storage")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if len(result["metadata"]["state"]["drives"]) != 2:
+                raise IncusOSException("expected exactly two drives")
+
+            driveState = result["metadata"]["state"]["drives"][0]
+            if driveState["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
+                driveState = result["metadata"]["state"]["drives"][1]
+
+            if not driveState["encrypted"] or driveState["encrypted_id"] != "/dev/mapper/luks-scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
+                raise IncusOSException("got unexpected encrypted drive state: " + driveState["encrypted_id"])
+
+            # Get the updated security state.
+            result = vm.APIRequest("/1.0/system/security")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+                raise IncusOSException("missing expected drive encryption key")
+
+            # Wipe the drive and ensure it is no longer reported as encrypted
+            result = vm.APIRequest("/1.0/system/storage/:wipe-drive", method="POST", body="""{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            # Get the updated storage state.
+            result = vm.APIRequest("/1.0/system/storage")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if len(result["metadata"]["state"]["drives"]) != 2:
+                raise IncusOSException("expected exactly two drives")
+
+            driveState = result["metadata"]["state"]["drives"][0]
+            if driveState["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
+                driveState = result["metadata"]["state"]["drives"][1]
+
+            if "encrypted" in driveState or "encrypted_id" in driveState:
+                raise IncusOSException("unexpectedly reported drive as encrypted after wiping")
+
+            # Get the updated security state.
+            result = vm.APIRequest("/1.0/system/security")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+                raise IncusOSException("unexpectedly got a drive recovery key after wiping drive")
+
+            # Test importing an already-encrypted drive.
+            vm.RunCommand("sgdisk", "-Z", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
+            vm.RunCommand("cryptsetup", "luksFormat", "-q", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1", "/var/lib/incus-os/zpool.local.key")
+
+            # Import the pre-encrypted drive
+            result = vm.APIRequest("/1.0/system/storage/:import-encrypted-drive", method="POST", body="""{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","key":""" + '"' + result["metadata"]["state"]["pool_recovery_keys"]["local"] + '"' + """}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            # Get the updated security state.
+            result = vm.APIRequest("/1.0/system/security")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+                raise IncusOSException("missing expected drive encryption key")
+
+            if result["metadata"]["state"]["drive_recovery_keys"]["scsi-0QEMU_QEMU_HARDDISK_incus_disk1"] != result["metadata"]["state"]["pool_recovery_keys"]["local"]:
+                raise IncusOSException("unexpected recovery key for new drive: " + result["metadata"]["state"]["drive_recovery_keys"]["scsi-0QEMU_QEMU_HARDDISK_incus_disk1"] + " vs " + result["metadata"]["state"]["pool_recovery_keys"]["local"])
+
 def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
     test_name = "incusos-api-system-storage-mixed-device-size"
     test_seed = {

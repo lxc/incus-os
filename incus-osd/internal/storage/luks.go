@@ -165,3 +165,19 @@ func unlockDrive(ctx context.Context, devPath string) error {
 
 	return nil
 }
+
+func lockDrive(ctx context.Context, devPath string) error {
+	devName := filepath.Base(devPath)
+
+	_, err := os.Stat("/dev/mapper/luks-" + devName)
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "close", "/dev/mapper/luks-"+devName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
