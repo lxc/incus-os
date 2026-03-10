@@ -43,7 +43,7 @@ def TestInstallTooManyTargets(install_image):
             # Perform IncusOS install.
             vm.StartVM()
             vm.WaitAgentRunning()
-            vm.WaitExpectedLog("incus-osd", "System check error: no target configuration provided, and didn't find exactly one install device")
+            vm.WaitExpectedLog("incus-osd", "System check error: no target install seed provided, and didn't find exactly one install device")
 
 def TestInstallDriveTooSmall(install_image):
     test_name = "drive-too-small"

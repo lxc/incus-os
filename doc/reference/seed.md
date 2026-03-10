@@ -41,9 +41,14 @@ The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus
   state. WARNING: This shouldn't be set unless you know exactly what you are doing
   and understand the security implications.
 
-- `target`: An optional selector used to determine the install target device.
+- `target`: An optional struct used to determine the install target device.
   If not specified, IncusOS will expect a single unused drive to be present
-  during install.
+  during install. Supported selectors include:
+   - `bus`: Bus type of the disk, for example "NVME", "SCSI", or "USB" (case insensitive)
+   - `id`: Disk ID as listed in `/dev/disk/by-id/`, will be used in a case-sensitive sub-string match
+   - `max_size`: Maximum size of the install disk, such as 1TiB
+   - `min_size`: Minimum size of the install disk, such as 100GiB
+   - `sort_order`: Optional, either "largest" or "smallest"; if defined, sort potential targets by their capacity and pick the first one
 
 ### `applications.{json,yml,yaml}`
 This file defines what applications should be installed after IncusOS is up and
