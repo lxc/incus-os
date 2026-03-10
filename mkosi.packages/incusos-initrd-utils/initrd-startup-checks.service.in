@@ -1,7 +1,7 @@
 [Unit]
 Description=Run startup checks
 After=boot.mount veritysetup-pre.target
-Requires=boot.mount
+Wants=boot.mount
 Before=veritysetup.target
 DefaultDependencies=no
 ConditionPathExists=!/boot/swtpm/
