@@ -963,6 +963,9 @@ func isBootDevice(ctx context.Context, deviceName string, bootDevice string) boo
 
 // WipeDrive will wipe all data on the given drive, unless it is the boot device,
 // a remote device, or currently a member of a storage pool.
+//
+// If the device is a LUKS-encrypted drive, first attempt to close the LUKS mapping
+// and then remove the corresponding encryption key.
 func WipeDrive(ctx context.Context, drive string) error {
 	// Get a list of all drives.
 	drives, err := GetStorageInfo(ctx)
@@ -971,11 +974,32 @@ func WipeDrive(ctx context.Context, drive string) error {
 	}
 
 	for _, d := range drives.Drives {
-		if d.ID == drive {
+		if d.ID == drive { //nolint:nestif
 			if d.Boot {
 				return errors.New("cannot wipe boot drive")
 			} else if d.MemberPool != "" {
 				return errors.New("cannot wipe drive belonging to pool '" + d.MemberPool + "'")
+			}
+
+			// Check if this is a LUKS-encrypted drive, and if so attempt to close the
+			// mapping and remove its key file before wiping the underlying device.
+			devName := filepath.Base(drive)
+			keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+
+			_, err := os.Stat(keyfilePath)
+			if err == nil {
+				_, err := os.Stat("/dev/mapper/luks-" + devName)
+				if err == nil {
+					err := lockDrive(ctx, drive)
+					if err != nil {
+						return err
+					}
+				}
+
+				err = os.Remove(keyfilePath)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Wipe the drive.
