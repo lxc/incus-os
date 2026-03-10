@@ -2,10 +2,12 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/google/go-eventlog/register"
 	"github.com/google/go-eventlog/tcg"
@@ -13,6 +15,7 @@ import (
 	"github.com/google/go-tpm/tpmutil"
 
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 func main() {
@@ -29,6 +32,28 @@ func main() {
 			err = measurePCRs()
 		case "validate-pe-binaries":
 			err = secureboot.ValidatePEBinaries()
+			if err != nil && os.IsNotExist(err) {
+				// If we fail to find an expected PE binary, it might be because we're booting an installer on
+				// a system where IncusOS is already installed resulting in two /boot/ partitions being present.
+				// Because we're running in the initrd we can't easily determine which partition belongs to the
+				// install media (that contains the PE binaries we should care about, since we're booting from
+				// it); we can, however, restart the boot.mount systemd unit. Since we're now relatively late
+				// in the initrd startup, udev symlinks have had a chance to settle and restarting boot.mount
+				// seems to consistently mount the /boot/ partition from the install media. This is a heuristic,
+				// er, hack that seems to work pretty well.
+				//
+				// Doing this would be problematic if swtpm was running, since its state is stored under /boot/,
+				// but we only run PE binary validation if we have a physical TPM whose event log we can trust.
+
+				// Sleep for one second before remounting /boot/. This ensures udev symlinks can fully settle,
+				// even on hardware that might validate PE binaries very quickly.
+				time.Sleep(1 * time.Second)
+
+				serviceErr := systemd.RestartUnit(context.Background(), "boot.mount")
+				if serviceErr == nil {
+					err = secureboot.ValidatePEBinaries()
+				}
+			}
 		default:
 			err = fmt.Errorf("unsupported action '%s'", os.Args[1])
 		}
