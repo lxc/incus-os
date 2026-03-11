@@ -96,9 +96,11 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 	}
 
 	// Part 2 -- Update the systemd-boot EFI stub.
-	err = updateEFIBootStub(ctx, usrImageFile)
-	if err != nil {
-		return err
+	if usrImageFile != "" {
+		err := updateEFIBootStub(ctx, usrImageFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Part 3 -- Compute the new PCR4 and PCR7 values.
