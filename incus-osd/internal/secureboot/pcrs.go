@@ -43,18 +43,17 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		return err
 	}
 
-	atLeastOneVolumeNeedsFixing := false
-
-	for volumeName, volumeDev := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
-		if err != nil {
-			atLeastOneVolumeNeedsFixing = true
-
-			break
-		}
+	// Get the state of the TPM as recorded in the UEFI variable.
+	tpmStateContents, err := ReadEFIVariable("IncusOSTPMState")
+	if err != nil {
+		return err
 	}
 
-	if !atLeastOneVolumeNeedsFixing {
+	// If there are four bytes in the UEFI variable and the last is zero, that means the TPM
+	// was able to unlock things automatically in the initrd.
+	tpmStateIsGood := len(tpmStateContents) == 4 && tpmStateContents[3] == 0
+
+	if tpmStateIsGood {
 		return errors.New("refusing to reset TPM encryption bindings because current state can unlock all volumes")
 	}
 

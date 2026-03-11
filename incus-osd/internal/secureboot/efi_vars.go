@@ -471,6 +471,8 @@ func efiVariableToFilename(variableName string) (string, error) {
 		return "/sys/firmware/efi/efivars/LoaderEntrySelected-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f", nil
 	case "IncusOSInstallComplete":
 		return "/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c", nil
+	case "IncusOSTPMState":
+		return "/sys/firmware/efi/efivars/IncusOSTPMState-12f075e0-2d07-493d-811a-00920a72c04c", nil
 	default:
 		return "", fmt.Errorf("unsupported EFI variable '%s'", variableName)
 	}

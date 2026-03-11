@@ -64,6 +64,8 @@ def TestIncusOSAPISystemSecurityTPMRebind(install_image):
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
         # This is a sledgehammer approach, but fine for the test. :)
+        vm.RunCommand("chattr", "-i", "/sys/firmware/efi/efivars/IncusOSTPMState-12f075e0-2d07-493d-811a-00920a72c04c")
+        vm.RunCommand("rm", "/sys/firmware/efi/efivars/IncusOSTPMState-12f075e0-2d07-493d-811a-00920a72c04c")
         vm.RunCommand("tpm2_clear")
 
         # Now we expect TPM rebinding to work.
