@@ -32,7 +32,7 @@ func (*operationsCenter) Name() string {
 // Start starts the systemd unit.
 func (*operationsCenter) Start(ctx context.Context, _ string) error {
 	// Start the unit.
-	return systemd.EnableUnit(ctx, true, "operations-center.service")
+	return systemd.StartUnit(ctx, "operations-center.service")
 }
 
 // Stop stops the systemd unit.
