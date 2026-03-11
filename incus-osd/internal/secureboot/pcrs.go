@@ -405,7 +405,7 @@ func computeExpectedVariableDriverConfig(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Read the current variable.
-	buf, err := readEFIVariable(v.VarName())
+	buf, err := ReadEFIVariable(v.VarName())
 	if err != nil {
 		return nil, err
 	}
