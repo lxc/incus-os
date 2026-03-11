@@ -58,24 +58,6 @@ func StopUnit(ctx context.Context, units ...string) error {
 	return nil
 }
 
-// EnableUnit instructs systemd to enable (and optionally start) the provided unit(s).
-func EnableUnit(ctx context.Context, now bool, units ...string) error {
-	args := []string{"enable"}
-
-	if now {
-		args = append(args, "--now")
-	}
-
-	args = append(args, units...)
-
-	_, err := subprocess.RunCommandContext(ctx, "systemctl", args...)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // IsActive returns a boolean indicating if the specified unit is in an active state.
 func IsActive(ctx context.Context, unit string) bool {
 	result, err := subprocess.RunCommandContext(ctx, "systemctl", "is-active", unit)
