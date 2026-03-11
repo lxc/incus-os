@@ -324,7 +324,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
-	newPCR7String := hex.EncodeToString(newPCR7)
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(newPCR7) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
@@ -332,7 +332,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	for name, volume := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}

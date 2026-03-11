@@ -121,11 +121,11 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 	newPCR4String := hex.EncodeToString(newPCR4)
 	newPCR7String := hex.EncodeToString(newPCR7)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + newPCR7String
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	// When Secure Boot is disabled, we also bind to PCR4.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String
+		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 	}
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
@@ -192,8 +192,10 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 		return err
 	}
 
+	pcrBindingArg := "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+
 	for name, volume := range luksVolumes {
-		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}

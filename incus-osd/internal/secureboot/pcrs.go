@@ -88,11 +88,11 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	pcr4String := hex.EncodeToString(pcr4)
 	pcr7String := hex.EncodeToString(pcr7)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	// When Secure Boot is disabled, we also bind to PCR4.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String
+		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 	}
 
 	// Handle an edge case where the system boots with a recovery passphrase, but hasn't yet been
@@ -140,7 +140,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 				return err
 			}
 
-			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR)
+			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 			if luksKey == "" {
 				// Set a bad PCR policy.
