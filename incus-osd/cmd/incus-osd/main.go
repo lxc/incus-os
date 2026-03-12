@@ -392,7 +392,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// If Secure Boot is disabled, when setting the initial encryption recovery key,
 		// update the encryption bindings to use both PCRs 4 and 7.
 		if s.SecureBootDisabled {
-			err := secureboot.UpdatePCR4Binding(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
+			err := secureboot.UpdatePCR4Binding(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
 			if err != nil {
 				return err
 			}
@@ -1193,7 +1193,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		slog.InfoContext(ctx, "Applying OS update", "version", update.Version())
 		updateModal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
-		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save()

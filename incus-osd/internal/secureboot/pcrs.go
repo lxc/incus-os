@@ -29,7 +29,7 @@ import (
 // a recovery-type situation, such as when the system had to be booted with a recovery passphrase.
 //
 // Immediately after a successful reset, the system will be rebooted.
-func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string, luksPassword string) error {
+func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string) error {
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
@@ -94,8 +94,8 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String
 	}
 
-	for _, volume := range luksVolumes {
-		_, stderr, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+	for name, volume := range luksVolumes {
+		_, stderr, err := subprocess.RunCommandSplit(ctx, nil, nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}
@@ -119,13 +119,13 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR)
 
 			// Set a bad PCR policy.
-			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
+			_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
 			if err != nil {
 				return err
 			}
 
 			// Re-bind the expected PCR policy.
-			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+			_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 			if err != nil {
 				return err
 			}

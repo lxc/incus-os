@@ -114,7 +114,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		}
 	}
 
-	err = applyUpdate(ctx, s, updateCA, mountDir, apps, s.System.Security.Config.EncryptionRecoveryKeys[0])
+	err = applyUpdate(ctx, s, updateCA, mountDir, apps)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 	return err
 }
 
-func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string, installedApplications []string, luksPassword string) error {
+func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string, installedApplications []string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -327,7 +327,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	if s.OS.RunningRelease != update.Version {
 		slog.InfoContext(ctx, "Applying OS update(s)")
 
-		err = systemd.ApplySystemUpdate(ctx, luksPassword, update.Version, false)
+		err = systemd.ApplySystemUpdate(ctx, update.Version, false)
 		if err != nil {
 			return err
 		}

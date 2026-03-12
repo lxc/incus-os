@@ -331,8 +331,8 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 		return err
 	}
 
-	for _, volume := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+	for name, volume := range luksVolumes {
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
 		if err != nil {
 			return err
 		}
