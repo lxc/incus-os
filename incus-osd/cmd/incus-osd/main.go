@@ -460,6 +460,25 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 	}
 
+	// Enable swap, if present. Swap isn't normally activated until after exiting the initrd, and because we're not able to
+	// rely on the TPM to automatically unlock that partition, systemd cannot enable swap for us during system boot.
+	_, err = os.Stat("/dev/mapper/swap")
+	if err != nil && os.IsNotExist(err) {
+		_, err := os.Stat("/dev/disk/by-partlabel/swap")
+		if err == nil {
+			// Unlock the LUKS swap volume.
+			_, err := subprocess.RunCommandContext(ctx, "systemd-cryptsetup", "attach", "swap", "/dev/disk/by-partlabel/swap", "/var/lib/incus-os/recovery.swap.key")
+			if err != nil {
+				slog.WarnContext(ctx, "Unable to decrypt LUKS swap partition")
+			} else {
+				_, err := subprocess.RunCommandContext(ctx, "swapon", "/dev/mapper/swap")
+				if err != nil {
+					slog.WarnContext(ctx, "Unable to activate encrypted swap partition")
+				}
+			}
+		}
+	}
+
 	// Get the machine ID.
 	machineID, err := s.MachineID()
 	if err != nil {
