@@ -16,32 +16,94 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
-// GenerateRecoveryKey utilizes systemd-cryptenroll to generate a recovery key for the
-// root and swap LUKS volumes. Depends on an existing tpm2-backed key being enrolled and accessible.
-func GenerateRecoveryKey(ctx context.Context, s *state.State) error {
+// GenerateRecoveryKeys utilizes systemd-cryptenroll to generate recovery keys for the
+// root and swap LUKS volumes. The logic depends on an existing tpm2-backed key being
+// enrolled and accessible, which should be the case on first boot.
+//
+// A unique recovery key will be generated and saved to disk for each LUKS volume, which
+// IncusOS will then use when performing future cryptsetup actions.
+//
+// If no encryption recovery keys currently exist in state, a second common recovery key
+// will also be generated and reported via the security API. Each LUKS volume will enroll
+// all encryption recovery keys from state in addition to the generated unique recovery key.
+//
+// This setup is required so IncusOS can always have a known-good recovery key even if
+// the TPM is not in a state that can be used to unlock the LUKS volumes. systemd-cryptenroll
+// differentiates between "recovery" and "password" passphrases. We rely on this in
+// later code to distinguish between IncusOS (recovery) and user-provided (password)
+// encryption keys.
+func GenerateRecoveryKeys(ctx context.Context, s *state.State) error {
 	// Get the underlying LUKS partitions.
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
 
-	// First, generate a recovery key for the root volume.
-	recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--recovery-key", luksVolumes["root"])
-	if err != nil {
-		return err
+	// On first boot, generate a common recovery key that will be used for both volumes and reported via the security API.
+	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
+		commonRecoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--recovery-key", luksVolumes["root"])
+		if err != nil {
+			return err
+		}
+
+		commonRecoveryPassword = strings.TrimSuffix(commonRecoveryPassword, "\n")
+
+		// Wipe that common recovery key, since we must manually enroll it on both volumes as a traditional "password" key.
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--wipe-slot=recovery", luksVolumes["root"])
+		if err != nil {
+			return err
+		}
+
+		// Save the new recovery key to state.
+		s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, commonRecoveryPassword)
+		s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
 	}
 
-	recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
+	// Generate and save unique recovery keys for each volume.
+	for volumeName, volumeDev := range luksVolumes {
+		// Wipe any existing recovery or password keys.
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--wipe-slot=recovery,password", volumeDev)
+		if err != nil {
+			return err
+		}
 
-	// Second, set the same recovery key for the swap volume. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
-	_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+recoveryPassword), nil, "systemd-cryptenroll", "--unlock-tpm2-device", "auto", "--password", luksVolumes["swap"])
-	if err != nil {
-		return err
+		// Enroll a new recovery password.
+		recoveryPassword, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--recovery-key", volumeDev)
+		if err != nil {
+			return err
+		}
+
+		recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
+
+		// Write the recovery password to disk.
+		f, err := os.Create("/var/lib/incus-os/recovery." + volumeName + ".key")
+		if err != nil {
+			return err
+		}
+		defer f.Close() //nolint:revive
+
+		_, err = f.WriteString(recoveryPassword)
+		if err != nil {
+			return err
+		}
+
+		// Secure permissions on the file.
+		err = f.Chmod(0o400)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Finally, save the recovery key into the state.
-	s.System.Security.Config.EncryptionRecoveryKeys = append(s.System.Security.Config.EncryptionRecoveryKeys, recoveryPassword)
-	s.System.Security.State.EncryptionRecoveryKeysRetrieved = false
+	// Finally, enroll each encryption recovery key from state for each volume.
+	for _, volumeDev := range luksVolumes {
+		for _, key := range s.System.Security.Config.EncryptionRecoveryKeys {
+			// Need to provide the recovery key to systemd-cryptenroll via the NEWPASSWORD environment variable.
+			_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-tpm2-device=auto", "--password", volumeDev)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }

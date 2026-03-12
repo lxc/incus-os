@@ -384,7 +384,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
 		slog.InfoContext(ctx, "Auto-generating encryption recovery key, this may take a few seconds")
 
-		err := systemd.GenerateRecoveryKey(ctx, s)
+		err := systemd.GenerateRecoveryKeys(ctx, s)
 		if err != nil {
 			return err
 		}
