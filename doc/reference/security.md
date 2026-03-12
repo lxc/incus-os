@@ -69,7 +69,7 @@ KEK, db, and dbx updates are signed offline and then made available via a Provid
 - Each `.auth` file is signed by a KEK certificate already enrolled on the machine IncusOS is running on. If the file is tampered with, enrollment will fail, so there is no special need to protect or checksum received updates.
 
 ## Use of TPM PCRs
-IncusOS relies on three PCRs (4, 7 & 11) to bind disk encryption keys.
+IncusOS relies on four PCRs (4, 7, 11 & 15) to bind disk encryption keys.
 
 ### PCR 4
 
@@ -102,6 +102,11 @@ IncusOS only ever needs to worry about re-binding PCR 11 when the Secure Boot ke
 - Replace the existing `systemd-boot` UEFI stub with a newly signed one from the pending OS update. `systemd-sysupdate` doesn't typically update the `systemd-boot` stub, but we need to ensure it's updated to a version signed by the new key.
 - Changing the signature on the `systemd-boot` stub will affect the PCR 7 value at next boot, so follow the steps outlined above to predict the new PCR 7 value.
 - Re-bind the TPM PCR 11 policies with the new signing certificate and predicted PCR 7 value. Doing this invalidates the current TPM state, so we must rely on a recovery key known to IncusOS to update the LUKS header. The update is performed in as an atomic process as possible, to prevent having the LUKS header in a state where it doesn't have a TPM enrolled.
+
+### PCR 15
+PCR 15 is populated by systemd at various points during the boot process with system identity events, such as when the LUKS root volume is unlocked, the machine ID, and basic information about the root (`/`) file system. IncusOS binds its encryption to an uninitialized PCR 15 (all zeros), which allows for automatic decryption by the TPM in the initrd only. As part of opening the LUKS root volume in the initrd, systemd extends PCR 15 which changes its value. This prevents the TPM from unlocking the LUKS volume again once the system has booted.
+
+IncusOS depends on PCR 15 to thwart the attack described in a [blog post](https://oddlama.org/blog/bypassing-disk-encryption-with-tpm2-unlock/) by oddlama. In the future, improvements in the `mkosi` and `ukify` build tools may allow for more targeted PCR 11 policies to be generated which would only be valid while in the initrd. This would remove the need to depend on PCR 15.
 
 ### Implications
 Any unexpected change to PCR values will cause auto-unlock to fail, and require the entry of a recovery password to boot the system. Such a change is a **strong** indication that something unexpected occurred to the system's security configuration outside of what IncusOS expected. It could be triggered by an innocuous change, or could point to malicious activity. In either case, be careful before blindly entering a recovery password at boot.

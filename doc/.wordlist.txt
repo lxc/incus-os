@@ -46,6 +46,7 @@ hugepages
 IMG
 Incus
 IncusOS
+initrd
 IPs
 IPv
 iSCSI
@@ -74,6 +75,7 @@ NICs
 NTP
 NVMe
 OCI
+oddlama
 OEM
 OVMF
 OVN
