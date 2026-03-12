@@ -70,7 +70,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20260221",
+        "version": "20260309",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -85,7 +85,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260221",
+        "version": "20260309",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -120,7 +120,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.0",
+        "version": "v0.6.1",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -159,7 +159,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.66.2",
+        "version": "v0.66.4",
         "repo": "https://github.com/netbirdio/netbird.git",
         "patches": [
             "../../patches/netbird-0001-fix-go-1.26.patch"
@@ -232,7 +232,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.96.0",
+        "version": "v1.96.1",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
