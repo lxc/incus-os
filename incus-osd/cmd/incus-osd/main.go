@@ -399,6 +399,30 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 	}
 
+	// Update any existing IncusOS installs that don't have a dedicated recovery key. This migration logic
+	// can be removed after September 2026.
+	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+	if err != nil && os.IsNotExist(err) {
+		slog.InfoContext(ctx, "Updating encryption recovery key bindings, this may take a few seconds")
+
+		// Get the LUKS partitions.
+		luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Check if the TPM can unlock the LUKS volumes.
+		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", luksVolumes["root"], "root")
+		if err == nil {
+			err := systemd.GenerateRecoveryKeys(ctx, s)
+			if err != nil {
+				return err
+			}
+		} else {
+			slog.WarnContext(ctx, "Current TPM state cannot unlock LUKS volume, unable to update recovery key bindings")
+		}
+	}
+
 	// Get the machine ID.
 	machineID, err := s.MachineID()
 	if err != nil {
