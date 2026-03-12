@@ -18,6 +18,9 @@ disable multipathd.socket
 disable openvswitch-switch.service
 disable ovs-record-hostname.service
 
+# SMART
+disable smartmontools.service
+
 # System
 disable dpkg-db-backup.service
 disable dpkg-db-backup.timer

@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
@@ -24,6 +25,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/proxy"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
+
+var muNetworkState sync.Mutex
 
 // networkdConfigFile represents a given filename and its contents.
 type networkdConfigFile struct {
@@ -248,6 +251,10 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 // UpdateNetworkState updates the network state within the SystemNetwork struct.
 func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 	var err error
+
+	// Prevent concurrent updates to the state information.
+	muNetworkState.Lock()
+	defer muNetworkState.Unlock()
 
 	if n.Config == nil {
 		return errors.New("no network configuration defined")

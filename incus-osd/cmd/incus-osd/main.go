@@ -547,6 +547,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		return err
 	}
 
+	// Ensure all systemd extensions are applied.
+	err = systemd.RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Run application startup actions. Must be done after storage pools are loaded.
 	for appName := range s.Applications {
 		err := startInitializeApplication(ctx, s, appName)

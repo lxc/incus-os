@@ -102,7 +102,7 @@ func (*incus) Start(ctx context.Context, _ string) error {
 	}
 
 	// Start the units.
-	return systemd.EnableUnit(ctx, true, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
+	return systemd.StartUnit(ctx, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 }
 
 // Stop stops all the systemd units.

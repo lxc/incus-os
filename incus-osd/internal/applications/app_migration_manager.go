@@ -32,7 +32,7 @@ func (*migrationManager) Name() string {
 // Start starts the systemd unit.
 func (*migrationManager) Start(ctx context.Context, _ string) error {
 	// Start the unit.
-	return systemd.EnableUnit(ctx, true, "migration-manager.service")
+	return systemd.StartUnit(ctx, "migration-manager.service")
 }
 
 // Stop stops the systemd unit.
