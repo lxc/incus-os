@@ -360,8 +360,8 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 			return err
 		}
 
-		for _, volume := range luksVolumes {
-			err := systemd.WipeAllRecoveryKeys(ctx, volume)
+		for name, volume := range luksVolumes {
+			err := systemd.WipeAllRecoveryKeys(ctx, name, volume)
 			if err != nil {
 				return err
 			}

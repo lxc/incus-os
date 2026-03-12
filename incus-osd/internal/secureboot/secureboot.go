@@ -71,7 +71,7 @@ func InAuditMode() (bool, error) {
 //	   must have an alternative way of authenticating the LUKS changes; by
 //	   default rely on the recovery passphrase that's automatically created on
 //	   first boot.
-func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile string, usrImageFile string) error {
+func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile string) error {
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
@@ -133,8 +133,8 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 		return err
 	}
 
-	for _, volume := range luksVolumes {
-		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+	for name, volume := range luksVolumes {
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}
@@ -158,7 +158,7 @@ func HandleSecureBootKeyChange(ctx context.Context, luksPassword string, ukiFile
 // LUKS header, because it's already been rebound to a different set of PCR4+7 values that
 // no longer match the running system. Recovering from such a situation is possible, but
 // somewhat confusing.
-func UpdatePCR4Binding(ctx context.Context, luksPassword string, ukiFile string) error {
+func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 	// Verify the UKI file exists.
 	_, err := os.Stat(ukiFile)
 	if err != nil {
@@ -192,8 +192,8 @@ func UpdatePCR4Binding(ctx context.Context, luksPassword string, ukiFile string)
 		return err
 	}
 
-	for _, volume := range luksVolumes {
-		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
+	for name, volume := range luksVolumes {
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
 		if err != nil {
 			return err
 		}

@@ -62,7 +62,7 @@ func GetCurrentRelease(_ context.Context) (string, string, error) {
 }
 
 // ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
-func ApplySystemUpdate(ctx context.Context, luksPassword string, version string, reboot bool) error {
+func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
 	// WORKAROUND: Start the boot.mount unit so /boot autofs is active before we create a new mount namespace.
 	err := StartUnit(ctx, "boot.mount")
 	if err != nil {
@@ -166,13 +166,13 @@ func ApplySystemUpdate(ctx context.Context, luksPassword string, version string,
 
 	if secureBootKeyChanged {
 		// If the signing key has changed, perform a full encryption rebinding.
-		err := secureboot.HandleSecureBootKeyChange(ctx, luksPassword, newUKIFile, newUsrImageFile)
+		err := secureboot.HandleSecureBootKeyChange(ctx, newUKIFile, newUsrImageFile)
 		if err != nil {
 			return err
 		}
 	} else if !sbEnabled {
 		// If Secure Boot is disabled, we always must update the PCR4 bindings for the new UKI.
-		err := secureboot.UpdatePCR4Binding(ctx, luksPassword, newUKIFile)
+		err := secureboot.UpdatePCR4Binding(ctx, newUKIFile)
 		if err != nil {
 			return err
 		}

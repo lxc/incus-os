@@ -21,6 +21,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/smallstep/pkcs7"
 
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
@@ -29,7 +30,7 @@ import (
 // a recovery-type situation, such as when the system had to be booted with a recovery passphrase.
 //
 // Immediately after a successful reset, the system will be rebooted.
-func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string, luksPassword string) error {
+func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string) error {
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
@@ -94,8 +95,31 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String
 	}
 
-	for _, volume := range luksVolumes {
-		_, stderr, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+	// Handle an edge case where the system boots with a recovery passphrase, but hasn't yet been
+	// migrated to using the new recovery key configuration. Fall back to using a recovery passphrase
+	// to unlock the LUKS volume and rebind PCRs. This code can be removed after September 2026.
+	luksKey := ""
+
+	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+	if err != nil && os.IsNotExist(err) {
+		// Rather than trying to pass through an encryption passphrase, just re-read the state here.
+		s, err := state.LoadOrCreate("/var/lib/incus-os/state.txt")
+		if err != nil {
+			return err
+		}
+
+		luksKey = s.System.Security.Config.EncryptionRecoveryKeys[0]
+	}
+
+	for name, volume := range luksVolumes {
+		var stderr string
+
+		if luksKey == "" {
+			_, stderr, err = subprocess.RunCommandSplit(ctx, nil, nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+		} else {
+			_, stderr, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -107,7 +131,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		// systemd-cryptenroll doesn't have a --force option to always perform a PCR bind operation, so we need to
 		// first bind a junk PCR policy, then re-apply the correct good one which will then also update the LUKS
 		// keyslot TPM blob.
-		if strings.Contains(stderr, "This PCR set is already enrolled, executing no operation.") {
+		if strings.Contains(stderr, "This PCR set is already enrolled, executing no operation.") { //nolint:nestif
 			// Generate a random SHA256 PCR7 value.
 			randomPCR := make([]byte, 32)
 
@@ -118,16 +142,30 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR)
 
-			// Set a bad PCR policy.
-			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
-			if err != nil {
-				return err
-			}
+			if luksKey == "" {
+				// Set a bad PCR policy.
+				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
+				if err != nil {
+					return err
+				}
 
-			// Re-bind the expected PCR policy.
-			_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksPassword), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-			if err != nil {
-				return err
+				// Re-bind the expected PCR policy.
+				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Set a bad PCR policy.
+				_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
+				if err != nil {
+					return err
+				}
+
+				// Re-bind the expected PCR policy.
+				_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

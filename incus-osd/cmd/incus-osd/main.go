@@ -384,7 +384,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
 		slog.InfoContext(ctx, "Auto-generating encryption recovery key, this may take a few seconds")
 
-		err := systemd.GenerateRecoveryKey(ctx, s)
+		err := systemd.GenerateRecoveryKeys(ctx, s)
 		if err != nil {
 			return err
 		}
@@ -392,10 +392,34 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// If Secure Boot is disabled, when setting the initial encryption recovery key,
 		// update the encryption bindings to use both PCRs 4 and 7.
 		if s.SecureBootDisabled {
-			err := secureboot.UpdatePCR4Binding(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
+			err := secureboot.UpdatePCR4Binding(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	// Update any existing IncusOS installs that don't have a dedicated recovery key. This migration logic
+	// can be removed after September 2026.
+	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+	if err != nil && os.IsNotExist(err) {
+		slog.InfoContext(ctx, "Updating encryption recovery key bindings, this may take a few seconds")
+
+		// Get the LUKS partitions.
+		luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Check if the TPM can unlock the LUKS volumes.
+		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", luksVolumes["root"], "root")
+		if err == nil {
+			err := systemd.GenerateRecoveryKeys(ctx, s)
+			if err != nil {
+				return err
+			}
+		} else {
+			slog.WarnContext(ctx, "Current TPM state cannot unlock LUKS volume, unable to update recovery key bindings")
 		}
 	}
 
@@ -1193,7 +1217,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		slog.InfoContext(ctx, "Applying OS update", "version", update.Version())
 		updateModal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
-		err = systemd.ApplySystemUpdate(ctx, s.System.Security.Config.EncryptionRecoveryKeys[0], update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
 		if err != nil {
 			s.OS.NextRelease = priorNextRelease
 			_ = s.Save()
