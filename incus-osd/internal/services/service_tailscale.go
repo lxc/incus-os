@@ -48,7 +48,21 @@ func (n *Tailscale) Update(ctx context.Context, req any) error {
 		n.state.Services.Tailscale.Config = newState.Config
 	} else {
 		// Check for config changes.
-		needsRejoin := newState.Config.LoginServer != n.state.Services.Tailscale.Config.LoginServer || newState.Config.AuthKey != n.state.Services.Tailscale.Config.AuthKey
+		needsRejoin := func(oldConfig api.ServiceTailscaleConfig, newConfig api.ServiceTailscaleConfig) bool {
+			if oldConfig.Enabled != newConfig.Enabled {
+				return true
+			}
+
+			if oldConfig.LoginServer != newConfig.LoginServer {
+				return true
+			}
+
+			if oldConfig.AuthKey != newConfig.AuthKey {
+				return true
+			}
+
+			return false
+		}(n.state.Services.Tailscale.Config, newState.Config)
 
 		// Apply the new configuration.
 		n.state.Services.Tailscale.Config = newState.Config
@@ -119,7 +133,7 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		}
 
 		// Join with the provided key and login server.
-		args := []string{"up", "--auth-key", n.state.Services.Tailscale.Config.AuthKey}
+		args := []string{"up", "--reset", "--auth-key", n.state.Services.Tailscale.Config.AuthKey}
 		if n.state.Services.Tailscale.Config.LoginServer != "" {
 			args = append(args, "--login-server", n.state.Services.Tailscale.Config.LoginServer)
 		}
