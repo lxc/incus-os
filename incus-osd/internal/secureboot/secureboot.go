@@ -325,7 +325,7 @@ outer:
 						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
 						// from the UKI.
 						if bytes.Equal(systemdStubGUID[:], dev.Data) {
-							ukiFile, err := getUKIImage()
+							ukiFile, err := GetCurrentUKIImage()
 							if err != nil {
 								return err
 							}

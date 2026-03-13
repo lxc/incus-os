@@ -392,7 +392,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// If Secure Boot is disabled, when setting the initial encryption recovery key,
 		// update the encryption bindings to use both PCRs 4 and 7.
 		if s.SecureBootDisabled {
-			err := secureboot.UpdatePCR4Binding(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
+			ukiFile, err := secureboot.GetCurrentUKIImage()
+			if err != nil {
+				return err
+			}
+
+			err = secureboot.UpdatePCR4Binding(ctx, ukiFile)
 			if err != nil {
 				return err
 			}
@@ -460,7 +465,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 			return err
 		}
 
-		err = secureboot.HandleSecureBootKeyChange(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease), "")
+		ukiFile, err := secureboot.GetCurrentUKIImage()
+		if err != nil {
+			return err
+		}
+
+		err = secureboot.HandleSecureBootKeyChange(ctx, ukiFile, "")
 		if err != nil {
 			return err
 		}

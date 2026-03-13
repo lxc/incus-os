@@ -198,7 +198,7 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 		},
 	}
 
-	ukiImage, err := getUKIImage()
+	ukiImage, err := GetCurrentUKIImage()
 	if err != nil {
 		return nil, err
 	}
@@ -412,8 +412,10 @@ func getSigningCertBytes(contents []byte) ([]byte, error) {
 	return nil, errors.New("failed to find certificate for /run/systemd/tpm2-pcr-public-key.pem")
 }
 
-// Determine what UKI was booted, so we can compute the proper PCR11 values.
-func getUKIImage() (string, error) {
+// GetCurrentUKIImage determines what UKI was booted. Because of how systemd handles updates,
+// the actual filename can change (see https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/#details
+// for further details).
+func GetCurrentUKIImage() (string, error) {
 	// Use the EFI variable LoaderEntrySelected to determine what UKI was booted.
 	rawUKIName, err := ReadEFIVariable("LoaderEntrySelected")
 	if err != nil {
