@@ -159,11 +159,6 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 
 	// Perform install-specific checks.
 	if installSeed != nil { //nolint:nestif
-		targets, err := getAllTargets(ctx, sourceDevice)
-		if err != nil {
-			return errors.New("unable to get list of potential target devices: " + err.Error())
-		}
-
 		// Sanity check: If the "IncusOSInstallComplete" UEFI variable is set, that means an IncusOS install
 		// completed successfully but incus-osd hasn't yet cleared this UEFI variable on its first boot. This
 		// means we've likely accidentally booted from the install media rather than the newly installed system.
@@ -174,6 +169,91 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 
 		if len(contents) != 0 {
 			return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
+		}
+
+		// Sanity check: If /var/lib/incus-os/recovery.root.key exists, that means we've booted with an install
+		// seed, but there's already an install of IncusOS present (of the exact same version). Check if the user
+		// provided a specific seed value for this system that will cause us to zap the current install, then reboot
+		// and actually perform the install.
+		//
+		// We can only (easily) detect an existing IncusOS install if its version exactly matches that of the install
+		// media. When this is true, there are two side-effects: First, two identical /usr-verity partitions exist with
+		// the same hash as specified on the kernel command line. It's a coin toss which one will be mounted, but doesn't
+		// really matter unless we try to wipe and then copy the one we're running from. Second, because the Secure Boot
+		// state and UKI are the same, the encrypted LUKS root volume will automatically unlock. We utilize this to
+		// detect the presence of IncusOS and trigger the additional checks before wiping the existing install.
+		//
+		// If the version of IncusOS that's installed is different from the install media, there will be two distinct
+		// /usr-verity hashes and we won't be able to automatically unlock the root LUKS volume. In these cases ForceInstall
+		// must still be set to true to overwrite the existing install, but we don't have the following extra safety net.
+		_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+		if err == nil {
+			osName, _, err := systemd.GetCurrentRelease(ctx)
+			if err != nil {
+				return err
+			}
+
+			// Refuse to do anything if ForceInstall isn't true.
+			if !installSeed.ForceInstall {
+				return fmt.Errorf("%s is already installed on this system, and `ForceInstall` from install configuration isn't true", osName)
+			}
+
+			// Get the install confirmation string that is unique to the existing install. We derive
+			// this from the first six characters of the machine's ID.
+			f, err := os.Open("/etc/machine-id")
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			machineID, err := io.ReadAll(f)
+			if err != nil {
+				return err
+			}
+
+			configmationValue := string(machineID[:6])
+
+			switch installSeed.ForceInstallConfirmation {
+			case "":
+				return fmt.Errorf("%s is already installed on this system; to confirm overwriting, add `ForceInstallConfirmation=%s` to the install seed and reboot", osName, configmationValue)
+			case configmationValue:
+				// Get the device that IncusOS is currently installed on.
+				output, err := subprocess.RunCommandContext(ctx, "dmsetup", "deps", "-o", "blkdevname", "/dev/mapper/root")
+				if err != nil {
+					return err
+				}
+
+				deviceRegex := regexp.MustCompile(`^1 dependencies\t: \((.+?)(p|-part)?10\)\n$`)
+				deviceGroup := deviceRegex.FindStringSubmatch(output)
+
+				if len(deviceGroup) != 3 {
+					return fmt.Errorf("%s is already installed on this system, but unable to determine what device it is running from", osName)
+				}
+
+				slog.InfoContext(ctx, "Wiping existing version of "+osName+", then rebooting in five seconds to run actual installation")
+
+				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", "/dev/"+deviceGroup[1])
+				if err != nil {
+					return err
+				}
+
+				time.Sleep(5 * time.Second)
+
+				err = systemd.SystemReboot(ctx)
+				if err != nil {
+					return err
+				}
+
+				// Sleep until the system reboots so we don't attempt to proceed with the install.
+				time.Sleep(10 * time.Second)
+			default:
+				return fmt.Errorf("%s is already installed on this system; the value of `ForceInstallConfirmation` '%s' != '%s', refusing to continue", osName, installSeed.ForceInstallConfirmation, configmationValue)
+			}
+		}
+
+		targets, err := getAllTargets(ctx, sourceDevice)
+		if err != nil {
+			return errors.New("unable to get list of potential target devices: " + err.Error())
 		}
 
 		targetDevice, targetDeviceSize, err := getTargetDevice(targets, installSeed.Target)
