@@ -4,10 +4,11 @@ package seed
 type Install struct {
 	Version string `json:"version" yaml:"version"`
 
-	ForceInstall bool             `json:"force_install"      yaml:"force_install"`      // If true, ignore any existing data on target install disk.
-	ForceReboot  bool             `json:"force_reboot"       yaml:"force_reboot"`       // If true, reboot the system automatically upon completion rather than waiting for the install media to be removed.
-	Security     *InstallSecurity `json:"security,omitempty" yaml:"security,omitempty"` // Optional install options to allow IncusOS to run in a degraded security state.
-	Target       *InstallTarget   `json:"target"             yaml:"target"`             // Optional selector for the target install disk; if not set, expect a single drive to be present.
+	ForceInstall             bool             `json:"force_install"                        yaml:"force_install"`                        // If true, ignore any existing data on target install disk.
+	ForceInstallConfirmation string           `json:"force_install_confirmation,omitempty" yaml:"force_install_confirmation,omitempty"` // An optional value used to confirm re-installation of IncusOS.
+	ForceReboot              bool             `json:"force_reboot"                         yaml:"force_reboot"`                         // If true, reboot the system automatically upon completion rather than waiting for the install media to be removed.
+	Security                 *InstallSecurity `json:"security,omitempty"                   yaml:"security,omitempty"`                   // Optional install options to allow IncusOS to run in a degraded security state.
+	Target                   *InstallTarget   `json:"target"                               yaml:"target"`                               // Optional selector for the target install disk; if not set, expect a single drive to be present.
 }
 
 // InstallSecurity defines a set of mutually exclusive options that allow IncusOS to run in a degraded security state.
