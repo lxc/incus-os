@@ -1,0 +1,15 @@
+[Unit]
+Description=Finalize and record LUKS state
+After=initrd-fs.target
+Requires=initrd-fs.target
+Before=initrd.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/usr/bin/initrd-finalize-luks-state.sh
+
+[Install]
+WantedBy=initrd.target

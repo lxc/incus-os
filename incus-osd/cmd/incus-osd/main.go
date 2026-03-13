@@ -423,6 +423,62 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 	}
 
+	// Check if the root and swap partitions include a binding on PCR15. If not, update the LUKS bindings before proceeding.
+	// This is required to counter the attack described at https://oddlama.org/blog/bypassing-disk-encryption-with-tpm2-unlock/.
+	//
+	// Binding to exact values of PCRs 4+7 and a PCR11 policy are insufficient when an attacker has physical access to the system
+	// and can create a malicious root partition. Because the system will boot with an unmodified UKI and SecureBoot/TPM state,
+	// after the system exits the initrd IncusOS will behave like it's a first boot, but more critically the TPM will be in a
+	// known "good" state and happily release its encryption key used by LUKS allowing the attacker to trivially extract the
+	// LUKS volume key. They can then undo their malicious changes to the disk, and IncusOS wlll have no idea an attack occurred
+	// while the attacker now can decrypt the LUKS volumes at any time to exfiltrate data, mess with the system, etc.
+	//
+	// We add a binding to an empty PCR15. This PCR is extended when a root LUKS volume is successfully opened in the initrd, so the
+	// only time the TPM state could automatically unlock things for us is at the beginning of the initrd. After that point, PCR15
+	// will have a different value which cannot be reset, rendering the attack impossible.
+	//
+	// Performing the check and PCR binding update here catches both fresh installs as well as existing deployments. In either case,
+	// the TPM state will allow a single re-bind, after which it will only work in the initrd. At some point after September 2026
+	// we can move this logic into the recovery key generation block above so only fresh installs are inspected. systemd v259 did
+	// add a TPM2PCRs= option to systemd-repart which would also make life easier.
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
+	if err != nil {
+		return err
+	}
+
+	isBoundPCR15, err := storage.LUKSBoundToPCR(ctx, luksVolumes["root"], 15)
+	if err != nil {
+		return err
+	}
+
+	if !isBoundPCR15 {
+		slog.InfoContext(ctx, "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
+
+		err := secureboot.HandleSecureBootKeyChange(ctx, fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease), "")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Enable swap, if present. Swap isn't normally activated until after exiting the initrd, and because we're not able to
+	// rely on the TPM to automatically unlock that partition, systemd cannot enable swap for us during system boot.
+	_, err = os.Stat("/dev/mapper/swap")
+	if err != nil && os.IsNotExist(err) {
+		_, err := os.Stat("/dev/disk/by-partlabel/swap")
+		if err == nil {
+			// Unlock the LUKS swap volume.
+			_, err := subprocess.RunCommandContext(ctx, "systemd-cryptsetup", "attach", "swap", "/dev/disk/by-partlabel/swap", "/var/lib/incus-os/recovery.swap.key")
+			if err != nil {
+				slog.WarnContext(ctx, "Unable to decrypt LUKS swap partition")
+			} else {
+				_, err := subprocess.RunCommandContext(ctx, "swapon", "/dev/mapper/swap")
+				if err != nil {
+					slog.WarnContext(ctx, "Unable to activate encrypted swap partition")
+				}
+			}
+		}
+	}
+
 	// Get the machine ID.
 	machineID, err := s.MachineID()
 	if err != nil {

@@ -43,18 +43,17 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		return err
 	}
 
-	atLeastOneVolumeNeedsFixing := false
-
-	for volumeName, volumeDev := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
-		if err != nil {
-			atLeastOneVolumeNeedsFixing = true
-
-			break
-		}
+	// Get the state of the TPM as recorded in the UEFI variable.
+	tpmStateContents, err := ReadEFIVariable("IncusOSTPMState")
+	if err != nil {
+		return err
 	}
 
-	if !atLeastOneVolumeNeedsFixing {
+	// If there are four bytes in the UEFI variable and the last is zero, that means the TPM
+	// was able to unlock things automatically in the initrd.
+	tpmStateIsGood := len(tpmStateContents) == 4 && tpmStateContents[3] == 0
+
+	if tpmStateIsGood {
 		return errors.New("refusing to reset TPM encryption bindings because current state can unlock all volumes")
 	}
 
@@ -88,11 +87,11 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	pcr4String := hex.EncodeToString(pcr4)
 	pcr7String := hex.EncodeToString(pcr7)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	// When Secure Boot is disabled, we also bind to PCR4.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String
+		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 	}
 
 	// Handle an edge case where the system boots with a recovery passphrase, but hasn't yet been
@@ -140,7 +139,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 				return err
 			}
 
-			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR)
+			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 			if luksKey == "" {
 				// Set a bad PCR policy.
@@ -405,7 +404,7 @@ func computeExpectedVariableDriverConfig(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Read the current variable.
-	buf, err := readEFIVariable(v.VarName())
+	buf, err := ReadEFIVariable(v.VarName())
 	if err != nil {
 		return nil, err
 	}

@@ -30,6 +30,8 @@ func main() {
 		switch os.Args[1] {
 		case "measure-pcrs":
 			err = measurePCRs()
+		case "seal-pcr15":
+			err = sealPCR15()
 		case "validate-pe-binaries":
 			err = secureboot.ValidatePEBinaries()
 			if err != nil && os.IsNotExist(err) {
@@ -103,6 +105,28 @@ func measurePCRs() error {
 	h := sha256.Sum256([]byte("enter-initrd"))
 
 	err = tpm2.PCRExtend(tpmDev, tpmutil.Handle(11), tpm2.AlgSHA256, h[:], "")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// sealPCR15 is used when running swtpm to extend PCR15 with a static value so it is
+// initialized while in the initrd. Normally, this is done automatically by systemd-cryptsetup
+// after unlocking the root LUKS volume.
+func sealPCR15() error {
+	// Open the TPM.
+	tpmDev, err := tpm2.OpenTPM("/dev/tpm0")
+	if err != nil {
+		return fmt.Errorf("can't open TPM: %s", err.Error())
+	}
+	defer tpmDev.Close()
+
+	// Measure a static value into PCR15.
+	h := sha256.Sum256([]byte("IncusOS"))
+
+	err = tpm2.PCRExtend(tpmDev, tpmutil.Handle(15), tpm2.AlgSHA256, h[:], "")
 	if err != nil {
 		return err
 	}

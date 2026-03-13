@@ -22,14 +22,14 @@ def TestInstallSecureBootDisabled(install_image):
         if "Variable PK has no entries" not in str(result.stdout) or "Variable db has no entries" not in str(result.stdout):
             raise IncusOSException("SecureBoot EFI variables shouldn't be populated")
 
-        # Verify that LUKS encryption is bound to PCRs 4+7+11
+        # Verify that LUKS encryption is bound to PCRs 4+7+11+15
         result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part9")
-        if "tpm2-hash-pcrs:   4+7" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS swap partition not properly bound to PCRs 4+7+11")
+        if "tpm2-hash-pcrs:   4+7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
+            raise IncusOSException("LUKS swap partition not properly bound to PCRs 4+7+11+15")
 
         result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part10")
-        if "tpm2-hash-pcrs:   4+7" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS root partition not properly bound to PCRs 4+7+11")
+        if "tpm2-hash-pcrs:   4+7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
+            raise IncusOSException("LUKS root partition not properly bound to PCRs 4+7+11+15")
 
         # Verify Secure Boot being disabled is reflected in security state
         result = vm.APIRequest("/1.0/system/security")

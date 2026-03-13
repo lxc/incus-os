@@ -207,7 +207,17 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 		return ret, err
 	}
 
-	for volumeName, volumeDev := range luksVolumes {
+	// Get the state of the TPM as recorded in the UEFI variable.
+	tpmStateContents, err := secureboot.ReadEFIVariable("IncusOSTPMState")
+	if err != nil {
+		return ret, err
+	}
+
+	// If there are four bytes in the UEFI variable and the last is zero, that means the TPM
+	// was able to unlock things automatically in the initrd.
+	tpmStateIsGood := len(tpmStateContents) == 4 && tpmStateContents[3] == 0
+
+	for volumeName := range luksVolumes {
 		// First, check if the volume is mapped, and therefore unlocked.
 		_, err := subprocess.RunCommandContext(ctx, "dmsetup", "info", volumeName)
 		if err != nil {
@@ -220,10 +230,7 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 		}
 
 		// Second, test if we can auto-unlock with the current TPM state.
-		// Ideally we wouldn't have to depend on cryptsetup, but systemd-cryptenroll (and friends) don't
-		// seem to have an equivalent of "--test-passphrase".
-		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", volumeDev, volumeName)
-		if err != nil {
+		if !tpmStateIsGood {
 			// Do we have a PCR mismatch on the TPM? If so, assume we can unlock with the TPM upon reboot.
 			if secureboot.TPMStatus() == secureboot.TPMPCRMismatch {
 				ret = append(ret, api.SystemSecurityEncryptedVolume{

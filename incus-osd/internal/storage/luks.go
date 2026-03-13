@@ -3,17 +3,26 @@ package storage
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
+
+type cryptsetupLuksDumpPartialParse struct {
+	Tokens map[string]struct {
+		Type     string `json:"type"`
+		TPM2PCRS []int  `json:"tpm2-pcrs"` //nolint:tagliatelle
+	} `json:"tokens"`
+}
 
 // EncryptDrive wipes and formats a drive as a LUKS device.
 func EncryptDrive(ctx context.Context, devPath string) error {
@@ -146,6 +155,33 @@ func GetDriveKeys() (map[string]string, error) {
 	}
 
 	return keys, nil
+}
+
+// LUKSBoundToPCR determines if the given LUKS volume is bound to the specified PCR.
+func LUKSBoundToPCR(ctx context.Context, devPath string, pcrIndex int) (bool, error) {
+	output, err := subprocess.RunCommandContext(ctx, "cryptsetup", "luksDump", "--dump-json-metadata", devPath)
+	if err != nil {
+		return false, err
+	}
+
+	state := cryptsetupLuksDumpPartialParse{}
+
+	err = json.Unmarshal([]byte(output), &state)
+	if err != nil {
+		return false, err
+	}
+
+	for _, token := range state.Tokens {
+		if token.Type != "systemd-tpm2" {
+			continue
+		}
+
+		if slices.Contains(token.TPM2PCRS, pcrIndex) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func unlockDrive(ctx context.Context, devPath string) error {

@@ -39,7 +39,7 @@ func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
 	if sbEnabled {
 		// In normal operation, Secure Boot will be enabled and we can
 		// directly fetch certificates from a trusted EFI variable.
-		val, err := readEFIVariable(varName)
+		val, err := ReadEFIVariable(varName)
 		if err != nil {
 			return nil, err
 		}
@@ -324,7 +324,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
-	newPCR7String := hex.EncodeToString(newPCR7)
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(newPCR7) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
@@ -332,7 +332,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	for name, volume := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=7:sha256="+newPCR7String, volume)
+		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}
@@ -408,8 +408,8 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	return nil
 }
 
-// readEFIVariable returns the current value, if any, of the specified EFI variable.
-func readEFIVariable(variableName string) ([]byte, error) {
+// ReadEFIVariable returns the current value, if any, of the specified EFI variable.
+func ReadEFIVariable(variableName string) ([]byte, error) {
 	// Determine which file to open.
 	filename, err := efiVariableToFilename(variableName)
 	if err != nil {
@@ -469,6 +469,10 @@ func efiVariableToFilename(variableName string) (string, error) {
 		return "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f", nil
 	case "LoaderEntrySelected":
 		return "/sys/firmware/efi/efivars/LoaderEntrySelected-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f", nil
+	case "IncusOSInstallComplete":
+		return "/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c", nil
+	case "IncusOSTPMState":
+		return "/sys/firmware/efi/efivars/IncusOSTPMState-12f075e0-2d07-493d-811a-00920a72c04c", nil
 	default:
 		return "", fmt.Errorf("unsupported EFI variable '%s'", variableName)
 	}

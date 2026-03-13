@@ -32,7 +32,7 @@ var systemdStubGUID = [16]byte{0xf8, 0xd1, 0xc5, 0x55, 0xcd, 0x4, 0xb5, 0x46, 0x
 
 // Enabled checks if Secure Boot is currently enabled.
 func Enabled() (bool, error) {
-	state, err := readEFIVariable("SecureBoot")
+	state, err := ReadEFIVariable("SecureBoot")
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func Enabled() (bool, error) {
 // this shouldn't be possible when Secure Boot is enabled, but buggy UEFI
 // implementations can allow this.
 func InAuditMode() (bool, error) {
-	state, err := readEFIVariable("AuditMode")
+	state, err := ReadEFIVariable("AuditMode")
 	if err != nil {
 		return false, err
 	}
@@ -96,9 +96,11 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 	}
 
 	// Part 2 -- Update the systemd-boot EFI stub.
-	err = updateEFIBootStub(ctx, usrImageFile)
-	if err != nil {
-		return err
+	if usrImageFile != "" {
+		err := updateEFIBootStub(ctx, usrImageFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Part 3 -- Compute the new PCR4 and PCR7 values.
@@ -121,11 +123,11 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 	newPCR4String := hex.EncodeToString(newPCR4)
 	newPCR7String := hex.EncodeToString(newPCR7)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + newPCR7String
+	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 
 	// When Secure Boot is disabled, we also bind to PCR4.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String
+		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
 	}
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
@@ -192,8 +194,10 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 		return err
 	}
 
+	pcrBindingArg := "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+
 	for name, volume := range luksVolumes {
-		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", "--tpm2-pcrs=4:sha256="+newPCR4String+"+7:sha256="+pcr7String, volume)
+		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		if err != nil {
 			return err
 		}

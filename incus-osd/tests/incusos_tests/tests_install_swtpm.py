@@ -18,7 +18,7 @@ def TestInstallUseSWTPM(install_image):
         # Should see a log message about swtpm
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
 
-        # Check some PCR values: expect PCR0 to be empty with swtpm, while PCR7 and PCR11 should have non-zero values
+        # Check some PCR values: expect PCR0 to be empty with swtpm, while PCR7, PCR11, and PCR15 should have non-zero values
         result = vm.RunCommand("tpm2_pcrread", "sha256:0")
         if "0x0000000000000000000000000000000000000000000000000000000000000000" not in str(result.stdout):
             raise IncusOSException("PCR0 has a non-zero value")
@@ -30,6 +30,19 @@ def TestInstallUseSWTPM(install_image):
         result = vm.RunCommand("tpm2_pcrread", "sha256:11")
         if "0x0000000000000000000000000000000000000000000000000000000000000000" in str(result.stdout):
             raise IncusOSException("PCR11 isn't initialized")
+
+        result = vm.RunCommand("tpm2_pcrread", "sha256:15")
+        if "0x0000000000000000000000000000000000000000000000000000000000000000" in str(result.stdout):
+            raise IncusOSException("PCR15 isn't initialized")
+
+        # Verify that LUKS encryption is bound to PCRs 7+11+15
+        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part9")
+        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
+            raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
+
+        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part10")
+        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
+            raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
 
         # Verify the security endpoint reflects swtpm is in use
         result = vm.APIRequest("/1.0/system/security")
