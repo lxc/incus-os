@@ -618,6 +618,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		updateChecker(ctx, s, t, p, true, false)
 	}
 
+	// Ensure all systemd extensions are applied.
+	err = systemd.RefreshExtensions(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Run services startup actions. This must be done before bringing up any storage pools.
 	for _, srvName := range services.Supported(s) {
 		srv, err := services.Load(ctx, s, srvName)
@@ -639,12 +645,6 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	// Ensure any locally-defined pools are available.
 	err = setupLocalStorage(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	// Ensure all systemd extensions are applied.
-	err = systemd.RefreshExtensions(ctx)
 	if err != nil {
 		return err
 	}
