@@ -120,7 +120,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.1",
+        "version": "v0.6.2",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
