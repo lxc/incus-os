@@ -63,12 +63,6 @@ func GetCurrentRelease(_ context.Context) (string, string, error) {
 
 // ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
 func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
-	// WORKAROUND: Start the boot.mount unit so /boot autofs is active before we create a new mount namespace.
-	err := StartUnit(ctx, "boot.mount")
-	if err != nil {
-		return err
-	}
-
 	// Determine Secure Boot state.
 	sbEnabled, err := secureboot.Enabled()
 	if err != nil {

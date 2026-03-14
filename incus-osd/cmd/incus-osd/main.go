@@ -459,12 +459,6 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	if !isBoundPCR15 {
 		slog.InfoContext(ctx, "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
 
-		// Ensure /boot/ is mounted.
-		err := systemd.StartUnit(ctx, "boot.mount")
-		if err != nil {
-			return err
-		}
-
 		ukiFile, err := secureboot.GetCurrentUKIImage()
 		if err != nil {
 			return err
