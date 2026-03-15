@@ -92,7 +92,14 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 
 	// If stdin isn't a terminal, read text from it
 	if !termios.IsTerminal(getStdinFd()) {
-		_, _, err := doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, os.Stdin, nil, "")
+		var newdata any
+
+		err := yaml.NewDecoder(os.Stdin).Decode(&newdata)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, makeJsonable(newdata), nil, "")
 
 		return err
 	}
