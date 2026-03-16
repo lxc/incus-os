@@ -112,20 +112,7 @@ class IncusTestVM:
     def WaitAgentRunning(self, timeout=300):
         """Wait for the Incus agent to start in the VM."""
 
-        start = time.time()
-
-        while True:
-            try:
-                subprocess.run(["incus", "exec", self.vm_name, "true"], capture_output=True, check=True)
-
-                return
-            except:
-                pass
-
-            if time.time() - start > timeout:
-                raise IncusOSException("timed out waiting for agent to start")
-
-            time.sleep(1)
+        subprocess.run(["incus", "wait", self.vm_name, "agent", "--timeout", str(timeout)], capture_output=True, check=True)
 
     def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
