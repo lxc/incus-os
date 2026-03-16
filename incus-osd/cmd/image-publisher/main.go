@@ -46,6 +46,10 @@ func main() {
 	pruneCmd := cmdPrune{global: &globalCmd}
 	app.AddCommand(pruneCmd.command())
 
+	// severity sub-command.
+	severityCmd := cmdSeverity{global: &globalCmd}
+	app.AddCommand(severityCmd.command())
+
 	// sync sub-command.
 	syncCmd := cmdSync{global: &globalCmd}
 	app.AddCommand(syncCmd.command())
