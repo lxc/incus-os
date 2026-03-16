@@ -82,7 +82,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		// Get the list of services.
+		// Get the list of applications.
 		names := make([]string, 0, len(s.state.Applications))
 
 		for name := range s.state.Applications {
@@ -125,9 +125,24 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if the application is already installed.
 		_, exists := s.state.Applications[app.Name]
 		if exists {
 			_ = response.Conflict(nil).Render(w)
+
+			return
+		}
+
+		// Don't allow more than one primary application to be installed.
+		actualApp, err := applications.Load(r.Context(), s.state, app.Name)
+		if err != nil {
+			_ = response.BadRequest(err).Render(w)
+
+			return
+		}
+
+		if actualApp.IsPrimary() {
+			_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
 
 			return
 		}

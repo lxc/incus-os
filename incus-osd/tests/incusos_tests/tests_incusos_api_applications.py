@@ -34,6 +34,14 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         if state["version"] != incusos_version:
             raise IncusOSException("incus application version mismatch (%s vs %s)" % (state["version"], incusos_version))
 
+        # Verify we can't install more than one primary application
+        result = vm.APIRequest("/1.0/system/applications", method="POST", body="""{"name":"migration-manager"}""")
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success adding second primary application")
+
+        if result["error"] != "a primary application is already installed":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
         # For testing, create an empty test file that should be included in the backup/restore steps
         vm.RunCommand("touch", "/var/lib/incus/test-file")
 
