@@ -18,10 +18,10 @@ def TestIncusOSAPISystem(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
-        if len(result["metadata"]) != 7:
-            raise IncusOSException("expected seven system endpoints")
+        if len(result["metadata"]) != 8:
+            raise IncusOSException("expected eight system endpoints")
 
-        for endpoint in ["/1.0/system/logging", "/1.0/system/network", "/1.0/system/provider", \
+        for endpoint in ["/1.0/system/kernel", "/1.0/system/logging", "/1.0/system/network", "/1.0/system/provider", \
             "/1.0/system/resources", "/1.0/system/security","/1.0/system/storage", "/1.0/system/update"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
