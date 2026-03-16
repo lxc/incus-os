@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"time"
 
@@ -67,10 +68,12 @@ import (
 //	    required: true
 //	    schema:
 //	      type: object
-//	      example: {"name": "incus"}
+//	      example: {"name": "gpu-support"}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 //	  "409":
@@ -445,6 +448,8 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 //	    description: gzip'ed tar archive
 //	    schema:
 //	      type: file
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 //	  "500":
@@ -589,6 +594,97 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	now := time.Now()
 	appInfo.State.LastRestored = &now
 	s.state.Applications[name] = appInfo
+
+	err = s.state.Save()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/applications/{name}/:remove applications applications_post_remove
+//
+//	Remove an application
+//
+//	Uninstall a non-primary application that is currently installed.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: application
+//	    description: Application to be removed
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name": "gpu-support"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	_, ok := s.state.Applications[name]
+	if !ok {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Can't remove a primary application.
+	if app.IsPrimary() {
+		_ = response.BadRequest(errors.New("cannot remove a primary application")).Render(w)
+
+		return
+	}
+
+	// Stop the application.
+	err = app.Stop(r.Context(), "")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Remove the sysext image.
+	err = os.Remove("/var/lib/extensions/" + app.Name() + ".raw")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Update and save the state.
+	delete(s.state.Applications, app.Name())
 
 	err = s.state.Save()
 	if err != nil {

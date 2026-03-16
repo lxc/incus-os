@@ -1,3 +1,5 @@
+import time
+
 from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestIncusOSAPIApplicationsIncus(install_image):
@@ -290,3 +292,66 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
 
         if state["version"] != incusos_version:
             raise IncusOSException("incus-linstor application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+
+def TestIncusOSAPIApplicationsRemove(install_image):
+    test_name = "incusos-api-applications-remove"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version)
+
+        # Test top-level /1.0/applications endpoint.
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise IncusOSException("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus":
+            raise IncusOSException("expected the incus application to be installed")
+
+        # Cannot remove a primary application
+        result = vm.APIRequest("/1.0/system/applications/incus/:remove", method="POST", body="""{"name":"incus"}""")
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success removing primary application")
+
+        if result["error"] != "cannot remove a primary application":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
+        # Add then remove the "debug" application
+        result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"debug"}""")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        time.sleep(5)
+
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        if len(result["metadata"]) != 2:
+            raise IncusOSException("expected exactly two applications")
+
+        if "/1.0/applications/debug" not in result["metadata"]:
+            raise IncusOSException("expected the debug application to be installed")
+
+        result = vm.APIRequest("/1.0/applications/debug/:remove", method="POST")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        time.sleep(5)
+
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise IncusOSException("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus":
+            raise IncusOSException("expected the incus application to be installed")
