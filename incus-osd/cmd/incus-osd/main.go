@@ -943,7 +943,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		}
 
 		// Determine what applications to install.
-		toInstall := []string{"incus"}
+		toInstall := []string{}
 
 		if len(s.Applications) == 0 && (isStartupCheck || isUserRequested) {
 			// Assume first start of the daemon.
@@ -974,6 +974,22 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 			for name := range s.Applications {
 				toInstall = append(toInstall, name)
 			}
+		}
+
+		// Verify that at least one primary application is defined. If not, add incus to the list.
+		foundPrimary := false
+
+		for _, appName := range toInstall {
+			app, err := applications.Load(ctx, s, appName)
+			if err == nil && app.IsPrimary() {
+				foundPrimary = true
+
+				break
+			}
+		}
+
+		if !foundPrimary {
+			toInstall = append(toInstall, "incus")
 		}
 
 		// Verify that each application has its dependencies, if any, included in the list of applications.
