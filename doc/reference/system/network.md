@@ -4,6 +4,8 @@ IncusOS supports complex network configurations consisting of interfaces, bonds,
 
 Before applying any new/updated network configuration, basic validation checks are performed. If this check fails, or the network fails to come up properly as reported by `systemd-networkd`, the changes will be reverted to minimize the chance of accidentally knocking the IncusOS system offline.
 
+Optionally, if the `confirmation_timeout` field is defined when applying a configuration update, IncusOS will automatically roll back the network configuration to the prior state if a followup confirmation command isn't received before the timeout expires. This can be a useful way to test tricky or unknown network configurations that might otherwise break IncusOS' networking configuration.
+
 Be aware that changing network configuration may result in a brief period of time when the system is unreachable over the network.
 
 ```{note}
@@ -33,6 +35,8 @@ One special feature of note is the handling of hardware addresses (MACs). Both i
 * Interface name: If an interface name is provided, such as `enp5s0`, at startup IncusOS will attempt to get its MAC address and substitute that value in the configuration. This is useful when installing IncusOS across multiple physically identical servers with only a single [install seed](../seed.md).
 
 The following configuration options can be set:
+
+* `confirmation_timeout`: If defined, will trigger an automatic roll back of the network configuration unless a followup confirmation command is received before the timeout expires.
 
 * `interfaces`: Zero or more interfaces that should be configured for the system.
 
@@ -97,6 +101,27 @@ config:
     nameservers:
     - "10.234.136.1"
 ```
+
+#### Automatic roll back of network configuration
+
+When applying a complex network configuration update, it can be useful to automatically roll back the changes if something goes wrong. IncusOS supports this via the `confirmation_timeout` configuration field.
+
+For example, the following configuration will automatically roll back to the current network configuration after five minutes, unless a followup confirmation command is received:
+
+```yaml
+config:
+  confirmation_timeout: 5m
+  interfaces:
+  - addresses:
+    - dhcp4
+    hwaddr: 10:66:6a:f1:49:aa
+    name: enp5s0
+    required_for_online: "yes"
+  time:
+    timezone: UTC
+```
+
+After applying the network configuration, if IncusOS remains reachable on the network as expected, run `incus admin os system network confirm` before five minutes elapses to confirm and save the new configuration. If something went wrong and IncusOS is no longer available on the network, simply wait the five minutes and IncusOS will re-configure itself with the prior configuration that had been working.
 
 #### VLANs
 
