@@ -219,3 +219,40 @@ func applyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 
 	return s.Save()
 }
+
+// swagger:operation POST /1.0/system/network/:confirm system system_post_network_confirm
+//
+//	Confirm a new network configuration
+//
+//	Confirm the new network configuration and cancel the automatic roll back to the prior network configuration.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+func (s *Server) apiSystemNetworkConfirm(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	if !s.state.NetworkConfigurationPending {
+		_ = response.BadRequest(errors.New("no network configuration is pending a confirmation")).Render(w)
+
+		return
+	}
+
+	// Indicate that the change was confirmed.
+	s.state.NetworkConfigurationChannel <- nil
+
+	_ = response.EmptySyncResponse.Render(w)
+}

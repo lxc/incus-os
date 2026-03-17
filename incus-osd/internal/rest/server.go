@@ -80,6 +80,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/system/kernel", s.apiSystemKernel)
 	router.HandleFunc("/1.0/system/logging", s.apiSystemLogging)
 	router.HandleFunc("/1.0/system/network", s.apiSystemNetwork)
+	router.HandleFunc("/1.0/system/network/:confirm", s.apiSystemNetworkConfirm)
 	router.HandleFunc("/1.0/system/provider", s.apiSystemProvider)
 	router.HandleFunc("/1.0/system/resources", s.apiSystemResources)
 	router.HandleFunc("/1.0/system/security", s.apiSystemSecurity)
