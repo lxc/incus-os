@@ -63,7 +63,7 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 			_, exists := changelogs[archName]
 			if !exists {
 				changelogs[archName] = apiupdate.Changelog{
-					CurrnetVersion: metaUpdate.Version,
+					CurrentVersion: metaUpdate.Version,
 					PriorVersion:   priorVersion,
 					Channel:        channel,
 					Components:     make(map[string]apiupdate.ChangelogEntries),
