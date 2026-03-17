@@ -2,7 +2,7 @@ package images
 
 // Changelog represents the changes between two published IncusOS releases.
 type Changelog struct {
-	CurrnetVersion string                      `json:"current_version" yaml:"current_version"`
+	CurrentVersion string                      `json:"current_version" yaml:"current_version"`
 	PriorVersion   string                      `json:"prior_version"   yaml:"prior_version"`
 	Channel        string                      `json:"channel"         yaml:"channel"`
 	Components     map[string]ChangelogEntries `json:"components"      yaml:"components"`
