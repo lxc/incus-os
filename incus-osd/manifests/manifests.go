@@ -62,8 +62,6 @@ type IncusOSArtifacts struct {
 	Packages           []MkosiManifestPackages `json:"packages,omitempty"`
 	GoCompiler         string                  `json:"go_compiler,omitempty"`
 	GoPackages         []MkosiManifestPackages `json:"go_packages,omitempty"`
-	YarnVersion        string                  `json:"yarn_version,omitempty"`
-	YarnPackages       []MkosiManifestPackages `json:"yarn_packages,omitempty"`
 }
 
 // GenerateManifests creates an IncusOS manifest for each image.
