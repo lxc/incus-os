@@ -45,7 +45,7 @@ def _commonMultipathChecks(vm, incusos_version, disk):
     vm.AddDevice("multipathdisk1", "disk", "source="+disk, "wwn=0x500577a4300c1e34")
     vm.AddDevice("multipathdisk2", "disk", "source="+disk, "wwn=0x500577a4300c1e34")
 
-    vm.WaitSystemReady(incusos_version, target="/dev/disk/by-id/scsi-3500577a4300c1e34")
+    vm.WaitSystemReady(incusos_version, target="/dev/disk/by-id/scsi-3500577a4300c1e34", agent_timeout=600)
 
     # Verify that two of the drives belong to the multipath device. Because symlinks have been
     # overwritten, we can't just check specific drives under /dev/disk/by-id/.

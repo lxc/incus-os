@@ -86,12 +86,12 @@ class IncusTestVM:
         else:
             subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def WaitSystemReady(self, incusos_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[]):
+    def WaitSystemReady(self, incusos_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[], agent_timeout=300):
         """Wait for the system install to complete, the given application to be configured and the system become ready for use."""
 
         # Perform IncusOS install.
         self.StartVM()
-        self.WaitAgentRunning()
+        self.WaitAgentRunning(agent_timeout)
         self.WaitExpectedLog("incus-osd", "Installing IncusOS source=" + source + " target=" + target, regex=True)
         self.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
 
@@ -104,7 +104,7 @@ class IncusTestVM:
 
         # Start freshly installed IncusOS and verify successful boot.
         self.StartVM()
-        self.WaitAgentRunning()
+        self.WaitAgentRunning(agent_timeout)
         self.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+incusos_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
