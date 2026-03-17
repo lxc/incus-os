@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lxc/incus-os/incus-osd/internal/manifests"
+	"github.com/lxc/incus-os/incus-osd/manifests"
 )
 
 func main() {
@@ -38,19 +38,19 @@ func main() {
 		images = append(images, dir.Name())
 	}
 
-	m, err := manifests.ReadManifests(filepath.Join(os.Args[1], "mkosi.output/"), images)
+	m, err := manifests.Read(filepath.Join(os.Args[1], "mkosi.output/"), images)
 	if err != nil {
 		slog.Error("Error: " + err.Error())
 		os.Exit(1)
 	}
 
-	m, err = manifests.GenerateManifests(context.Background(), os.Args[1], m)
+	m, err = manifests.Generate(context.Background(), os.Args[1], m)
 	if err != nil {
 		slog.Error("Error: " + err.Error())
 		os.Exit(1)
 	}
 
-	err = manifests.WriteManifests(filepath.Join(os.Args[1], "upload/"), m)
+	err = manifests.Write(filepath.Join(os.Args[1], "upload/"), m)
 	if err != nil {
 		slog.Error("Error: " + err.Error())
 		os.Exit(1)
