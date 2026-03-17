@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lxc/incus-os/incus-osd/internal/manifests"
+	"github.com/lxc/incus-os/incus-osd/manifests"
 )
 
 func main() {

@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
-	"github.com/lxc/incus-os/incus-osd/internal/manifests"
+	"github.com/lxc/incus-os/incus-osd/manifests"
 )
 
 func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath string) error {

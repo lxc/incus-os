@@ -66,7 +66,7 @@ type IncusOSArtifacts struct {
 	YarnPackages       []MkosiManifestPackages `json:"yarn_packages,omitempty"`
 }
 
-// GenerateManifests creates an IncusOS for each image.
+// GenerateManifests creates an IncusOS manifest for each image.
 func GenerateManifests(ctx context.Context, root string, manifests map[string]IncusOSManifest) (map[string]IncusOSManifest, error) {
 	// Get mkosi version.
 	output, err := subprocess.RunCommandContext(ctx, "mkosi", "--version")
