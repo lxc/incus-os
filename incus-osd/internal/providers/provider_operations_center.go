@@ -331,7 +331,7 @@ func (p *operationsCenter) loadTLS(ctx context.Context) error {
 		MinVersion: tls.VersionTLS13,
 	}
 
-	// Setup the server for self-signed certirficates.
+	// Setup the server for self-signed certificates.
 	if p.serverCertificate != "" {
 		// Parse the provided certificate.
 		certBlock, _ := pem.Decode([]byte(p.serverCertificate))
