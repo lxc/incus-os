@@ -28,6 +28,10 @@ type SystemNetwork struct {
 
 // SystemNetworkConfig represents the user modifiable network configuration.
 type SystemNetworkConfig struct {
+	// If defined, automatically roll back the new network changes after the
+	// specified timeout has elapsed unless those changes are confirmed before then.
+	ConfirmationTimeout string `json:"confirmation_timeout,omitempty" yaml:"confirmation_timeout,omitempty"`
+
 	DNS   *SystemNetworkDNS   `json:"dns,omitempty"   yaml:"dns,omitempty"`
 	Time  *SystemNetworkTime  `json:"time,omitempty"  yaml:"time,omitempty"`
 	Proxy *SystemNetworkProxy `json:"proxy,omitempty" yaml:"proxy,omitempty"`
