@@ -68,6 +68,17 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	listCmd := cmdGenericList{os: c.os, entity: "applications", endpoint: "applications"}
 	cmd.AddCommand(listCmd.command())
 
+	// Remove.
+	removeCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "remove",
+		description: "Remove the application",
+		endpoint:    "applications",
+		entity:      "application",
+		confirm:     "remove the application",
+	}
+	cmd.AddCommand(removeCmd.command())
+
 	// Restart.
 	restartCmd := cmdGenericRun{
 		os:          c.os,
