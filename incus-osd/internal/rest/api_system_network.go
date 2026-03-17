@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
@@ -72,7 +74,7 @@ import (
 //	        config:
 //	          type: object
 //	          description: The network configuration
-//	          example: {"interfaces":[{"name":"enp5s0","addresses":["dhcp4"],"required_for_online":"yes","hwaddr":"10:66:6a:1a:20:0f","lldp":true}],"time":{"timezone":"America/New_York"}}
+//	          example: {"confirmation_timeout":"3m","interfaces":[{"name":"enp5s0","addresses":["dhcp4"],"required_for_online":"yes","hwaddr":"10:66:6a:1a:20:0f","lldp":true}],"time":{"timezone":"America/New_York"}}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -116,6 +118,14 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Don't allow applying a new network configuration if a prior network configuration
+		// is still waiting for confirmation.
+		if s.state.NetworkConfigurationPending {
+			_ = response.BadRequest(errors.New("a pending network configuration must first be confirmed before a new configuration can be applied")).Render(w)
+
+			return
+		}
+
 		// Don't allow a new configuration that doesn't define any interfaces, bonds, or vlans.
 		if newConfig.Config == nil || seed.NetworkConfigHasEmptyDevices(*newConfig.Config) {
 			_ = response.BadRequest(errors.New("network configuration has no devices defined")).Render(w)
@@ -123,17 +133,65 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.InfoContext(r.Context(), "Applying new network configuration")
+		var confirmationTimeout time.Duration
 
-		err = nftables.ApplyHwaddrFilters(r.Context(), newConfig.Config)
-		if err != nil {
-			slog.ErrorContext(r.Context(), "Failed to update network configuration: "+err.Error())
-			_ = response.InternalError(err).Render(w)
+		// If a confirmation timeout is provided, make sure it is valid.
+		if newConfig.Config.ConfirmationTimeout != "" {
+			confirmationTimeout, err = time.ParseDuration(newConfig.Config.ConfirmationTimeout)
+			if err != nil {
+				_ = response.BadRequest(errors.New("invalid confirmation timeout provided: " + err.Error())).Render(w)
 
-			return
+				return
+			}
+
+			if confirmationTimeout <= 0 {
+				_ = response.BadRequest(errors.New("confirmation timeout must be greater than zero")).Render(w)
+
+				return
+			}
+
+			// Clear the configuration timeout after parsing it, so it's not reported back via an API call.
+			newConfig.Config.ConfirmationTimeout = ""
 		}
 
-		err = systemd.ApplyNetworkConfiguration(r.Context(), s.state, newConfig.Config, 30*time.Second, false, providers.Refresh, false)
+		// If a confirmation timeout is defined, start a background function that will roll back changes
+		// unless the user confirms them before the timeout expires.
+		if confirmationTimeout > 0 {
+			s.state.NetworkConfigurationPending = true
+
+			// #nosec G118
+			go func(ctx context.Context, oldNetworkCfg *api.SystemNetworkConfig) { //nolint:contextcheck
+				select {
+				case <-s.state.NetworkConfigurationChannel:
+					// Confirmed, nothing special to do.
+				case <-time.After(confirmationTimeout):
+					// At this point, the user-provided timeout has elapsed and the changes were not confirmed,
+					// so we need to roll the changes back.
+					slog.WarnContext(ctx, "Rolling back network configuration to prior known-good state")
+
+					err = applyNetworkConfiguration(ctx, s.state, oldNetworkCfg, 30*time.Second)
+					if err != nil {
+						slog.ErrorContext(ctx, "Failed to roll back network configuration: "+err.Error())
+					}
+				}
+
+				// Reset the network configuration pending state.
+				s.state.NetworkConfigurationPending = false
+
+				_ = s.state.Save()
+			}(context.Background(), s.state.System.Network.Config)
+		}
+
+		// By default we allow 30 seconds for the network configuration to apply. But if a user-provided
+		// confirmation timeout is defined and less than 30 seconds, cap the application timeout to that value.
+		applyTimeout := 30 * time.Second
+		if confirmationTimeout != 0 && confirmationTimeout < applyTimeout {
+			applyTimeout = confirmationTimeout
+		}
+
+		slog.InfoContext(r.Context(), "Applying new network configuration")
+
+		err = applyNetworkConfiguration(r.Context(), s.state, newConfig.Config, applyTimeout)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "Failed to update network configuration: "+err.Error())
 			_ = response.InternalError(err).Render(w)
@@ -142,9 +200,22 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
-		_ = s.state.Save()
 	default:
 		// If none of the supported methods, return NotImplemented.
 		_ = response.NotImplemented(nil).Render(w)
 	}
+}
+
+func applyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration) error {
+	err := nftables.ApplyHwaddrFilters(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
+	err = systemd.ApplyNetworkConfiguration(ctx, s, networkCfg, timeout, false, providers.Refresh, false)
+	if err != nil {
+		return err
+	}
+
+	return s.Save()
 }

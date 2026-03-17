@@ -26,6 +26,8 @@ func LoadOrCreate(path string) (*State, error) {
 		Applications: map[string]api.Application{},
 
 		JobScheduler: scheduler,
+
+		NetworkConfigurationChannel: make(chan error, 1),
 	}
 
 	body, err := os.ReadFile(s.path)

@@ -37,6 +37,9 @@ type State struct {
 
 	JobScheduler scheduling.Scheduler `json:"-"`
 
+	NetworkConfigurationPending bool       `json:"-"`
+	NetworkConfigurationChannel chan error `json:"-"`
+
 	// Triggers for daemon actions.
 	TriggerReboot   chan error `json:"-"`
 	TriggerShutdown chan error `json:"-"`
