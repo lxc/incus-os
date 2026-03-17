@@ -621,6 +621,9 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
+                                # Sleep three seconds to allow resilver to finish
+                                time.sleep(3)
+
                                 # Get the updated storage state.
                                 result = vm.APIRequest("/1.0/system/storage")
                                 if result["status_code"] != 200:
@@ -679,6 +682,9 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                                # Sleep three seconds to allow resilver to finish
+                                time.sleep(3)
 
                                 # Get the updated storage state.
                                 result = vm.APIRequest("/1.0/system/storage")
@@ -755,6 +761,9 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
+                                # Sleep three seconds to allow resilver to finish
+                                time.sleep(3)
+
                                 # Get the updated storage state.
                                 result = vm.APIRequest("/1.0/system/storage")
                                 if result["status_code"] != 200:
@@ -814,8 +823,8 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
 
-                                # Sleep a second to allow resilver to finish
-                                time.sleep(1)
+                                # Sleep three seconds to allow resilver to finish
+                                time.sleep(3)
 
                                 # Get the updated storage state.
                                 result = vm.APIRequest("/1.0/system/storage")
