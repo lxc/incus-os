@@ -64,8 +64,8 @@ type IncusOSArtifacts struct {
 	GoPackages         []MkosiManifestPackages `json:"go_packages,omitempty"`
 }
 
-// GenerateManifests creates an IncusOS manifest for each image.
-func GenerateManifests(ctx context.Context, root string, manifests map[string]IncusOSManifest) (map[string]IncusOSManifest, error) {
+// Generate creates an IncusOS manifest for each image.
+func Generate(ctx context.Context, root string, manifests map[string]IncusOSManifest) (map[string]IncusOSManifest, error) {
 	// Get mkosi version.
 	output, err := subprocess.RunCommandContext(ctx, "mkosi", "--version")
 	if err != nil {
@@ -157,8 +157,8 @@ func GenerateManifests(ctx context.Context, root string, manifests map[string]In
 	return ret, nil
 }
 
-// DiffManifests compares two manifests for differences between their installed packages.
-func DiffManifests(a IncusOSManifest, b IncusOSManifest) apiupdate.ChangelogEntries {
+// Diff compares two manifests for differences between their installed packages.
+func Diff(a IncusOSManifest, b IncusOSManifest) apiupdate.ChangelogEntries {
 	// Generate diff for mkosi-installed packages.
 	added, removed, updated := diffPackages(a.Packages, b.Packages)
 
@@ -221,9 +221,9 @@ func DiffManifests(a IncusOSManifest, b IncusOSManifest) apiupdate.ChangelogEntr
 	return ret
 }
 
-// ReadManifests loads an existing manifest created by either mkosi or further processed into an IncusOS
+// Read loads an existing manifest created by either mkosi or further processed into an IncusOS
 // manifest. We always expect a base manifest to exist and be the first element in the list of manifests.
-func ReadManifests(root string, manifests []string) (map[string]IncusOSManifest, error) {
+func Read(root string, manifests []string) (map[string]IncusOSManifest, error) {
 	if len(manifests) == 0 {
 		return nil, errors.New("list of manifests cannot be empty")
 	}
@@ -279,8 +279,8 @@ func ReadManifests(root string, manifests []string) (map[string]IncusOSManifest,
 	return ret, nil
 }
 
-// WriteManifests writes each manifest to a json file in the given output root directory.
-func WriteManifests(root string, manifests map[string]IncusOSManifest) error {
+// Write writes each manifest to a json file in the given output root directory.
+func Write(root string, manifests map[string]IncusOSManifest) error {
 	// Dump the full manifest file for each image.
 	for manifest := range manifests {
 		content, err := json.Marshal(manifests[manifest])

@@ -121,7 +121,7 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 				}
 			}
 
-			diff := manifests.DiffManifests(priorManifest, currentManifest)
+			diff := manifests.Diff(priorManifest, currentManifest)
 			if len(diff.Added) > 0 || len(diff.Updated) > 0 || len(diff.Removed) > 0 {
 				componentName := strings.TrimSuffix(filename, ".manifest.json.gz")            // Trim the filename extension.
 				componentName = strings.Replace(componentName, "_"+metaUpdate.Version, "", 1) // Trim any version string.
