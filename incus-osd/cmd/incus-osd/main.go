@@ -489,6 +489,19 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		}
 	}
 
+	// Cleanup any accidentally downloaded manifest files. This code can be removed after April 2026.
+	_, err = os.Stat(systemd.SystemExtensionsPath)
+	if err == nil {
+		files, err := os.ReadDir(systemd.SystemExtensionsPath)
+		if err == nil {
+			for _, file := range files {
+				if strings.HasSuffix(file.Name(), ".manifest.json") {
+					_ = os.Remove(filepath.Join(systemd.SystemExtensionsPath, file.Name()))
+				}
+			}
+		}
+	}
+
 	// Get the machine ID.
 	machineID, err := s.MachineID()
 	if err != nil {
