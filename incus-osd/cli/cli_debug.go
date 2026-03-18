@@ -205,6 +205,13 @@ func (c *cmdAdminOSDebugProcesses) run(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
+	values := u.Query()
+	if c.os.flagTarget != "" {
+		values.Set("target", c.os.flagTarget)
+	}
+
+	u.RawQuery = values.Encode()
+
 	// Get the log.
 	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", u.String(), nil, nil, "")
 	if err != nil {
