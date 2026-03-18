@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"slices"
 	"time"
 
@@ -652,41 +651,8 @@ func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load the application.
-	app, err := applications.Load(r.Context(), s.state, name)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Can't remove a primary application.
-	if app.IsPrimary() {
-		_ = response.BadRequest(errors.New("cannot remove a primary application")).Render(w)
-
-		return
-	}
-
-	// Stop the application.
-	err = app.Stop(r.Context(), "")
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Remove the sysext image.
-	err = os.Remove("/var/lib/extensions/" + app.Name() + ".raw")
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Update and save the state.
-	delete(s.state.Applications, app.Name())
-
-	err = s.state.Save()
+	// Remove the application.
+	err := applications.UninstallApplication(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
