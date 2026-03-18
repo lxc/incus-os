@@ -1,7 +1,7 @@
 package seed
 
 import (
-	"github.com/FuturFusion/operations-center/shared/api"
+	"github.com/FuturFusion/operations-center/shared/api/system"
 )
 
 // OperationsCenter represents an Operations Center seed file.
@@ -19,8 +19,8 @@ type OperationsCenter struct {
 
 // OperationsCenterPreseed holds seed configuration for Operations Center.
 type OperationsCenterPreseed struct {
-	SystemCertificate *api.SystemCertificatePost `json:"system_certificate,omitempty" yaml:"system_certificate,omitempty"`
-	SystemNetwork     *api.SystemNetworkPut      `json:"system_network,omitempty"     yaml:"system_network,omitempty"`
-	SystemSecurity    *api.SystemSecurityPut     `json:"system_security,omitempty"    yaml:"system_security,omitempty"`
-	SystemUpdates     *api.SystemUpdatesPut      `json:"system_updates,omitempty"     yaml:"system_updates,omitempty"`
+	SystemCertificate *system.CertificatePost `json:"system_certificate,omitempty" yaml:"system_certificate,omitempty"`
+	SystemNetwork     *system.NetworkPut      `json:"system_network,omitempty"     yaml:"system_network,omitempty"`
+	SystemSecurity    *system.SecurityPut     `json:"system_security,omitempty"    yaml:"system_security,omitempty"`
+	SystemUpdates     *system.UpdatesPut      `json:"system_updates,omitempty"     yaml:"system_updates,omitempty"`
 }
