@@ -76,6 +76,11 @@ type State struct {
 		Update   api.SystemUpdate   `json:"update"`
 		Storage  api.SystemStorage  `json:"storage"`
 	} `json:"system"`
+
+	// Used to handle an edge case of a new network configuration being applied, but
+	// the system is rebooted before the new configuration can be confirmed. This helps
+	// ensure IncusOS will always be able to boot up with a known good configuration.
+	PriorNetworkConfig *api.SystemNetworkConfig `json:"prior_network_config,omitempty"`
 }
 
 // MachineID returns the system's persistent machine ID.

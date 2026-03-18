@@ -146,6 +146,12 @@ func main() {
 	// Clear the reboot flag on startup.
 	s.System.Update.State.NeedsReboot = false
 
+	// Restore a prior good network configuration, if present.
+	if s.PriorNetworkConfig != nil {
+		s.System.Network.Config = s.PriorNetworkConfig
+		s.PriorNetworkConfig = nil
+	}
+
 	// Get and start the console TUI.
 	tuiApp, err := tui.NewTUI(s)
 	if err != nil {

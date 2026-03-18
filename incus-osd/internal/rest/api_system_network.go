@@ -159,8 +159,13 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 		if confirmationTimeout > 0 {
 			s.state.NetworkConfigurationPending = true
 
+			// Save a copy of the existing network configuration in the state, which can be used
+			// to restore things if the system is rebooted before the confirmation timeout can
+			// roll things back automatically.
+			s.state.PriorNetworkConfig = s.state.System.Network.Config
+
 			// #nosec G118
-			go func(ctx context.Context, oldNetworkCfg *api.SystemNetworkConfig) { //nolint:contextcheck
+			go func(ctx context.Context) { //nolint:contextcheck
 				select {
 				case <-s.state.NetworkConfigurationChannel:
 					// Confirmed, nothing special to do.
@@ -169,7 +174,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 					// so we need to roll the changes back.
 					slog.WarnContext(ctx, "Rolling back network configuration to prior known-good state")
 
-					err = applyNetworkConfiguration(ctx, s.state, oldNetworkCfg, 30*time.Second)
+					err = applyNetworkConfiguration(ctx, s.state, s.state.PriorNetworkConfig, 30*time.Second)
 					if err != nil {
 						slog.ErrorContext(ctx, "Failed to roll back network configuration: "+err.Error())
 					}
@@ -178,8 +183,11 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 				// Reset the network configuration pending state.
 				s.state.NetworkConfigurationPending = false
 
+				// Clear the backup of the old network configuration.
+				s.state.PriorNetworkConfig = nil
+
 				_ = s.state.Save()
-			}(context.Background(), s.state.System.Network.Config)
+			}(context.Background())
 		}
 
 		// By default we allow 30 seconds for the network configuration to apply. But if a user-provided
