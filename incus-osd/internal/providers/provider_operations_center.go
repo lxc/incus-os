@@ -257,7 +257,7 @@ func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string
 	found := false
 
 	for _, file := range latestUpdate.Files {
-		if file.Component == name {
+		if file.Component == name && file.Type == string(apiupdate.UpdateFileTypeApplication) {
 			found = true
 
 			break
@@ -608,7 +608,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 
 	for _, file := range a.latestUpdate.Files {
 		// Only select the desired applications.
-		if file.Component != a.name {
+		if file.Component != a.name || file.Type != string(apiupdate.UpdateFileTypeApplication) {
 			continue
 		}
 
