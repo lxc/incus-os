@@ -129,28 +129,6 @@ func Generate(ctx context.Context, root string, manifests map[string]IncusOSMani
 			return nil, err
 		}
 
-		// Special case to inject migration-manager-worker mkosi manifest.
-		if manifestName == "migration-manager" {
-			// #nosec G304
-			content, err := os.ReadFile(filepath.Join(root, "app-build/", "migration-manager/worker/mkosi.output/migration-manager-worker.manifest"))
-			if err == nil {
-				var m MkosiManifest
-
-				err = json.Unmarshal(content, &m)
-				if err != nil {
-					return nil, err
-				}
-
-				manifest.Artifacts = append(manifest.Artifacts, IncusOSArtifacts{
-					Name:               "migration-manager-worker",
-					Version:            manifest.Artifacts[0].Version,
-					Repo:               manifest.Artifacts[0].Repo,
-					InstalledArtifacts: []string{"/usr/share/migration-manager/images/worker-x86_64.img"},
-					Packages:           m.Packages,
-				})
-			}
-		}
-
 		ret[manifestName] = manifest
 	}
 
