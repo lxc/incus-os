@@ -379,7 +379,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
 		updateModal.Update("Downloading OS update " + update.Version())
 	case providers.ApplicationUpdate:
-		targetPath = systemd.SystemExtensionsPath
+		targetPath = filepath.Join(systemd.LocalExtensionsPath, update.Version())
 
 		slog.InfoContext(ctx, "Downloading application update", "application", appName, "version", update.Version())
 		updateModal.Update("Downloading application update " + appName + " update " + update.Version())
@@ -486,7 +486,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
-		err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+		err = systemd.VerifyExtension(ctx, filepath.Join(targetPath, appName+".raw"))
 		if err != nil {
 			return "", err
 		}

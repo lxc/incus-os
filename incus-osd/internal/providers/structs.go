@@ -105,13 +105,13 @@ func installApplication(ctx context.Context, s *state.State, p Provider, appName
 	}
 
 	// Download the application.
-	err = update.Download(ctx, systemd.SystemExtensionsPath, nil)
+	err = update.Download(ctx, filepath.Join(systemd.LocalExtensionsPath, update.Version()), nil)
 	if err != nil {
 		return "", err
 	}
 
 	// Verify the application is signed with a trusted key in the kernel's keyring.
-	err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, update.Name()+".raw"))
+	err = systemd.VerifyExtension(ctx, filepath.Join(systemd.LocalExtensionsPath, update.Version(), appName+".raw"))
 	if err != nil {
 		return "", err
 	}
