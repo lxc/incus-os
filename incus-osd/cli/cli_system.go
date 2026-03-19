@@ -111,6 +111,17 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "network",
 			description: "Network configuration",
 			isWritable:  true,
+			extraCommands: func() []*cobra.Command {
+				// Confirm new network configuration.
+				networkConfirmCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "confirm",
+					description: "Confirm the new network configuration",
+					endpoint:    "system/network",
+				}
+
+				return []*cobra.Command{networkConfirmCmd.command()}
+			},
 		},
 		{
 			name:        "provider",
