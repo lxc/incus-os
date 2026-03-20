@@ -126,3 +126,9 @@ func (s *State) Hostname() string {
 	// If all else fails, use the OS name.
 	return s.OS.Name
 }
+
+// RunningFromBackup returns a boolean to indicate if IncusOS is running from
+// the older (backup) A/B partition.
+func (o *OS) RunningFromBackup() bool {
+	return o.NextRelease != "" && o.RunningRelease != o.NextRelease
+}
