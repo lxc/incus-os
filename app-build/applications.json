@@ -48,7 +48,7 @@
         ]
     },
     "lego": {
-        "version": "v4.32.0",
+        "version": "v4.33.0",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -120,7 +120,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.2",
+        "version": "v0.6.3",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -232,7 +232,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.96.1",
+        "version": "v1.96.3",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
