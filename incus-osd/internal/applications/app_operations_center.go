@@ -13,7 +13,7 @@ import (
 	"slices"
 	"time"
 
-	ocapi "github.com/FuturFusion/operations-center/shared/api"
+	ocapi "github.com/FuturFusion/operations-center/shared/api/system"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -108,7 +108,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 
 	// Apply SystemNetwork, if any.
 	if ocSeed.Preseed.SystemNetwork == nil {
-		ocSeed.Preseed.SystemNetwork = new(ocapi.SystemNetworkPut)
+		ocSeed.Preseed.SystemNetwork = new(ocapi.NetworkPut)
 	}
 
 	{
@@ -138,7 +138,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 
 	// Apply SystemSecurity, if any.
 	if ocSeed.Preseed.SystemSecurity == nil && len(ocSeed.TrustedClientCertificates) > 0 {
-		ocSeed.Preseed.SystemSecurity = new(ocapi.SystemSecurityPut)
+		ocSeed.Preseed.SystemSecurity = new(ocapi.SecurityPut)
 	}
 
 	if ocSeed.Preseed.SystemSecurity != nil {
@@ -239,7 +239,7 @@ func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, ce
 		return err
 	}
 
-	sec := &ocapi.SystemSecurity{}
+	sec := &ocapi.Security{}
 
 	err = json.Unmarshal(body, sec)
 	if err != nil {
