@@ -12,9 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"runtime"
-	"strings"
 	"unicode/utf16"
 
 	"github.com/google/go-eventlog/register"
@@ -198,7 +196,7 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 		},
 	}
 
-	ukiImage, err := GetCurrentUKIImage()
+	ukiVersions, err := util.GetUKIVersions()
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +292,7 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 			}
 
 			// Second entry: the binary contents of the PE section.
-			peFile, err := pe.Open(ukiImage)
+			peFile, err := pe.Open(ukiVersions.CurrentFilepath)
 			if err != nil {
 				return nil, err
 			}
@@ -410,43 +408,4 @@ func getSigningCertBytes(contents []byte) ([]byte, error) {
 	}
 
 	return nil, errors.New("failed to find certificate for /run/systemd/tpm2-pcr-public-key.pem")
-}
-
-// GetCurrentUKIImage determines what UKI was booted. Because of how systemd handles updates,
-// the actual filename can change (see https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/#details
-// for further details).
-func GetCurrentUKIImage() (string, error) {
-	// Use the EFI variable LoaderEntrySelected to determine what UKI was booted.
-	rawUKIName, err := util.ReadEFIVariable("LoaderEntrySelected")
-	if err != nil {
-		return "", err
-	}
-
-	ukiName, err := util.UTF16ToString(rawUKIName)
-	if err != nil {
-		return "", err
-	}
-
-	// Extract the IncusOS version that was booted. During OS upgrades, the EFI image is actually
-	// renamed, so pull out the 12-digit version which will be unique, then do a readdir to find
-	// the UKI image we need to examine.
-	versionRegex := regexp.MustCompile(`^.+_(\d{12}).+efi$`)
-
-	versionGroup := versionRegex.FindStringSubmatch(ukiName)
-	if len(versionGroup) != 2 {
-		return "", errors.New("unable to determine version from EFI variable LoaderEntrySelected ('" + ukiName + "')")
-	}
-
-	ukis, err := os.ReadDir("/boot/EFI/Linux/")
-	if err != nil {
-		return "", err
-	}
-
-	for _, uki := range ukis {
-		if strings.Contains(uki.Name(), versionGroup[1]) {
-			return "/boot/EFI/Linux/" + uki.Name(), nil
-		}
-	}
-
-	return "", errors.New("unable to find UKI image for version " + versionGroup[1])
 }

@@ -398,12 +398,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// If Secure Boot is disabled, when setting the initial encryption recovery key,
 		// update the encryption bindings to use both PCRs 4 and 7.
 		if s.SecureBootDisabled {
-			ukiFile, err := secureboot.GetCurrentUKIImage()
+			ukiVersions, err := util.GetUKIVersions()
 			if err != nil {
 				return err
 			}
 
-			err = secureboot.UpdatePCR4Binding(ctx, ukiFile)
+			err = secureboot.UpdatePCR4Binding(ctx, ukiVersions.CurrentFilepath)
 			if err != nil {
 				return err
 			}
@@ -465,12 +465,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	if !isBoundPCR15 {
 		slog.InfoContext(ctx, "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
 
-		ukiFile, err := secureboot.GetCurrentUKIImage()
+		ukiVersions, err := util.GetUKIVersions()
 		if err != nil {
 			return err
 		}
 
-		err = secureboot.HandleSecureBootKeyChange(ctx, ukiFile, "")
+		err = secureboot.HandleSecureBootKeyChange(ctx, ukiVersions.CurrentFilepath, "")
 		if err != nil {
 			return err
 		}

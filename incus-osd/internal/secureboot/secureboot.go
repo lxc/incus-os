@@ -325,21 +325,21 @@ outer:
 						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
 						// from the UKI.
 						if bytes.Equal(systemdStubGUID[:], dev.Data) {
-							ukiFile, err := GetCurrentUKIImage()
+							ukiVersions, err := util.GetUKIVersions()
 							if err != nil {
 								return err
 							}
 
-							_, _ = b.WriteString("  .linux section of " + ukiFile + "\n")
+							_, _ = b.WriteString("  .linux section of " + ukiVersions.CurrentFilepath + "\n")
 
-							buf, err := computeVmlinuzAuthenticodeHash(ukiFile)
+							buf, err := computeVmlinuzAuthenticodeHash(ukiVersions.CurrentFilepath)
 							if err != nil {
 								return err
 							}
 
 							// Verify that the authenticode from disk matches the TPM event log.
 							if !bytes.Equal(buf, e.ReplayedDigest()) {
-								return fmt.Errorf("authenticode mismatch for .linux section in file '%s'", ukiFile)
+								return fmt.Errorf("authenticode mismatch for .linux section in file '%s'", ukiVersions.CurrentFilepath)
 							}
 
 							break
