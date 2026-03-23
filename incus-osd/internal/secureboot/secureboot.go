@@ -32,7 +32,7 @@ var systemdStubGUID = [16]byte{0xf8, 0xd1, 0xc5, 0x55, 0xcd, 0x4, 0xb5, 0x46, 0x
 
 // Enabled checks if Secure Boot is currently enabled.
 func Enabled() (bool, error) {
-	state, err := ReadEFIVariable("SecureBoot")
+	state, err := util.ReadEFIVariable("SecureBoot")
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func Enabled() (bool, error) {
 // this shouldn't be possible when Secure Boot is enabled, but buggy UEFI
 // implementations can allow this.
 func InAuditMode() (bool, error) {
-	state, err := ReadEFIVariable("AuditMode")
+	state, err := util.ReadEFIVariable("AuditMode")
 	if err != nil {
 		return false, err
 	}

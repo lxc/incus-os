@@ -44,7 +44,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	// Get the state of the TPM as recorded in the UEFI variable.
-	tpmStateContents, err := ReadEFIVariable("IncusOSTPMState")
+	tpmStateContents, err := util.ReadEFIVariable("IncusOSTPMState")
 	if err != nil {
 		return err
 	}
@@ -404,7 +404,7 @@ func computeExpectedVariableDriverConfig(rawBuf []byte) ([]byte, error) {
 	}
 
 	// Read the current variable.
-	buf, err := ReadEFIVariable(v.VarName())
+	buf, err := util.ReadEFIVariable(v.VarName())
 	if err != nil {
 		return nil, err
 	}

@@ -238,7 +238,7 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 
 		switch e.header.eventType { //nolint:exhaustive
 		case tcg.EFIVariableDriverConfig, tcg.EFIVariableAuthority:
-			contents, err = ReadEFIVariable(e.name)
+			contents, err = util.ReadEFIVariable(e.name)
 			if err != nil {
 				return nil, err
 			}
@@ -417,7 +417,7 @@ func getSigningCertBytes(contents []byte) ([]byte, error) {
 // for further details).
 func GetCurrentUKIImage() (string, error) {
 	// Use the EFI variable LoaderEntrySelected to determine what UKI was booted.
-	rawUKIName, err := ReadEFIVariable("LoaderEntrySelected")
+	rawUKIName, err := util.ReadEFIVariable("LoaderEntrySelected")
 	if err != nil {
 		return "", err
 	}
