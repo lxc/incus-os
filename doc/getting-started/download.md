@@ -1,5 +1,5 @@
 # Getting an image
-ISO and raw images are distributed via the [Linux Containers {abbr}`CDN (Content Delivery Network)`](https://images.linuxcontainers.org/os/).
+Images are distributed via the [Linux Containers {abbr}`CDN (Content Delivery Network)`](https://images.linuxcontainers.org/os/).
 
 IncusOS doesn't feature a traditional installer, and relies on an [installation seed](../reference/seed.md)
 to provide configuration details and defaults during install. This install

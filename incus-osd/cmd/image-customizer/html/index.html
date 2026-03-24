@@ -84,12 +84,12 @@
                                 <h3>Image type</h3>
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageType" id="imageTypeISO" checked>
-                                    <label class="form-check-label" for="imageTypeISO">ISO - Read-only, primarily used for server installation through virtual media)</label>
+                                    <label class="form-check-label" for="imageTypeISO">ISO - Read-only, primarily used for server installation through virtual media</label>
                                 </div>
 
                                 <div class="mb-3">
                                     <input class="form-check-input" type="radio" name="imageType" id="imageTypeUSB">
-                                    <label class="form-check-label" for="imageTypeUSB">USB - Writable and can be used either for installation or for running the system directly</label>
+                                    <label class="form-check-label" for="imageTypeUSB">USB - Writable, can be used either for installation or for running the system directly</label>
                                 </div>
                             </div>
 
@@ -159,15 +159,74 @@
                                 <label class="form-check-label" for="imageForceReboot">Automatically reboot after installation</label>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label" for="imageInstallTarget">
-                                    <b>Target drive identifier</b>
-                                    <br>
-                                    This is a (potentially partial) value (as seen in /dev/disk/by-id). The value must match exactly one drive.
-                                    <br>
-                                    If empty, IncusOS will auto-install so long as only one drive is present.
-                                </label>
-                                <input type="text" class="form-control" id="imageInstallTarget" placeholder="nvme-eui.123456789">
+                            <div>
+                                <h3>Specific drive selection <span class="badge bg-secondary"></span></h3>
+                                <div class="mb-3">
+                                    <label class="form-label" for="imageInstallTarget">
+                                        <b>Target drive identifier</b>
+                                        <br>
+                                        This is a (potentially partial) value (as seen in /dev/disk/by-id). The value must match exactly one drive.
+                                        <br>
+                                        If empty and no other selection criteria are selected below, IncusOS will auto-install so long as only one drive is present.
+                                    </label>
+                                    <input type="text" class="form-control" id="imageInstallTarget" placeholder="nvme-eui.123456789">
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3>Flexible drive selection <span class="badge bg-secondary"></span></h3>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="imageInstallBus">
+                                        <b>Target drive bus</b>
+                                        <br>
+                                        The bus on which to look for a suitable boot drive.
+                                        <br>
+                                    </label>
+                                    <input type="text" class="form-control" id="imageInstallBus" placeholder="nvme">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="imageInstallMinimum">
+                                        <b>Target drive minimum size</b>
+                                        <br>
+                                        The minimum size for a suitable boot drive.
+                                        <br>
+                                    </label>
+                                    <input type="text" class="form-control" id="imageInstallMinimum" placeholder="50GiB">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="imageInstallMaximum">
+                                        <b>Target drive maximum size</b>
+                                        <br>
+                                        The maximum size for a suitable boot drive.
+                                        <br>
+                                    </label>
+                                    <input type="text" class="form-control" id="imageInstallMaximum" placeholder="200GiB">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="imageInstallSelect">
+                                        <b>Target drive selection criteria</b>
+                                        <br>
+                                    </label>
+
+                                    <div>
+                                        <input class="form-check-input" type="radio" name="imageInstallSelect" id="imageInstallSelectSingle" checked>
+                                        <label class="form-check-label" for="imageInstallSelectSingle">Expect a single drive to match (fail if more than one matches)</label>
+                                    </div>
+
+                                    <div>
+                                        <input class="form-check-input" type="radio" name="imageInstallSelect" id="imageInstallSelectSmallest">
+                                        <label class="form-check-label" for="imageInstallSelectSmallest">Use the smallest matching driver as boot drive</label>
+                                    </div>
+
+                                    <div>
+                                        <input class="form-check-input" type="radio" name="imageInstallSelect" id="imageInstallSelectLargest">
+                                        <label class="form-check-label" for="imageInstallSelectLargest">Use the largest matching drive as boot drive</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

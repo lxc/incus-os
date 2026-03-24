@@ -110,10 +110,18 @@ function download() {
             install.force_reboot = true;
         }
 
-        if (document.getElementById("imageInstallTarget").value != "") {
-            install.target = {
-                "id": document.getElementById("imageInstallTarget").value
-            };
+        install.target = {
+            "id": document.getElementById("imageInstallTarget").value,
+            "bus": document.getElementById("imageInstallBus").value,
+            "min_size": document.getElementById("imageInstallMinimum").value,
+            "max_size": document.getElementById("imageInstallMaximum").value,
+            "sort_order": "",
+        };
+
+        if (document.getElementById("imageInstallSelectSmallest").checked) {
+            install.target.sort_order = "smallest";
+        } else if (document.getElementById("imageInstallSelectLargest").checked) {
+            install.target.sort_order = "largest";
         }
 
         if (document.getElementById("installSecurityNoTPM").checked) {

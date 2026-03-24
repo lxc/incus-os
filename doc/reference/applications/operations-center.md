@@ -14,4 +14,4 @@ Important seed fields include:
 
 * `trusted_client_certificates`: An array of one or more PEM-encoded client certificates that should be trusted by default.
 
-* `preseed`: A struct referencing various Operations Center system configuration options. For details, please review Operations Center's [API](https://github.com/FuturFusion/operations-center/blob/main/shared/api/system.go).
+* `preseed`: A struct referencing various Operations Center system configuration options. For details, please review Operations Center's [API](https://github.com/FuturFusion/operations-center/blob/main/shared/api/system/system.go).
