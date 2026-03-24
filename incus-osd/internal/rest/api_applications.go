@@ -740,7 +740,7 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 		// Display a post-update message.
 		update.HandlePostUpdateMessage(s.state, t, "")
 
-		err := systemd.RefreshExtensions(r.Context())
+		err := systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 

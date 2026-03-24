@@ -560,7 +560,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	if migratedApps {
-		err := systemd.RefreshExtensions(ctx)
+		err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
 		if err != nil {
 			return err
 		}
@@ -690,7 +690,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Ensure all systemd extensions are applied.
-	err = systemd.RefreshExtensions(ctx)
+	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
 	if err != nil {
 		return err
 	}

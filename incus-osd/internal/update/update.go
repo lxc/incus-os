@@ -172,7 +172,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		if len(appsUpdated) > 0 {
 			slog.DebugContext(ctx, "Refreshing system extensions")
 
-			err := systemd.RefreshExtensions(ctx)
+			err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)

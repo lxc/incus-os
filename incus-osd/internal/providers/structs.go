@@ -117,7 +117,7 @@ func installApplication(ctx context.Context, s *state.State, p Provider, appName
 	}
 
 	// Reload sysext layer.
-	err = systemd.RefreshExtensions(ctx)
+	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
 	if err != nil {
 		return "", err
 	}
