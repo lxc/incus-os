@@ -120,6 +120,14 @@ func RefreshExtensions(ctx context.Context, currentApps map[string]api.Applicati
 	// and don't unexpectedly try to force-reset application versions.
 	priorBootRelease = osInfo.RunningRelease
 
+	// Remove any old versions of each application.
+	for appName, appInfo := range currentApps {
+		err := removeOldAppVersions(appName, appInfo.State.AvailableVersions)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -131,29 +139,10 @@ func RemoveExtension(ctx context.Context, name string) error {
 		return err
 	}
 
-	// Prepare to remove any version of the sysext image that exists on disk.
-	dirEntries, err := os.ReadDir(LocalExtensionsPath)
+	// Remove all versioned sysext images.
+	err = removeOldAppVersions(name, nil)
 	if err != nil {
 		return err
-	}
-
-	// Iterate through each directory under /var/lib/incus-os-extensions/, which
-	// corresponds to the version of one or more installed applications.
-	for _, entry := range dirEntries {
-		if entry.IsDir() {
-			// Check if an application image exists, and if so, remove it.
-			_, err := os.Stat(filepath.Join(LocalExtensionsPath, entry.Name(), name+".raw"))
-			if err == nil {
-				err := os.Remove(filepath.Join(LocalExtensionsPath, entry.Name(), name+".raw"))
-				if err != nil {
-					return err
-				}
-
-				// Opportunistically attempt to remove the directory. This will fail
-				// if it is non-empty, which is OK.
-				_ = os.Remove(filepath.Join(LocalExtensionsPath, entry.Name()))
-			}
-		}
 	}
 
 	// Reload the extensions.
@@ -313,4 +302,40 @@ func getApplicationsVersions(currentApps map[string]api.Application) (map[string
 func bestApplicationVersion(appName string, version *availableApplicationVersions, priorRelease string, runningRelease string) string {
 	// For now, return the current application version.
 	return version.appVersion
+}
+
+func removeOldAppVersions(appName string, skipVersions []string) error {
+	dirEntries, err := os.ReadDir(LocalExtensionsPath)
+	if err != nil {
+		return err
+	}
+
+	// Iterate through each directory under /var/lib/incus-os-extensions/, which
+	// corresponds to the version of one or more installed applications.
+	for _, entry := range dirEntries {
+		// Only consider version directories.
+		if !entry.IsDir() {
+			continue
+		}
+
+		// Don't remove any version that is in the skipVersions list.
+		if slices.Contains(skipVersions, entry.Name()) {
+			continue
+		}
+
+		// Check if an application image exists, and if so, remove it.
+		_, err := os.Stat(filepath.Join(LocalExtensionsPath, entry.Name(), appName+".raw"))
+		if err == nil {
+			err := os.Remove(filepath.Join(LocalExtensionsPath, entry.Name(), appName+".raw"))
+			if err != nil {
+				return err
+			}
+
+			// Opportunistically attempt to remove the directory. This will fail
+			// if it is non-empty, which is OK.
+			_ = os.Remove(filepath.Join(LocalExtensionsPath, entry.Name()))
+		}
+	}
+
+	return nil
 }
