@@ -124,6 +124,11 @@ def create_application_manifest(artifact, version):
     if version == "main":
         version = subprocess.run(["git", "rev-parse", "HEAD"], cwd=directory, capture_output=True, check=True).stdout.strip().decode("utf-8")
 
+        # Check if a tag points to this commit, and if so, prefer that over the commit
+        tags = subprocess.run(["git", "tag", "--points-at", version], cwd=directory, capture_output=True, check=True).stdout.strip().decode("utf-8").split("\n")
+        if len(tags) > 0 and tags[0] != "":
+            version = tags[0]
+
     manifest = {
         "name": artifact,
         "version": version,
