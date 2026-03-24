@@ -120,7 +120,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.3",
+        "version": "v0.6.4",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -159,11 +159,8 @@
         ]
     },
     "netbird": {
-        "version": "v0.66.4",
+        "version": "v0.67.0",
         "repo": "https://github.com/netbirdio/netbird.git",
-        "patches": [
-            "../../patches/netbird-0001-fix-go-1.26.patch"
-        ],
         "build_targets": [
             [
                 "-o",
