@@ -88,7 +88,7 @@ and references Migration Manager's [`system` API](https://github.com/FuturFusion
 This file provides preseed information for Operations Center.
 
 The structure is defined in [`api/seed/operations_center.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/operations_center.go)
-and references Operations Center's [`system` API](https://github.com/FuturFusion/operations-center/blob/main/shared/api/system.go).
+and references Operations Center's [`system` API](https://github.com/FuturFusion/operations-center/blob/main/shared/api/system/system.go).
 
 ### `provider.{json,yml,yaml}`
 This file provides preseed information to configure a given provider, which is used
