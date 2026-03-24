@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
@@ -26,16 +27,41 @@ func RefreshExtensions(ctx context.Context) error {
 	return ReloadDaemon(ctx)
 }
 
-// RemoveExtension removes the specified system extension layer.
+// RemoveExtension removes all versions of the specified system extension image from disk.
 func RemoveExtension(ctx context.Context, name string) error {
-	// Remove the sysext image.
+	// Remove symlink from /var/lib/extensions/.
 	err := os.Remove(filepath.Join(SystemExtensionsPath, name+".raw"))
 	if err != nil {
 		return err
 	}
 
-	// Refresh the system extensions.
-	return RefreshExtensions(ctx)
+	// Prepare to remove any version of the sysext image that exists on disk.
+	dirEntries, err := os.ReadDir(LocalExtensionsPath)
+	if err != nil {
+		return err
+	}
+
+	// Iterate through each directory under /var/lib/incus-os-extensions/, which
+	// corresponds to the version of one or more installed applications.
+	for _, entry := range dirEntries {
+		if entry.IsDir() {
+			// Check if an application image exists, and if so, remove it.
+			_, err := os.Stat(filepath.Join(LocalExtensionsPath, entry.Name(), name+".raw"))
+			if err == nil {
+				err := os.Remove(filepath.Join(LocalExtensionsPath, entry.Name(), name+".raw"))
+				if err != nil {
+					return err
+				}
+
+				// Opportunistically attempt to remove the directory. This will fail
+				// if it is non-empty, which is OK.
+				_ = os.Remove(filepath.Join(LocalExtensionsPath, entry.Name()))
+			}
+		}
+	}
+
+	// Reload the extensions.
+	return reloadExtensions(ctx)
 }
 
 // VerifyExtension takes the filename of a sysext image and verifies its basic format is correct,
@@ -109,4 +135,15 @@ func VerifyExtension(ctx context.Context, extensionFile string) error {
 
 	// Now that we have a trusted certificate, verify the PKCS7 signature of the root hash.
 	return verifySignature(metadata.Signature, metadata.RootHash, trustedCert)
+}
+
+func reloadExtensions(ctx context.Context) error {
+	// Refresh the installed sysext images.
+	_, err := subprocess.RunCommandContext(ctx, "systemd-sysext", "refresh")
+	if err != nil {
+		return err
+	}
+
+	// Reload the systemd daemon.
+	return ReloadDaemon(ctx)
 }
