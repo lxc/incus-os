@@ -300,8 +300,55 @@ func getApplicationsVersions(currentApps map[string]api.Application) (map[string
 }
 
 func bestApplicationVersion(appName string, version *availableApplicationVersions, priorRelease string, runningRelease string) string {
-	// For now, return the current application version.
-	return version.appVersion
+	// If the prior boot release is unset or identical to the current running release, prefer
+	// the current application version, then current OS version, then latest disk version when
+	// determining what application version to return.
+	if priorRelease == "" || priorRelease == runningRelease {
+		// If the current application version exists on disk, return that.
+		if sysextImageExists(appName, version.appVersion) {
+			return version.appVersion
+		}
+
+		// If the version matching the current IncusOS version exists on disk, return that.
+		if version.currentOSVersion != "" && sysextImageExists(appName, version.currentOSVersion) {
+			return version.currentOSVersion
+		}
+
+		// Fallback to the latest version available on disk.
+		return version.latestDiskVersion
+	}
+
+	// If the prior boot release is greater than the current running release, we've rebooted
+	// into the backup A/B side. Attempt to reset the application version to match that of the
+	// backup IncusOS version, then the current application version, then latest disk version.
+	if strings.Compare(priorRelease, runningRelease) > 0 {
+		// If the version matching the backup version exists on disk, return that.
+		if version.currentOSVersion != "" && sysextImageExists(appName, version.currentOSVersion) {
+			return version.currentOSVersion
+		}
+
+		// If the current application version exists on disk, return that.
+		if sysextImageExists(appName, version.appVersion) {
+			return version.appVersion
+		}
+
+		// Fallback to the latest version available on disk.
+		return version.latestDiskVersion
+	}
+
+	// Finally, if the prior boot release is less than the current running release, we've
+	// rebooted into a newer version of IncusOS. This might be a legitimate upgrade, or we're
+	// booting back to the current IncusOS version from the backup A/B side. In either case,
+	// set the application version to be the latest disk version. This ensures we grab the
+	// latest application version, even if the underlying IncusOS system is still on an older
+	// version.
+	return version.latestDiskVersion
+}
+
+func sysextImageExists(name string, version string) bool {
+	_, err := os.Stat(filepath.Join(LocalExtensionsPath, version, name+".raw"))
+
+	return err == nil
 }
 
 func removeOldAppVersions(appName string, skipVersions []string) error {
