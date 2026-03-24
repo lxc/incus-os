@@ -286,7 +286,7 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 		// Uninstall any application that's not present in the new state.
 		_, exists := newState.Applications[oldApp]
 		if !exists {
-			err := uninstallApplication(ctx, *oldState, oldApp)
+			err := applications.UninstallApplication(ctx, *oldState, oldApp)
 			if err != nil {
 				return err
 			}
@@ -390,29 +390,6 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 	*oldState = newState
 
 	return (*oldState).Save()
-}
-
-func uninstallApplication(ctx context.Context, s *state.State, appName string) error {
-	// Load the existing application.
-	app, err := applications.Load(ctx, s, appName)
-	if err != nil {
-		return err
-	}
-
-	// Stop the application.
-	err = app.Stop(ctx, "")
-	if err != nil {
-		return err
-	}
-
-	// Wipe local data.
-	err = app.WipeLocalData()
-	if err != nil {
-		return err
-	}
-
-	// Remove the sysext layer.
-	return systemd.RemoveExtension(ctx, appName)
 }
 
 func installApplication(ctx context.Context, s *state.State, p providers.Provider, appName string) (string, error) {

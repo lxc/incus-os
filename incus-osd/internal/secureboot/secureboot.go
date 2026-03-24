@@ -32,7 +32,7 @@ var systemdStubGUID = [16]byte{0xf8, 0xd1, 0xc5, 0x55, 0xcd, 0x4, 0xb5, 0x46, 0x
 
 // Enabled checks if Secure Boot is currently enabled.
 func Enabled() (bool, error) {
-	state, err := ReadEFIVariable("SecureBoot")
+	state, err := util.ReadEFIVariable("SecureBoot")
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func Enabled() (bool, error) {
 // this shouldn't be possible when Secure Boot is enabled, but buggy UEFI
 // implementations can allow this.
 func InAuditMode() (bool, error) {
-	state, err := ReadEFIVariable("AuditMode")
+	state, err := util.ReadEFIVariable("AuditMode")
 	if err != nil {
 		return false, err
 	}
@@ -325,21 +325,21 @@ outer:
 						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
 						// from the UKI.
 						if bytes.Equal(systemdStubGUID[:], dev.Data) {
-							ukiFile, err := GetCurrentUKIImage()
+							ukiVersions, err := util.GetUKIVersions()
 							if err != nil {
 								return err
 							}
 
-							_, _ = b.WriteString("  .linux section of " + ukiFile + "\n")
+							_, _ = b.WriteString("  .linux section of " + ukiVersions.CurrentFilepath + "\n")
 
-							buf, err := computeVmlinuzAuthenticodeHash(ukiFile)
+							buf, err := computeVmlinuzAuthenticodeHash(ukiVersions.CurrentFilepath)
 							if err != nil {
 								return err
 							}
 
 							// Verify that the authenticode from disk matches the TPM event log.
 							if !bytes.Equal(buf, e.ReplayedDigest()) {
-								return fmt.Errorf("authenticode mismatch for .linux section in file '%s'", ukiFile)
+								return fmt.Errorf("authenticode mismatch for .linux section in file '%s'", ukiVersions.CurrentFilepath)
 							}
 
 							break

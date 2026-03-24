@@ -398,12 +398,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		// If Secure Boot is disabled, when setting the initial encryption recovery key,
 		// update the encryption bindings to use both PCRs 4 and 7.
 		if s.SecureBootDisabled {
-			ukiFile, err := secureboot.GetCurrentUKIImage()
+			ukiVersions, err := util.GetUKIVersions()
 			if err != nil {
 				return err
 			}
 
-			err = secureboot.UpdatePCR4Binding(ctx, ukiFile)
+			err = secureboot.UpdatePCR4Binding(ctx, ukiVersions.CurrentFilepath)
 			if err != nil {
 				return err
 			}
@@ -465,12 +465,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	if !isBoundPCR15 {
 		slog.InfoContext(ctx, "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
 
-		ukiFile, err := secureboot.GetCurrentUKIImage()
+		ukiVersions, err := util.GetUKIVersions()
 		if err != nil {
 			return err
 		}
 
-		err = secureboot.HandleSecureBootKeyChange(ctx, ukiFile, "")
+		err = secureboot.HandleSecureBootKeyChange(ctx, ukiVersions.CurrentFilepath, "")
 		if err != nil {
 			return err
 		}
@@ -527,7 +527,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	// Display a warning if we're running from the backup image.
-	if s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease {
+	if s.OS.RunningFromBackup() {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
 	}
 
@@ -1188,7 +1188,7 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 		}
 	case providers.OSUpdate:
 		// If we're running from the backup image don't attempt to re-update to a broken version.
-		if !s.System.Update.State.NeedsReboot && s.OS.NextRelease != "" && s.OS.RunningRelease != s.OS.NextRelease && s.OS.NextRelease == update.Version() {
+		if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
 			slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
 
 			return "", nil

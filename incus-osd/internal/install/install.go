@@ -162,7 +162,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 		// Sanity check: If the "IncusOSInstallComplete" UEFI variable is set, that means an IncusOS install
 		// completed successfully but incus-osd hasn't yet cleared this UEFI variable on its first boot. This
 		// means we've likely accidentally booted from the install media rather than the newly installed system.
-		contents, err := secureboot.ReadEFIVariable("IncusOSInstallComplete")
+		contents, err := util.ReadEFIVariable("IncusOSInstallComplete")
 		if err != nil {
 			return err
 		}

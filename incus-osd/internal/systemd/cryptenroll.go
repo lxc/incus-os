@@ -208,7 +208,7 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 	}
 
 	// Get the state of the TPM as recorded in the UEFI variable.
-	tpmStateContents, err := secureboot.ReadEFIVariable("IncusOSTPMState")
+	tpmStateContents, err := util.ReadEFIVariable("IncusOSTPMState")
 	if err != nil {
 		return ret, err
 	}

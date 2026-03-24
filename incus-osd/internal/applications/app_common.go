@@ -486,3 +486,42 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 
 	return nil
 }
+
+// UninstallApplication remotes the given application from the state, wipes any local
+// data, and removes the sysext image for the application.
+func UninstallApplication(ctx context.Context, s *state.State, name string) error {
+	// Load the application.
+	app, err := Load(ctx, s, name)
+	if err != nil {
+		return err
+	}
+
+	// Can't remove a primary application.
+	if app.IsPrimary() {
+		return errors.New("cannot remove a primary application")
+	}
+
+	// Stop the application.
+	err = app.Stop(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Wipe local data.
+	err = app.WipeLocalData()
+	if err != nil {
+		return err
+	}
+
+	// Remove application from the state.
+	delete(s.Applications, app.Name())
+
+	// Remove the sysext image.
+	err = systemd.RemoveExtension(ctx, app.Name())
+	if err != nil {
+		return err
+	}
+
+	// Save the state to disk.
+	return s.Save()
+}
