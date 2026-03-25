@@ -491,6 +491,14 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 			return "", err
 		}
 
+		// If running from the backup IncusOS image, after verifying the new application version
+		// don't actually update to it.
+		if s.OS.RunningFromBackup() {
+			slog.WarnContext(ctx, "Successfully downloaded application update, but not auto-updating while running from backup image", "application", appName)
+
+			return "", nil
+		}
+
 		// Record newly installed application and save state to disk.
 		newAppInfo := s.Applications[appName]
 		newAppInfo.State.Version = update.Version()
