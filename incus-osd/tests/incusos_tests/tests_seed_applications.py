@@ -42,10 +42,12 @@ def TestSeedApplictionsInvalid(install_image):
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Failed to check dependencies for application 'foobarbiz' err=unknown application provider=images")
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-        # We shouldn't see anything about loading an application.
-        vm.LogDoesntContain("incus-osd", "Downloading application")
+        # We shouldn't see anything about loading an invalid application.
+        vm.LogDoesntContain("incus-osd", "Downloading application update application=foobarbiz")
 
 def TestSeedApplictionsGPUSupport(install_image):
     test_name = "seed-applications-gpu-support"
