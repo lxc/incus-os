@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 PREFIX="/run/incus_agent"
-CDROM="/dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_incus_agent"
+CDROM="/dev/disk/by-label/incus-agent"
 
 # Functions.
 mount_cdrom() {
@@ -17,7 +17,7 @@ fail() {
     # Check if we already have an agent in place.
     # This will typically be true during restart in the case of a cdrom-based setup.
     if [ -x "${PREFIX}/incus-agent" ]; then
-        echo "${1}, re-using existing agent"
+        echo "${1}, reusing existing agent"
         exit 0
     fi
 
