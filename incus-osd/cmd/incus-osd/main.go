@@ -1015,7 +1015,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 		for _, appName := range toInstall {
 			app, err := applications.Load(ctx, s, appName)
 			if err != nil {
-				s.System.Update.State.Status = "Failed to check application dependencies"
+				s.System.Update.State.Status = "Failed to check dependencies for application '" + appName + "'"
 				showModalError(s.System.Update.State.Status, err)
 
 				break
