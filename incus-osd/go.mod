@@ -14,7 +14,7 @@ require (
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.18.5
-	github.com/lxc/incus/v6 v6.22.0
+	github.com/lxc/incus/v6 v6.23.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.11.0
 	github.com/rivo/tview v0.42.0
