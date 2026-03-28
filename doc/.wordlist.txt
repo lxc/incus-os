@@ -32,12 +32,15 @@ ESXi
 FAT
 fibre
 formatters
+fTPM
 Furo
 FuturFusion
 GiB
 Github
 GPUs
 Headscale
+Hetzner
+Hetzner's
 homelab
 hotfix
 HP
@@ -54,6 +57,7 @@ ISO
 JSON
 KEK
 Kerberos
+KVM
 Lenovo
 libvirt
 Linstor
@@ -97,6 +101,7 @@ raidz
 RaspberryPi
 resilver
 RSA
+Ryzen
 SLAAC
 struct
 structs
