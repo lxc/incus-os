@@ -3,8 +3,8 @@ module github.com/lxc/incus-os/incus-osd
 go 1.25.6
 
 require (
-	github.com/FuturFusion/migration-manager v0.6.4
-	github.com/FuturFusion/operations-center v0.4.3-0.20260323221319-6b7d7500a448
+	github.com/FuturFusion/migration-manager v0.6.5
+	github.com/FuturFusion/operations-center v0.5.0
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.8
@@ -14,7 +14,7 @@ require (
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.18.5
-	github.com/lxc/incus/v6 v6.23.0
+	github.com/lxc/incus/v6 v6.23.1-0.20260327174201-6acde8bd711a
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.11.0
 	github.com/rivo/tview v0.42.0
