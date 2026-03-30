@@ -26,6 +26,7 @@ def TestIncusOSAPISystemReset(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
@@ -66,6 +67,7 @@ def TestIncusOSAPISystemResetSWTPM(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
@@ -104,6 +106,7 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
@@ -135,6 +138,7 @@ def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
@@ -177,6 +181,7 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             # Wait for the system to come back up.
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+            vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
             vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
             vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 

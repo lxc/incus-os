@@ -118,7 +118,7 @@ func (*common) NeedsLateUpdateCheck() bool {
 
 // WipeLocalData removes local data created by the application.
 func (*common) WipeLocalData() error {
-	return errors.New("not supported")
+	return nil
 }
 
 // FactoryReset performs a full factory reset of the application.

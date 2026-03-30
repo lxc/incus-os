@@ -106,6 +106,7 @@ class IncusTestVM:
         self.StartVM()
         self.WaitAgentRunning(agent_timeout)
         self.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        self.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+incusos_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
