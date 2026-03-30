@@ -10,7 +10,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.13.8
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
-	github.com/google/go-github/v72 v72.0.0
+	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.18.5
@@ -59,7 +59,7 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
