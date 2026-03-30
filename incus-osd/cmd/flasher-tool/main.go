@@ -19,7 +19,7 @@ import (
 	"github.com/lxc/incus/v6/shared/ask"
 	"github.com/lxc/incus/v6/shared/revert"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
