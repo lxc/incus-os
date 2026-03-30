@@ -42,6 +42,7 @@ def TestSeedApplictionsInvalid(install_image):
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Failed to check dependencies for application 'foobarbiz' err=unknown application provider=images")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)

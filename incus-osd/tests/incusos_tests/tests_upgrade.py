@@ -25,6 +25,7 @@ def TestBaselineUpgrade(install_image):
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
+        vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         match = vm.WaitExpectedLog("incus-osd", "Downloading OS update version=(\\d+)", regex=True)
         new_version = match.group(1)
         vm.WaitExpectedLog("incus-osd", "Applying OS update version="+new_version)
