@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/sys/unix"
-	"gopkg.in/yaml.v3"
 )
 
 // IsMissing checks whether the provided error is an expected error for missing seed data.

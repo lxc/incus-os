@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
