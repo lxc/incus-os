@@ -204,7 +204,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	        metadata:
 //	          type: json
 //	          description: State and configuration for the application
-//	          example: {"state":{"initialized":true,"version":"202511041601"},"config":{}}
+//	          example: {"state":{"initialized":true,"version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request) {
