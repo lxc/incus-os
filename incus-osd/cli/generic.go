@@ -100,7 +100,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 		}
 
 		err = loader.Load(&newdata)
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
