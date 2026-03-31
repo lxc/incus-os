@@ -1,10 +1,10 @@
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/FuturFusion/migration-manager v0.6.5 h1:5WwjUHNlFPdnwrV2o6reLx9cGQi2DW8hz2ZBGsCbCzs=
-github.com/FuturFusion/migration-manager v0.6.5/go.mod h1:HcRT3+8HBXUJs7UwWaBRtG/XFyeaLLXMNav/i5EsPWw=
-github.com/FuturFusion/operations-center v0.5.0 h1:37kAqiY/cT6bDRBdbgwtgXeobq6uwdB4qXgKQ6ybL/U=
-github.com/FuturFusion/operations-center v0.5.0/go.mod h1:RTfzqab/uph6uQX+Hy+BqNQYzYdaGsD6REJr9y/sJN8=
+github.com/FuturFusion/migration-manager v0.6.6 h1:OwfdYWhxqCtM5lr9SaATMzu1nL9o7GvOrIzEOGqCj/Y=
+github.com/FuturFusion/migration-manager v0.6.6/go.mod h1:HcRT3+8HBXUJs7UwWaBRtG/XFyeaLLXMNav/i5EsPWw=
+github.com/FuturFusion/operations-center v0.5.1 h1:kppyowoIUw/tM9gRpr6s1s3b/N7BkShhb6fAT59AVGc=
+github.com/FuturFusion/operations-center v0.5.1/go.mod h1:RTfzqab/uph6uQX+Hy+BqNQYzYdaGsD6REJr9y/sJN8=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
 github.com/apex/log v1.9.0/go.mod h1:m82fZlWIuiWzWP04XCTXmnX0xRkYYbCdYn8jbJeLBEA=
 github.com/apex/logs v1.0.0/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
@@ -234,8 +234,8 @@ github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342/go.mod h1:Ohn+xnUBi
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zitadel/logging v0.7.0 h1:eugftwMM95Wgqwftsvj81isL0JK/hoScVqp/7iA2adQ=
 github.com/zitadel/logging v0.7.0/go.mod h1:9A6h9feBF/3u0IhA4uffdzSDY7mBaf7RE78H5sFMINQ=
-github.com/zitadel/oidc/v3 v3.45.5 h1:CubfcXQiqtysk+FZyIcvj1+1ayvdSV89v5xWu5asrDQ=
-github.com/zitadel/oidc/v3 v3.45.5/go.mod h1:MKHUazeiNX/jxRc6HD/Dv9qhL/wNuzrJAadBEGXiBeE=
+github.com/zitadel/oidc/v3 v3.45.6 h1:TSbWgVV4HSfVJC8gOqUSdRJtbl0UN9Y7/sc0Zilo0xw=
+github.com/zitadel/oidc/v3 v3.45.6/go.mod h1:T+xXEnfI8zXVmyYHkYNpjiuNqavWHCG7QRGaqrf7dNw=
 github.com/zitadel/schema v1.3.2 h1:gfJvt7dOMfTmxzhscZ9KkapKo3Nei3B6cAxjav+lyjI=
 github.com/zitadel/schema v1.3.2/go.mod h1:IZmdfF9Wu62Zu6tJJTH3UsArevs3Y4smfJIj3L8fzxw=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
