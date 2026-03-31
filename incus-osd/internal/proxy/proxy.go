@@ -209,7 +209,7 @@ func GenerateKPXConfig(proxyConfig *api.SystemNetworkProxy) ([]byte, error) {
 		})
 	}
 
-	return yaml.Marshal(cfg)
+	return yaml.Dump(cfg, yaml.V2)
 }
 
 func writeAndSetEnvironment(key string, value string) error {

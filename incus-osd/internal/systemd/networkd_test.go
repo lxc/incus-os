@@ -291,7 +291,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig1), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig1), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -301,7 +301,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig2), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig2), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -311,7 +311,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig3), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig3), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -321,7 +321,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig4), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig4), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -331,7 +331,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig5), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig5), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -341,7 +341,7 @@ func TestBadNetworkConfig(t *testing.T) {
 	{
 		var cfg api.SystemNetworkConfig
 
-		err := yaml.Unmarshal([]byte(badNetworkdConfig6), &cfg)
+		err := yaml.Load([]byte(badNetworkdConfig6), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, false)
@@ -356,7 +356,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the first test config.
-		err := yaml.Unmarshal([]byte(networkdConfig1), &cfg)
+		err := yaml.Load([]byte(networkdConfig1), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, true)
@@ -404,10 +404,10 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ=", cfg.Wireguard[0].Peers[1].PublicKey)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Marshal(&cfg)
+		content, err := yaml.Dump(&cfg, yaml.V2)
 		require.NoError(t, err)
 
-		err = yaml.Unmarshal(content, &cfgAgain)
+		err = yaml.Load(content, &cfgAgain)
 		require.NoError(t, err)
 		require.Equal(t, cfg, cfgAgain)
 	}
@@ -416,7 +416,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the second test config.
-		err := yaml.Unmarshal([]byte(networkdConfig2), &cfg)
+		err := yaml.Load([]byte(networkdConfig2), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, true)
@@ -438,10 +438,10 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Empty(t, cfg.Wireguard[0].PrivateKey)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Marshal(&cfg)
+		content, err := yaml.Dump(&cfg, yaml.V2)
 		require.NoError(t, err)
 
-		err = yaml.Unmarshal(content, &cfgAgain)
+		err = yaml.Load(content, &cfgAgain)
 		require.NoError(t, err)
 		require.Equal(t, cfg, cfgAgain)
 	}
@@ -450,7 +450,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the third test config.
-		err := yaml.Unmarshal([]byte(networkdConfig3), &cfg)
+		err := yaml.Load([]byte(networkdConfig3), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, true)
@@ -472,10 +472,10 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "anonymous", cfg.Proxy.Servers["example"].Auth)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Marshal(&cfg)
+		content, err := yaml.Dump(&cfg, yaml.V2)
 		require.NoError(t, err)
 
-		err = yaml.Unmarshal(content, &cfgAgain)
+		err = yaml.Load(content, &cfgAgain)
 		require.NoError(t, err)
 		require.Equal(t, cfg, cfgAgain)
 	}
@@ -484,7 +484,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		var cfg, cfgAgain api.SystemNetworkConfig
 
 		// Test unmarshalling of the fourth test config.
-		err := yaml.Unmarshal([]byte(networkdConfig4), &cfg)
+		err := yaml.Load([]byte(networkdConfig4), &cfg)
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(&cfg, true)
@@ -515,10 +515,10 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "management", cfg.VLANs[0].Roles[0])
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Marshal(&cfg)
+		content, err := yaml.Dump(&cfg, yaml.V2)
 		require.NoError(t, err)
 
-		err = yaml.Unmarshal(content, &cfgAgain)
+		err = yaml.Load(content, &cfgAgain)
 		require.NoError(t, err)
 		require.Equal(t, cfg, cfgAgain)
 	}
@@ -530,7 +530,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .link file generation.
-	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
+	err := yaml.Load([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs := generateLinkFileContents(networkCfg)
@@ -546,7 +546,7 @@ func TestLinkFileGeneration(t *testing.T) {
 
 	// Test second config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateLinkFileContents(networkCfg)
@@ -556,7 +556,7 @@ func TestLinkFileGeneration(t *testing.T) {
 
 	// Test third config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateLinkFileContents(networkCfg)
@@ -566,7 +566,7 @@ func TestLinkFileGeneration(t *testing.T) {
 
 	// Test fourth config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig4), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig4), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateLinkFileContents(networkCfg)
@@ -578,7 +578,7 @@ func TestLinkFileGeneration(t *testing.T) {
 
 	// Test fifth config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig5), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig5), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateLinkFileContents(networkCfg)
@@ -592,7 +592,7 @@ func TestLinkFileGeneration(t *testing.T) {
 
 	// Test sixth config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig6), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig6), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateLinkFileContents(networkCfg)
@@ -607,7 +607,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .netdev file generation.
-	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
+	err := yaml.Load([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs := generateNetdevFileContents(networkCfg)
@@ -633,7 +633,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 
 	// Test second config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateNetdevFileContents(networkCfg)
@@ -647,7 +647,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 
 	// Test third config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
 	// The third test case contains a mock USB NIC name, and we must first validate the config
@@ -664,7 +664,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 
 	// Test fourth config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig4), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig4), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateNetdevFileContents(networkCfg)
@@ -685,7 +685,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	var networkCfg api.SystemNetworkConfig
 
 	// Test first config .network file generation.
-	err := yaml.Unmarshal([]byte(networkdConfig1), &networkCfg)
+	err := yaml.Load([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs := generateNetworkFileContents(networkCfg)
@@ -725,7 +725,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 
 	// Test second config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig2), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateNetworkFileContents(networkCfg)
@@ -743,7 +743,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 
 	// Test third config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig3), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig3), &networkCfg)
 	require.NoError(t, err)
 
 	// The third test case contains a mock USB NIC name, and we must first validate the config
@@ -764,7 +764,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 
 	// Test fourth config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
-	err = yaml.Unmarshal([]byte(networkdConfig4), &networkCfg)
+	err = yaml.Load([]byte(networkdConfig4), &networkCfg)
 	require.NoError(t, err)
 
 	cfgs = generateNetworkFileContents(networkCfg)
