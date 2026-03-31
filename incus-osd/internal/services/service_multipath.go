@@ -134,6 +134,20 @@ func (n *Multipath) Update(ctx context.Context, req any) error {
 		return fmt.Errorf("request type \"%T\" isn't expected ServiceMultipath", req)
 	}
 
+	// Validate the request.
+	if newState.Config.Enabled {
+		for _, wwn := range newState.Config.WWNs {
+			if !strings.HasPrefix(wwn, "0x") {
+				wwn = "0x" + wwn
+			}
+
+			_, err := os.Stat("/dev/disk/by-id/wwn-" + wwn)
+			if err != nil {
+				return fmt.Errorf("Failed to locate WWN %q", wwn)
+			}
+		}
+	}
+
 	// Save the state on return.
 	defer n.state.Save()
 
