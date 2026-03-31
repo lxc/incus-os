@@ -25,7 +25,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	apicustomizer "github.com/lxc/incus-os/incus-osd/api/customizer"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"

@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	ghapi "github.com/google/go-github/v72/github"
+	ghapi "github.com/google/go-github/v84/github"
 	"github.com/lxc/incus/v6/shared/osarch"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
