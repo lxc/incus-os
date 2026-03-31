@@ -133,7 +133,7 @@ func generateChangelog(metaUpdate *apiupdate.Update, channel string, targetPath 
 
 	// Write each changelog as a gzip'ed yaml file and add it to the update metadata.
 	for archName, changelog := range changelogs {
-		contents, err := yaml.Marshal(&changelog)
+		contents, err := yaml.Dump(&changelog, yaml.V2)
 		if err != nil {
 			return err
 		}

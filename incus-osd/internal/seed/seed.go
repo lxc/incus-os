@@ -186,10 +186,12 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			}
 			defer f.Close() //nolint:revive
 
-			decoder := yaml.NewDecoder(f)
-			decoder.KnownFields(true)
+			loader, err := yaml.NewLoader(f, yaml.WithKnownFields())
+			if err != nil {
+				return err
+			}
 
-			err = decoder.Decode(target)
+			err = loader.Load(target)
 			if err != nil {
 				return err
 			}
@@ -203,10 +205,12 @@ func parseFileContentsFromUserPartition(partition string, filename string, targe
 			}
 			defer f.Close() //nolint:revive
 
-			decoder := yaml.NewDecoder(f)
-			decoder.KnownFields(true)
+			loader, err := yaml.NewLoader(f, yaml.WithKnownFields())
+			if err != nil {
+				return err
+			}
 
-			err = decoder.Decode(target)
+			err = loader.Load(target)
 			if err != nil {
 				return err
 			}
@@ -280,10 +284,12 @@ func parseFileContentsFromRawTar(partition string, filename string, target any) 
 			return nil
 
 		case filename + ".yaml", filename + ".yml":
-			decoder := yaml.NewDecoder(tr)
-			decoder.KnownFields(true)
+			loader, err := yaml.NewLoader(tr, yaml.WithKnownFields())
+			if err != nil {
+				return err
+			}
 
-			err = decoder.Decode(target)
+			err = loader.Load(target)
 			if err != nil {
 				return err
 			}

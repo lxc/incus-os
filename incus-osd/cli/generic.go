@@ -94,7 +94,12 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 	if !termios.IsTerminal(getStdinFd()) {
 		var newdata any
 
-		err := yaml.NewDecoder(os.Stdin).Decode(&newdata)
+		loader, err := yaml.NewLoader(os.Stdin)
+		if err != nil {
+			return err
+		}
+
+		err = loader.Load(&newdata)
 		if err != nil {
 			return err
 		}
@@ -117,7 +122,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	data, err := yaml.Marshal(rawData)
+	data, err := yaml.Dump(rawData, yaml.V2)
 	if err != nil {
 		return err
 	}
@@ -132,7 +137,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 		// Parse the text received from the editor
 		var newdata any
 
-		err = yaml.Unmarshal(content, &newdata)
+		err = yaml.Load(content, &newdata)
 		if err == nil {
 			_, _, err = doQuery(c.os.args.DoHTTP, remote, "PUT", apiURL, makeJsonable(newdata), nil, "")
 		}
@@ -564,7 +569,7 @@ func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 		data = append(data, '\n')
 
 	case "yaml":
-		data, err = yaml.Marshal(rawData)
+		data, err = yaml.Dump(rawData, yaml.V2)
 		if err != nil {
 			return err
 		}

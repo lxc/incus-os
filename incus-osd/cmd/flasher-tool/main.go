@@ -403,7 +403,7 @@ func configureNetworkSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide network seed in yaml format")
 
 	if networkSeed != nil {
-		existingContents, err = yaml.Marshal(networkSeed)
+		existingContents, err = yaml.Dump(networkSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -419,7 +419,7 @@ func configureNetworkSeed(ctx context.Context) error {
 
 	var newSeed apiseed.Network
 
-	err = yaml.Unmarshal(newContents, &newSeed)
+	err = yaml.Load(newContents, &newSeed)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
@@ -452,7 +452,7 @@ func configureIncusSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Incus seed in yaml format")
 
 	if incusSeed != nil {
-		existingContents, err = yaml.Marshal(incusSeed)
+		existingContents, err = yaml.Dump(incusSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -468,7 +468,7 @@ func configureIncusSeed(ctx context.Context) error {
 
 	var newSeed apiseed.Incus
 
-	err = yaml.Unmarshal(newContents, &newSeed)
+	err = yaml.Load(newContents, &newSeed)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
@@ -487,7 +487,7 @@ func configureMigrationManagerSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Migration Manager seed in yaml format")
 
 	if migrationManagerSeed != nil {
-		existingContents, err = yaml.Marshal(migrationManagerSeed)
+		existingContents, err = yaml.Dump(migrationManagerSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -503,7 +503,7 @@ func configureMigrationManagerSeed(ctx context.Context) error {
 
 	var newSeed apiseed.MigrationManager
 
-	err = yaml.Unmarshal(newContents, &newSeed)
+	err = yaml.Load(newContents, &newSeed)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
@@ -522,7 +522,7 @@ func configureOperationsCenterSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Operations Center seed in yaml format")
 
 	if operationsCenterSeed != nil {
-		existingContents, err = yaml.Marshal(operationsCenterSeed)
+		existingContents, err = yaml.Dump(operationsCenterSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -538,7 +538,7 @@ func configureOperationsCenterSeed(ctx context.Context) error {
 
 	var newSeed apiseed.OperationsCenter
 
-	err = yaml.Unmarshal(newContents, &newSeed)
+	err = yaml.Load(newContents, &newSeed)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
@@ -583,7 +583,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create applications yaml contents.
 	if applicationsSeed != nil {
-		yamlContents, err := yaml.Marshal(applicationsSeed)
+		yamlContents, err := yaml.Dump(applicationsSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -593,7 +593,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create incus yaml contents.
 	if incusSeed != nil {
-		yamlContents, err := yaml.Marshal(incusSeed)
+		yamlContents, err := yaml.Dump(incusSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -603,7 +603,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create migration-manager yaml contents.
 	if migrationManagerSeed != nil {
-		yamlContents, err := yaml.Marshal(migrationManagerSeed)
+		yamlContents, err := yaml.Dump(migrationManagerSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -613,7 +613,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create operations-center yaml contents.
 	if operationsCenterSeed != nil {
-		yamlContents, err := yaml.Marshal(operationsCenterSeed)
+		yamlContents, err := yaml.Dump(operationsCenterSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -623,7 +623,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create install yaml contents.
 	if installSeed != nil {
-		yamlContents, err := yaml.Marshal(installSeed)
+		yamlContents, err := yaml.Dump(installSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
@@ -633,7 +633,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create network yaml contents.
 	if networkSeed != nil {
-		yamlContents, err := yaml.Marshal(networkSeed)
+		yamlContents, err := yaml.Dump(networkSeed, yaml.V2)
 		if err != nil {
 			return err
 		}
