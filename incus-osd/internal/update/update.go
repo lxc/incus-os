@@ -5,13 +5,11 @@ import (
 	"errors"
 	"log/slog"
 	"path/filepath"
-	"slices"
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
@@ -146,70 +144,16 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 		}
 
 		// Determine what applications to install.
-		toInstall := []string{}
+		toInstall, err := applications.GetInstallApplications(ctx, s)
+		if err != nil {
+			s.System.Update.State.Status = err.Error()
+			showModalError(s.System.Update.State.Status, err)
 
-		if len(s.Applications) == 0 && (isStartupCheck || isUserRequested) {
-			// Assume first start of the daemon.
-			apps, err := seed.GetApplications(ctx)
-			if err != nil && !seed.IsMissing(err) {
-				s.System.Update.State.Status = "Failed to get application list"
-				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
-
-				if isStartupCheck || isUserRequested {
-					break
-				}
-
-				continue
-			}
-
-			if apps != nil {
-				// We have valid seed data.
-				toInstall = make([]string, 0, len(apps.Applications))
-
-				for _, app := range apps.Applications {
-					toInstall = append(toInstall, app.Name)
-				}
-			}
-		} else {
-			// We have an existing application list.
-			toInstall = make([]string, 0, len(s.Applications))
-
-			for name := range s.Applications {
-				toInstall = append(toInstall, name)
-			}
-		}
-
-		// Verify that at least one primary application is defined. If not, add incus to the list.
-		foundPrimary := false
-
-		for _, appName := range toInstall {
-			app, err := applications.Load(ctx, s, appName)
-			if err == nil && app.IsPrimary() {
-				foundPrimary = true
-
-				break
-			}
-		}
-
-		if !foundPrimary {
-			toInstall = append(toInstall, "incus")
-		}
-
-		// Verify that each application has its dependencies, if any, included in the list of applications.
-		for _, appName := range toInstall {
-			app, err := applications.Load(ctx, s, appName)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to check dependencies for application '" + appName + "'"
-				showModalError(s.System.Update.State.Status, err)
-
+			if isStartupCheck || isUserRequested {
 				break
 			}
 
-			for _, dep := range app.GetDependencies() {
-				if !slices.Contains(toInstall, dep) {
-					toInstall = append(toInstall, dep)
-				}
-			}
+			continue
 		}
 
 		// Check for application updates.

@@ -21,8 +21,8 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
-	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -85,36 +85,14 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	// Apply the update(s), if any.
-
-	// Similar to normal startup logic, if no applications are installed default
-	// to selecting incus.
-	apps := []string{"incus"}
-
-	if len(s.Applications) == 0 {
-		// Assume first start of the daemon.
-		appSeed, err := seed.GetApplications(ctx)
-		if err != nil && !seed.IsMissing(err) {
-			return err
-		}
-
-		if appSeed != nil {
-			apps = make([]string, 0, len(appSeed.Applications))
-
-			for _, app := range appSeed.Applications {
-				apps = append(apps, app.Name)
-			}
-		}
-	} else {
-		// We have an existing application list.
-		apps = make([]string, 0, len(s.Applications))
-
-		for name := range s.Applications {
-			apps = append(apps, name)
-		}
+	// Determine what applications to install.
+	toInstall, err := applications.GetInstallApplications(ctx, s)
+	if err != nil {
+		return err
 	}
 
-	err = applyUpdate(ctx, s, updateCA, mountDir, apps)
+	// Apply the update(s), if any.
+	err = applyUpdate(ctx, s, updateCA, mountDir, toInstall)
 	if err != nil {
 		return err
 	}
