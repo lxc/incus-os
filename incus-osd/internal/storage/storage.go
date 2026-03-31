@@ -712,21 +712,21 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			modelName = smart.SCSIProduct
 		}
 
-		// Build a hex WWN string.
+		// Handle devices with WWN.
 		wwnString := ""
 		if smart.WWN.NAA != 0 && smart.WWN.OUI != 0 && smart.WWN.ID != 0 {
 			wwnString = fmt.Sprintf("0x%x", (smart.WWN.NAA<<60)+(smart.WWN.OUI<<36)+smart.WWN.ID)
+		}
+
+		var wwnID string
+		if wwnString != "" {
+			wwnID = "/dev/disk/by-id/wwn-" + wwnString
 		}
 
 		// Resolve the device name to a more stable by-id symlink.
 		deviceID, err := DeviceToID(ctx, drive.KName)
 		if err != nil {
 			return ret, err
-		}
-
-		// If we have a WWN, prefer that over other potential by-id symlinks.
-		if wwnString != "" {
-			deviceID = "/dev/disk/by-id/wwn-" + wwnString
 		}
 
 		// Check if the drive belongs to a zpool.
@@ -833,6 +833,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			Removable:       drive.RM,
 			Remote:          isRemote,
 			WWN:             wwnString,
+			WWNID:           wwnID,
 			SMART:           smartStatus,
 			MemberPool:      driveZpool,
 			Encrypted:       encrypted,
