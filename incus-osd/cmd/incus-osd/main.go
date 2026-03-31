@@ -531,7 +531,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	// Check for and run recovery logic if present.
-	err = recovery.CheckRunRecovery(ctx, s)
+	err = recovery.CheckRunRecovery(ctx, s, t)
 	if err != nil {
 		// If recovery fails, don't return the error, since that will likely put us into a restart loop,
 		// resulting in a soft-brick of the server until the recovery media is removed.

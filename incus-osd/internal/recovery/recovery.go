@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/osarch"
@@ -21,10 +20,10 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
-	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
@@ -33,7 +32,7 @@ import (
 // run any hotfix.sh script, then apply any updates in the update/ folder. Both
 // the hotfix script and update metadata is verified to have been properly signed
 // by the expected certificate.
-func CheckRunRecovery(ctx context.Context, s *state.State) error {
+func CheckRunRecovery(ctx context.Context, s *state.State, t *tui.TUI) error {
 	device := "/dev/disk/by-partlabel/RESCUE_DATA"
 
 	// Check if a recovery partition exists.
@@ -86,14 +85,8 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	// Determine what applications to install.
-	toInstall, err := applications.GetInstallApplications(ctx, s)
-	if err != nil {
-		return err
-	}
-
 	// Apply the update(s), if any.
-	err = applyUpdate(ctx, s, updateCA, mountDir, toInstall)
+	err = applyUpdate(ctx, s, t, updateCA, mountDir)
 	if err != nil {
 		return err
 	}
@@ -155,7 +148,7 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 	return err
 }
 
-func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string, installedApplications []string) error {
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, updateCA string, mountDir string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -165,12 +158,6 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	}
 
 	slog.InfoContext(ctx, "Update metadata detected, verifying signature")
-
-	// Get local architecture.
-	archName, err := osarch.ArchitectureGetLocal()
-	if err != nil {
-		return err
-	}
 
 	f, err := os.Open(filepath.Join(updateDir, "update.sjson"))
 	if err != nil {
@@ -185,120 +172,83 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	}
 
 	// Parse the update.
-	update := &apiupdate.Update{}
+	updateInfo := &apiupdate.Update{}
 
-	err = json.NewDecoder(bytes.NewReader(verified.Bytes())).Decode(update)
+	err = json.NewDecoder(bytes.NewReader(verified.Bytes())).Decode(updateInfo)
 	if err != nil {
 		return err
 	}
 
-	if len(update.Files) == 0 {
-		return errors.New("no files in update")
+	// Refuse to apply any updates that are older than the currently running version.
+	if strings.Compare(updateInfo.Version, s.OS.RunningRelease) < 0 {
+		return errors.New("refusing to apply update version (" + updateInfo.Version + ") that is older than the current running " + s.OS.Name + " version")
 	}
 
-	// Refuse to apply any updates that are older than the currently running versions.
-	if providers.DatetimeComparison(s.OS.RunningRelease, update.Version) {
-		return errors.New("refusing to apply update version (" + update.Version + ") that is older than the current running version")
+	slog.InfoContext(ctx, "Processing validated update metadata", "version", updateInfo.Version)
+
+	// Make sure the path used by the local provider exists.
+	err = os.MkdirAll(providers.LocalPath, 0o700)
+	if err != nil {
+		return err
 	}
 
-	for _, dir := range []string{systemd.SystemExtensionsPath, systemd.SystemUpdatesPath} {
-		// Clear the path.
-		err := os.RemoveAll(dir)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
+	// Ensure we cleanup after ourselves.
+	defer os.RemoveAll(providers.LocalPath)
 
-		// Create the directory.
-		err = os.MkdirAll(dir, 0o700)
-		if err != nil {
-			return err
-		}
+	// Get local architecture.
+	archName, err := osarch.ArchitectureGetLocal()
+	if err != nil {
+		return err
 	}
 
-	// Verify the SHA256 of each file that exists and copy files to expected install location.
 	slog.InfoContext(ctx, "Decompressing and verifying each update file")
 
-	for _, file := range update.Files {
-		// Only process files that match our architecture.
-		if string(file.Architecture) != archName {
+	for _, file := range updateInfo.Files {
+		// Skip files not for our architecture.
+		if file.Architecture != "" && string(file.Architecture) != archName {
 			continue
 		}
 
-		// Only process OS or application updates.
-		if file.Type != apiupdate.UpdateFileTypeUpdateEFI && file.Type != apiupdate.UpdateFileTypeUpdateUsr && file.Type != apiupdate.UpdateFileTypeUpdateUsrVerity && file.Type != apiupdate.UpdateFileTypeUpdateUsrVeritySignature && file.Type != apiupdate.UpdateFileTypeApplication {
-			continue
-		}
-
-		// Don't bother with an OS update if already on the same version.
-		if s.OS.RunningRelease == update.Version && file.Type != apiupdate.UpdateFileTypeApplication {
-			continue
-		}
-
-		if file.Type == apiupdate.UpdateFileTypeApplication {
-			appName := filepath.Base(strings.TrimSuffix(file.Filename, ".raw.gz"))
-
-			// Don't process any applications that are not meant to be installed.
-			if !slices.Contains(installedApplications, appName) {
-				continue
-			}
-
-			// Don't bother with an app update if already on the same version.
-			_, ok := s.Applications[appName]
-			if ok && s.OS.RunningRelease == update.Version && file.Type != apiupdate.UpdateFileTypeApplication {
-				continue
-			}
-		}
-
+		// Verify the SHA256 of each file that exists before making it available to the local provider.
 		err := verifyAndDecompressFile(updateDir, file)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Refresh the applications.
-	slog.InfoContext(ctx, "Applying application update(s)")
+	// Set the RELEASE version for the local provider.
+	r, err := os.Create(filepath.Join(providers.LocalPath, "RELEASE"))
+	if err != nil {
+		return err
+	}
+	defer r.Close()
 
-	err = systemd.RefreshExtensions(ctx)
+	_, err = r.WriteString(updateInfo.Version + "\n")
 	if err != nil {
 		return err
 	}
 
-	// Ensure that each application installed/updated as part of the recovery
-	// action is properly recorded in the state.
-	for _, appName := range installedApplications {
-		app, ok := s.Applications[appName]
-		if !ok {
-			// Add the application to the state, then let normal startup
-			// logic handle starting and initializing after the recovery
-			// actions are complete.
-			s.Applications[appName] = api.Application{
-				State: api.ApplicationState{
-					Initialized: false,
-					Version:     update.Version,
-				},
-			}
-		} else {
-			// Update the existing application's version.
-			app.State.Version = update.Version
-			s.Applications[appName] = app
-		}
+	// Stash the current provider state and configuration. We'll be forcing the system to use the local provider,
+	// and once we're done we want to restore the actual provider configuration.
+	currentProvider := s.System.Provider
+
+	defer func() { s.System.Provider = currentProvider }()
+
+	s.System.Provider = api.SystemProvider{
+		Config: api.SystemProviderConfig{
+			Name: "local",
+		},
 	}
 
-	// Apply the OS update.
-	if s.OS.RunningRelease != update.Version {
-		slog.InfoContext(ctx, "Applying OS update(s)")
-
-		err = systemd.ApplySystemUpdate(ctx, update.Version)
-		if err != nil {
-			return err
-		}
-
-		// Record the newly installed OS version.
-		s.OS.NextRelease = update.Version
-		s.System.Update.State.NeedsReboot = s.OS.RunningRelease != s.OS.NextRelease
+	p, err := providers.Load(ctx, s)
+	if err != nil {
+		return err
 	}
 
-	return s.Save()
+	// Trigger an update check.
+	update.Checker(ctx, s, t, p, true, false)
+
+	return nil
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {
@@ -320,12 +270,6 @@ func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error 
 		return errors.New("sha256 mismatch for file " + file.Filename)
 	}
 
-	// Decompress and copy verified update files to their expected locations.
-	targetPath := systemd.SystemUpdatesPath
-	if file.Type == apiupdate.UpdateFileTypeApplication {
-		targetPath = systemd.SystemExtensionsPath
-	}
-
 	// Reset back to the beginning of each file.
 	_, err = fd.Seek(0, 0)
 	if err != nil {
@@ -342,7 +286,7 @@ func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error 
 
 	// Create the target path.
 	// #nosec G304
-	tfd, err := os.Create(filepath.Join(targetPath, filepath.Base(strings.TrimSuffix(file.Filename, ".gz"))))
+	tfd, err := os.Create(filepath.Join(providers.LocalPath, filepath.Base(strings.TrimSuffix(file.Filename, ".gz"))))
 	if err != nil {
 		return err
 	}
