@@ -303,7 +303,7 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 				return err
 			}
 
-			appVersion, err := installApplication(ctx, newState, p, newApp)
+			appVersion, err := p.InstallApplication(ctx, newState, newApp)
 			if err != nil {
 				return err
 			}
@@ -390,50 +390,4 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 	*oldState = newState
 
 	return (*oldState).Save()
-}
-
-func installApplication(ctx context.Context, s *state.State, p providers.Provider, appName string) (string, error) {
-	// Fetch the application from provider.
-	papp, err := p.GetApplicationUpdate(ctx, appName)
-	if err != nil {
-		return "", err
-	}
-
-	// Download the application.
-	err = papp.Download(ctx, systemd.SystemExtensionsPath, nil)
-	if err != nil {
-		return "", err
-	}
-
-	// Verify the application is signed with a trusted key in the kernel's keyring.
-	err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, papp.Name()+".raw"))
-	if err != nil {
-		return "", err
-	}
-
-	// Reload sysext layer.
-	err = systemd.RefreshExtensions(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the application.
-	aapp, err := applications.Load(ctx, s, appName)
-	if err != nil {
-		return "", err
-	}
-
-	// Start the application.
-	err = aapp.Start(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	// Initialize the application.
-	err = aapp.Initialize(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return papp.Version(), nil
 }
