@@ -487,7 +487,7 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 	return nil
 }
 
-// UninstallApplication remotes the given application from the state, wipes any local
+// UninstallApplication removes the given application from the state, wipes any local
 // data, and removes the sysext image for the application.
 func UninstallApplication(ctx context.Context, s *state.State, name string) error {
 	// Load the application.
