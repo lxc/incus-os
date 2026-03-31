@@ -12,7 +12,7 @@ def TestInstallSecureBootDisabled(install_image):
     util._remove_secureboot_keys(test_image)
 
     with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+        vm.WaitSystemReady(incusos_version, secureboot_disabled=True)
 
         # Should see a log message about SecureBoot being disabled
         vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
