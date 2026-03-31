@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v6/shared/osarch"
-	"github.com/lxc/incus/v6/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 type imagesAuthenticatedTransport struct {
@@ -292,23 +292,8 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		return nil, errors.New("server failed to return expected file")
 	}
 
-	// Write the CA certificate.
-	rootCA, err := os.CreateTemp("", "")
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = rootCA.WriteString(p.updateCA)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() { _ = os.Remove(rootCA.Name()) }()
-
 	// Validate signed index.
-	verified := bytes.NewBuffer(nil)
-
-	err = subprocess.RunCommandWithFds(ctx, resp.Body, verified, "openssl", "smime", "-verify", "-text", "-CAfile", rootCA.Name())
+	verified, err := util.VerifySMIME(ctx, p.updateCA, resp.Body)
 	if err != nil {
 		return nil, err
 	}

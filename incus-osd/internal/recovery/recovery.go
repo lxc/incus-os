@@ -25,6 +25,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // CheckRunRecovery checks if a partition labeled "RESCUE_DATA" is present. If so,
@@ -111,23 +112,14 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 
 	slog.InfoContext(ctx, "Hotfix script detected, verifying signature")
 
-	// Write the CA certificate.
-	rootCA, err := os.CreateTemp("", "")
+	f, err := os.Open(filepath.Join(mountDir, "hotfix.sh.sig"))
 	if err != nil {
 		return err
 	}
-
-	defer os.Remove(rootCA.Name())
-
-	_, err = rootCA.WriteString(updateCA)
-	if err != nil {
-		return err
-	}
+	defer f.Close()
 
 	// Validate the signed hotfix script.
-	verified := bytes.NewBuffer(nil)
-
-	err = subprocess.RunCommandWithFds(ctx, nil, verified, "openssl", "smime", "-verify", "-text", "-CAfile", rootCA.Name(), "-in", filepath.Join(mountDir, "hotfix.sh.sig"))
+	verified, err := util.VerifySMIME(ctx, updateCA, f)
 	if err != nil {
 		return err
 	}
@@ -180,23 +172,14 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		return err
 	}
 
-	// Write the CA certificate.
-	rootCA, err := os.CreateTemp("", "")
+	f, err := os.Open(filepath.Join(updateDir, "update.sjson"))
 	if err != nil {
 		return err
 	}
-
-	defer os.Remove(rootCA.Name())
-
-	_, err = rootCA.WriteString(updateCA)
-	if err != nil {
-		return err
-	}
+	defer f.Close()
 
 	// Validate the signed update.
-	verified := bytes.NewBuffer(nil)
-
-	err = subprocess.RunCommandWithFds(ctx, nil, verified, "openssl", "smime", "-verify", "-text", "-CAfile", rootCA.Name(), "-in", filepath.Join(updateDir, "update.sjson"))
+	verified, err := util.VerifySMIME(ctx, updateCA, f)
 	if err != nil {
 		return err
 	}
