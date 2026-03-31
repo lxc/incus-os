@@ -285,10 +285,21 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 			continue
 		}
 
-		if strings.HasPrefix(dev, "disk/by-id/") {
-			dev = strings.TrimSuffix(dev, "\n")
+		dev = strings.TrimSuffix(dev, "\n")
+		devPath := "/dev/" + dev
 
-			return "/dev/" + dev, nil
+		// Skip drives mapped to a device mapper (not real target).
+		target, err := filepath.EvalSymlinks(devPath)
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(target, "/dev/dm-") {
+			continue
+		}
+
+		if strings.HasPrefix(devPath, "/dev/disk/by-id/") || strings.HasPrefix(devPath, "/dev/disk/by-path/") {
+			return devPath, nil
 		}
 	}
 
