@@ -424,7 +424,7 @@ func installApplication(ctx context.Context, s *state.State, p providers.Provide
 	}
 
 	// Start the application.
-	err = aapp.Start(ctx, papp.Version())
+	err = aapp.Start(ctx)
 	if err != nil {
 		return "", err
 	}

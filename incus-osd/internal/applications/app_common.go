@@ -82,22 +82,22 @@ func (*common) Initialize(_ context.Context) error {
 }
 
 // Restart restarts runs restart action.
-func (*common) Restart(_ context.Context, _ string) error {
+func (*common) Restart(_ context.Context) error {
 	return nil
 }
 
 // Start runs startup action.
-func (*common) Start(_ context.Context, _ string) error {
+func (*common) Start(_ context.Context) error {
 	return nil
 }
 
 // Stop runs shutdown action.
-func (*common) Stop(_ context.Context, _ string) error {
+func (*common) Stop(_ context.Context) error {
 	return nil
 }
 
 // Update triggers a partial application restart after an update.
-func (*common) Update(_ context.Context, _ string) error {
+func (*common) Update(_ context.Context) error {
 	return nil
 }
 
@@ -502,7 +502,7 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 	}
 
 	// Stop the application.
-	err = app.Stop(ctx, "")
+	err = app.Stop(ctx)
 	if err != nil {
 		return err
 	}

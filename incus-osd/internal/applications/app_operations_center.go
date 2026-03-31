@@ -30,24 +30,24 @@ func (*operationsCenter) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*operationsCenter) Start(ctx context.Context, _ string) error {
+func (*operationsCenter) Start(ctx context.Context) error {
 	// Start the unit.
 	return systemd.StartUnit(ctx, "operations-center.service")
 }
 
 // Stop stops the systemd unit.
-func (*operationsCenter) Stop(ctx context.Context, _ string) error {
+func (*operationsCenter) Stop(ctx context.Context) error {
 	// Stop the unit.
 	return systemd.StopUnit(ctx, "operations-center.service")
 }
 
 // Restart restarts the main systemd unit.
-func (*operationsCenter) Restart(ctx context.Context, _ string) error {
+func (*operationsCenter) Restart(ctx context.Context) error {
 	return systemd.RestartUnit(ctx, "operations-center.service")
 }
 
 // Update triggers restart after an application update.
-func (*operationsCenter) Update(ctx context.Context, _ string) error {
+func (*operationsCenter) Update(ctx context.Context) error {
 	// Reload the systemd daemon to pickup any service definition changes.
 	err := systemd.ReloadDaemon(ctx)
 	if err != nil {
@@ -277,7 +277,7 @@ func (*operationsCenter) IsPrimary() bool {
 // FactoryReset performs a full factory reset of the application.
 func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 	// Stop the application.
-	err := oc.Stop(ctx, "")
+	err := oc.Stop(ctx)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 	}
 
 	// Start the application.
-	err = oc.Start(ctx, "")
+	err = oc.Start(ctx)
 	if err != nil {
 		return err
 	}

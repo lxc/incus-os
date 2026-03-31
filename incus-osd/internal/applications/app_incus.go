@@ -88,7 +88,7 @@ func (*incus) DebugStruct() any {
 }
 
 // Start starts all the systemd units.
-func (*incus) Start(ctx context.Context, _ string) error {
+func (*incus) Start(ctx context.Context) error {
 	// Refresh the system users.
 	err := systemd.RefreshUsers(ctx)
 	if err != nil {
@@ -106,7 +106,7 @@ func (*incus) Start(ctx context.Context, _ string) error {
 }
 
 // Stop stops all the systemd units.
-func (*incus) Stop(ctx context.Context, _ string) error {
+func (*incus) Stop(ctx context.Context) error {
 	// Trigger a clean shutdown.
 	err := systemd.StopUnit(ctx, "incus-startup.service")
 	if err != nil {
@@ -123,12 +123,12 @@ func (*incus) Stop(ctx context.Context, _ string) error {
 }
 
 // Restart restarts the main systemd unit.
-func (*incus) Restart(ctx context.Context, _ string) error {
+func (*incus) Restart(ctx context.Context) error {
 	return systemd.RestartUnit(ctx, "incus.service")
 }
 
 // Update triggers a partial restart after an application update.
-func (*incus) Update(ctx context.Context, _ string) error {
+func (*incus) Update(ctx context.Context) error {
 	// Refresh the system users.
 	err := systemd.RefreshUsers(ctx)
 	if err != nil {
@@ -265,7 +265,7 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 // FactoryReset performs a full factory reset of the application.
 func (a *incus) FactoryReset(ctx context.Context) error {
 	// Stop the application.
-	err := a.Stop(ctx, "")
+	err := a.Stop(ctx)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	}
 
 	// Start the application.
-	err = a.Start(ctx, "")
+	err = a.Start(ctx)
 	if err != nil {
 		return err
 	}

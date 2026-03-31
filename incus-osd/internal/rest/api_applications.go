@@ -405,7 +405,7 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Trigger the restart.
-	err = app.Restart(r.Context(), s.state.Applications[name].State.Version)
+	err = app.Restart(r.Context())
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

@@ -30,24 +30,24 @@ func (*migrationManager) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*migrationManager) Start(ctx context.Context, _ string) error {
+func (*migrationManager) Start(ctx context.Context) error {
 	// Start the unit.
 	return systemd.StartUnit(ctx, "migration-manager.service")
 }
 
 // Stop stops the systemd unit.
-func (*migrationManager) Stop(ctx context.Context, _ string) error {
+func (*migrationManager) Stop(ctx context.Context) error {
 	// Stop the unit.
 	return systemd.StopUnit(ctx, "migration-manager.service")
 }
 
 // Restart restarts the main systemd unit.
-func (*migrationManager) Restart(ctx context.Context, _ string) error {
+func (*migrationManager) Restart(ctx context.Context) error {
 	return systemd.RestartUnit(ctx, "migration-manager.service")
 }
 
 // Update triggers restart after an application update.
-func (*migrationManager) Update(ctx context.Context, _ string) error {
+func (*migrationManager) Update(ctx context.Context) error {
 	// Reload the systemd daemon to pickup any service definition changes.
 	err := systemd.ReloadDaemon(ctx)
 	if err != nil {
@@ -262,7 +262,7 @@ func (*migrationManager) IsPrimary() bool {
 // FactoryReset performs a full factory reset of the application.
 func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 	// Stop the application.
-	err := mm.Stop(ctx, "")
+	err := mm.Stop(ctx)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 	}
 
 	// Start the application.
-	err = mm.Start(ctx, "")
+	err = mm.Start(ctx)
 	if err != nil {
 		return err
 	}

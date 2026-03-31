@@ -317,7 +317,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 		// Stop the application.
 		slog.InfoContext(ctx, "Stopping application", "name", appName, "version", appInfo.State.Version)
 
-		err = app.Stop(ctx, appInfo.State.Version)
+		err = app.Stop(ctx)
 		if err != nil {
 			return err
 		}
@@ -805,7 +805,7 @@ func startInitializeApplication(ctx context.Context, s *state.State, appName str
 	// Start the application.
 	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
 
-	err = app.Start(ctx, appInfo.State.Version)
+	err = app.Start(ctx)
 	if err != nil {
 		return err
 	}
@@ -1091,7 +1091,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 				if app.IsRunning(ctx) {
 					slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
 
-					err := app.Update(ctx, appVersion)
+					err := app.Update(ctx)
 					if err != nil {
 						s.System.Update.State.Status = "Failed to reload application"
 						showModalError(s.System.Update.State.Status, err)
