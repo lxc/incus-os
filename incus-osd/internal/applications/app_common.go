@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -524,4 +525,46 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 
 	// Save the state to disk.
 	return s.Save()
+}
+
+// StartInitialize starts the specified application, and if needed performs initialization actions.
+func StartInitialize(ctx context.Context, s *state.State, appName string) error {
+	appInfo := s.Applications[appName]
+
+	// Get the application.
+	app, err := Load(ctx, s, appName)
+	if err != nil {
+		return err
+	}
+
+	// Start the application.
+	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
+
+	err = app.Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Run initialization if needed.
+	if !appInfo.State.Initialized {
+		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.State.Version)
+
+		err = app.Initialize(ctx)
+		if err != nil {
+			return err
+		}
+
+		appInfo.State.Initialized = true
+		s.Applications[appName] = appInfo
+	}
+
+	// If the application has a TLS certificate, print its fingerprint so the user can verify it when initially connecting.
+	cert, err := app.GetServerCertificate()
+	if err == nil {
+		rawFp := sha256.Sum256(cert.Certificate[0])
+
+		slog.InfoContext(ctx, "Application TLS certificate fingerprint", "name", appName, "fingerprint", hex.EncodeToString(rawFp[:]))
+	}
+
+	return nil
 }

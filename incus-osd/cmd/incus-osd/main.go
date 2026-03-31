@@ -5,8 +5,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -664,7 +662,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	// Run application startup actions. Must be done after storage pools are loaded.
 	for appName := range s.Applications {
-		err := startInitializeApplication(ctx, s, appName)
+		err := applications.StartInitialize(ctx, s, appName)
 		if err != nil {
 			return err
 		}
@@ -791,47 +789,6 @@ func checkDelayInitialUpdate(ctx context.Context, s *state.State) (bool, error) 
 	}
 
 	return false, nil
-}
-
-func startInitializeApplication(ctx context.Context, s *state.State, appName string) error {
-	appInfo := s.Applications[appName]
-
-	// Get the application.
-	app, err := applications.Load(ctx, s, appName)
-	if err != nil {
-		return err
-	}
-
-	// Start the application.
-	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
-
-	err = app.Start(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Run initialization if needed.
-	if !appInfo.State.Initialized {
-		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.State.Version)
-
-		err = app.Initialize(ctx)
-		if err != nil {
-			return err
-		}
-
-		appInfo.State.Initialized = true
-		s.Applications[appName] = appInfo
-	}
-
-	// If the application has a TLS certificate, print its fingerprint so the user can verify it when initially connecting.
-	cert, err := app.GetServerCertificate()
-	if err == nil {
-		rawFp := sha256.Sum256(cert.Certificate[0])
-
-		slog.InfoContext(ctx, "Application TLS certificate fingerprint", "name", appName, "fingerprint", hex.EncodeToString(rawFp[:]))
-	}
-
-	return nil
 }
 
 func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
@@ -1099,7 +1056,7 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 						continue
 					}
 				} else {
-					err := startInitializeApplication(ctx, s, appName)
+					err := applications.StartInitialize(ctx, s, appName)
 					if err != nil {
 						s.System.Update.State.Status = "Failed to start application"
 						showModalError(s.System.Update.State.Status, err)
