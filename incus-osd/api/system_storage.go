@@ -102,6 +102,7 @@ type SystemStorageDrive struct {
 	Removable       bool                     `json:"removable"              yaml:"removable"`
 	Remote          bool                     `json:"remote"                 yaml:"remote"`
 	WWN             string                   `json:"wwn,omitempty"          yaml:"wwn,omitempty"`
+	WWNID           string                   `json:"wwn_id,omitempty"       yaml:"wwn_id,omitempty"`
 	SMART           *SystemStorageDriveSMART `json:"smart,omitempty"        yaml:"smart,omitempty"`
 	MemberPool      string                   `json:"member_pool,omitempty"  yaml:"member_pool,omitempty"`
 	Encrypted       bool                     `json:"encrypted,omitempty"    yaml:"encrypted,omitempty"`

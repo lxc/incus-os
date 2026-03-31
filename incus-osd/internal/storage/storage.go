@@ -26,6 +26,7 @@ type BlockDevices struct {
 	Size       int    `json:"size"`
 	Subsystems string `json:"subsystems"`
 	RM         bool   `json:"rm"`
+	WWN        string `json:"wwn"`
 }
 
 // LsblkOutput stores the output of running `lsblk -J ...`.
@@ -284,10 +285,21 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 			continue
 		}
 
-		if strings.HasPrefix(dev, "disk/by-id/") {
-			dev = strings.TrimSuffix(dev, "\n")
+		dev = strings.TrimSuffix(dev, "\n")
+		devPath := "/dev/" + dev
 
-			return "/dev/" + dev, nil
+		// Skip drives mapped to a device mapper (not real target).
+		target, err := filepath.EvalSymlinks(devPath)
+		if err != nil {
+			continue
+		}
+
+		if strings.HasPrefix(target, "/dev/dm-") {
+			continue
+		}
+
+		if strings.HasPrefix(devPath, "/dev/disk/by-id/") || strings.HasPrefix(devPath, "/dev/disk/by-path/") {
+			return devPath, nil
 		}
 	}
 
@@ -649,7 +661,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 	// Get a list of all local drives.
 	// Note that while we can get the VENDOR field from lsblk, it seems to return generic values like "ATA" which isn't useful.
 	// Exclude devices with major numbers 1 (RAM disk), 2 (floppy disks), 7 (loopback), 43 (NBD), 147 (DRBD), 230 (zvols), 251 (Ceph RBD)
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,43,147,230,251", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS,RM")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,43,147,230,251", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS,RM,WWN")
 	if err != nil {
 		return ret, err
 	}
@@ -712,21 +724,21 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			modelName = smart.SCSIProduct
 		}
 
-		// Build a hex WWN string.
-		wwnString := ""
-		if smart.WWN.NAA != 0 && smart.WWN.OUI != 0 && smart.WWN.ID != 0 {
-			wwnString = fmt.Sprintf("0x%x", (smart.WWN.NAA<<60)+(smart.WWN.OUI<<36)+smart.WWN.ID)
+		// Handle devices with WWN.
+		var (
+			wwn   string
+			wwnID string
+		)
+
+		if strings.HasPrefix(drive.WWN, "0x") {
+			wwn = drive.WWN
+			wwnID = "/dev/disk/by-id/wwn-" + drive.WWN
 		}
 
 		// Resolve the device name to a more stable by-id symlink.
 		deviceID, err := DeviceToID(ctx, drive.KName)
 		if err != nil {
 			return ret, err
-		}
-
-		// If we have a WWN, prefer that over other potential by-id symlinks.
-		if wwnString != "" {
-			deviceID = "/dev/disk/by-id/wwn-" + wwnString
 		}
 
 		// Check if the drive belongs to a zpool.
@@ -832,7 +844,8 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 			Multipath:       IsMultipathDevice(ctx, drive.KName),
 			Removable:       drive.RM,
 			Remote:          isRemote,
-			WWN:             wwnString,
+			WWN:             wwn,
+			WWNID:           wwnID,
 			SMART:           smartStatus,
 			MemberPool:      driveZpool,
 			Encrypted:       encrypted,

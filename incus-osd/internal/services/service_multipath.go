@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -44,7 +45,7 @@ func (n *Multipath) Get(ctx context.Context) (any, error) {
 	// Retrieve the details for each WWN.
 	for _, wwn := range n.state.Services.Multipath.Config.WWNs {
 		// Get the reported status.
-		out, err := subprocess.RunCommandContext(ctx, "multipath", "-ll", strings.TrimPrefix(wwn, "0x"))
+		out, err := subprocess.RunCommandContext(ctx, "multipath", "-ll", "/dev/disk/by-id/wwn-"+wwn)
 		if err != nil {
 			slog.ErrorContext(ctx, "Couldn't get multipath status", "device", wwn, "err", err)
 
@@ -134,6 +135,16 @@ func (n *Multipath) Update(ctx context.Context, req any) error {
 		return fmt.Errorf("request type \"%T\" isn't expected ServiceMultipath", req)
 	}
 
+	// Validate the request.
+	if newState.Config.Enabled {
+		for _, wwn := range newState.Config.WWNs {
+			_, err := os.Stat("/dev/disk/by-id/wwn-" + wwn)
+			if err != nil {
+				return fmt.Errorf("failed to locate WWN %q", wwn)
+			}
+		}
+	}
+
 	// Save the state on return.
 	defer n.state.Save()
 
@@ -198,29 +209,39 @@ func (n *Multipath) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Generate the WWID list.
+	// Create or reset the WWID list.
 	f, err := os.Create("/etc/multipath/wwids")
 	if err != nil {
 		return err
 	}
 
-	defer f.Close()
-
 	err = f.Chmod(0o600)
 	if err != nil {
-		return err
-	}
+		_ = f.Close()
 
-	for _, wwn := range n.state.Services.Multipath.Config.WWNs {
-		_, err = fmt.Fprintf(f, "/%s/\n", strings.TrimPrefix(wwn, "0x"))
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	err = f.Close()
 	if err != nil {
 		return err
+	}
+
+	// Add the WWNs.
+	for _, wwn := range n.state.Services.Multipath.Config.WWNs {
+		target, err := filepath.EvalSymlinks("/dev/disk/by-id/wwn-" + wwn)
+		if err != nil {
+			slog.Warn("Failed to locate multipath disk", "wwn", wwn)
+
+			continue
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "multipath", "-a", target)
+		if err != nil {
+			slog.Warn("Failed to add multipath disk", "wwn", wwn, "err", err)
+
+			continue
+		}
 	}
 
 	// Ensure the service is running.
