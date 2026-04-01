@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/subprocess"
+	"golang.org/x/sys/unix"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -288,7 +290,13 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 
 // WipeLocalData removes local data created by the application.
 func (*incus) WipeLocalData() error {
-	err := os.RemoveAll("/var/lib/incus/")
+	// Attempt to unmount the logs directory if it exists and is mounted.
+	logsPath, err := filepath.EvalSymlinks("/var/lib/incus/logs/")
+	if err == nil && logsPath != "" {
+		_ = unix.Unmount(logsPath, unix.MNT_DETACH)
+	}
+
+	err = os.RemoveAll("/var/lib/incus/")
 	if err != nil {
 		return err
 	}
