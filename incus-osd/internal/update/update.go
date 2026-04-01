@@ -462,7 +462,13 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		// Handle reboot if needed.
 		if s.System.Update.Config.AutoReboot || isStartupCheck {
-			close(s.TriggerReboot)
+			// Rather than closing s.TriggerReboot, explicitly reboot here. This is needed when
+			// applying an update via the recovery mechanism since at that point in startup
+			// the channels won't be available yet.
+			err := systemd.SystemReboot(ctx)
+			if err != nil {
+				return "", err
+			}
 
 			// Wait 10s to allow time for the system to reboot.
 			time.Sleep(10 * time.Second)
