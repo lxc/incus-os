@@ -1308,34 +1308,35 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		s.SecureBoot.Version = update.Version()
 		s.SecureBoot.FullyApplied = true
 	case providers.OSUpdate:
-		// Record the release. Need to do it here, since if the system reboots as part of the
-		// update we won't be able to save the state to disk.
-		priorNextRelease := s.OS.NextRelease
-		s.OS.NextRelease = update.Version()
-		_ = s.Save()
-
 		// Apply the update and reboot if first time through loop, otherwise wait for user to reboot system.
 		slog.InfoContext(ctx, "Applying OS update", "version", update.Version())
 		updateModal.Update("Applying " + s.OS.Name + " update version " + update.Version())
 
-		err = systemd.ApplySystemUpdate(ctx, update.Version(), s.System.Update.Config.AutoReboot || isStartupCheck)
+		err = systemd.ApplySystemUpdate(ctx, update.Version())
 		if err != nil {
-			s.OS.NextRelease = priorNextRelease
-			_ = s.Save()
-
 			return "", err
 		}
+
+		// Record the new release.
+		s.OS.NextRelease = update.Version()
+		_ = s.Save()
 
 		// Record the state of auto-unlocked LUKS devices. With some TPMs this can be slow, so cache the
 		// result after applying an OS update rather than needing to determine it each time a request
 		// arrives via the API.
 		s.System.Security.State.EncryptedVolumes, err = systemd.ListEncryptedVolumes(ctx)
 		if err != nil {
-			s.OS.NextRelease = priorNextRelease
-			_ = s.Save()
-
 			return "", err
 		}
+
+		// Handle reboot if needed.
+		if s.System.Update.Config.AutoReboot || isStartupCheck {
+			close(s.TriggerReboot)
+
+			// Wait 10s to allow time for the system to reboot.
+			time.Sleep(10 * time.Second)
+		}
+
 	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
 		err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
