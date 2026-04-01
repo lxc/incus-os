@@ -134,10 +134,7 @@ jobs:
           incus config device add test-incus-os vtpm tpm
           incus start test-incus-os
 
-          while :; do
-            sleep 3
-            incus exec test-incus-os -- /usr/bin/true >/dev/null 2>&1 && break
-          done
+          incus wait test-incus-os agent --timeout 300
 
           sleep 1m
 
