@@ -1119,8 +1119,6 @@ func updateChecker(ctx context.Context, s *state.State, t *tui.TUI, p providers.
 
 			s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
 			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
-
-			s.System.Update.State.NeedsReboot = true
 		} else {
 			s.System.Update.State.Status = "Update check completed"
 
@@ -1318,6 +1316,11 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		}
 
 		// Record the new release.
+		if !s.System.Update.Config.AutoReboot && !isStartupCheck {
+			// Mark the system as needing a reboot down the line.
+			s.System.Update.State.NeedsReboot = true
+		}
+
 		s.OS.NextRelease = update.Version()
 		_ = s.Save()
 
