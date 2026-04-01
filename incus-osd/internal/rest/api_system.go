@@ -83,7 +83,7 @@ func (s *Server) apiSystemPoweroff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	close(s.state.TriggerShutdown)
+	s.state.TriggerShutdown <- true
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -109,7 +109,7 @@ func (s *Server) apiSystemReboot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	close(s.state.TriggerReboot)
+	s.state.TriggerReboot <- true
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -135,7 +135,7 @@ func (s *Server) apiSystemSuspend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	close(s.state.TriggerSuspend)
+	s.state.TriggerSuspend <- true
 
 	_ = response.EmptySyncResponse.Render(w)
 }

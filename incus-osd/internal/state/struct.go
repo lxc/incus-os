@@ -41,10 +41,10 @@ type State struct {
 	NetworkConfigurationChannel chan error `json:"-"`
 
 	// Triggers for daemon actions.
-	TriggerReboot   chan error `json:"-"`
-	TriggerShutdown chan error `json:"-"`
-	TriggerSuspend  chan error `json:"-"`
-	TriggerUpdate   chan bool  `json:"-"`
+	TriggerReboot   chan bool `json:"-"`
+	TriggerShutdown chan bool `json:"-"`
+	TriggerSuspend  chan bool `json:"-"`
+	TriggerUpdate   chan bool `json:"-"`
 
 	SecureBoot         SecureBoot `json:"secure_boot"`
 	UsingSWTPM         bool       `json:"using_swtpm"`

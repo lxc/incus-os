@@ -706,9 +706,9 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	s.JobScheduler.Start()
 
 	// Set up handler for daemon actions.
-	s.TriggerReboot = make(chan error, 1)
-	s.TriggerShutdown = make(chan error, 1)
-	s.TriggerSuspend = make(chan error, 1)
+	s.TriggerReboot = make(chan bool, 1)
+	s.TriggerShutdown = make(chan bool, 1)
+	s.TriggerSuspend = make(chan bool, 1)
 	s.TriggerUpdate = make(chan bool, 1)
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, unix.SIGTERM)
