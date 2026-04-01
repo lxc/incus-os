@@ -100,7 +100,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 		}
 
 		err = loader.Load(&newdata)
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
@@ -293,7 +293,7 @@ func (c *cmdGenericRun) command() *cobra.Command {
 	}
 
 	if c.hasFileOutput || c.hasFileInput {
-		usage += " <file>"
+		usage += " <file|->"
 	}
 
 	if c.name == "" {
@@ -412,12 +412,19 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 
 	// Set source file.
 	if c.hasFileInput {
-		f, err := os.Open(args[len(args)-1])
-		if err != nil {
-			return err
-		}
+		var f *os.File
 
-		defer func() { _ = f.Close() }()
+		path := args[len(args)-1]
+		if path == "-" {
+			f = os.Stdin
+		} else {
+			f, err = os.Open(args[len(args)-1])
+			if err != nil {
+				return err
+			}
+
+			defer func() { _ = f.Close() }()
+		}
 
 		inData = f
 	}
@@ -426,12 +433,19 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	var outData io.Writer
 
 	if c.hasFileOutput {
-		f, err := os.Create(args[len(args)-1])
-		if err != nil {
-			return err
-		}
+		var f *os.File
 
-		defer func() { _ = f.Close() }()
+		path := args[len(args)-1]
+		if path == "-" {
+			f = os.Stdout
+		} else {
+			f, err = os.Open(args[len(args)-1])
+			if err != nil {
+				return err
+			}
+
+			defer func() { _ = f.Close() }()
+		}
 
 		outData = f
 	}
