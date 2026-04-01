@@ -104,7 +104,7 @@ func recoverLocalPool(ctx context.Context) error {
 	// if we're missing the partition on the main system drive (ie, the main disk died and IncusOS was reinstalled),
 	// otherwise display a warning to the user about the degraded state.
 	if poolConfig.State == "DEGRADED" && len(poolConfig.Devices) == 1 && len(poolConfig.DevicesDegraded) == 1 { //nolint:nestif
-		actualrootDev, err := storage.DeviceToID(ctx, "/dev/disk/by-partlabel/local-data")
+		actualrootDev, err := storage.DeviceToID(ctx, "/dev/disk/by-partlabel/local-data", false)
 		if err != nil {
 			return err
 		}
@@ -241,21 +241,21 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	// Ensure each device passed to `zpool create` is of the "by-id" format to be more resilient against changing device names.
 	for i, dev := range zpool.Devices {
-		zpool.Devices[i], err = storage.DeviceToID(ctx, dev)
+		zpool.Devices[i], err = storage.DeviceToID(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for i, dev := range zpool.Cache {
-		zpool.Cache[i], err = storage.DeviceToID(ctx, dev)
+		zpool.Cache[i], err = storage.DeviceToID(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for i, dev := range zpool.Log {
-		zpool.Log[i], err = storage.DeviceToID(ctx, dev)
+		zpool.Log[i], err = storage.DeviceToID(ctx, dev, false)
 		if err != nil {
 			return err
 		}
@@ -263,7 +263,7 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 
 	if zpool.Special != nil {
 		for i, dev := range zpool.Special.Devices {
-			zpool.Special.Devices[i], err = storage.DeviceToID(ctx, dev)
+			zpool.Special.Devices[i], err = storage.DeviceToID(ctx, dev, false)
 			if err != nil {
 				return err
 			}
@@ -569,7 +569,7 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 			return err
 		}
 
-		actualrootDev, err := storage.DeviceToID(ctx, rootDev)
+		actualrootDev, err := storage.DeviceToID(ctx, rootDev, false)
 		if err != nil {
 			return err
 		}
@@ -631,19 +631,19 @@ func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePoo
 	}
 
 	// Get the device from the existing zpool.
-	existingPoolDevice, err := storage.DeviceToID(ctx, currentConfig.Devices[0])
+	existingPoolDevice, err := storage.DeviceToID(ctx, currentConfig.Devices[0], false)
 	if err != nil {
 		return err
 	}
 
 	// Get the new device we'll use to convert this zpool into a mirror.
-	newPoolDevice, err := storage.DeviceToID(ctx, newConfig.Devices[0])
+	newPoolDevice, err := storage.DeviceToID(ctx, newConfig.Devices[0], false)
 	if err != nil {
 		return err
 	}
 
 	if newPoolDevice == existingPoolDevice {
-		newPoolDevice, err = storage.DeviceToID(ctx, newConfig.Devices[1])
+		newPoolDevice, err = storage.DeviceToID(ctx, newConfig.Devices[1], false)
 		if err != nil {
 			return err
 		}
@@ -678,7 +678,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 	for idx := range currentDevices {
 		if newDevices[idx] == "" { //nolint:nestif
 			// The update contains an empty string for this device -> remove from the pool.
-			actualDev, err := storage.DeviceToID(ctx, currentDevices[idx])
+			actualDev, err := storage.DeviceToID(ctx, currentDevices[idx], false)
 			if err != nil {
 				return err
 			}
@@ -701,12 +701,12 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			}
 		} else if newDevices[idx] != currentDevices[idx] {
 			// The update contains a different device -> replace the existing device in the pool.
-			actualDevOld, err := storage.DeviceToID(ctx, currentDevices[idx])
+			actualDevOld, err := storage.DeviceToID(ctx, currentDevices[idx], false)
 			if err != nil {
 				return err
 			}
 
-			actualDevNew, err := storage.DeviceToID(ctx, newDevices[idx])
+			actualDevNew, err := storage.DeviceToID(ctx, newDevices[idx], false)
 			if err != nil {
 				return err
 			}
@@ -754,7 +754,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 		args := []string{"add", zpoolName}
 
 		for _, dev := range devicesToAdd {
-			actualDev, err := storage.DeviceToID(ctx, dev)
+			actualDev, err := storage.DeviceToID(ctx, dev, false)
 			if err != nil {
 				return err
 			}
@@ -767,7 +767,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			return err
 		}
 	} else {
-		actualNewDev, err := storage.DeviceToID(ctx, devicesToAdd[0])
+		actualNewDev, err := storage.DeviceToID(ctx, devicesToAdd[0], false)
 		if err != nil {
 			return err
 		}
@@ -813,7 +813,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 		}
 
 		if zpoolType == "zfs-raid10" {
-			secondNewDev, err := storage.DeviceToID(ctx, devicesToAdd[1])
+			secondNewDev, err := storage.DeviceToID(ctx, devicesToAdd[1], false)
 			if err != nil {
 				return err
 			}

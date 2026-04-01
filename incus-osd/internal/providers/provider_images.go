@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lxc/incus/v6/shared/osarch"
@@ -53,6 +54,7 @@ type images struct {
 
 	lastCheck    time.Time // In system's timezone.
 	latestUpdate *apiupdate.UpdateFull
+	releaseMu    sync.Mutex
 }
 
 func (p *images) ClearCache(_ context.Context) error {
@@ -255,6 +257,10 @@ func (p *images) load(_ context.Context) error {
 }
 
 func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error) {
+	// Acquire lock.
+	p.releaseMu.Lock()
+	defer p.releaseMu.Unlock()
+
 	// Only talk to image server once an hour.
 	if p.latestUpdate != nil && !p.lastCheck.IsZero() && p.lastCheck.Add(time.Hour).After(time.Now()) {
 		return p.latestUpdate, nil

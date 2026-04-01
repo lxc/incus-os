@@ -260,7 +260,7 @@ func GetFreeSpaceInGiB(path string) (float64, error) {
 }
 
 // DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.
-func DeviceToID(ctx context.Context, device string) (string, error) {
+func DeviceToID(ctx context.Context, device string, physical bool) (string, error) {
 	if device == "" {
 		return "", errors.New("empty string provided for device path")
 	}
@@ -294,7 +294,7 @@ func DeviceToID(ctx context.Context, device string) (string, error) {
 			continue
 		}
 
-		if strings.HasPrefix(target, "/dev/dm-") {
+		if physical && strings.HasPrefix(target, "/dev/dm-") {
 			continue
 		}
 
@@ -736,7 +736,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		}
 
 		// Resolve the device name to a more stable by-id symlink.
-		deviceID, err := DeviceToID(ctx, drive.KName)
+		deviceID, err := DeviceToID(ctx, drive.KName, true)
 		if err != nil {
 			return ret, err
 		}
