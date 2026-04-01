@@ -1,12 +1,16 @@
 package util
 
 import (
+	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/lxc/incus/v6/shared/subprocess"
 )
 
 // UpdateSystemCustomCACerts regenerates /etc/ssl/certs/ca-certificates.crt with any
@@ -89,4 +93,30 @@ func UpdateSystemCustomCACerts(pemCerts []string) error {
 	}
 
 	return nil
+}
+
+// VerifySMIME uses the supplied CA to verify a SMIME-signed message.
+func VerifySMIME(ctx context.Context, ca string, message io.Reader) (*bytes.Buffer, error) {
+	// Write the CA certificate.
+	rootCA, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = rootCA.WriteString(ca)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() { _ = os.Remove(rootCA.Name()) }()
+
+	// Verify the signed message.
+	verified := bytes.NewBuffer(nil)
+
+	err = subprocess.RunCommandWithFds(ctx, message, verified, "openssl", "smime", "-verify", "-text", "-CAfile", rootCA.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	return verified, nil
 }

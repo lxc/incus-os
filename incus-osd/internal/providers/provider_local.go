@@ -12,6 +12,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
+// LocalPath defines a hard-coded path to where the local provider will look for updates.
+var LocalPath = "/root/updates/"
+
 // The Local provider.
 type local struct {
 	state *state.State
@@ -152,7 +155,7 @@ func (p *local) GetApplicationUpdate(ctx context.Context, name string) (Applicat
 
 func (p *local) load(_ context.Context) error {
 	// Use a hardcoded path for now.
-	p.path = "/root/updates/"
+	p.path = LocalPath
 
 	return nil
 }
