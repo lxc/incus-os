@@ -23,7 +23,7 @@ func (*gpuSupport) IsRunning(_ context.Context) bool {
 	return true
 }
 
-func (*gpuSupport) Start(ctx context.Context, _ string) error {
+func (*gpuSupport) Start(ctx context.Context) error {
 	// Reload the modules if loaded.
 	for _, module := range []string{"amdgpu", "i915", "intel_vpu", "nouveau", "xe"} {
 		// Check if loaded.

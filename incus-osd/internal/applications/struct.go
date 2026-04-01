@@ -23,10 +23,10 @@ type Application interface { //nolint:interfacebloat
 	IsRunning(ctx context.Context) bool
 	Name() string
 	NeedsLateUpdateCheck() bool
-	Restart(ctx context.Context, version string) error
+	Restart(ctx context.Context) error
 	RestoreBackup(ctx context.Context, archive io.Reader) error
-	Start(ctx context.Context, version string) error
-	Stop(ctx context.Context, version string) error
-	Update(ctx context.Context, version string) error
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
+	Update(ctx context.Context) error
 	WipeLocalData() error
 }

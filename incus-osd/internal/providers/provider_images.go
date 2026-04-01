@@ -125,6 +125,10 @@ func (*images) Type() string {
 	return "images"
 }
 
+func (p *images) InstallApplication(ctx context.Context, s *state.State, appName string) (string, error) {
+	return installApplication(ctx, s, p, appName)
+}
+
 func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	latestUpdate, err := p.checkRelease(ctx)
