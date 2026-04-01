@@ -327,7 +327,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 	if s.OS.RunningRelease != update.Version {
 		slog.InfoContext(ctx, "Applying OS update(s)")
 
-		err = systemd.ApplySystemUpdate(ctx, update.Version, false)
+		err = systemd.ApplySystemUpdate(ctx, update.Version)
 		if err != nil {
 			return err
 		}

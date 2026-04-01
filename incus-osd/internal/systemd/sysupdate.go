@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/foxboron/go-uefi/authenticode"
 	"github.com/lxc/incus/v6/shared/subprocess"
@@ -61,8 +60,8 @@ func GetCurrentRelease(_ context.Context) (string, string, error) {
 	return "", "", ErrReleaseNotFound
 }
 
-// ApplySystemUpdate instructs systemd-sysupdate to apply any pending update and optionally reboot the system.
-func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
+// ApplySystemUpdate instructs systemd-sysupdate to apply any pending update.
+func ApplySystemUpdate(ctx context.Context, version string) error {
 	// Determine Secure Boot state.
 	sbEnabled, err := secureboot.Enabled()
 	if err != nil {
@@ -174,9 +173,6 @@ func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
 
 	// WORKAROUND: Needed until systemd-sysupdate can be run with system extensions applied.
 	cmd := "mount /dev/mapper/usr /usr && /usr/lib/systemd/systemd-sysupdate update " + version
-	if reboot {
-		cmd += "&& /usr/lib/systemd/systemd-sysupdate reboot"
-	}
 
 	_, err = subprocess.RunCommandContext(ctx, "unshare", "-m", "--", "sh", "-c", cmd)
 	if err != nil {
@@ -185,11 +181,6 @@ func ApplySystemUpdate(ctx context.Context, version string, reboot bool) error {
 
 	// Flush all writes to get a consistent ESP if the system gets forcefully rebooted by the user.
 	unix.Sync()
-
-	if reboot {
-		// Wait 10s to allow time for the system to reboot.
-		time.Sleep(10 * time.Second)
-	}
 
 	return nil
 }
