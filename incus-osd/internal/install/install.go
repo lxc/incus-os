@@ -135,7 +135,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 			source = cdromDevice
 		}
 
-		sourceDeviceID, err := storage.DeviceToID(ctx, source)
+		sourceDeviceID, err := storage.DeviceToID(ctx, source, true)
 		if err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 
 		// Verify the target device is at least 50GiB.
 		if targetDeviceSize < 50*1024*1024*1024 {
-			targetDeviceID, err := storage.DeviceToID(ctx, targetDevice)
+			targetDeviceID, err := storage.DeviceToID(ctx, targetDevice, true)
 			if err != nil {
 				return err
 			}
@@ -344,14 +344,14 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 		source = cdromDevice
 	}
 
-	sourceDeviceID, err := storage.DeviceToID(ctx, source)
+	sourceDeviceID, err := storage.DeviceToID(ctx, source, true)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
 		return err
 	}
 
-	targetDeviceID, err := storage.DeviceToID(ctx, targetDevice)
+	targetDeviceID, err := storage.DeviceToID(ctx, targetDevice, true)
 	if err != nil {
 		modal.Update("[red]Error: " + err.Error())
 
@@ -691,7 +691,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	if !strings.Contains(output, "Creating new GPT entries in memory") && !i.config.ForceInstall {
-		targetDeviceID, err := storage.DeviceToID(ctx, targetDevice)
+		targetDeviceID, err := storage.DeviceToID(ctx, targetDevice, true)
 		if err != nil {
 			return err
 		}
