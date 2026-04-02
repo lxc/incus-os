@@ -50,7 +50,15 @@ type State struct {
 	UsingSWTPM         bool       `json:"using_swtpm"`
 	SecureBootDisabled bool       `json:"secure_boot_disabled"`
 
-	Applications map[string]api.Application `json:"applications"`
+	Applications struct {
+		Debug            api.Application      `json:"debug"`
+		GPUSupport       api.Application      `json:"gpu_support"`
+		Incus            api.ApplicationIncus `json:"incus"`
+		IncusCeph        api.Application      `json:"incus_ceph"`
+		IncusLinstor     api.Application      `json:"incus_linstor"`
+		MigrationManager api.Application      `json:"migration_manager"`
+		OperationsCenter api.Application      `json:"operations_center"`
+	}
 
 	OS OS `json:"os"`
 
