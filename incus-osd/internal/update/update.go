@@ -125,7 +125,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
 		// Only check if Secure Boot is enabled.
 		if !s.SecureBootDisabled {
-			_, err := checkDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck)
+			_, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -155,7 +155,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		appsUpdated := map[string]string{}
 
 		for _, appName := range toInstall {
-			newAppVersion, err := checkDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck)
+			newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for application updates"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -186,7 +186,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		}
 
 		// Check for the latest OS update.
-		newInstalledOSVersion, err := checkDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck)
+		newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for OS updates"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -270,7 +270,8 @@ func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
 	}
 }
 
-func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool) (string, error) {
+// CheckAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
+func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
