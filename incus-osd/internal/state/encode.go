@@ -113,6 +113,14 @@ func encodeHelper(b *bytes.Buffer, keyPrefix []string, v reflect.Value) error {
 					continue
 				}
 
+				// When processing a struct, skip any embedded fields. The fields from the embedded struct
+				// appear twice under reflection, once under the embedded struct where the property "Anonymous"
+				// is true, and again as members of the outer struct, so skipping the embedded one doesn't
+				// result in any loss of data.
+				if field.Anonymous {
+					continue
+				}
+
 				err := encodeHelper(b, append(keyPrefix, field.Name), v.FieldByIndex(field.Index))
 				if err != nil {
 					return err
