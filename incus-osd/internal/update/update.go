@@ -233,26 +233,32 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			}
 		}
 
-		updateModal := t.GetModal("update")
-
-		if newInstalledOSVersion != "" {
-			if updateModal == nil {
-				updateModal = t.AddModal(s.OS.Name+" Update", "update")
-			}
-
-			s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
-			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
-		} else {
-			s.System.Update.State.Status = "Update check completed"
-
-			if updateModal != nil {
-				updateModal.Done()
-			}
-		}
+		HandlePostUpdateMessage(s, t, newInstalledOSVersion)
 
 		if isStartupCheck || isUserRequested {
 			// If running a one-time update, we're done.
 			break
+		}
+	}
+}
+
+// HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
+// that the update modal is dismissed.
+func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
+	updateModal := t.GetModal("update")
+
+	if osVersion != "" {
+		if updateModal == nil {
+			updateModal = t.AddModal(s.OS.Name+" Update", "update")
+		}
+
+		s.System.Update.State.Status = s.OS.Name + " has been updated to version " + osVersion
+		updateModal.Update(s.OS.Name + " has been updated to version " + osVersion + ".\nPlease reboot the system to finalize update.")
+	} else {
+		s.System.Update.State.Status = "Update check completed"
+
+		if updateModal != nil {
+			updateModal.Done()
 		}
 	}
 }
