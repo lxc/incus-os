@@ -200,37 +200,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 
 		// Notify the applications that they need to update/restart.
 		for appName, appVersion := range appsUpdated {
-			// Get the application.
-			app, err := applications.Load(ctx, s, appName)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to load application"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-				continue
-			}
-
-			// Start/reload the application.
-			if !isStartupCheck {
-				if app.IsRunning(ctx) {
-					slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
-
-					err := app.Update(ctx)
-					if err != nil {
-						s.System.Update.State.Status = "Failed to reload application"
-						showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-						continue
-					}
-				} else {
-					err := applications.StartInitialize(ctx, s, appName)
-					if err != nil {
-						s.System.Update.State.Status = "Failed to start application"
-						showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-						continue
-					}
-				}
-			}
+			_ = ReloadApplication(ctx, s, p, appName, appVersion, isStartupCheck)
 		}
 
 		HandlePostUpdateMessage(s, t, newInstalledOSVersion)
@@ -240,6 +210,43 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			break
 		}
 	}
+}
+
+// ReloadApplication wraps common logic used when starting/updating an application after it is updated.
+func ReloadApplication(ctx context.Context, s *state.State, p providers.Provider, appName string, appVersion string, isStartupCheck bool) error {
+	// Get the application.
+	app, err := applications.Load(ctx, s, appName)
+	if err != nil {
+		s.System.Update.State.Status = "Failed to load application"
+		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+		return err
+	}
+
+	// Start/reload the application.
+	if !isStartupCheck {
+		if app.IsRunning(ctx) {
+			slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
+
+			err := app.Update(ctx)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to reload application"
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+				return err
+			}
+		} else {
+			err := applications.StartInitialize(ctx, s, appName)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to start application"
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
