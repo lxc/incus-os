@@ -16,7 +16,14 @@ import (
 )
 
 // Checker utilizes the given provider to check for Secure Boot, OS, and application updates.
-func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
+func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get TUI application: "+err.Error())
+
+		return
+	}
+
 	showModalError := func(msg string, err error) {
 		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 

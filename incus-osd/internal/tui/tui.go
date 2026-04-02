@@ -21,7 +21,11 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
-var ttyDevs = []string{"/dev/console", "/dev/tty1"}
+var (
+	singletonMutex sync.Mutex
+	singletonTUI   *TUI
+	ttyDevs        = []string{"/dev/console", "/dev/tty1"}
+)
 
 // TUI represents a terminal user interface.
 type TUI struct {
@@ -38,10 +42,24 @@ type TUI struct {
 	systemResources *api.Resources
 }
 
-// NewTUI constructs a new TUI application that will show basic information and recent
+// GetTUI returns a singleton TUI application that will show basic information and recent
 // log entries on the system's console.
-func NewTUI(s *state.State) (*TUI, error) {
-	ret := &TUI{
+func GetTUI(s *state.State) (*TUI, error) {
+	// Using sync.Once() is more idiomatic, but it can't handle returning an error.
+	singletonMutex.Lock()
+	defer singletonMutex.Unlock()
+
+	// If a TUI already exists, return it.
+	if singletonTUI != nil {
+		return singletonTUI, nil
+	}
+
+	// Ensure we have a valid state struct when creating the TUI.
+	if s == nil {
+		return nil, errors.New("state cannot be nil")
+	}
+
+	singletonTUI = &TUI{
 		state: s,
 	}
 
@@ -53,43 +71,43 @@ func NewTUI(s *state.State) (*TUI, error) {
 
 	// Get information about the system's resources. Since we only display CPU
 	// and RAM, caching the results at creation time should be sufficient.
-	ret.systemResources, err = resources.GetResources()
+	singletonTUI.systemResources, err = resources.GetResources()
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	// Attempt to open the system's consoles.
 	ttys, err := newTtyMultiplexer(ttyDevs...)
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	// Construct a screen that is bound to the system console.
-	ret.screen, err = tcell.NewTerminfoScreenFromTty(ttys)
+	singletonTUI.screen, err = tcell.NewTerminfoScreenFromTty(ttys)
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	// Define a text view to show recent log entries.
-	ret.textView = tview.NewTextView().
+	singletonTUI.textView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(false).
 		SetWordWrap(true).
 		SetChangedFunc(func() {
-			ret.app.Draw()
+			singletonTUI.app.Draw()
 		})
-	ret.textView.SetBorder(true)
+	singletonTUI.textView.SetBorder(true)
 
 	// Define a frame to hold the TUI's primary content.
-	ret.frame = tview.NewFrame(nil).SetBorders(0, 0, 1, 1, 0, 0)
+	singletonTUI.frame = tview.NewFrame(nil).SetBorders(0, 0, 1, 1, 0, 0)
 
 	// Define a set of pages so we can present modal popups.
-	ret.pages = tview.NewPages().AddPage("frame", ret.frame, true, true)
+	singletonTUI.pages = tview.NewPages().AddPage("frame", singletonTUI.frame, true, true)
 
 	// Define the TUI application.
-	ret.app = tview.NewApplication().SetScreen(ret.screen).SetRoot(ret.pages, true)
+	singletonTUI.app = tview.NewApplication().SetScreen(singletonTUI.screen).SetRoot(singletonTUI.pages, true)
 
-	return ret, nil
+	return singletonTUI, nil
 }
 
 // Write implements the Writer interface, so we can be passed to slog.NewTextHandler()
