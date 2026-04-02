@@ -4,10 +4,10 @@ import (
 	"time"
 )
 
-// ApplicationConfig represents additional configuration for an application.
+// ApplicationConfig represents additional configuration for a generic application.
 type ApplicationConfig struct{}
 
-// ApplicationState represents the state of the application.
+// ApplicationState represents the state of a generic application.
 type ApplicationState struct {
 	Initialized       bool       `json:"initialized"             yaml:"initialized"`
 	Version           string     `json:"version"                 yaml:"version"`
