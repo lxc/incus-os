@@ -22,7 +22,6 @@ import (
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
-	"github.com/lxc/incus-os/incus-osd/internal/tui"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
@@ -32,7 +31,7 @@ import (
 // run any hotfix.sh script, then apply any updates in the update/ folder. Both
 // the hotfix script and update metadata is verified to have been properly signed
 // by the expected certificate.
-func CheckRunRecovery(ctx context.Context, s *state.State, t *tui.TUI) error {
+func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	device := "/dev/disk/by-partlabel/RESCUE_DATA"
 
 	// Check if a recovery partition exists.
@@ -86,7 +85,7 @@ func CheckRunRecovery(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}
 
 	// Apply the update(s), if any.
-	err = applyUpdate(ctx, s, t, updateCA, mountDir)
+	err = applyUpdate(ctx, s, updateCA, mountDir)
 	if err != nil {
 		return err
 	}
@@ -148,7 +147,7 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 	return err
 }
 
-func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, updateCA string, mountDir string) error {
+func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -246,7 +245,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, updateCA strin
 	}
 
 	// Trigger an update check.
-	update.Checker(ctx, s, t, p, true, false)
+	update.Checker(ctx, s, p, true, false)
 
 	return nil
 }

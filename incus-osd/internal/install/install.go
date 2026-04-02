@@ -32,7 +32,6 @@ import (
 // Install holds information necessary to perform an installation.
 type Install struct {
 	config *apiseed.Install
-	tui    *tui.TUI
 }
 
 var cdromDevice = "/dev/sr0"
@@ -42,7 +41,7 @@ var cdromMappedDevice = "/dev/mapper/sr0"
 var cdromRegex = regexp.MustCompile(`^/dev/sr(\d+)`)
 
 // CheckSystemRequirements verifies that the system meets the minimum requirements for running IncusOS.
-func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:revive
+func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 	// Check if Secure Boot is enabled.
 	sbEnabled, err := secureboot.Enabled()
 	if err != nil {
@@ -90,7 +89,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 			return errors.New("no working TPM found, but install seed doesn't allow for use of swtpm")
 		}
 
-		err := configureSWTPM(ctx, t, installSeed != nil)
+		err := configureSWTPM(ctx, installSeed != nil)
 		if err != nil {
 			return err
 		}
@@ -106,7 +105,7 @@ func CheckSystemRequirements(ctx context.Context, t *tui.TUI) error { //nolint:r
 		// Only display warning during install or first boot.
 		_, err := os.Stat("/boot/sb-disabled")
 		if err != nil && errors.Is(err, os.ErrNotExist) {
-			displayDegradedSecurityWarning(t, "Disabling Secure Boot")
+			displayDegradedSecurityWarning("Disabling Secure Boot")
 
 			// Create the flag file here if live boot, otherwise it will be created on the new
 			// ESP partition at the conclusion of the install.
@@ -297,10 +296,8 @@ func ShouldPerformInstall() bool {
 }
 
 // NewInstall returns a new Install object with its configuration, if any, populated from the seed partition.
-func NewInstall(t *tui.TUI) (*Install, error) {
-	ret := &Install{
-		tui: t,
-	}
+func NewInstall() (*Install, error) {
+	ret := &Install{}
 
 	var err error
 
@@ -314,7 +311,12 @@ func NewInstall(t *tui.TUI) (*Install, error) {
 
 // DoInstall performs the necessary steps for installing incus-osd to a local disk.
 func (i *Install) DoInstall(ctx context.Context, osName string) error {
-	modal := i.tui.AddModal(osName+" Install", "install")
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return err
+	}
+
+	modal := t.AddModal(osName+" Install", "install")
 	slog.InfoContext(ctx, "Starting install of "+osName+" to local disk")
 	modal.Update("Starting install of " + osName + " to local disk.")
 
@@ -1133,8 +1135,8 @@ func GetPartitionPrefix(device string) string {
 // configureSWTPM will configure the swtpm-based TPM after displaying a warning modal. If
 // IncusOS is running live from the USB drive, configure swtpm and immediately reboot so the
 // live system can have a proper TPM.
-func configureSWTPM(ctx context.Context, t *tui.TUI, isInstall bool) error {
-	displayDegradedSecurityWarning(t, "A software-backed TPM")
+func configureSWTPM(ctx context.Context, isInstall bool) error {
+	displayDegradedSecurityWarning("A software-backed TPM")
 
 	if isInstall {
 		// At the conclusion of the install, the swtpm state will be copied to the new ESP partition.
@@ -1197,7 +1199,12 @@ func initializeSWTPM(ctx context.Context, swtpmRoot string) error {
 	return err
 }
 
-func displayDegradedSecurityWarning(t *tui.TUI, msg string) {
+func displayDegradedSecurityWarning(msg string) {
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return
+	}
+
 	modal := t.AddModal("Degraded security warning", "degraded-security-warning")
 
 	for i := range 30 {

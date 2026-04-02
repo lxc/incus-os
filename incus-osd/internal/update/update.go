@@ -16,17 +16,12 @@ import (
 )
 
 // Checker utilizes the given provider to check for Secure Boot, OS, and application updates.
-func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
-	showModalError := func(msg string, err error) {
-		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
+func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get TUI application: "+err.Error())
 
-		updateModal := t.GetModal("update")
-
-		if t.GetModal("update") == nil {
-			updateModal = t.AddModal(s.OS.Name+" Update", "update")
-		}
-
-		updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
+		return
 	}
 
 	for {
@@ -130,10 +125,10 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
 		// Only check if Secure Boot is enabled.
 		if !s.SecureBootDisabled {
-			_, err := checkDownloadUpdate(ctx, s, t, p, "SecureBoot", "", isStartupCheck)
+			_, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -147,7 +142,7 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 		toInstall, err := applications.GetInstallApplications(ctx, s)
 		if err != nil {
 			s.System.Update.State.Status = err.Error()
-			showModalError(s.System.Update.State.Status, err)
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -160,10 +155,10 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 		appsUpdated := map[string]string{}
 
 		for _, appName := range toInstall {
-			newAppVersion, err := checkDownloadUpdate(ctx, s, t, p, "application", appName, isStartupCheck)
+			newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for application updates"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				break
 			}
@@ -180,7 +175,7 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 			err := systemd.RefreshExtensions(ctx)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -191,10 +186,10 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 		}
 
 		// Check for the latest OS update.
-		newInstalledOSVersion, err := checkDownloadUpdate(ctx, s, t, p, "OS", "", isStartupCheck)
+		newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for OS updates"
-			showModalError(s.System.Update.State.Status, err)
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -205,55 +200,10 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 
 		// Notify the applications that they need to update/restart.
 		for appName, appVersion := range appsUpdated {
-			// Get the application.
-			app, err := applications.Load(ctx, s, appName)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to load application"
-				showModalError(s.System.Update.State.Status, err)
-
-				continue
-			}
-
-			// Start/reload the application.
-			if !isStartupCheck {
-				if app.IsRunning(ctx) {
-					slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
-
-					err := app.Update(ctx)
-					if err != nil {
-						s.System.Update.State.Status = "Failed to reload application"
-						showModalError(s.System.Update.State.Status, err)
-
-						continue
-					}
-				} else {
-					err := applications.StartInitialize(ctx, s, appName)
-					if err != nil {
-						s.System.Update.State.Status = "Failed to start application"
-						showModalError(s.System.Update.State.Status, err)
-
-						continue
-					}
-				}
-			}
+			_ = ReloadApplication(ctx, s, p, appName, appVersion, isStartupCheck)
 		}
 
-		updateModal := t.GetModal("update")
-
-		if newInstalledOSVersion != "" {
-			if updateModal == nil {
-				updateModal = t.AddModal(s.OS.Name+" Update", "update")
-			}
-
-			s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
-			updateModal.Update(s.OS.Name + " has been updated to version " + newInstalledOSVersion + ".\nPlease reboot the system to finalize update.")
-		} else {
-			s.System.Update.State.Status = "Update check completed"
-
-			if updateModal != nil {
-				updateModal.Done()
-			}
-		}
+		HandlePostUpdateMessage(s, t, newInstalledOSVersion)
 
 		if isStartupCheck || isUserRequested {
 			// If running a one-time update, we're done.
@@ -262,16 +212,75 @@ func Checker(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provid
 	}
 }
 
-func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, updateType string, appName string, isStartupCheck bool) (string, error) {
+// ReloadApplication wraps common logic used when starting/updating an application after it is updated.
+func ReloadApplication(ctx context.Context, s *state.State, p providers.Provider, appName string, appVersion string, isStartupCheck bool) error {
+	// Get the application.
+	app, err := applications.Load(ctx, s, appName)
+	if err != nil {
+		s.System.Update.State.Status = "Failed to load application"
+		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+		return err
+	}
+
+	// Start/reload the application.
+	if !isStartupCheck {
+		if app.IsRunning(ctx) {
+			slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
+
+			err := app.Update(ctx)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to reload application"
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+				return err
+			}
+		} else {
+			err := applications.StartInitialize(ctx, s, appName)
+			if err != nil {
+				s.System.Update.State.Status = "Failed to start application"
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
+// that the update modal is dismissed.
+func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
+	updateModal := t.GetModal("update")
+
+	if osVersion != "" {
+		if updateModal == nil {
+			updateModal = t.AddModal(s.OS.Name+" Update", "update")
+		}
+
+		s.System.Update.State.Status = s.OS.Name + " has been updated to version " + osVersion
+		updateModal.Update(s.OS.Name + " has been updated to version " + osVersion + ".\nPlease reboot the system to finalize update.")
+	} else {
+		s.System.Update.State.Status = "Update check completed"
+
+		if updateModal != nil {
+			updateModal.Done()
+		}
+	}
+}
+
+// CheckAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
+func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
-	slog.DebugContext(ctx, "Checking for "+updateType+" updates")
+	slog.DebugContext(ctx, "Checking for "+ut.String()+" updates")
 
 	if s.System.Update.State.NeedsReboot {
 		slog.DebugContext(ctx, "A reboot of the system is required to finalize a pending update")
 
-		if updateType == "SecureBoot" {
+		if ut == TypeSecureBoot {
 			return "", nil
 		}
 	}
@@ -281,20 +290,20 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 
 	var err error
 
-	switch updateType {
-	case "SecureBoot":
+	switch ut {
+	case TypeSecureBoot:
 		update, err = p.GetSecureBootCertUpdate(ctx)
-	case "OS":
+	case TypeOS:
 		update, err = p.GetOSUpdate(ctx)
-	case "application":
+	case TypeApplication:
 		update, err = p.GetApplicationUpdate(ctx, appName)
 	default:
-		return "", errors.New("unrecognized update type '" + updateType + "'")
+		return "", errors.New("unrecognized update type '" + ut.String() + "'")
 	}
 
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.DebugContext(ctx, updateType+" update provider doesn't currently have any update")
+			slog.DebugContext(ctx, ut.String()+" update provider doesn't currently have any update")
 
 			return "", nil
 		}
@@ -305,14 +314,14 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 	updateNeeded := false
 
 	// Skip any update that isn't newer than what we are already running.
-	switch update.(type) {
-	case providers.SecureBootCertUpdate:
+	switch ut {
+	case TypeSecureBoot:
 		updateNeeded = update.Version() != s.SecureBoot.Version
 
 		if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
 			return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
 		}
-	case providers.OSUpdate:
+	case TypeOS:
 		// If we're running from the backup image don't attempt to re-update to a broken version.
 		if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
 			slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
@@ -325,59 +334,60 @@ func checkDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p prov
 		if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
 			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
 		}
-	case providers.ApplicationUpdate:
+	case TypeApplication:
 		updateNeeded = update.Version() != s.Applications[appName].State.Version
 
 		if updateNeeded && s.Applications[appName].State.Version != "" && !update.IsNewerThan(s.Applications[appName].State.Version) {
 			return "", errors.New("local application " + appName + " version (" + s.Applications[appName].State.Version + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 	default:
+		// An invalid update type has been handled previously.
 	}
 
 	// Apply the update.
 	if updateNeeded {
-		return applyUpdate(ctx, s, t, update, updateType, appName, isStartupCheck)
+		return applyUpdate(ctx, s, t, update, appName, isStartupCheck)
 	} else if isStartupCheck {
-		_, isApplication := update.(providers.ApplicationUpdate)
-		if isApplication {
+		if ut == TypeApplication {
 			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "version", update.Version())
 		} else {
-			slog.DebugContext(ctx, "System is already running latest "+updateType+" version", "version", update.Version())
+			slog.DebugContext(ctx, "System is already running latest "+ut.String()+" version", "version", update.Version())
 		}
 	}
 
 	return "", nil
 }
 
-func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, updateType string, appName string, isStartupCheck bool) (string, error) {
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string, isStartupCheck bool) (string, error) {
 	updateModal := t.GetModal("update")
 
 	if t.GetModal("update") == nil {
 		updateModal = t.AddModal(s.OS.Name+" Update", "update")
 	}
 
-	// Download the update.
-	_, isApplication := update.(providers.ApplicationUpdate)
-	if isApplication {
-		slog.InfoContext(ctx, "Downloading "+updateType+" update", "application", appName, "version", update.Version())
-		updateModal.Update("Downloading " + updateType + " update " + appName + " update " + update.Version())
-	} else {
-		slog.InfoContext(ctx, "Downloading "+updateType+" update", "version", update.Version())
-		updateModal.Update("Downloading " + updateType + " update " + update.Version())
-	}
-
-	targetPath := ""
+	var targetPath string
 
 	switch update.(type) {
 	case providers.SecureBootCertUpdate:
 		targetPath = "/tmp/"
+
+		slog.InfoContext(ctx, "Downloading SecureBoot update", "version", update.Version())
+		updateModal.Update("Downloading SecureBoot update " + update.Version())
 	case providers.OSUpdate:
 		targetPath = systemd.SystemUpdatesPath
+
+		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
+		updateModal.Update("Downloading OS update " + update.Version())
 	case providers.ApplicationUpdate:
 		targetPath = systemd.SystemExtensionsPath
+
+		slog.InfoContext(ctx, "Downloading application update", "application", appName, "version", update.Version())
+		updateModal.Update("Downloading application update " + appName + " update " + update.Version())
 	default:
+		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}
 
+	// Download the update.
 	err := update.Download(ctx, targetPath, updateModal.UpdateProgress)
 	if err != nil {
 		return "", err
@@ -488,7 +498,25 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		s.Applications[appName] = newAppInfo
 		_ = s.Save()
 	default:
+		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}
 
 	return update.Version(), nil
+}
+
+func showModalError(ctx context.Context, osName string, msg string, err error, p providers.Provider) {
+	slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
+
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return
+	}
+
+	updateModal := t.GetModal("update")
+
+	if t.GetModal("update") == nil {
+		updateModal = t.AddModal(osName+" Update", "update")
+	}
+
+	updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
 }

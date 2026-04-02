@@ -39,6 +39,16 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	}
 	cmd.AddCommand(backupCmd.command())
 
+	// Check update.
+	checkUpdateCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "check-update",
+		description: "Check for application update",
+		endpoint:    "applications",
+		entity:      "application",
+	}
+	cmd.AddCommand(checkUpdateCmd.command())
+
 	// Debug.
 	debugCmd := cmdGenericRun{
 		os:          c.os,

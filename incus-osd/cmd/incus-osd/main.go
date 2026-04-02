@@ -152,7 +152,7 @@ func main() {
 	}
 
 	// Get and start the console TUI.
-	tuiApp, err := tui.NewTUI(s)
+	tuiApp, err := tui.GetTUI(s)
 	if err != nil {
 		tui.EarlyError(err.Error())
 		os.Exit(1)
@@ -171,7 +171,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Run the daemon.
-	err = run(ctx, s, tuiApp)
+	err = run(ctx, s)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
@@ -196,12 +196,15 @@ func firstBootActions(ctx context.Context) error {
 	return setTimezone(ctx)
 }
 
-func run(ctx context.Context, s *state.State, t *tui.TUI) error {
+func run(ctx context.Context, s *state.State) error {
 	// Verify that the system meets minimum requirements for running IncusOS.
-	err := install.CheckSystemRequirements(ctx, t)
+	err := install.CheckSystemRequirements(ctx)
 	if err != nil {
-		modal := t.AddModal(s.OS.Name, "system-check")
-		modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
+		t, tuiErr := tui.GetTUI(nil)
+		if tuiErr == nil {
+			modal := t.AddModal(s.OS.Name, "system-check")
+			modal.Update("System check error: [red]" + err.Error() + "[white]\n" + s.OS.Name + " is unable to run until the problem is resolved.")
+		}
 
 		slog.ErrorContext(ctx, "System check error: "+err.Error())
 
@@ -224,7 +227,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 
 	// Check if we should try to install to a local disk.
 	if s.ShouldPerformInstall {
-		inst, err := install.NewInstall(t)
+		inst, err := install.NewInstall()
 		if err != nil {
 			return err
 		}
@@ -277,7 +280,7 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	}()
 
 	// Run startup tasks.
-	err = startup(ctx, s, t)
+	err = startup(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -290,9 +293,14 @@ func run(ctx context.Context, s *state.State, t *tui.TUI) error {
 	return <-chErr
 }
 
-func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
+func shutdown(ctx context.Context, s *state.State) error {
 	// Save state on exit.
 	defer func() { _ = s.Save() }()
+
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return err
+	}
 
 	modal := t.AddModal("System Shutdown", "shutdown")
 
@@ -300,7 +308,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	modal.Update("System is shutting down")
 
 	// Shutdown the job scheduler.
-	err := s.JobScheduler.Shutdown()
+	err = s.JobScheduler.Shutdown()
 	if err != nil {
 		return err
 	}
@@ -347,7 +355,7 @@ func shutdown(ctx context.Context, s *state.State, t *tui.TUI) error {
 	return nil
 }
 
-func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:revive
+func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Save state on exit.
 	defer func() { _ = s.Save() }()
 
@@ -531,7 +539,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 	}
 
 	// Check for and run recovery logic if present.
-	err = recovery.CheckRunRecovery(ctx, s, t)
+	err = recovery.CheckRunRecovery(ctx, s)
 	if err != nil {
 		// If recovery fails, don't return the error, since that will likely put us into a restart loop,
 		// resulting in a soft-brick of the server until the recovery media is removed.
@@ -627,7 +635,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	if !delayInitialUpdateCheck {
 		// Perform an initial blocking check for updates before proceeding.
-		update.Checker(ctx, s, t, p, true, false)
+		update.Checker(ctx, s, p, true, false)
 	}
 
 	// Ensure all systemd extensions are applied.
@@ -671,7 +679,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 	// Run periodic update checks if we have a working provider.
 	if p != nil {
-		go update.Checker(ctx, s, t, p, false, false)
+		go update.Checker(ctx, s, p, false, false)
 	}
 
 	// Handle registration.
@@ -732,12 +740,12 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 
 			goto waitSignal
 		case <-s.TriggerUpdate:
-			update.Checker(ctx, s, t, p, false, true)
+			update.Checker(ctx, s, p, false, true)
 
 			goto waitSignal
 		}
 
-		err := shutdown(ctx, s, t)
+		err := shutdown(ctx, s)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed shutdown sequence", "err", err)
 		}
@@ -759,7 +767,7 @@ func startup(ctx context.Context, s *state.State, t *tui.TUI) error { //nolint:r
 		go func() {
 			time.Sleep(30 * time.Second)
 
-			update.Checker(ctx, s, t, p, true, false)
+			update.Checker(ctx, s, p, true, false)
 		}()
 	}
 

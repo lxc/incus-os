@@ -11,7 +11,11 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
 // swagger:operation GET /1.0/applications applications applications_get
@@ -611,23 +615,17 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 //	Uninstall a non-primary application that is currently installed.
 //
 //	---
-//	consumes:
-//	  - application/json
 //	produces:
 //	  - application/json
 //	parameters:
-//	  - in: body
-//	    name: application
+//	  - in: path
+//	    name: name
 //	    description: Application to be removed
 //	    required: true
-//	    schema:
-//	      type: object
-//	      example: {"name": "gpu-support"}
+//	    type: string
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
-//	  "400":
-//	    $ref: "#/responses/BadRequest"
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 //	  "500":
@@ -657,6 +655,104 @@ func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
 		_ = response.InternalError(err).Render(w)
 
 		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/applications/{name}/:check-update applications applications_post_check_update
+//
+//	Check for application update
+//
+//	Trigger a manual check for an update of the given application, and apply it if found.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	_, ok := s.state.Applications[name]
+	if !ok {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Get the TUI.
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Get the provider.
+	p, err := providers.Load(r.Context(), s.state)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Clear the provider cache since this is a manual request.
+	err = p.ClearCache(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Check for an application update.
+	newAppVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeApplication, name, false)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// If the application was updated, refresh the sysext images and trigger the application's update method.
+	if newAppVersion != "" {
+		// Display a post-update message.
+		update.HandlePostUpdateMessage(s.state, t, "")
+
+		err := systemd.RefreshExtensions(r.Context())
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		err = update.ReloadApplication(r.Context(), s.state, p, name, newAppVersion, false)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
 	}
 
 	_ = response.EmptySyncResponse.Render(w)

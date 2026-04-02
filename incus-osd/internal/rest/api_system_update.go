@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
 // swagger:operation GET /1.0/system/update system system_get_update
@@ -115,8 +118,18 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 //	Triggers an immediate system update check.
 //
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: os_only
+//	    description: If true, only check for OS updates
+//	    required: false
+//	    schema:
+//	      type: object
+//	      example: {"os_only": true}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -129,8 +142,66 @@ func (s *Server) apiSystemUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trigger a manual update check.
-	s.state.TriggerUpdate <- true
+	type checkPost struct {
+		OSOnly bool `json:"os_only"`
+	}
+
+	check := &checkPost{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(check)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	// Trigger a normal OS and application update check.
+	if !check.OSOnly {
+		s.state.TriggerUpdate <- true
+
+		_ = response.EmptySyncResponse.Render(w)
+
+		return
+	}
+
+	// Only trigger an OS update check.
+
+	// Get the TUI.
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Get the provider.
+	p, err := providers.Load(r.Context(), s.state)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Clear the provider cache since this is a manual request.
+	err = p.ClearCache(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Check for an OS update.
+	newInstalledOSVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeOS, "", false)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Display a post-update message, if needed.
+	update.HandlePostUpdateMessage(s.state, t, newInstalledOSVersion)
 
 	_ = response.EmptySyncResponse.Render(w)
 }
