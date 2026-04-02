@@ -178,7 +178,5 @@ func (*Ceph) Struct() any {
 // Supported returns whether the system can use Ceph.
 func (n *Ceph) Supported() bool {
 	// Ceph requires incus-ceph to be installed.
-	_, ok := n.state.Applications["incus-ceph"]
-
-	return ok
+	return n.state.Applications.IncusCeph.State.Version != ""
 }
