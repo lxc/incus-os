@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.6
-	github.com/FuturFusion/operations-center v0.5.1
+	github.com/FuturFusion/operations-center v0.5.2
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.8
@@ -45,7 +45,7 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
