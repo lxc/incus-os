@@ -24,18 +24,6 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		return
 	}
 
-	showModalError := func(msg string, err error) {
-		slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
-
-		updateModal := t.GetModal("update")
-
-		if t.GetModal("update") == nil {
-			updateModal = t.AddModal(s.OS.Name+" Update", "update")
-		}
-
-		updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
-	}
-
 	for {
 		// Determine if a primary application is installed or not.
 		primaryApplication, err := applications.GetPrimary(ctx, s, false)
@@ -140,7 +128,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			_, err := checkDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -154,7 +142,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		toInstall, err := applications.GetInstallApplications(ctx, s)
 		if err != nil {
 			s.System.Update.State.Status = err.Error()
-			showModalError(s.System.Update.State.Status, err)
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -170,7 +158,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			newAppVersion, err := checkDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for application updates"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				break
 			}
@@ -187,7 +175,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			err := systemd.RefreshExtensions(ctx)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				if isStartupCheck || isUserRequested {
 					break
@@ -201,7 +189,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		newInstalledOSVersion, err := checkDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for OS updates"
-			showModalError(s.System.Update.State.Status, err)
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 			if isStartupCheck || isUserRequested {
 				break
@@ -216,7 +204,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 			app, err := applications.Load(ctx, s, appName)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to load application"
-				showModalError(s.System.Update.State.Status, err)
+				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 				continue
 			}
@@ -229,7 +217,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 					err := app.Update(ctx)
 					if err != nil {
 						s.System.Update.State.Status = "Failed to reload application"
-						showModalError(s.System.Update.State.Status, err)
+						showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 						continue
 					}
@@ -237,7 +225,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 					err := applications.StartInitialize(ctx, s, appName)
 					if err != nil {
 						s.System.Update.State.Status = "Failed to start application"
-						showModalError(s.System.Update.State.Status, err)
+						showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
 						continue
 					}
@@ -500,4 +488,21 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 	}
 
 	return update.Version(), nil
+}
+
+func showModalError(ctx context.Context, osName string, msg string, err error, p providers.Provider) {
+	slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
+
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return
+	}
+
+	updateModal := t.GetModal("update")
+
+	if t.GetModal("update") == nil {
+		updateModal = t.AddModal(osName+" Update", "update")
+	}
+
+	updateModal.Update("[red]Error[white] " + msg + ": " + err.Error() + " (provider: " + p.Type() + ")")
 }
