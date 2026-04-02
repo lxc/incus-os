@@ -249,6 +249,8 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					name:        "check",
 					description: "Check for updates",
 					endpoint:    "system/update",
+					hasData:     true,
+					defaultData: "{}",
 				}
 
 				return []*cobra.Command{checkUpdatesCmd.command()}
