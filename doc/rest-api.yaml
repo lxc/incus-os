@@ -2,7 +2,7 @@ definitions:
     ACMEChallengeType:
         title: ACMEChallengeType represents challenge types for ACME configuration.
         type: string
-        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Access:
         items:
             $ref: '#/definitions/AccessEntry'
@@ -3540,6 +3540,11 @@ definitions:
                 x-go-name: SourceSpecificID
             type:
                 $ref: '#/definitions/NetworkType'
+                description: The network type
+                example: bridge
+                readOnly: true
+                type: string
+                x-go-name: Type
             uuid:
                 description: UUID of the network.
                 format: uuid
@@ -6993,11 +6998,11 @@ definitions:
                     type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :8443
+                    core.https_address: :6443
                 type: object
                 x-go-name: Config
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     ServerStorageDriverInfo:
         description: ServerStorageDriverInfo represents the read-only info about a storage driver
         properties:
@@ -8459,10 +8464,13 @@ definitions:
         properties:
             status:
                 $ref: '#/definitions/WarningStatus'
+                description: Status of the warning (new, acknowledged, or resolved)
+                example: new
                 type: string
-        title: WarningPut represents the modifiable fields of a warning.
+                x-go-name: Status
+        title: WarningPut represents configurable properties of a warning.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     WarningScope:
         properties:
             entity:
@@ -8653,8 +8661,11 @@ paths:
                                 example:
                                     config: {}
                                     state:
+                                        available_versions:
+                                            - "202511041601"
+                                            - "202511041800"
                                         initialized: true
-                                        version: "202511041601"
+                                        version: "202511041800"
                                 type: json
                             status:
                                 description: Status description
@@ -8856,6 +8867,36 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Restore an application backup
+            tags:
+                - applications
+    /1.0/applications/{name}/:switch-version:
+        post:
+            consumes:
+                - application/json
+            description: |-
+                Switch the version of the application to a version available locally on disk. If no version is
+                specified, attempt to rollback to the prior available version of the application.
+            operationId: applications_post_switch_version
+            parameters:
+                - description: Optional exact version to switch to
+                  in: body
+                  name: application
+                  schema:
+                    example:
+                        version: "202603201831"
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Configure the version of the application
             tags:
                 - applications
     /1.0/debug:
