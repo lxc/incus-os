@@ -211,6 +211,12 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		// Verify the SHA256 of each file that exists before making it available to the local provider.
 		err := verifyAndDecompressFile(updateDir, file)
 		if err != nil {
+			if os.IsNotExist(err) {
+				slog.WarnContext(ctx, "Skipping missing file: '"+file.Filename+"'")
+
+				continue
+			}
+
 			return err
 		}
 	}

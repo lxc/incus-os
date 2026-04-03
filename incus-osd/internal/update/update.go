@@ -507,14 +507,14 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 func showModalError(ctx context.Context, osName string, msg string, err error, p providers.Provider) {
 	slog.ErrorContext(ctx, msg, "err", err.Error(), "provider", p.Type())
 
-	t, err := tui.GetTUI(nil)
-	if err != nil {
+	t, tuiErr := tui.GetTUI(nil)
+	if tuiErr != nil {
 		return
 	}
 
 	updateModal := t.GetModal("update")
 
-	if t.GetModal("update") == nil {
+	if updateModal == nil {
 		updateModal = t.AddModal(osName+" Update", "update")
 	}
 
