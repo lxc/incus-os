@@ -20,6 +20,7 @@ For virtual machines, storage drives should be configured to use the `VirtIO-scs
 
 Installing on hardware </getting-started/installation/physical>
 Installing at Hetzner </getting-started/installation/cloud-hetzner>
+Installing at Scaleway </getting-started/installation/cloud-scaleway>
 Installing on Hyper-V </getting-started/installation/virtual-hyperv>
 Installing on Incus </getting-started/installation/virtual-incus>
 Installing on libvirt </getting-started/installation/virtual-libvirt>
