@@ -164,7 +164,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.67.2",
+        "version": "v0.67.3",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
