@@ -38,13 +38,12 @@ def TestSeedApplictionsInvalid(install_image):
         vm.StopVM()
         vm.RemoveDevice("boot-media")
 
-        # Start freshly installed IncusOS and verify successful boot.
+        # Start freshly installed IncusOS and verify error about an invalid application.
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Failed to check dependencies for application 'foobarbiz' err=unknown application provider=images")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "ERROR failed to check dependencies for application 'foobarbiz': unknown application")
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
         # We shouldn't see anything about loading an invalid application.

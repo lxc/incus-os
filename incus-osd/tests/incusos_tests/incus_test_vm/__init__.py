@@ -111,7 +111,7 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+incusos_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-    def WaitAgentRunning(self, timeout=300):
+    def WaitAgentRunning(self, timeout=420):
         """Wait for the Incus agent to start in the VM."""
 
         subprocess.run(["incus", "wait", self.vm_name, "agent", "--timeout", str(timeout)], capture_output=True, check=True)

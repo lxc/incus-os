@@ -118,6 +118,7 @@ def _recoveryChecks(vm, incusos_version):
     vm.WaitExpectedLog("incus-osd", "Update metadata detected, verifying signature")
     vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+incusos_version)
     vm.WaitExpectedLog("incus-osd", "Decompressing and verifying each update file")
+    vm.WaitExpectedLog("incus-osd", "Skipping missing file: 'x86_64/debug.raw.gz")
     vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
     vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
