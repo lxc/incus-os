@@ -649,28 +649,36 @@ func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePoo
 		}
 	}
 
-	// The "local" zpool is special. It is automatically created on first boot, but
-	// can be extended into a RAID0 or RAID1 configuration by adding another drive.
-	// When converting to RAID1, we attempt to partition the second device in a similar
-	// fashion so the two underlying devices are the same size.
 	if newConfig.Name == "local" {
-		// Create the partition at the correct offset
-		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", newPoolDevice)
+		newPoolDevice, err = partitionLocalPoolDevice(ctx, newPoolDevice)
 		if err != nil {
 			return err
 		}
-
-		newPoolDevice += "-part11"
-
-		// Sleep for a bit, otherwise there's a race between udev updating symlinks and
-		// ZFS trying to add the device to the pool.
-		time.Sleep(500 * time.Millisecond)
 	}
 
 	// Convert the pool to a mirror.
 	_, err = subprocess.RunCommandContext(ctx, "zpool", "attach", newConfig.Name, existingPoolDevice, newPoolDevice)
 
 	return err
+}
+
+// The "local" zpool is special. It is automatically created on first boot, but
+// can be extended into a RAID0 or RAID1 configuration by adding another drive.
+// When adding or replacing a device in this pool after converting to RAID1, we
+// attempt to partition the second device in a similar fashion so the two underlying
+// devices are the same size.
+func partitionLocalPoolDevice(ctx context.Context, device string) (string, error) {
+	// Create the partition at the correct offset
+	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", device)
+	if err != nil {
+		return "", err
+	}
+
+	// Sleep for a bit, otherwise there's a race between udev updating symlinks and
+	// ZFS trying to add the device to the pool.
+	time.Sleep(500 * time.Millisecond)
+
+	return device + "-part11", nil
 }
 
 func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, newDevices []string) error {
@@ -711,23 +719,11 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 				return err
 			}
 
-			// The "local" zpool is special. It is automatically created on first boot, but
-			// can be extended into a RAID0 or RAID1 configuration by adding another drive.
-			// When replacing a device after converting to RAID1, we attempt to partition
-			// the second device in a similar fashion so the two underlying devices are the
-			// same size.
 			if zpoolName == "local" && zpoolType == "zfs-raid1" {
-				// Create the partition at the correct offset
-				_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", actualDevNew)
+				actualDevNew, err = partitionLocalPoolDevice(ctx, actualDevNew)
 				if err != nil {
 					return err
 				}
-
-				actualDevNew += "-part11"
-
-				// Sleep for a bit, otherwise there's a race between udev updating symlinks and
-				// ZFS trying to add the device to the pool.
-				time.Sleep(500 * time.Millisecond)
 			}
 
 			_, err = subprocess.RunCommandContext(ctx, "zpool", "replace", zpoolName, actualDevOld, actualDevNew)
