@@ -34,6 +34,13 @@ type networkdConfigFile struct {
 	Contents string
 }
 
+// expPhysDev holds the name, underlying physical interface, and MAC of a network device.
+type expPhysDev struct {
+	Name      string
+	Interface string
+	Hwaddr    string
+}
+
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
 func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error, delayRefreshCheck bool) error {
 	// If a timezone is specified, apply it before doing any network configuration.
@@ -987,12 +994,19 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 // the renaming of interfaces. At system startup there's a small race between udev being fully
 // started and our reconfiguring of the network, so we poll in a loop until we see the kernel
 // has been notified of the rename.
-func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []string, timeout time.Duration) error {
+func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []expPhysDev, timeout time.Duration) error {
 	endTime := time.Now().Add(timeout)
+	missingInterfaces := []expPhysDev{}
 
 	for {
 		if time.Now().After(endTime) {
-			return errors.New("timed out waiting for udev to rename interface(s)")
+			missing := make([]string, 0, len(missingInterfaces))
+
+			for _, dev := range missingInterfaces {
+				missing = append(missing, dev.Name+" ("+dev.Hwaddr+")")
+			}
+
+			return errors.New("timed out waiting for configured network interfaces, missing interface(s): " + strings.Join(missing, ", "))
 		}
 
 		// Trigger udev rule update to pickup device names.
@@ -1007,20 +1021,18 @@ func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []string
 			return err
 		}
 
-		allDevicesRenamed := true
+		missingInterfaces = []expPhysDev{}
 
 		// Check if the kernel has noticed the renaming of each of the expected
 		// interfaces to the "_p<MAC address>" format.
-		for _, iface := range expectedInterfaces {
-			_, err = subprocess.RunCommandContext(ctx, "journalctl", "--since", "10 seconds ago", "-t", "kernel", "-g", iface+": renamed from ")
+		for _, dev := range expectedInterfaces {
+			_, err = subprocess.RunCommandContext(ctx, "journalctl", "--since", "10 seconds ago", "-t", "kernel", "-g", dev.Interface+": renamed from ")
 			if err != nil {
-				allDevicesRenamed = false
-
-				break
+				missingInterfaces = append(missingInterfaces, dev)
 			}
 		}
 
-		if allDevicesRenamed {
+		if len(missingInterfaces) == 0 {
 			return nil
 		}
 
@@ -2105,26 +2117,34 @@ func getMacForInterface(ctx context.Context, iface string) (string, error) {
 	return match[0][1], nil
 }
 
-func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetworkConfig) []string {
-	devices := []string{}
-	ret := []string{}
+func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetworkConfig) []expPhysDev {
+	devices := []expPhysDev{}
+	ret := []expPhysDev{}
 
 	// Get a list of all the expected "_p" physical devices referenced by the interfaces or bond
 	// members in the given network configuration.
 	for i := range config.Interfaces {
-		devices = append(devices, "_p"+strings.ToLower(strings.ReplaceAll(config.Interfaces[i].Hwaddr, ":", "")))
+		devices = append(devices, expPhysDev{
+			Name:      config.Interfaces[i].Name,
+			Interface: "_p" + strings.ToLower(strings.ReplaceAll(config.Interfaces[i].Hwaddr, ":", "")),
+			Hwaddr:    strings.ToLower(config.Interfaces[i].Hwaddr),
+		})
 	}
 
 	for i := range config.Bonds {
 		for j := range config.Bonds[i].Members {
-			devices = append(devices, "_p"+strings.ToLower(strings.ReplaceAll(config.Bonds[i].Members[j], ":", "")))
+			devices = append(devices, expPhysDev{
+				Name:      config.Bonds[i].Name,
+				Interface: "_p" + strings.ToLower(strings.ReplaceAll(config.Bonds[i].Members[j], ":", "")),
+				Hwaddr:    strings.ToLower(config.Bonds[i].Members[j]),
+			})
 		}
 	}
 
 	// Check if the given device is already known to networkd; if not, add it to the list
 	// of devices we need to wait for.
 	for _, dev := range devices {
-		_, err := subprocess.RunCommandContext(ctx, "networkctl", "status", dev)
+		_, err := subprocess.RunCommandContext(ctx, "networkctl", "status", dev.Interface)
 		if err != nil {
 			ret = append(ret, dev)
 		}
