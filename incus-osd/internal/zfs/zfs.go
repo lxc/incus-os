@@ -496,7 +496,13 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 // Helper method to zap any GPT table and opportunistically run blkdiscard
 // to fully wipe a device that's just been removed from a storage pool.
 func clearDevice(ctx context.Context, device string) error {
-	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-Z", device)
+	_, err := os.Stat(device)
+	if err != nil && os.IsNotExist(err) {
+		// Nothing to do if the device doesn't exist.
+		return nil
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", device)
 	if err != nil {
 		return err
 	}
