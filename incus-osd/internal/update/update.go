@@ -172,7 +172,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		if len(appsUpdated) > 0 {
 			slog.DebugContext(ctx, "Refreshing system extensions")
 
-			err := systemd.RefreshExtensions(ctx)
+			err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -379,7 +379,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
 		updateModal.Update("Downloading OS update " + update.Version())
 	case providers.ApplicationUpdate:
-		targetPath = systemd.SystemExtensionsPath
+		targetPath = filepath.Join(systemd.LocalExtensionsPath, update.Version())
 
 		slog.InfoContext(ctx, "Downloading application update", "application", appName, "version", update.Version())
 		updateModal.Update("Downloading application update " + appName + " update " + update.Version())
@@ -486,9 +486,17 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 	case providers.ApplicationUpdate:
 		// Verify the application is signed with a trusted key in the kernel's keyring.
-		err = systemd.VerifyExtension(ctx, filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+		err = systemd.VerifyExtension(ctx, filepath.Join(targetPath, appName+".raw"))
 		if err != nil {
 			return "", err
+		}
+
+		// If running from the backup IncusOS image, after verifying the new application version
+		// don't actually update to it.
+		if s.OS.RunningFromBackup() {
+			slog.WarnContext(ctx, "Successfully downloaded application update, but not auto-updating while running from backup image", "application", appName)
+
+			return "", nil
 		}
 
 		// Record newly installed application and save state to disk.

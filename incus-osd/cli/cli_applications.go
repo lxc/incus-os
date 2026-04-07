@@ -112,6 +112,19 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	}
 	cmd.AddCommand(restoreCmd.command())
 
+	// Switch version.
+	switchVersionCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "switch-version",
+		description: "Change application version",
+		endpoint:    "applications",
+		entity:      "application",
+		hasData:     true,
+		defaultData: "{}",
+		confirm:     "change the running version of the application",
+	}
+	cmd.AddCommand(switchVersionCmd.command())
+
 	// Show.
 	showCmd := cmdGenericShow{os: c.os, entity: "application", entityShort: "application", endpoint: "applications"}
 	cmd.AddCommand(showCmd.command())

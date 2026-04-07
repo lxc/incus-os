@@ -290,6 +290,12 @@ func (a *localApplication) Download(ctx context.Context, targetPath string, prog
 			continue
 		}
 
+		// If the application sysext image already exists on disk, don't re-copy it.
+		_, err := os.Stat(filepath.Join(targetPath, filepath.Base(asset)))
+		if err == nil {
+			continue
+		}
+
 		// Copy the application.
 		err = a.provider.copyAsset(ctx, filepath.Base(asset), targetPath, progressFunc)
 		if err != nil {

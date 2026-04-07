@@ -4,6 +4,9 @@ var (
 	// SystemExtensionsPath is the systemd location for system extensions.
 	SystemExtensionsPath = "/var/lib/extensions"
 
+	// LocalExtensionsPath is the location where IncusOS stores the actual system extensions.
+	LocalExtensionsPath = "/var/lib/incus-os-extensions"
+
 	// SystemUpdatesPath is the systemd location for system updates.
 	SystemUpdatesPath = "/var/lib/updates"
 

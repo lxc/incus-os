@@ -618,6 +618,12 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
+		// If the application sysext image already exists on disk, don't re-download it.
+		_, err := os.Stat(filepath.Join(targetPath, targetName))
+		if err == nil {
+			continue
+		}
+
 		// Download the application.
 		err = downloadAsset(ctx, a.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {

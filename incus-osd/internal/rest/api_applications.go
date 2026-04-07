@@ -204,7 +204,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	        metadata:
 //	          type: json
 //	          description: State and configuration for the application
-//	          example: {"state":{"initialized":true,"version":"202511041601"},"config":{}}
+//	          example: {"state":{"initialized":true,"version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -740,7 +740,7 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 		// Display a post-update message.
 		update.HandlePostUpdateMessage(s.state, t, "")
 
-		err := systemd.RefreshExtensions(r.Context())
+		err := systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
@@ -753,6 +753,114 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 
 			return
 		}
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/applications/{name}/:switch-version applications applications_post_switch_version
+//
+//	Configure the version of the application
+//
+//	Switch the version of the application to a version available locally on disk. If no version is
+//	specified, attempt to rollback to the prior available version of the application.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: application
+//	    description: Optional exact version to switch to
+//	    required: false
+//	    schema:
+//	      type: object
+//	      example: {"version": "202603201831"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the application is valid.
+	app, ok := s.state.Applications[name]
+	if !ok {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Get the specific application version to switch to, if specified.
+	type versionInfo struct {
+		Version string `json:"version"`
+	}
+
+	vi := &versionInfo{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(vi)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	// Check if it's possible to change the application version.
+	if len(app.State.AvailableVersions) == 1 {
+		_ = response.BadRequest(errors.New("only one version of the application is available locally, cannot switch to a different version")).Render(w)
+
+		return
+	}
+
+	// Determine the new application version.
+	var version string
+
+	if vi.Version == "" {
+		versionIndex := slices.Index(app.State.AvailableVersions, app.State.Version)
+		if versionIndex == 0 {
+			_ = response.BadRequest(errors.New("cannot rollback application as no earlier version is available locally")).Render(w)
+
+			return
+		}
+
+		version = app.State.AvailableVersions[versionIndex-1]
+	} else {
+		if !slices.Contains(app.State.AvailableVersions, vi.Version) {
+			_ = response.BadRequest(errors.New("cannot switch application to version '" + vi.Version + "' because it does not exist locally")).Render(w)
+
+			return
+		}
+
+		version = vi.Version
+	}
+
+	// Update application state.
+	app.State.Version = version
+	s.state.Applications[name] = app
+
+	// Switch the application version.
+	err = systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
 	}
 
 	_ = response.EmptySyncResponse.Render(w)

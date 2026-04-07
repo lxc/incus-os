@@ -20,6 +20,22 @@ incus admin os application restart <name>
 It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application.
 ```
 
+## Changing application version
+
+On rare occasions, it might be necessary to temporarily rollback an application to an earlier version. This can be accomplished via the `switch-version` command
+
+```
+incus admin os application switch-version <name> -d '{"version":"<version>"}'
+```
+
+where `<version>` is one of the available application versions as reported by the `application show` command.
+
+If no version is specified, IncusOS will attempt to rollback the application to the prior available version.
+
+Changing application versions are limited to those that are available locally on disk.
+
+If IncusOS is booted into the backup image, it will automatically attempt to re-synchronize application versions to match the older version of IncusOS. Upon rebooting to the non-backup image, application versions will be updated to the latest available versions locally on disk.
+
 ## Backing up the application
 
 ```{important}

@@ -402,6 +402,12 @@ func (a *imagesApplication) Download(ctx context.Context, targetPath string, pro
 		fileURL := a.provider.serverURL + "/" + a.latestUpdate.Version + "/" + file.Filename
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
+		// If the application sysext image already exists on disk, don't re-download it.
+		_, err := os.Stat(filepath.Join(targetPath, targetName))
+		if err == nil {
+			continue
+		}
+
 		// Download the application.
 		err = downloadAsset(ctx, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
