@@ -482,3 +482,114 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
 
         if result["metadata"]["config"]["scrub_schedule"] != "0 0 * * 5":
             raise IncusOSException("expected scrub schedule to be updated")
+
+def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
+    test_name = "incusos-api-system-storage-local-pool-degraded"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk1_img:
+        with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk2_img:
+            disk1_img.truncate(50*1024*1024*1024)
+            disk2_img.truncate(50*1024*1024*1024)
+
+            with IncusTestVM(test_name, test_image) as vm:
+                vm.AddDevice("disk1", "disk", "source="+disk1_img.name)
+                vm.AddDevice("disk2", "disk", "source="+disk2_img.name)
+
+                vm.WaitSystemReady(incusos_version)
+
+                # Extend the "local" pool with the second drive and convert to RAID1.
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                if result["status_code"] != 200:
+                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                # Get the storage state.
+                result = vm.APIRequest("/1.0/system/storage")
+                if result["status_code"] != 200:
+                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                    raise IncusOSException("expected two member devices for local pool")
+
+                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
+                    raise IncusOSException("pool doesn't have expected member device")
+
+                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                    raise IncusOSException("pool doesn't have expected member device")
+
+                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+
+                if result["metadata"]["state"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+
+                # Physically yank the second drive and trigger a scrub to put the pool into a degraded state.
+                vm.RemoveDevice("disk1")
+                vm.RunCommand("zpool", "scrub", "local")
+
+                # Wait for scrub to complete.
+                time.sleep(5)
+
+                # Get the updated storage state.
+                result = vm.APIRequest("/1.0/system/storage")
+                if result["status_code"] != 200:
+                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+                    raise IncusOSException("expected one member device for local pool")
+
+                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                    raise IncusOSException("pool doesn't have expected member device")
+
+                if len(result["metadata"]["state"]["pools"][0]["devices_degraded"]) != 1:
+                    raise IncusOSException("expected one degraded device for local pool")
+
+                if result["metadata"]["state"]["pools"][0]["devices_degraded"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
+                    raise IncusOSException("pool doesn't have expected degraded device")
+
+                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+
+                if result["metadata"]["state"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+
+                if result["metadata"]["state"]["pools"][0]["state"] != "DEGRADED":
+                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["state"]["pools"][0]["state"])
+
+                # Replace the missing drive with the third one.
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                if result["status_code"] != 200:
+                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                # Wait for scrub to complete.
+                time.sleep(5)
+
+                # Get the updated storage state.
+                result = vm.APIRequest("/1.0/system/storage")
+                if result["status_code"] != 200:
+                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                    raise IncusOSException("expected two member devices for local pool")
+
+                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11":
+                    raise IncusOSException("pool doesn't have expected member device")
+
+                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                    raise IncusOSException("pool doesn't have expected member device")
+
+                if len(result["metadata"]["state"]["pools"][0].get("devices_degraded", [])) != 0:
+                    raise IncusOSException("expected no degraded devices for local pool")
+
+                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+
+                if result["metadata"]["state"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+
+                if result["metadata"]["state"]["pools"][0]["state"] != "ONLINE":
+                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["state"]["pools"][0]["state"])
