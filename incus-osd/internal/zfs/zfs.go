@@ -595,7 +595,7 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		}
 	} else {
 		// Perform a normal update of the zpool's storage device(s).
-		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Type, currentConfig.Devices, newConfig.Devices)
+		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Type, currentConfig.Devices, currentConfig.DevicesDegraded, newConfig.Devices)
 		if err != nil {
 			return err
 		}
@@ -606,18 +606,18 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 		logType = "zfs-raid1"
 	}
 
-	err = updateZpoolHelper(ctx, newConfig.Name, logType, currentConfig.Log, newConfig.Log)
+	err = updateZpoolHelper(ctx, newConfig.Name, logType, currentConfig.Log, currentConfig.LogDegraded, newConfig.Log)
 	if err != nil {
 		return err
 	}
 
-	err = updateZpoolHelper(ctx, newConfig.Name, "zfs-raid0", currentConfig.Cache, newConfig.Cache)
+	err = updateZpoolHelper(ctx, newConfig.Name, "zfs-raid0", currentConfig.Cache, currentConfig.CacheDegraded, newConfig.Cache)
 	if err != nil {
 		return err
 	}
 
 	if newConfig.Special != nil {
-		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Special.Type, currentConfig.Special.Devices, newConfig.Special.Devices)
+		err := updateZpoolHelper(ctx, newConfig.Name, newConfig.Special.Type, currentConfig.Special.Devices, currentConfig.SpecialDegraded, newConfig.Special.Devices)
 		if err != nil {
 			return err
 		}
@@ -687,8 +687,29 @@ func partitionLocalPoolDevice(ctx context.Context, device string) (string, error
 	return device + "-part11", nil
 }
 
-func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, newDevices []string) error {
-	// Compare the two lists of devices and apply updates as needed.
+func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, degradedDevices []string, newDevices []string) error {
+	// Iterate over each degraded device. If the device itself is missing, this likely means
+	// it was a failed drive that's already been physically removed. As such, it won't show up
+	// in the storage API, but will still be recorded as part of the zpool. An end user will
+	// intuitively attempt to replace the degraded device with a new one by adding another
+	// existing drive to the zpool's configuration, which will result in an extra new device
+	// here. Rather than using it to expand the zpool, which would still be degraded, instead
+	// attempt to automatically replace the existing degraded device with the new one.
+	for _, degradedDevice := range degradedDevices {
+		// If no more extra devices are available, break out of the loop.
+		if len(currentDevices) >= len(newDevices) {
+			break
+		}
+
+		_, err := os.Stat(degradedDevice)
+		if err != nil && os.IsNotExist(err) {
+			// Add the missing degraded device to the list of current devices.
+			// This will trigger a replace in the logic below.
+			currentDevices = append(currentDevices, degradedDevice)
+		}
+	}
+
+	// Compare the list of current devices to the list of new devices and apply updates as needed.
 	for idx := range currentDevices {
 		if newDevices[idx] == "" { //nolint:nestif
 			// The update contains an empty string for this device -> remove from the pool.
@@ -744,7 +765,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 		}
 	}
 
-	// Add any additional new devices.
+	// Add any remaining new devices to the zpool.
 	devicesToAdd := newDevices[len(currentDevices):]
 
 	if len(devicesToAdd) == 0 {
