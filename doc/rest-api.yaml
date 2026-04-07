@@ -9717,7 +9717,7 @@ paths:
                                       hwaddr: 10:66:6a:1a:20:0f
                                       lldp: true
                                       name: enp5s0
-                                      required_for_online: "yes"
+                                      required_for_online: "ipv4"
                                 time:
                                     timezone: America/New_York
                             type: object

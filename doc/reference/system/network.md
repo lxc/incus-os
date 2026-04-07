@@ -28,13 +28,17 @@ If only the `management` role has been assigned, then the `cluster` role will au
 
 Interfaces, bonds, VLANs and WireGuard have a significant number of fields, which are largely self-descriptive and can be viewed in the [API definition](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_network.go).
 
+### Specifying hardware addresses (MACs)
+
 One special feature of note is the handling of hardware addresses (MACs). Both interfaces and bonds associate their configuration with the hardware address, which can be specified in two ways:
 
 * Raw MAC: Specify the hardware address directly, such as `10:66:6a:e5:6a:1c`.
 
 * Interface name: If an interface name is provided, such as `enp5s0`, at startup IncusOS will attempt to get its MAC address and substitute that value in the configuration. This is useful when installing IncusOS across multiple physically identical servers with only a single [install seed](../seed.md).
 
-The following configuration options can be set:
+### Top-level configuration options
+
+The following top-level network configuration options can be set:
 
 * `confirmation_timeout`: If defined, will trigger an automatic roll back of the network configuration unless a followup confirmation command is received before the timeout expires.
 
@@ -51,6 +55,10 @@ The following configuration options can be set:
 * `proxy`: Optionally, configure a proxy for the system.
 
 * `time`: Optionally, configure custom NTP server(s) and timezone for the system.
+
+### `required_for_online` values
+
+Network interfaces, bonds, VLANs, and WireGuard interfaces can optionally be configured with the `required_for_online` option that IncusOS will use to determine when that network device is online. Valid values include `ipv4`, `ipv6`, `both`, `any`, and `no`. If not specified, defaults to `any`. For further details, refer to systemd's [`RequiredFamilyForOnline` networkctl configuration option](https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html#RequiredFamilyForOnline=).
 
 ### Firewall
 
@@ -116,7 +124,7 @@ config:
     - dhcp4
     hwaddr: 10:66:6a:f1:49:aa
     name: enp5s0
-    required_for_online: "yes"
+    required_for_online: "ipv4"
   time:
     timezone: UTC
 ```

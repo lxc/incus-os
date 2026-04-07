@@ -74,7 +74,7 @@ import (
 //	        config:
 //	          type: object
 //	          description: The network configuration
-//	          example: {"confirmation_timeout":"3m","interfaces":[{"name":"enp5s0","addresses":["dhcp4"],"required_for_online":"yes","hwaddr":"10:66:6a:1a:20:0f","lldp":true}],"time":{"timezone":"America/New_York"}}
+//	          example: {"confirmation_timeout":"3m","interfaces":[{"name":"enp5s0","addresses":["dhcp4"],"required_for_online":"ipv4","hwaddr":"10:66:6a:1a:20:0f","lldp":true}],"time":{"timezone":"America/New_York"}}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
