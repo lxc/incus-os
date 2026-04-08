@@ -167,12 +167,24 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 			// #nosec G118
 			go func(ctx context.Context) { //nolint:contextcheck
 				select {
-				case <-s.state.NetworkConfigurationChannel:
-					// Confirmed, nothing special to do.
+				case err := <-s.state.NetworkConfigurationChannel:
+					// If we get a non-nil error from the channel, something's
+					// gone wrong attempting to apply the new network configuration.
+					// Automatically roll it back without waiting for the timeout
+					// to expire. If the error is nil, there's nothing special
+					// that needs to be done.
+					if err != nil {
+						slog.WarnContext(ctx, "Invalid network configuration detected, rolling back to prior known-good state")
+
+						err = applyNetworkConfiguration(ctx, s.state, s.state.PriorNetworkConfig, 30*time.Second)
+						if err != nil {
+							slog.ErrorContext(ctx, "Failed to roll back network configuration: "+err.Error())
+						}
+					}
 				case <-time.After(confirmationTimeout):
 					// At this point, the user-provided timeout has elapsed and the changes were not confirmed,
 					// so we need to roll the changes back.
-					slog.WarnContext(ctx, "Rolling back network configuration to prior known-good state")
+					slog.WarnContext(ctx, "Timeout expired, rolling back network configuration to prior known-good state")
 
 					err = applyNetworkConfiguration(ctx, s.state, s.state.PriorNetworkConfig, 30*time.Second)
 					if err != nil {
@@ -201,6 +213,11 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 		err = applyNetworkConfiguration(r.Context(), s.state, newConfig.Config, applyTimeout)
 		if err != nil {
+			if s.state.NetworkConfigurationPending {
+				// Trigger an immediate rollback of the bad configuration.
+				s.state.NetworkConfigurationChannel <- err
+			}
+
 			slog.ErrorContext(r.Context(), "Failed to update network configuration: "+err.Error())
 			_ = response.InternalError(err).Render(w)
 
