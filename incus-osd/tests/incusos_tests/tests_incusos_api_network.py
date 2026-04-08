@@ -169,8 +169,42 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Sleep an additional 45 seconds to let the confirmation timeout elapse and revert the network configuration
         time.sleep(45)
 
-        vm.WaitExpectedLog("incus-osd", "Rolling back network configuration to prior known-good state")
+        vm.WaitExpectedLog("incus-osd", "Timeout expired, rolling back network configuration to prior known-good state")
         vm.LogDoesntContain("incus-osd", "Failed to roll back network configuration")
+
+        # Verify the configuration has been rolled back as expected
+        result = vm.APIRequest("/1.0/system/network")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+
+        if "dhcp4" not in result["metadata"]["config"]["interfaces"][0]["addresses"]:
+            raise IncusOSException("expected interface to be configured with dhcp4")
+
+        if "slaac" not in result["metadata"]["config"]["interfaces"][0]["addresses"]:
+            raise IncusOSException("expected interface to be configured with slaac")
+
+        if len(result["metadata"]["state"]["interfaces"]["enp5s0"]["addresses"]) != 2:
+            raise IncusOSException("expected interface enp5s0 to have exactly two addresses")
+
+        _checkNetworkConnectivity(vm)
+
+        ## Next, test automatically rolling back a bad network configuration without needing to wait for the timeout to expire
+        networkCfg["config"]["interfaces"][0]["addresses"] = ["dhcp4", "bizbaz"]
+
+        result = vm.APIRequest("/1.0/system/network", method="PUT", body=json.dumps(networkCfg))
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success setting an invalid network configuration")
+
+        if result["error"] != "interface 0 address 1 invalid IP address 'bizbaz', must provide a CIDR mask":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
+        # Restore the correct new IP configuration for the interface
+        networkCfg["config"]["interfaces"][0]["addresses"] = ["dhcp4"]
+
+        # Sleep 10 seconds to allow the network configuration to properly revert and settle
+        time.sleep(10)
+
+        vm.WaitExpectedLog("incus-osd", "Invalid network configuration detected, rolling back to prior known-good state")
 
         # Verify the configuration has been rolled back as expected
         result = vm.APIRequest("/1.0/system/network")
