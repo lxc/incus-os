@@ -34,7 +34,7 @@ def TestInstallSecureBootDisabled(install_image):
         # Verify Secure Boot being disabled is reflected in security state
         result = vm.APIRequest("/1.0/system/security")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if result["metadata"]["state"]["system_state_is_trusted"]:
             raise IncusOSException("expected to see system state is untrusted")
@@ -43,4 +43,4 @@ def TestInstallSecureBootDisabled(install_image):
         result["metadata"]["config"]["encryption_recovery_keys"][0] = "foo-bar-biz-1234"
         result = vm.APIRequest("/1.0/system/security", method="PUT", body=json.dumps(result["metadata"]))
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))

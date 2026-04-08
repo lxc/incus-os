@@ -14,7 +14,7 @@ def TestIncusOSAPISystemResources(install_image):
         # Perform a basic sanity check of the returned data.
         result = vm.APIRequest("/1.0/system/resources")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         keys = result["metadata"].keys()
         for key in ["cpu", "memory", "network", "storage"]:

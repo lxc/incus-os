@@ -19,7 +19,7 @@ def TestIncusOSAPISystemReset(install_image):
         # Command the system to perform a factory reset.
         result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
@@ -53,7 +53,7 @@ def TestIncusOSAPISystemResetSWTPM(install_image):
         # Command the system to perform a factory reset.
         result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
@@ -94,7 +94,7 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         # Command the system to perform a factory reset.
         result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
@@ -131,7 +131,7 @@ def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
         # Command the system to perform a factory reset.
         result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
@@ -173,7 +173,7 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             # Command the system to perform a factory reset.
             result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             time.sleep(5)
 

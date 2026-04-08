@@ -16,7 +16,7 @@ def TestIncusOSAPIServices(install_image):
         # Test top-level /1.0/services endpoint.
         result = vm.APIRequest("/1.0/services")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) == 0:
             raise IncusOSException("expected at least one services endpoint")
@@ -25,4 +25,4 @@ def TestIncusOSAPIServices(install_image):
         for service in result["metadata"]:
             result = vm.APIRequest(service)
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))

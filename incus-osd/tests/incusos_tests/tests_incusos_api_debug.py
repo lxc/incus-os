@@ -14,7 +14,7 @@ def TestIncusOSAPIDebug(install_image):
         # Test top-level /1.0/debug endpoint.
         result = vm.APIRequest("/1.0/debug")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 3:
             raise IncusOSException("expected three debug endpoints")
@@ -26,7 +26,7 @@ def TestIncusOSAPIDebug(install_image):
         # Test journal retrieval.
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         lines = [l["MESSAGE"] for l in result["metadata"]]
         if "INFO System is ready" not in lines[-1]:
@@ -35,17 +35,17 @@ def TestIncusOSAPIDebug(install_image):
         # Test sending log messages via API.
         result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"INFO","message":"Test message one"}')
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
         result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"WARN","message":"Test message two"}')
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
         result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"ERROR","message":"Test message three"}')
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Get the log messages back.
         lines = [l["MESSAGE"] for l in result["metadata"]]

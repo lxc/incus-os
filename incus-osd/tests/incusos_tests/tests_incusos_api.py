@@ -14,7 +14,7 @@ def TestIncusOSAPI(install_image):
         # Test top-level /1.0 endpoint.
         result = vm.APIRequest("/1.0")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if result["metadata"]["environment"]["os_name"] != "IncusOS":
             raise IncusOSException("unexpected OS Name: " + result["metadata"]["environment"]["os_name"])

@@ -105,7 +105,7 @@ def _installStartChecks(vm, incusos_version):
     # Verify that no applications are installed.
     result = vm.APIRequest("/1.0/applications")
     if result["status_code"] != 200:
-        raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+        raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
     if len(result["metadata"]) != 0:
         raise IncusOSException("expected no application to be installed")
@@ -130,7 +130,7 @@ def _recoveryChecks(vm, incusos_version):
     # Verity the incus application is installed.
     result = vm.APIRequest("/1.0/applications")
     if result["status_code"] != 200:
-        raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+        raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
     if len(result["metadata"]) != 1:
         raise IncusOSException("expected exactly one application")
