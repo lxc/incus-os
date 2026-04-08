@@ -164,7 +164,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.67.3",
+        "version": "v0.67.4",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -202,7 +202,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.5.2",
+        "version": "v0.5.3",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
