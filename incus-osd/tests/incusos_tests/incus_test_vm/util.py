@@ -1,10 +1,12 @@
 import io
+import json
 import os
 import random
 import shutil
 import string
 import subprocess
 import tarfile
+import urllib.request
 
 def _get_random_string():
     return "".join(random.choices(string.ascii_letters + string.digits, k=10))
@@ -35,6 +37,26 @@ def _prepare_test_image(image, seed):
 
     # Return the path of the customized install image and IncusOS version.
     return test_image, basename.replace("IncusOS_", "").replace(ext, "")
+
+def _manual_download_application(directory, name, version):
+    os.mkdir(directory+"/update")
+
+    urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/update.json", directory+"/update/update.json")
+    urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/update.sjson", directory+"/update/update.sjson")
+
+    os.mkdir(directory+"/update/x86_64")
+
+    with open(directory+"/update/update.json") as f:
+        j = json.load(f)
+
+        for updateFile in j["files"]:
+            if updateFile["architecture"] != "x86_64":
+                continue
+
+            if updateFile["type"] != "application" or updateFile["component"] != name:
+                continue
+
+            urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/"+updateFile["filename"], directory+"/update/"+updateFile["filename"])
 
 def _create_user_media(f, d, media_type, media_size, media_label):
     if media_type == "img":

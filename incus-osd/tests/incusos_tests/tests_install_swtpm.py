@@ -47,7 +47,7 @@ def TestInstallUseSWTPM(install_image):
         # Verify the security endpoint reflects swtpm is in use
         result = vm.APIRequest("/1.0/system/security")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if result["metadata"]["state"]["tpm_status"] != "swtpm":
             raise IncusOSException("tpm_status != swtpm, got " + result["metadata"]["state"]["tpm_status"])
@@ -59,4 +59,4 @@ def TestInstallUseSWTPM(install_image):
         result["metadata"]["config"]["encryption_recovery_keys"][0] = "foo-bar-biz-1234"
         result = vm.APIRequest("/1.0/system/security", method="PUT", body=json.dumps(result["metadata"]))
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))

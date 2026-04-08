@@ -16,7 +16,7 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")
@@ -27,7 +27,7 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/incus")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -53,7 +53,7 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         # Trigger a factory-reset
         result = vm.APIRequest("/1.0/applications/incus/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/incus/test-file", check=False)
@@ -63,7 +63,7 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         # Restore the application backup
         result = vm.APIRequest("/1.0/applications/incus/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/incus/test-file")
@@ -83,7 +83,7 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")
@@ -94,7 +94,7 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/migration-manager")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -112,7 +112,7 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         # Trigger a factory-reset
         result = vm.APIRequest("/1.0/applications/migration-manager/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/migration-manager/test-file", check=False)
@@ -122,7 +122,7 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         # Restore the application backup
         result = vm.APIRequest("/1.0/applications/migration-manager/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/migration-manager/test-file")
@@ -142,7 +142,7 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")
@@ -153,7 +153,7 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/operations-center")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -171,7 +171,7 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         # Trigger a factory-reset
         result = vm.APIRequest("/1.0/applications/operations-center/:factory-reset", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/operations-center/test-file", check=False)
@@ -181,7 +181,7 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         # Restore the application backup
         result = vm.APIRequest("/1.0/applications/operations-center/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/operations-center/test-file")
@@ -201,7 +201,7 @@ def TestIncusOSAPIApplicationsIncusCeph(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Expect to see both incus and incus-linstor applications
         if len(result["metadata"]) != 2:
@@ -216,7 +216,7 @@ def TestIncusOSAPIApplicationsIncusCeph(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/incus-ceph")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -239,7 +239,7 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")
@@ -250,7 +250,7 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/incus")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -262,14 +262,14 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         # Install incus-linstor via REST API
         result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"incus-linstor"}""")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus-linstor version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version="+incusos_version)
 
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Expect to see both incus and incus-linstor applications
         if len(result["metadata"]) != 2:
@@ -284,7 +284,7 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         # Get current application state
         result = vm.APIRequest("/1.0/applications/incus-linstor")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         state = result["metadata"]["state"]
         if not state["initialized"]:
@@ -307,7 +307,7 @@ def TestIncusOSAPIApplicationsRemove(install_image):
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")
@@ -326,13 +326,13 @@ def TestIncusOSAPIApplicationsRemove(install_image):
         # Add then remove the "debug" application
         result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"debug"}""")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 2:
             raise IncusOSException("expected exactly two applications")
@@ -342,13 +342,13 @@ def TestIncusOSAPIApplicationsRemove(install_image):
 
         result = vm.APIRequest("/1.0/applications/debug/:remove", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         time.sleep(5)
 
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]) != 1:
             raise IncusOSException("expected exactly one application")

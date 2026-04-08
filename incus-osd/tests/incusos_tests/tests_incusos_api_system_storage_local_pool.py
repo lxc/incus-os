@@ -18,7 +18,7 @@ def TestIncusOSAPISystemStorageLocalPool(install_image):
         # Get current storage state.
         result = vm.APIRequest("/1.0/system/storage")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["state"]["drives"]) != 1:
             raise IncusOSException("expected exactly one drive")
@@ -60,7 +60,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             # Get current storage state.
             result = vm.APIRequest("/1.0/system/storage")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
@@ -95,12 +95,12 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             # Extend the "local" pool with the second drive
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             # Get the updated storage state
             result = vm.APIRequest("/1.0/system/storage")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
@@ -146,12 +146,12 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             # Remove the second drive from the pool
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             # Get the updated storage state
             result = vm.APIRequest("/1.0/system/storage")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
@@ -205,7 +205,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 # Get current storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
@@ -246,12 +246,12 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 # Extend the "local" pool with the second drive
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
@@ -303,12 +303,12 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 # Replace the second drive with the third
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
@@ -371,11 +371,11 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
             # Convert "local" pool to RAID1 and get its encryption key
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             result = vm.APIRequest("/1.0/system/security")
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
             encryption_key = result["metadata"]["state"]["pool_recovery_keys"]["local"]
 
@@ -390,7 +390,7 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
             # After the pool is recovered, re-import it via API
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"local","type":"zfs","encryption_key":""" + '"' + encryption_key + '"}')
             if result["status_code"] != 200:
-                raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
 def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
     test_name = "incusos-api-system-storage-local-pool-scrub"
@@ -406,7 +406,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         # Get current storage state.
         result = vm.APIRequest("/1.0/system/storage")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["state"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
@@ -417,7 +417,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         # Scrub the pool.
         result = vm.APIRequest("/1.0/system/storage/:scrub-pool", method="POST", body="""{"name":"local"}""")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Wait for scrub to complete.
         time.sleep(5)
@@ -425,7 +425,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         # Get current storage state.
         result = vm.APIRequest("/1.0/system/storage")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["state"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
@@ -462,7 +462,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         # Get current storage state.
         result = vm.APIRequest("/1.0/system/storage")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["state"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
@@ -473,12 +473,12 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         # Update the scrub schedule
         result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 0 * * 5", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Get current storage state.
         result = vm.APIRequest("/1.0/system/storage")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if result["metadata"]["config"]["scrub_schedule"] != "0 0 * * 5":
             raise IncusOSException("expected scrub schedule to be updated")
@@ -505,12 +505,12 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 # Extend the "local" pool with the second drive and convert to RAID1.
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 # Get the storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")
@@ -537,7 +537,7 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
                     raise IncusOSException("expected one member device for local pool")
@@ -563,7 +563,7 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 # Replace the missing drive with the third one.
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 # Wait for scrub to complete.
                 time.sleep(5)
@@ -571,7 +571,7 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
-                    raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+                    raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                 if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")

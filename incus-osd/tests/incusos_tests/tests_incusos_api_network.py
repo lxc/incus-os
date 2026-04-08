@@ -23,7 +23,7 @@ def TestIncusOSAPISystemNetworkDefaults(install_image):
         # Get current network configuration and state
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         config = result["metadata"]["config"]
 
@@ -110,7 +110,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Get current network configuration
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         networkCfg = result["metadata"]
 
@@ -139,7 +139,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
 
         result = vm.APIRequest("/1.0/system/network", method="PUT", body=json.dumps(networkCfg))
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Let the new network configuration settle
         time.sleep(10)
@@ -147,7 +147,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Get the updated network configuration and verify connectivity still works
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["config"]["interfaces"][0]["addresses"]) != 1 or \
             result["metadata"]["config"]["interfaces"][0]["addresses"][0] != "dhcp4":
@@ -175,7 +175,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Verify the configuration has been rolled back as expected
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if "dhcp4" not in result["metadata"]["config"]["interfaces"][0]["addresses"]:
             raise IncusOSException("expected interface to be configured with dhcp4")
@@ -209,7 +209,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Verify the configuration has been rolled back as expected
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if "dhcp4" not in result["metadata"]["config"]["interfaces"][0]["addresses"]:
             raise IncusOSException("expected interface to be configured with dhcp4")
@@ -225,7 +225,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         ## Finally, test that confirming the changes persists the new network configuration
         result = vm.APIRequest("/1.0/system/network", method="PUT", body=json.dumps(networkCfg))
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Let the new network configuration settle
         time.sleep(10)
@@ -233,7 +233,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Get the updated network configuration and verify connectivity still works
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["config"]["interfaces"][0]["addresses"]) != 1 or \
             result["metadata"]["config"]["interfaces"][0]["addresses"][0] != "dhcp4":
@@ -246,7 +246,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
 
         result = vm.APIRequest("/1.0/system/network/:confirm", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Sleep an additional 45 seconds to let the confirmation timeout elapse and verify the changes weren't rolled back
         time.sleep(45)
@@ -254,7 +254,7 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         # Verify the configuration wasn't rolled back
         result = vm.APIRequest("/1.0/system/network")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["config"]["interfaces"][0]["addresses"]) != 1 or \
             result["metadata"]["config"]["interfaces"][0]["addresses"][0] != "dhcp4":

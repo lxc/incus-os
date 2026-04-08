@@ -16,7 +16,7 @@ def TestIncusOSAPISystemSecurity(install_image):
         # Get current security configuration and state.
         result = vm.APIRequest("/1.0/system/security")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if result["metadata"]["state"]["tpm_status"] != "ok":
             raise IncusOSException("tpm_status != ok, got " + result["metadata"]["state"]["tpm_status"])
@@ -34,12 +34,12 @@ def TestIncusOSAPISystemSecurity(install_image):
         result["metadata"]["config"]["encryption_recovery_keys"].append("foo-bar-biz-1234")
         result = vm.APIRequest("/1.0/system/security", method="PUT", body=json.dumps(result["metadata"]))
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Verify two encryption recovery keys are present.
         result = vm.APIRequest("/1.0/system/security")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         if len(result["metadata"]["config"]["encryption_recovery_keys"]) != 2:
             raise IncusOSException("expected exactly two encryption recovery keys")
@@ -61,7 +61,7 @@ def TestIncusOSAPISystemSecurityTPMRebind(install_image):
         # By default, forcing a TPM rebind will fail unless the system is in a changed state.
         result = vm.APIRequest("/1.0/system/security/:tpm-rebind", method="POST")
         if result["status_code"] != 0 or result["error"] != "refusing to reset TPM encryption bindings because current state can unlock all volumes":
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # This is a sledgehammer approach, but fine for the test. :)
         vm.RunCommand("chattr", "-i", "/sys/firmware/efi/efivars/IncusOSTPMState-12f075e0-2d07-493d-811a-00920a72c04c")
@@ -71,7 +71,7 @@ def TestIncusOSAPISystemSecurityTPMRebind(install_image):
         # Now we expect TPM rebinding to work.
         result = vm.APIRequest("/1.0/system/security/:tpm-rebind", method="POST")
         if result["status_code"] != 200:
-            raise IncusOSException("unexpected status code %d: %s" % (result["status_code"], result["error"]))
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # The VM will automatically reboot, but since we just smashed things with a hammer it will hang
         # waiting for an encryption recovery key to be provided. So, nothing more to do in this test.
