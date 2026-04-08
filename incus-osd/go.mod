@@ -4,11 +4,11 @@ go 1.25.6
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.6
-	github.com/FuturFusion/operations-center v0.5.2
+	github.com/FuturFusion/operations-center v0.5.3
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.8
-	github.com/go-co-op/gocron/v2 v2.19.1
+	github.com/go-co-op/gocron/v2 v2.20.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
