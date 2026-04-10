@@ -747,7 +747,7 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		err = update.ReloadApplication(r.Context(), s.state, p, name, newAppVersion, false)
+		err = update.ReloadApplication(r.Context(), s.state, name, newAppVersion)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
