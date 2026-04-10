@@ -214,6 +214,53 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 	}
 }
 
+// InstallUpdateApp wraps common logic used when manually installing or updating an application.
+func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool) error {
+	// Get the TUI.
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return err
+	}
+
+	// Get the provider.
+	p, err := providers.Load(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	if clearCache {
+		// Clear the provider cache to get the latest available version for an update.
+		err := p.ClearCache(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Attempt to download the application.
+	newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, false)
+	if err != nil {
+		return err
+	}
+
+	// If the application was freshly installed or updated, refresh the sysext images and trigger the application's update method.
+	if newAppVersion != "" {
+		// Display a post-update message.
+		HandlePostUpdateMessage(s, t, "")
+
+		err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+		if err != nil {
+			return err
+		}
+
+		err = ReloadApplication(ctx, s, appName, newAppVersion)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // ReloadApplication wraps common logic used when starting/updating an application after it is updated.
 func ReloadApplication(ctx context.Context, s *state.State, appName string, appVersion string) error {
 	// Get the provider.
