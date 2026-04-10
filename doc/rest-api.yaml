@@ -2,7 +2,7 @@ definitions:
     ACMEChallengeType:
         title: ACMEChallengeType represents challenge types for ACME configuration.
         type: string
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
     Access:
         items:
             $ref: '#/definitions/AccessEntry'
@@ -1847,117 +1847,141 @@ definitions:
     Instance:
         properties:
             architecture:
-                description: Architecture name
+                description: Architecture of the Instance.
                 example: x86_64
                 type: string
                 x-go-name: Architecture
+            background_import:
+                description: Whether the Instance supports background-import migrations.
+                example: true
+                type: boolean
+                x-go-name: BackgroundImport
             config:
                 additionalProperties:
                     type: string
-                description: Instance configuration (see doc/instances.md)
+                description: Additional configuration of the Instance.
                 example:
                     security.nesting: "true"
                 type: object
                 x-go-name: Config
-            created_at:
-                description: Instance creation timestamp
-                example: "2021-03-23T20:00:00-04:00"
-                format: date-time
-                type: string
-                x-go-name: CreatedAt
+            cpus:
+                description: Number of CPUs assigned to the Instance.
+                example: 4
+                format: int64
+                type: integer
+                x-go-name: CPUs
             description:
-                description: Instance description
-                example: My test instance
+                description: Description of the Instance.
+                example: Windows Server 2025
                 type: string
                 x-go-name: Description
-            devices:
-                description: Instance devices (see doc/instances.md)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: Devices
-            disk_only:
-                description: Whether only the instances disk should be restored
-                example: false
-                type: boolean
-                x-go-name: DiskOnly
-            ephemeral:
-                description: Whether the instance is ephemeral (deleted on shutdown)
-                example: false
-                type: boolean
-                x-go-name: Ephemeral
-            expanded_config:
-                description: Expanded configuration (all profiles and local config merged)
-                example:
-                    security.nesting: "true"
-                type: object
-                x-go-name: ExpandedConfig
-            expanded_devices:
-                description: Expanded devices (all profiles and local devices merged)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: ExpandedDevices
-            last_used_at:
-                description: Last start timestamp
-                example: "2021-03-23T20:00:00-04:00"
+            disks:
+                description: List of disks assigned to the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesDisk'
+                type: array
+                x-go-name: Disks
+            distribution:
+                $ref: '#/definitions/Distro'
+            distribution_version:
+                description: Distribution version used for specific post-migration handling.
+                example: "7"
+                type: string
+                x-go-name: DistributionVersion
+            last_update_from_source:
+                description: Last synced update from the source.
+                example: "2025-01-01 01:00:00"
                 format: date-time
                 type: string
-                x-go-name: LastUsedAt
+                x-go-name: LastUpdateFromSource
+            legacy_boot:
+                description: Whether the Instance uses legacy (CSM) boot.
+                example: true
+                type: boolean
+                x-go-name: LegacyBoot
             location:
-                description: What cluster member this instance is located on
-                example: server01
+                description: Location path of the Instance.
+                example: /path/to/instance_name
                 type: string
                 x-go-name: Location
+            memory:
+                description: Memory in bytes assigned to the Instance.
+                example: 1073741824
+                format: int64
+                type: integer
+                x-go-name: Memory
             name:
-                description: Instance name
-                example: foo
+                description: Name of the Instance.
+                example: myVM
                 type: string
                 x-go-name: Name
-            profiles:
-                description: List of profiles applied to the instance
-                example:
-                    - default
+            nics:
+                description: List of network interface cards assigned to the Instance.
                 items:
-                    type: string
+                    $ref: '#/definitions/InstancePropertiesNIC'
                 type: array
-                x-go-name: Profiles
-            project:
-                description: Instance project name
-                example: foo
+                x-go-name: NICs
+            os:
+                description: OS name of the Instance.
+                example: Ubuntu
                 type: string
-                x-go-name: Project
-            restore:
-                description: If set, instance will be restored to the provided snapshot name
-                example: snap0
+                x-go-name: OS
+            os_description:
+                description: OS version of the Instance.
+                example: "24.04"
                 type: string
-                x-go-name: Restore
-            stateful:
-                description: Whether the instance currently has saved state on disk
-                example: false
+                x-go-name: OSDescription
+            os_template:
+                description: OS template of the Instance.
+                example: Ubuntu Linux
+                type: string
+                x-go-name: OSTemplate
+            os_type:
+                $ref: '#/definitions/OSType'
+            overrides:
+                $ref: '#/definitions/InstanceOverride'
+            running:
+                description: Whether the Instance was running when the sync was performed.
+                example: true
                 type: boolean
-                x-go-name: Stateful
-            status:
-                description: Instance status (see instance_state)
-                example: Running
+                x-go-name: Running
+            secure_boot:
+                description: Whether the Instance has secure-boot enabled.
+                example: true
+                type: boolean
+                x-go-name: SecureBoot
+            snapshots:
+                description: List of snapshots for the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesSnapshot'
+                type: array
+                x-go-name: Snapshots
+            source:
+                description: The originating source name for this instance
+                example: MySource
                 type: string
-                x-go-name: Status
-            status_code:
-                $ref: '#/definitions/StatusCode'
-            type:
-                description: The type of instance (container or virtual-machine)
-                example: container
+                x-go-name: Source
+            source_specific_id:
+                description: SourceSpecificID is the unique identifier internal to the source type.
+                example: vm-123 (vmware)
                 type: string
-                x-go-name: Type
-        title: Instance represents an instance.
+                x-go-name: SourceSpecificID
+            source_type:
+                $ref: '#/definitions/SourceType'
+            tpm:
+                description: Whether the Instance has a TPM.
+                example: true
+                type: boolean
+                x-go-name: TPM
+            uuid:
+                description: Unique identifier of the Instance.
+                example: a2095069-a527-4b2a-ab23-1739325dcac7
+                format: uuid
+                type: string
+                x-go-name: UUID
+        title: Instance defines a VM instance to be migrated.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     InstanceBackup:
         properties:
             created_at:
@@ -3514,45 +3538,73 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
+        description: Network represents a network
         properties:
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
-                type: string
-                x-go-name: Location
-            overrides:
-                $ref: '#/definitions/NetworkPlacement'
-            placement:
-                $ref: '#/definitions/NetworkPlacement'
-            properties:
-                description: Additional properties of the network.
+            config:
+                description: Network configuration map (refer to doc/networks.md)
+                example:
+                    ipv4.address: 10.0.0.1/24
+                    ipv4.nat: "true"
+                    ipv6.address: none
                 type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+                x-go-name: Config
+            description:
+                description: Description of the profile
+                example: My new bridge
                 type: string
-                x-go-name: Source
-            source_specific_id:
-                description: The source-specific identifier of the network
-                example: network-23
+                x-go-name: Description
+            locations:
+                description: Cluster members on which the network has been defined
+                example:
+                    - server01
+                    - server02
+                    - server03
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: Locations
+            managed:
+                description: Whether this is a managed network
+                example: true
+                readOnly: true
+                type: boolean
+                x-go-name: Managed
+            name:
+                description: The network name
+                example: mybr0
+                readOnly: true
                 type: string
-                x-go-name: SourceSpecificID
+                x-go-name: Name
+            project:
+                description: Project name
+                example: project1
+                type: string
+                x-go-name: Project
+            status:
+                description: The state of the network (for managed network in clusters)
+                example: Created
+                readOnly: true
+                type: string
+                x-go-name: Status
             type:
-                $ref: '#/definitions/NetworkType'
                 description: The network type
                 example: bridge
                 readOnly: true
                 type: string
                 x-go-name: Type
-            uuid:
-                description: UUID of the network.
-                format: uuid
-                type: string
-                x-go-name: UUID
-        title: Network defines the network config for use by the migration manager.
+            used_by:
+                description: List of URLs of objects using this profile
+                example:
+                    - /1.0/profiles/default
+                    - /1.0/instances/c1
+                items:
+                    type: string
+                readOnly: true
+                type: array
+                x-go-name: UsedBy
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkACL:
         properties:
             config:
@@ -7023,18 +7075,6 @@ definitions:
     ServerUntrusted:
         description: ServerUntrusted represents a server configuration for an untrusted client
         properties:
-            api_extensions:
-                description: List of supported API extensions
-                example:
-                    - etag
-                    - patch
-                    - network
-                    - storage
-                items:
-                    type: string
-                readOnly: true
-                type: array
-                x-go-name: APIExtensions
             api_status:
                 description: Support status of the current API (one of "devel", "stable" or "deprecated")
                 example: stable
@@ -7067,17 +7107,17 @@ definitions:
                     type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :8443
+                    core.https_address: :6443
                 type: object
                 x-go-name: Config
-            public:
-                description: Whether the server is public-only (only public endpoints are implemented)
-                example: false
+            server_version:
+                description: Server version
+                example: 1.0.0
                 readOnly: true
-                type: boolean
-                x-go-name: Public
+                type: string
+                x-go-name: ServerVersion
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Settings:
         properties:
             log_level:
@@ -9717,7 +9757,7 @@ paths:
                                       hwaddr: 10:66:6a:1a:20:0f
                                       lldp: true
                                       name: enp5s0
-                                      required_for_online: "ipv4"
+                                      required_for_online: ipv4
                                 time:
                                     timezone: America/New_York
                             type: object
@@ -10188,7 +10228,11 @@ paths:
         post:
             consumes:
                 - application/json
-            description: Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+            description: |-
+                Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+                Existing data on the drive will be opportunistically wiped via `blkdiscard` unless "secure_wipe" is true,
+                which will guarantee all data is erased. On large spinning drives that don't support `blkdiscard`, securely
+                wiping the drive may take a very long time.
             operationId: system_post_storage_encrypt_drive
             parameters:
                 - description: The drive to be encrypted
@@ -10198,6 +10242,7 @@ paths:
                   schema:
                     example:
                         id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk
+                        secure_wipe: false
                     type: object
             produces:
                 - application/json
@@ -10301,7 +10346,10 @@ paths:
         post:
             consumes:
                 - application/json
-            description: Forcibly wipes all data from the specified drive.
+            description: |-
+                Wipes all data from the specified drive. Existing data on the drive will be opportunistically wiped
+                via `blkdiscard` unless "secure_wipe" is true, which will guarantee all data is erased. On large
+                spinning drives that don't support `blkdiscard`, securely wiping the drive may take a very long time.
             operationId: system_post_storage_wipe_drive
             parameters:
                 - description: The drive to be wiped
@@ -10311,6 +10359,7 @@ paths:
                   schema:
                     example:
                         id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk
+                        secure_wipe: true
                     type: object
             produces:
                 - application/json
