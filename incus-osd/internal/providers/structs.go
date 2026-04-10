@@ -4,13 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/pem"
-	"path/filepath"
 	"strconv"
 
 	"github.com/lxc/incus-os/incus-osd/certs"
-	"github.com/lxc/incus-os/incus-osd/internal/applications"
-	"github.com/lxc/incus-os/incus-osd/internal/state"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // CommonUpdate defines functions common to all update types.
@@ -47,8 +43,6 @@ type Provider interface {
 	ClearCache(ctx context.Context) error
 
 	Type() string
-
-	InstallApplication(ctx context.Context, s *state.State, appName string) (string, error)
 
 	GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error)
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
@@ -95,50 +89,4 @@ func GetUpdateCACert() (string, error) {
 	}
 
 	return b.String(), nil
-}
-
-func installApplication(ctx context.Context, s *state.State, p Provider, appName string) (string, error) {
-	// Fetch the application from provider.
-	update, err := p.GetApplicationUpdate(ctx, appName)
-	if err != nil {
-		return "", err
-	}
-
-	// Download the application.
-	err = update.Download(ctx, filepath.Join(systemd.LocalExtensionsPath, update.Version()), nil)
-	if err != nil {
-		return "", err
-	}
-
-	// Verify the application is signed with a trusted key in the kernel's keyring.
-	err = systemd.VerifyExtension(ctx, filepath.Join(systemd.LocalExtensionsPath, update.Version(), appName+".raw"))
-	if err != nil {
-		return "", err
-	}
-
-	// Reload sysext layer.
-	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the application.
-	app, err := applications.Load(ctx, s, appName)
-	if err != nil {
-		return "", err
-	}
-
-	// Start the application.
-	err = app.Start(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	// Initialize the application.
-	err = app.Initialize(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return update.Version(), nil
 }

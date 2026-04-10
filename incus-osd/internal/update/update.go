@@ -199,8 +199,10 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		}
 
 		// Notify the applications that they need to update/restart.
-		for appName, appVersion := range appsUpdated {
-			_ = ReloadApplication(ctx, s, p, appName, appVersion, isStartupCheck)
+		if !isStartupCheck {
+			for appName, appVersion := range appsUpdated {
+				_ = reloadApplication(ctx, s, appName, appVersion)
+			}
 		}
 
 		HandlePostUpdateMessage(s, t, newInstalledOSVersion)
@@ -212,8 +214,61 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 	}
 }
 
-// ReloadApplication wraps common logic used when starting/updating an application after it is updated.
-func ReloadApplication(ctx context.Context, s *state.State, p providers.Provider, appName string, appVersion string, isStartupCheck bool) error {
+// InstallUpdateApp wraps common logic used when manually installing or updating an application.
+func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool) error {
+	// Get the TUI.
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return err
+	}
+
+	// Get the provider.
+	p, err := providers.Load(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	if clearCache {
+		// Clear the provider cache to get the latest available version for an update.
+		err := p.ClearCache(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Attempt to download the application.
+	newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, false)
+	if err != nil {
+		return err
+	}
+
+	// If the application was freshly installed or updated, refresh the sysext images and trigger the application's update method.
+	if newAppVersion != "" {
+		// Display a post-update message.
+		HandlePostUpdateMessage(s, t, "")
+
+		err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+		if err != nil {
+			return err
+		}
+
+		err = reloadApplication(ctx, s, appName, newAppVersion)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// reloadApplication wraps common logic used when starting/updating an application after it is updated.
+func reloadApplication(ctx context.Context, s *state.State, appName string, appVersion string) error {
+	// Get the provider.
+	p, err := providers.Load(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	// Get the application.
 	app, err := applications.Load(ctx, s, appName)
 	if err != nil {
@@ -224,25 +279,23 @@ func ReloadApplication(ctx context.Context, s *state.State, p providers.Provider
 	}
 
 	// Start/reload the application.
-	if !isStartupCheck {
-		if app.IsRunning(ctx) {
-			slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
+	if app.IsRunning(ctx) {
+		slog.InfoContext(ctx, "Reloading application", "name", appName, "version", appVersion)
 
-			err := app.Update(ctx)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to reload application"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+		err := app.Update(ctx)
+		if err != nil {
+			s.System.Update.State.Status = "Failed to reload application"
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
-				return err
-			}
-		} else {
-			err := applications.StartInitialize(ctx, s, appName)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to start application"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+			return err
+		}
+	} else {
+		err := applications.StartInitialize(ctx, s, appName)
+		if err != nil {
+			s.System.Update.State.Status = "Failed to start application"
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
-				return err
-			}
+			return err
 		}
 	}
 

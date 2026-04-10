@@ -9,12 +9,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
-	"github.com/lxc/incus-os/incus-osd/internal/tui"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
@@ -153,13 +150,16 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Add the application to the state.
-		s.state.Applications[app.Name] = api.Application{}
+		// Install the application.
+		err = update.InstallUpdateApp(r.Context(), s.state, app.Name, false)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
 
-		// Trigger a manual update check to install the new application.
-		s.state.TriggerUpdate <- true
+			return
+		}
 
 		_ = response.EmptySyncResponse.Render(w)
+
 	default:
 		_ = response.NotImplemented(nil).Render(w)
 
@@ -703,56 +703,12 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Get the TUI.
-	t, err := tui.GetTUI(nil)
+	// Check for and apply application update.
+	err := update.InstallUpdateApp(r.Context(), s.state, name, true)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
 		return
-	}
-
-	// Get the provider.
-	p, err := providers.Load(r.Context(), s.state)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Clear the provider cache since this is a manual request.
-	err = p.ClearCache(r.Context())
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Check for an application update.
-	newAppVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeApplication, name, false)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// If the application was updated, refresh the sysext images and trigger the application's update method.
-	if newAppVersion != "" {
-		// Display a post-update message.
-		update.HandlePostUpdateMessage(s.state, t, "")
-
-		err := systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
-
-			return
-		}
-
-		err = update.ReloadApplication(r.Context(), s.state, p, name, newAppVersion, false)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
-
-			return
-		}
 	}
 
 	_ = response.EmptySyncResponse.Render(w)

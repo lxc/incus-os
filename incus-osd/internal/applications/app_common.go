@@ -529,13 +529,14 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 
 // StartInitialize starts the specified application, and if needed performs initialization actions.
 func StartInitialize(ctx context.Context, s *state.State, appName string) error {
-	appInfo := s.Applications[appName]
-
 	// Get the application.
 	app, err := Load(ctx, s, appName)
 	if err != nil {
 		return err
 	}
+
+	// At this point, we know the application will exist in the map.
+	appInfo := s.Applications[appName]
 
 	// Start the application.
 	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
@@ -566,5 +567,6 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 		slog.InfoContext(ctx, "Application TLS certificate fingerprint", "name", appName, "fingerprint", hex.EncodeToString(rawFp[:]))
 	}
 
-	return nil
+	// Save the state to disk.
+	return s.Save()
 }

@@ -16,10 +16,10 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
@@ -293,25 +293,14 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 		}
 	}
 
-	for newApp, a := range newState.Applications {
+	for newApp := range newState.Applications {
 		// Install any application that's not currently installed.
 		_, exists := (*oldState).Applications[newApp]
 		if !exists {
-			// Get the provider.
-			p, err := providers.Load(ctx, newState)
+			err := update.InstallUpdateApp(ctx, newState, newApp, false)
 			if err != nil {
 				return err
 			}
-
-			appVersion, err := p.InstallApplication(ctx, newState, newApp)
-			if err != nil {
-				return err
-			}
-
-			// Update the application's state.
-			a.State.Version = appVersion
-			a.State.Initialized = true
-			newState.Applications[newApp] = a
 		}
 	}
 

@@ -49,10 +49,6 @@ func (*local) Type() string {
 	return "local"
 }
 
-func (p *local) InstallApplication(ctx context.Context, s *state.State, appName string) (string, error) {
-	return installApplication(ctx, s, p, appName)
-}
-
 func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
