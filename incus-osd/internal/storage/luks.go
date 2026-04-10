@@ -25,7 +25,7 @@ type cryptsetupLuksDumpPartialParse struct {
 }
 
 // EncryptDrive wipes and formats a drive as a LUKS device.
-func EncryptDrive(ctx context.Context, devPath string) error {
+func EncryptDrive(ctx context.Context, devPath string, secure bool) error {
 	if !strings.HasPrefix(devPath, "/dev/disk/by-id/") {
 		return errors.New("invalid disk id")
 	}
@@ -34,7 +34,7 @@ func EncryptDrive(ctx context.Context, devPath string) error {
 	keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
 
 	// Wipe the drive.
-	err := WipeDrive(ctx, devPath)
+	err := WipeDrive(ctx, devPath, secure)
 	if err != nil {
 		return err
 	}
