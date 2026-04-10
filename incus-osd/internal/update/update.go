@@ -201,7 +201,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		// Notify the applications that they need to update/restart.
 		if !isStartupCheck {
 			for appName, appVersion := range appsUpdated {
-				_ = ReloadApplication(ctx, s, appName, appVersion)
+				_ = reloadApplication(ctx, s, appName, appVersion)
 			}
 		}
 
@@ -252,7 +252,7 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 			return err
 		}
 
-		err = ReloadApplication(ctx, s, appName, newAppVersion)
+		err = reloadApplication(ctx, s, appName, newAppVersion)
 		if err != nil {
 			return err
 		}
@@ -261,8 +261,8 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 	return nil
 }
 
-// ReloadApplication wraps common logic used when starting/updating an application after it is updated.
-func ReloadApplication(ctx context.Context, s *state.State, appName string, appVersion string) error {
+// reloadApplication wraps common logic used when starting/updating an application after it is updated.
+func reloadApplication(ctx context.Context, s *state.State, appName string, appVersion string) error {
 	// Get the provider.
 	p, err := providers.Load(ctx, s)
 	if err != nil {
