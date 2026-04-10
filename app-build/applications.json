@@ -125,7 +125,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.6",
+        "version": "v0.6.7",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -164,7 +164,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.67.4",
+        "version": "v0.68.1",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -184,7 +184,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.11.5",
+        "version": "v1.11.6",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
