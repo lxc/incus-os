@@ -433,21 +433,21 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 
 	// Wipe old member devices.
 	for _, dev := range poolConfig.Devices {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.Log {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.Cache {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
@@ -455,7 +455,7 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 
 	if poolConfig.Special != nil {
 		for _, dev := range poolConfig.Special.Devices {
-			err := clearDevice(ctx, dev)
+			err := storage.WipeDrive(ctx, dev, false)
 			if err != nil {
 				return err
 			}
@@ -463,51 +463,32 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 	}
 
 	for _, dev := range poolConfig.DevicesDegraded {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.LogDegraded {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.CacheDegraded {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, dev := range poolConfig.SpecialDegraded {
-		err := clearDevice(ctx, dev)
+		err := storage.WipeDrive(ctx, dev, false)
 		if err != nil {
 			return err
 		}
 	}
-
-	return nil
-}
-
-// Helper method to zap any GPT table and opportunistically run blkdiscard
-// to fully wipe a device that's just been removed from a storage pool.
-func clearDevice(ctx context.Context, device string) error {
-	_, err := os.Stat(device)
-	if err != nil && os.IsNotExist(err) {
-		// Nothing to do if the device doesn't exist.
-		return nil
-	}
-
-	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", device)
-	if err != nil {
-		return err
-	}
-
-	_, _ = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", device)
 
 	return nil
 }
@@ -729,7 +710,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			}
 
 			if zpoolCmd == "remove" {
-				err := clearDevice(ctx, actualDev)
+				err := storage.WipeDrive(ctx, actualDev, false)
 				if err != nil {
 					return err
 				}
@@ -758,7 +739,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 				return err
 			}
 
-			err = clearDevice(ctx, actualDevOld)
+			err = storage.WipeDrive(ctx, actualDevOld, false)
 			if err != nil {
 				return err
 			}
