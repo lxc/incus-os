@@ -679,6 +679,12 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return fmt.Errorf("unsupported architecture %q", archName)
 	}
 
+	// Get the target device by-id path.
+	targetDeviceID, err := storage.DeviceToID(ctx, targetDevice, true)
+	if err != nil {
+		return err
+	}
+
 	// Check if the target device already has a partition table.
 	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
 	if err != nil {
@@ -693,11 +699,6 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	if !strings.Contains(output, "Creating new GPT entries in memory") && !i.config.ForceInstall {
-		targetDeviceID, err := storage.DeviceToID(ctx, targetDevice, true)
-		if err != nil {
-			return err
-		}
-
 		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDeviceID)
 	}
 
@@ -710,9 +711,11 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
 	}
 
-	// Before starting the install, run blkdiscard to fully wipe the target device. blkdiscard may
-	// not work for all devices, so don't check its return status.
-	_, _ = subprocess.RunCommandContext(ctx, "blkdiscard", "-f", targetDevice)
+	// Before starting the install, wipe the target device.
+	err = storage.WipeDrive(ctx, targetDeviceID, false)
+	if err != nil {
+		return err
+	}
 
 	// Turn off swap and unmount /boot.
 	_, err = subprocess.RunCommandContext(ctx, "swapoff", "-a")

@@ -3,6 +3,7 @@ package storage
 // Originally copied from https://github.com/lxc/incus/blob/main/internal/linux/discard.go
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +23,7 @@ func IsBlockdev(fm os.FileMode) bool {
 // For blocks, it will attempt a variety of discard options, validating the result with marker files and eventually fallback to full zero-ing.
 //
 // An offset can be specified to only reset a part of a device.
-func ClearBlock(blockPath string, blockOffset int64) error {
+func ClearBlock(ctx context.Context, blockPath string, blockOffset int64, secure bool) error {
 	// Open the block device for checking.
 	fd, err := os.OpenFile(blockPath, os.O_RDWR, 0o600)
 	if err != nil {
@@ -237,7 +238,18 @@ func ClearBlock(blockPath string, blockOffset int64) error {
 		_ = fd.Close()
 	}
 
-	// All fast discard attempts have failed, proceed with manual zero-ing.
+	// All fast discard attempts have failed; zap any existing partition table on the device.
+	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", blockPath)
+	if err != nil {
+		return err
+	}
+
+	// Don't perform a manual zero-ing of the device unless specifically requested.
+	if !secure {
+		return nil
+	}
+
+	// Proceed with manual zero-ing.
 	zero, err := os.Open("/dev/zero")
 	if err != nil {
 		return err

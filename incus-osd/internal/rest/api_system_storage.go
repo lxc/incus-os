@@ -231,7 +231,9 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 //
 //	Wipe a drive
 //
-//	Forcibly wipes all data from the specified drive.
+//	Wipes all data from the specified drive. Existing data on the drive will be opportunistically wiped
+//	via `blkdiscard` unless "secure_wipe" is true, which will guarantee all data is erased. On large
+//	spinning drives that don't support `blkdiscard`, securely wiping the drive may take a very long time.
 //
 //	---
 //	consumes:
@@ -245,7 +247,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 //	    required: true
 //	    schema:
 //	      type: object
-//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}
+//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk","secure_wipe":true}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -280,7 +282,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = storage.WipeDrive(r.Context(), wipeStruct.ID)
+	err = storage.WipeDrive(r.Context(), wipeStruct.ID, wipeStruct.SecureWipe)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -636,6 +638,9 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 //	Encrypt a raw drive
 //
 //	Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+//	Existing data on the drive will be opportunistically wiped via `blkdiscard` unless "secure_wipe" is true,
+//	which will guarantee all data is erased. On large spinning drives that don't support `blkdiscard`, securely
+//	wiping the drive may take a very long time.
 //
 //	---
 //	consumes:
@@ -649,7 +654,7 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 //	    required: true
 //	    schema:
 //	      type: object
-//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}
+//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk","secure_wipe":false}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -685,7 +690,7 @@ func (*Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Encrypt the drive.
-	err = storage.EncryptDrive(r.Context(), encryptStruct.ID)
+	err = storage.EncryptDrive(r.Context(), encryptStruct.ID, encryptStruct.SecureWipe)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

@@ -980,7 +980,7 @@ func isBootDevice(ctx context.Context, deviceName string, bootDevice string) boo
 //
 // If the device is a LUKS-encrypted drive, first attempt to close the LUKS mapping
 // and then remove the corresponding encryption key.
-func WipeDrive(ctx context.Context, drive string) error {
+func WipeDrive(ctx context.Context, drive string, secure bool) error {
 	// Get a list of all drives.
 	drives, err := GetStorageInfo(ctx)
 	if err != nil {
@@ -1017,7 +1017,7 @@ func WipeDrive(ctx context.Context, drive string) error {
 			}
 
 			// Wipe the drive.
-			return ClearBlock(drive, 0)
+			return ClearBlock(ctx, drive, 0, secure)
 		}
 	}
 

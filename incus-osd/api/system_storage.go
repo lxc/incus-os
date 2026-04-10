@@ -127,7 +127,8 @@ type SystemStorageDriveSMART struct {
 
 // SystemStorageWipe defines a struct with information about what drive to wipe.
 type SystemStorageWipe struct {
-	ID string `json:"id" yaml:"id"`
+	ID         string `json:"id"          yaml:"id"`
+	SecureWipe bool   `json:"secure_wipe" yaml:"secure_wipe"` // If true, require a complete secure wiping of the drive, which might take a long time.
 }
 
 // SystemStorageImportEncryptedDrive defines a struct with information about what drive to decrypt.
@@ -138,7 +139,8 @@ type SystemStorageImportEncryptedDrive struct {
 
 // SystemStorageEncrypt defines a struct with information about what drive to encrypt.
 type SystemStorageEncrypt struct {
-	ID string `json:"id" yaml:"id"`
+	ID         string `json:"id"          yaml:"id"`
+	SecureWipe bool   `json:"secure_wipe" yaml:"secure_wipe"` // If true, require a complete secure wiping of the drive, which might take a long time.
 }
 
 // SystemStoragePoolKey defines a struct used to provide an encryption key when importing an existing pool.
