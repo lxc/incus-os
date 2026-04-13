@@ -281,3 +281,36 @@ func (s *Server) apiSystemNetworkConfirm(w http.ResponseWriter, r *http.Request)
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/network/:flush-dns system system_post_network_flush_dns
+//
+//	Flush the DNS cache
+//
+//	Flush the system's DNS cache. This is needed after network changes to ensure that any cached DNS entries that may have become stale are cleared.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemNetworkFlushDNS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	err := systemd.FlushDNSCache(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
