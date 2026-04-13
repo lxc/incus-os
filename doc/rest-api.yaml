@@ -4491,23 +4491,20 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus/v6/shared/api
     NetworkPut:
-        description: NetworkPut represents the modifiable fields of a network
+        description: |-
+            NetworkPut represents the fields available for an update of the
+            system's network configuration.
         properties:
-            config:
-                description: Network configuration map (refer to doc/networks.md)
-                example:
-                    ipv4.address: 10.0.0.1/24
-                    ipv4.nat: "true"
-                    ipv6.address: none
-                type: object
-                x-go-name: Config
-            description:
-                description: Description of the profile
-                example: My new bridge
+            address:
+                description: Address of Operations Center which is used by managed servers to connect.
                 type: string
-                x-go-name: Description
+                x-go-name: OperationsCenterAddress
+            rest_server_address:
+                description: Address and port to bind the REST API to.
+                type: string
+                x-go-name: RestServerAddress
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
     NetworkState:
         description: NetworkState represents the network state
         properties:
@@ -9788,6 +9785,20 @@ paths:
                 "400":
                     $ref: '#/responses/BadRequest'
             summary: Confirm a new network configuration
+            tags:
+                - system
+    /1.0/system/network/:flush-dns:
+        post:
+            description: Flush the system's DNS cache. This is needed after network changes to ensure that any cached DNS entries that may have become stale are cleared.
+            operationId: system_post_network_flush_dns
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Flush the DNS cache
             tags:
                 - system
     /1.0/system/provider:
