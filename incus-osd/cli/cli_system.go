@@ -144,6 +144,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					action:      "tpm-rebind",
 					description: "Rebind the TPM (after using recovery key)",
 					endpoint:    "system/security",
+					confirm:     "rebind the TPM and reboot the system",
 				}
 
 				return []*cobra.Command{tpmRebindCmd.command()}
