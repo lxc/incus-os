@@ -220,6 +220,12 @@ config:
     timezone: "America/New_York"
 ```
 
+To manually flush the DNS cache at any time, run:
+
+```
+incus admin os system network flush-dns
+```
+
 #### Proxy
 
 Configure a simple anonymous HTTP(S) proxy for IncusOS:
