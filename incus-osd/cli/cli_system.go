@@ -120,7 +120,15 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					endpoint:    "system/network",
 				}
 
-				return []*cobra.Command{networkConfirmCmd.command()}
+				// Flush DNS cache.
+				flushDNSCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "flush-dns",
+					description: "Flush the DNS cache",
+					endpoint:    "system/network",
+				}
+
+				return []*cobra.Command{networkConfirmCmd.command(), flushDNSCmd.command()}
 			},
 		},
 		{
