@@ -111,11 +111,8 @@ func (n *Netbird) configure(ctx context.Context) error {
 		return err
 	}
 
-	// Join with the provided key, management and admin server.
-	_, err = subprocess.RunCommandContext(
-		ctx,
-		"netbird",
-		"login",
+	args := []string{
+		"up",
 		"--no-browser",
 		"--setup-key",
 		n.state.Services.Netbird.Config.SetupKey,
@@ -123,15 +120,6 @@ func (n *Netbird) configure(ctx context.Context) error {
 		n.state.Services.Netbird.Config.ManagementURL,
 		"--admin-url",
 		n.state.Services.Netbird.Config.AdminURL,
-	)
-	if err != nil {
-		return err
-	}
-
-	// Connect to netbird with the supplied configuration.
-	args := []string{
-		"up",
-		"--no-browser",
 		"--dns-resolver-address",
 		n.state.Services.Netbird.Config.DNSResolverAddress,
 		"--external-ip-map",
@@ -168,6 +156,7 @@ func (n *Netbird) configure(ctx context.Context) error {
 		args = append(args, "--disable-firewall")
 	}
 
+	// Connect to netbird with the supplied configuration.
 	_, err = subprocess.RunCommandContext(ctx, "netbird", args...)
 	if err != nil {
 		return err
