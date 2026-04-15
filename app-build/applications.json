@@ -70,7 +70,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20260309",
+        "version": "20260410",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -90,7 +90,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260309",
+        "version": "20260410",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -164,7 +164,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.68.1",
+        "version": "v0.68.3",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -202,7 +202,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.5.3",
+        "version": "v0.5.4",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
