@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -50,6 +51,13 @@ func (n *OVN) Update(ctx context.Context, req any) error {
 	}
 
 	oldState := n.state.Services.OVN
+
+	// Validate data.
+	if newState.Config.Enabled {
+		if newState.Config.Database == "" {
+			return errors.New("missing OVN database address")
+		}
+	}
 
 	// Save the state on return.
 	defer n.state.Save()
@@ -135,13 +143,29 @@ func (*OVN) Struct() any {
 
 // configure takes care of configuring the running OVS and (re)spawning the OVN controller.
 func (n *OVN) configure(ctx context.Context) error {
+	// Handle default values.
+	tunnelProtocol := n.state.Services.OVN.Config.TunnelProtocol
+	if tunnelProtocol == "" {
+		tunnelProtocol = "geneve"
+	}
+
+	tunnelAddress := n.state.Services.OVN.Config.TunnelAddress
+	if tunnelAddress == "" {
+		addr := n.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleCluster)
+		if addr == nil {
+			return errors.New("no OVN tunnel address available")
+		}
+
+		tunnelAddress = addr.String()
+	}
+
 	// Apply the OVS configuration.
 	args := []string{
 		"set", "open_vswitch", ".",
 		"external_ids:hostname=" + n.state.Hostname(),
 		"external_ids:ovn-remote=" + n.state.Services.OVN.Config.Database,
-		"external_ids:ovn-encap-type=" + n.state.Services.OVN.Config.TunnelProtocol,
-		"external_ids:ovn-encap-ip=" + n.state.Services.OVN.Config.TunnelAddress,
+		"external_ids:ovn-encap-type=" + tunnelProtocol,
+		"external_ids:ovn-encap-ip=" + tunnelAddress,
 		fmt.Sprintf("external_ids:ovn-is-interconn=%v", n.state.Services.OVN.Config.ICChassis),
 	}
 
