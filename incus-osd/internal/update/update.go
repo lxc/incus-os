@@ -544,20 +544,28 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 			return "", err
 		}
 
-		// If running from the backup IncusOS image, after verifying the new application version
-		// don't actually update to it.
-		if s.OS.RunningFromBackup() {
+		// Check if the application is currently installed.
+		appInfo, appExists := s.Applications[appName]
+
+		// Ensure we properly save the application state before returning.
+		defer func() {
+			s.Applications[appName] = appInfo
+			_ = s.Save()
+		}()
+
+		// If we're updating an existing application and are running from the backup IncusOS
+		// image, after verifying the new application sysext don't automatically update to it.
+		if appExists && s.OS.RunningFromBackup() {
 			slog.WarnContext(ctx, "Successfully downloaded application update, but not auto-updating while running from backup image", "application", appName)
+
+			// Add the newer version to list of available versions.
+			appInfo.State.AvailableVersions = append(appInfo.State.AvailableVersions, update.Version())
 
 			return "", nil
 		}
 
 		// Record newly installed application and save state to disk.
-		newAppInfo := s.Applications[appName]
-		newAppInfo.State.Version = update.Version()
-
-		s.Applications[appName] = newAppInfo
-		_ = s.Save()
+		appInfo.State.Version = update.Version()
 	default:
 		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}
