@@ -14,6 +14,7 @@ import (
 	"github.com/lxc/incus/v6/shared/subprocess"
 	"golang.org/x/sys/unix"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -319,7 +320,7 @@ func (*incus) RestoreBackup(ctx context.Context, archive io.Reader) error {
 	return extractTarArchive(ctx, "/var/lib/incus/", []string{"incus-startup.service", "incus.socket", "incus.service", "incus-lxcfs.service"}, archive)
 }
 
-func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) error {
+func (a *incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) error {
 	// Get server configuration.
 	serverConfig, serverConfigEtag, err := c.GetServer()
 	if err != nil {
@@ -426,6 +427,28 @@ func (*incus) applyDefaults(ctx context.Context, c incusclient.InstanceServer) e
 			"type":    "nic",
 			"network": "incusbr0",
 			"name":    "eth0",
+		}
+
+		// Add physical network entries for all interfaces listed with the instances role.
+		for _, iface := range a.state.System.Network.State.GetInterfaceNamesByRole(api.SystemNetworkInterfaceRoleInstances) {
+			// We only want to handle bridges.
+			_, err := os.Stat("/sys/class/net/" + iface + "/bridge/")
+			if err != nil {
+				continue
+			}
+
+			// Create the physical network in Incus.
+			err = c.CreateNetwork(incusapi.NetworksPost{
+				Name: iface,
+				Type: "physical",
+				NetworkPut: incusapi.NetworkPut{
+					Description: "Physical network interface (" + iface + ")",
+					Config:      map[string]string{"parent": iface},
+				},
+			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
