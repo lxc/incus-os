@@ -130,7 +130,6 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	defer gz.Close()
 
 	tr := tar.NewReader(gz)
-	stateSuccessfullyProcessed := false
 
 	copyFile := func(srcPath string, dstPath string) error {
 		// Copy the existing local pool key.
@@ -188,6 +187,7 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		return nil
 	}
 
+	// Extract each file from the archive.
 	for {
 		header, err := tr.Next()
 		if err != nil {
@@ -220,24 +220,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		if err != nil {
 			return err
 		}
-
-		// Restoring the actual state struct requires additional work.
-		if filename == "state.txt" {
-			// Process the new state and make necessary adjustments to the system
-			// so the actual system state matches.
-			err = processNewState(ctx, s, skipOptions)
-			if err != nil {
-				return errors.New("unable to process state from backup: " + err.Error())
-			}
-
-			// Flag that we successfully read the state file from the backup; if not
-			// present the system would reboot into an empty state which isn't what we want.
-			stateSuccessfullyProcessed = true
-		}
 	}
 
-	if !stateSuccessfullyProcessed {
-		return errors.New("failed to read state.txt from backup")
+	// Process the new state and make necessary adjustments to the system
+	// so the actual system state matches.
+	err = processNewState(ctx, s, skipOptions)
+	if err != nil {
+		return errors.New("unable to process state from backup: " + err.Error())
 	}
 
 	// Remove the old /var/lib/incus-os/ backup.
