@@ -12,7 +12,6 @@ import (
 	"slices"
 
 	"github.com/lxc/incus/v6/shared/revert"
-	"github.com/lxc/incus/v6/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -353,11 +352,9 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 	}
 
 	// Make sure we set the expected timezone.
-	if newState.System.Network.Config.Time != nil && newState.System.Network.Config.Time.Timezone != "" {
-		_, err := subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", newState.System.Network.Config.Time.Timezone)
-		if err != nil {
-			return err
-		}
+	err = systemd.SetTimezone(ctx, s.System.Network.Config.Time)
+	if err != nil {
+		return err
 	}
 
 	return nil

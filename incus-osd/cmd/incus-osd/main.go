@@ -859,9 +859,7 @@ func setTimezone(ctx context.Context) error {
 	}
 
 	// Set the system's timezone from the seed data.
-	_, err = subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", config.Time.Timezone)
-
-	return err
+	return systemd.SetTimezone(ctx, config.Time)
 }
 
 func setupLocalStorage(ctx context.Context, s *state.State) error {
