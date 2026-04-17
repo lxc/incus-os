@@ -710,6 +710,10 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			}
 
 			if zpoolCmd == "remove" {
+				// Sleep briefly to allow the zpool state to update so the removed drive no
+				// longer appears as a member.
+				time.Sleep(500 * time.Millisecond)
+
 				err := storage.WipeDrive(ctx, actualDev, false)
 				if err != nil {
 					return err
@@ -738,6 +742,10 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			if err != nil {
 				return err
 			}
+
+			// Sleep briefly to allow the zpool state to update so the replaced drive no
+			// longer appears as a member.
+			time.Sleep(500 * time.Millisecond)
 
 			err = storage.WipeDrive(ctx, actualDevOld, false)
 			if err != nil {
