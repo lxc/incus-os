@@ -743,6 +743,10 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 				return err
 			}
 
+			if zpoolName == "local" && zpoolType == "zfs-raid1" {
+				actualDevOld = strings.TrimSuffix(actualDevOld, "-part11")
+			}
+
 			// Sleep briefly to allow the zpool state to update so the replaced drive no
 			// longer appears as a member.
 			time.Sleep(500 * time.Millisecond)
