@@ -197,6 +197,10 @@ config:
 
 #### DNS, NTP, Timezone
 
+```{note}
+Changing the system's timezone will take effect immediately, but won't be reflected in the IncusOS terminal UI until after a system reboot because of a [known issue](https://github.com/golang/go/issues/28020) in the Go `time` package.
+```
+
 Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```yaml
