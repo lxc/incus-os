@@ -18,8 +18,8 @@ type SystemKernelConfigNetwork struct {
 	BufferSize             int    `json:"buffer_size,omitempty"              yaml:"buffer_size,omitempty"`
 	QueuingDiscipline      string `json:"queuing_discipline,omitempty"       yaml:"queuing_discipline,omitempty"`
 	TCPCongestionAlgorithm string `json:"tcp_congestion_algorithm,omitempty" yaml:"tcp_congestion_algorithm,omitempty"`
-	NetdevMaxBacklog       int    `json:"netdev_max_backlog,omitempty" yaml:"netdev_max_backlog,omitempty"`
-	TCPMTUProbing          bool   `json:"tcp_mtu_probing,omitempty" yaml:"tcp_mtu_probing,omitempty"`
+	NetdevMaxBacklog       int    `json:"netdev_max_backlog,omitempty"       yaml:"netdev_max_backlog,omitempty"`
+	TCPMTUProbing          bool   `json:"tcp_mtu_probing,omitempty"          yaml:"tcp_mtu_probing,omitempty"`
 }
 
 // SystemKernelConfigPCI holds PCI-specific kernel configuration.

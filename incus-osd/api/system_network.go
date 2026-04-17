@@ -98,6 +98,10 @@ type SystemNetworkEthernet struct {
 	WakeOnLAN              bool     `json:"wakeonlan,omitempty"                yaml:"wakeonlan,omitempty"`
 	WakeOnLANModes         []string `json:"wakeonlan_modes,omitempty"          yaml:"wakeonlan_modes,omitempty"`
 	WakeOnLANPassword      string   `json:"wakeonlan_password,omitempty"       yaml:"wakeonlan_password,omitempty"`
+	RxBufferSize           *int     `json:"rx_buffer_size,omitempty"           yaml:"rx_buffer_size,omitempty"`
+	TxBufferSize           *int     `json:"tx_buffer_size,omitempty"           yaml:"tx_buffer_size,omitempty"`
+	RxJumboBufferSize      *int     `json:"rx_jumbo_buffer_size,omitempty"     yaml:"rx_jumbo_buffer_size,omitempty"`
+	RxMiniBufferSize       *int     `json:"rx_mini_buffer_size,omitempty"      yaml:"rx_mini_buffer_size,omitempty"`
 }
 
 // SystemNetworkFirewallRule defines a firewall rule.
