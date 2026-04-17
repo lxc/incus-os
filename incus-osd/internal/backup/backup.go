@@ -162,6 +162,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		}
 		defer fd.Close()
 
+		// Set the mode of each restored file to 600. Some commands such as
+		// systemd-cryptenroll complain if permissions are too open.
+		err = fd.Chmod(0o600)
+		if err != nil {
+			return err
+		}
+
 		// Read from the archive in chunks to avoid excessive memory consumption.
 		var size int64
 
