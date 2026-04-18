@@ -94,6 +94,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		description   string
 		isWritable    bool
 		extraCommands func() []*cobra.Command
+		info          func(os *cmdAdminOS, endpoint string, description string) *cobra.Command
 	}
 
 	subCommands := []subCommand{
@@ -106,11 +107,13 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "logging",
 			description: "System logging",
 			isWritable:  true,
+			info:        systemInfoCommand,
 		},
 		{
 			name:        "network",
 			description: "Network configuration",
 			isWritable:  true,
+			info:        systemInfoNetworkCommand,
 			extraCommands: func() []*cobra.Command {
 				// Confirm new network configuration.
 				networkConfirmCmd := cmdGenericRun{
@@ -135,16 +138,19 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "provider",
 			description: "Image and management provider",
 			isWritable:  true,
+			info:        systemInfoCommand,
 		},
 		{
 			name:        "resources",
 			description: "System resources",
 			isWritable:  false,
+			info:        systemInfoResourcesCommand,
 		},
 		{
 			name:        "security",
 			description: "Security configuration",
 			isWritable:  true,
+			info:        systemInfoCommand,
 			extraCommands: func() []*cobra.Command {
 				// TPM rebind.
 				tpmRebindCmd := cmdGenericRun{
@@ -162,6 +168,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "storage",
 			description: "Storage configuration",
 			isWritable:  true,
+			info:        systemInfoStorageCommand,
 			extraCommands: func() []*cobra.Command {
 				// Create storage volume.
 				createVolumeCmd := cmdGenericRun{
@@ -250,6 +257,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "update",
 			description: "Update configuration",
 			isWritable:  true,
+			info:        systemInfoCommand,
 			extraCommands: func() []*cobra.Command {
 				// Check updates.
 				checkUpdatesCmd := cmdGenericRun{
@@ -282,6 +290,11 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		// Show.
 		showCmd := cmdGenericShow{os: c.os, endpoint: "system/" + sub.name}
 		subCmd.AddCommand(showCmd.command())
+
+		// Info.
+		if sub.info != nil {
+			subCmd.AddCommand(sub.info(c.os, "system/"+sub.name, "Show "+sub.description))
+		}
 
 		cmd.AddCommand(subCmd)
 
