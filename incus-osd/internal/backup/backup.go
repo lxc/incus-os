@@ -12,9 +12,7 @@ import (
 	"slices"
 
 	"github.com/lxc/incus/v6/shared/revert"
-	"github.com/lxc/incus/v6/shared/subprocess"
 
-	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -131,7 +129,6 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	defer gz.Close()
 
 	tr := tar.NewReader(gz)
-	stateSuccessfullyProcessed := false
 
 	copyFile := func(srcPath string, dstPath string) error {
 		// Copy the existing local pool key.
@@ -163,6 +160,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		}
 		defer fd.Close()
 
+		// Set the mode of each restored file to 600. Some commands such as
+		// systemd-cryptenroll complain if permissions are too open.
+		err = fd.Chmod(0o600)
+		if err != nil {
+			return err
+		}
+
 		// Read from the archive in chunks to avoid excessive memory consumption.
 		var size int64
 
@@ -182,6 +186,7 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		return nil
 	}
 
+	// Extract each file from the archive.
 	for {
 		header, err := tr.Next()
 		if err != nil {
@@ -214,30 +219,13 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		if err != nil {
 			return err
 		}
-
-		// Restoring the actual state struct requires additional work.
-		if filename == "state.txt" {
-			// Decode the state from backup.
-			newState, err := state.LoadOrCreate("/var/lib/incus-os/state.txt")
-			if err != nil {
-				return err
-			}
-
-			// Process the new state and make necessary adjustments to the system
-			// so the actual system state matches.
-			err = processNewState(ctx, &s, newState, skipOptions)
-			if err != nil {
-				return errors.New("unable to process state from backup: " + err.Error())
-			}
-
-			// Flag that we successfully read the state file from the backup; if not
-			// present the system would reboot into an empty state which isn't what we want.
-			stateSuccessfullyProcessed = true
-		}
 	}
 
-	if !stateSuccessfullyProcessed {
-		return errors.New("failed to read state.txt from backup")
+	// Process the new state and make necessary adjustments to the system
+	// so the actual system state matches.
+	err = processNewState(ctx, s, skipOptions)
+	if err != nil {
+		return errors.New("unable to process state from backup: " + err.Error())
 	}
 
 	// Remove the old /var/lib/incus-os/ backup.
@@ -253,7 +241,12 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	return systemd.SystemReboot(ctx)
 }
 
-func processNewState(ctx context.Context, oldState **state.State, newState *state.State, skipOptions []string) error {
+func processNewState(ctx context.Context, s *state.State, skipOptions []string) error {
+	newState, err := state.LoadOrCreate("/var/lib/incus-os/state.txt")
+	if err != nil {
+		return err
+	}
+
 	// Sanity checks:
 	// 1. Need to be able to use TPM to change encryption recovery passphrase(s).
 	// 2. At least one recovery passphrase provided.
@@ -282,11 +275,11 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 	}
 
 	// Make sure list of configured applications is consistent with the new state.
-	for oldApp := range (*oldState).Applications {
+	for oldApp := range s.Applications {
 		// Uninstall any application that's not present in the new state.
 		_, exists := newState.Applications[oldApp]
 		if !exists {
-			err := applications.UninstallApplication(ctx, *oldState, oldApp)
+			err := applications.UninstallApplication(ctx, s, oldApp)
 			if err != nil {
 				return err
 			}
@@ -295,47 +288,32 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 
 	for newApp := range newState.Applications {
 		// Install any application that's not currently installed.
-		_, exists := (*oldState).Applications[newApp]
+		_, exists := s.Applications[newApp]
 		if !exists {
-			err := update.InstallUpdateApp(ctx, newState, newApp, false)
+			err := update.InstallUpdateApp(ctx, s, newApp, false)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	// Copy over relevant current state.
-	newState.SecureBoot = (*oldState).SecureBoot
-	newState.OS = (*oldState).OS
-
-	// Clear any stale state from the new struct.
-	newState.Services.Ceph.State = api.ServiceCephState{}
-	newState.Services.ISCSI.State = api.ServiceISCSIState{}
-	newState.Services.LVM.State = api.ServiceLVMState{}
-	newState.Services.Multipath.State = api.ServiceMultipathState{}
-	newState.Services.NVME.State = api.ServiceNVMEState{}
-	newState.Services.OVN.State = api.ServiceOVNState{}
-	newState.Services.USBIP.State = api.ServiceUSBIPState{}
-	newState.System.Kernel.State = api.SystemKernelState{}
-	newState.System.Logging.State = api.SystemLoggingState{}
-	newState.System.Network.State = api.SystemNetworkState{}
-	newState.System.Provider.State = api.SystemProviderState{}
-	newState.System.Security.State = api.SystemSecurityState{}
-	newState.System.Update.State = api.SystemUpdateState{}
+	// Copy over relevant state updates.
+	s.Services = newState.Services
+	s.System = newState.System
 
 	// If instructed to skip restoring network MACs, replace any value with the Interface
 	// or Bond name, which will be dynamically resolved to the actual device's MAC when
 	// the system restarts.
 	if slices.Contains(skipOptions, "network-macs") {
-		for i := range newState.System.Network.Config.Interfaces {
-			if newState.System.Network.Config.Interfaces[i].Hwaddr != "" {
-				newState.System.Network.Config.Interfaces[i].Hwaddr = newState.System.Network.Config.Interfaces[i].Name
+		for i := range s.System.Network.Config.Interfaces {
+			if s.System.Network.Config.Interfaces[i].Hwaddr != "" {
+				s.System.Network.Config.Interfaces[i].Hwaddr = s.System.Network.Config.Interfaces[i].Name
 			}
 		}
 
-		for i := range newState.System.Network.Config.Bonds {
-			if newState.System.Network.Config.Bonds[i].Hwaddr != "" {
-				newState.System.Network.Config.Bonds[i].Hwaddr = newState.System.Network.Config.Bonds[i].Name
+		for i := range s.System.Network.Config.Bonds {
+			if s.System.Network.Config.Bonds[i].Hwaddr != "" {
+				s.System.Network.Config.Bonds[i].Hwaddr = s.System.Network.Config.Bonds[i].Name
 			}
 		}
 	}
@@ -357,26 +335,27 @@ func processNewState(ctx context.Context, oldState **state.State, newState *stat
 		}
 
 		newKeys := newState.System.Security.Config.EncryptionRecoveryKeys
-		newState.System.Security.Config.EncryptionRecoveryKeys = []string{}
+		s.System.Security.Config.EncryptionRecoveryKeys = []string{}
 
 		for _, key := range newKeys {
-			err := systemd.AddEncryptionKey(ctx, newState, key)
+			err := systemd.AddEncryptionKey(ctx, s, key)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	// Make sure we set the expected timezone.
-	if newState.System.Network.Config.Time != nil && newState.System.Network.Config.Time.Timezone != "" {
-		_, err := subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", newState.System.Network.Config.Time.Timezone)
-		if err != nil {
-			return err
-		}
+	// Update the hostname.
+	err = systemd.SetHostname(ctx, s.Hostname())
+	if err != nil {
+		return err
 	}
 
-	// Now, replace the current state in-memory and write it to disk.
-	*oldState = newState
+	// Make sure we set the expected timezone.
+	err = systemd.SetTimezone(ctx, s.System.Network.Config.Time)
+	if err != nil {
+		return err
+	}
 
-	return (*oldState).Save()
+	return nil
 }

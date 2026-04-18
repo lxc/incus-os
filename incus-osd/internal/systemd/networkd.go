@@ -44,15 +44,13 @@ type expPhysDev struct {
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
 func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error, delayRefreshCheck bool) error {
 	// If a timezone is specified, apply it before doing any network configuration.
-	if networkCfg.Time != nil && networkCfg.Time.Timezone != "" {
-		_, err := subprocess.RunCommandContext(ctx, "timedatectl", "set-timezone", networkCfg.Time.Timezone)
-		if err != nil {
-			return err
-		}
+	err := SetTimezone(ctx, networkCfg.Time)
+	if err != nil {
+		return err
 	}
 
 	// Validate the new network configuration, allowing for invalid MACs.
-	err := ValidateNetworkConfiguration(networkCfg, false)
+	err = ValidateNetworkConfiguration(networkCfg, false)
 	if err != nil {
 		return err
 	}
