@@ -4,7 +4,7 @@ go 1.25.6
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.7
-	github.com/FuturFusion/operations-center v0.5.4
+	github.com/FuturFusion/operations-center v0.5.6
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.8
@@ -16,7 +16,7 @@ require (
 	github.com/klauspost/compress v1.18.5
 	github.com/lxc/incus/v6 v6.23.1-0.20260327174201-6acde8bd711a
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
-	github.com/pires/go-proxyproto v0.11.0
+	github.com/pires/go-proxyproto v0.12.0
 	github.com/rivo/tview v0.42.0
 	github.com/smallstep/pkcs7 v0.2.1
 	github.com/spf13/cobra v1.10.2
@@ -66,7 +66,7 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
-	github.com/olekukonko/errors v1.2.0 // indirect
+	github.com/olekukonko/errors v1.3.0 // indirect
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -87,7 +87,7 @@ require (
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zitadel/logging v0.7.0 // indirect
-	github.com/zitadel/oidc/v3 v3.47.2 // indirect
+	github.com/zitadel/oidc/v3 v3.47.4 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
