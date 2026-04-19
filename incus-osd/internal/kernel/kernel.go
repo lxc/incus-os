@@ -180,6 +180,13 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		}
 	}
 
+	if netConfig.TCPMTUProbing {
+		_, err := fd.WriteString("net.ipv4.tcp_mtu_probing = 1\n")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Restart the systemd-sysctl service to pickup changes.
 	return systemd.RestartUnit(ctx, "systemd-sysctl.service")
 }
