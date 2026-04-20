@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -14,6 +15,7 @@ var errUnrecognizedConfigField = errors.New("unrecognized configuration field")
 // applied before decoding the state.
 func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 	upgraded := false
+	whitespaceRegex := regexp.MustCompile(`^\s+$`)
 
 	lines := strings.Split(string(b), "\n")
 
@@ -56,7 +58,7 @@ func Decode(b []byte, upgradeFuncs UpgradeFuncs, s *State) error {
 
 	// Parse each line.
 	for _, line := range lines {
-		if line == "" || strings.HasPrefix(line, "#") {
+		if line == "" || whitespaceRegex.MatchString(line) || strings.HasPrefix(line, "#") {
 			continue
 		}
 
