@@ -19,6 +19,7 @@ import (
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 type operationsCenter struct {
@@ -30,7 +31,21 @@ func (*operationsCenter) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*operationsCenter) Start(ctx context.Context) error {
+func (oc *operationsCenter) Start(ctx context.Context) error {
+	// If this is the first time starting the application, create a ZFS
+	// dataset for it to use.
+	if !oc.state.Applications["operations-center"].State.Initialized {
+		err := zfs.CreateApplicationDataset(ctx, "operations-center")
+		if err != nil {
+			return err
+		}
+	} else {
+		err := zfs.MountApplicationDataset(ctx, "operations-center")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Start the unit.
 	return systemd.StartUnit(ctx, "operations-center.service")
 }

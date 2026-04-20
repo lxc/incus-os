@@ -19,6 +19,7 @@ import (
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 type migrationManager struct {
@@ -30,7 +31,21 @@ func (*migrationManager) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*migrationManager) Start(ctx context.Context) error {
+func (mm *migrationManager) Start(ctx context.Context) error {
+	// If this is the first time starting the application, create a ZFS
+	// dataset for it to use.
+	if !mm.state.Applications["migration-manager"].State.Initialized {
+		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	} else {
+		err := zfs.MountApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Start the unit.
 	return systemd.StartUnit(ctx, "migration-manager.service")
 }
