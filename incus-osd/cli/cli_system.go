@@ -256,9 +256,10 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					os:          c.os,
 					action:      "check",
 					name:        "check",
-					description: "Check for updates",
+					description: "Check for updates and apply them",
 					endpoint:    "system/update",
 					hasData:     true,
+					confirm:     "apply any pending update",
 					defaultData: "{}",
 				}
 
