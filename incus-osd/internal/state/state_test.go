@@ -246,6 +246,8 @@ OS.NextRelease: 202506241635
 System.Security.Config.FooBar: BizBaz
 `
 
+var whitespaceLinesConfig = "#Version: 7\nOS.Name: IncusOS\n\n    \n	\n	  \n\r\n# A comment\n"
+
 // Test decoding state with an unrecognized field.
 func TestUnrecognizedField(t *testing.T) {
 	t.Parallel()
@@ -257,6 +259,18 @@ func TestUnrecognizedField(t *testing.T) {
 
 	require.Len(t, s.UnrecognizedFields, 1)
 	require.Equal(t, "System.Security.Config.FooBar", s.UnrecognizedFields[0])
+}
+
+// Test properly ignoring whitespace-only lines.
+func TestWhitespaceLines(t *testing.T) {
+	t.Parallel()
+
+	var s state.State
+
+	err := state.Decode([]byte(whitespaceLinesConfig), nil, &s)
+	require.NoError(t, err)
+
+	require.Equal(t, "IncusOS", s.OS.Name)
 }
 
 // Test encoding and decoding a state that contains a map with a field that contains a dot (".").

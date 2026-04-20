@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -70,12 +71,44 @@ func (s *State) Save() error {
 		return err
 	}
 
-	err = os.WriteFile(s.path, body, 0o600)
+	// Write the state to a new file on disk. This allows us to perform an atomic rename
+	// after ensuring all data is properly written to disk and that we didn't encounter an
+	// issue like running out of disk space mid-write of the new state. If something did
+	// go wrong updating the state, the prior state will still exist on disk so some recent
+	// system configuration might be lost, but the system should remain operational.
+	err = writeFile(s.path+".tmp", body)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	// Overwrite the prior state file with the updated version.
+	return os.Rename(s.path+".tmp", s.path)
+}
+
+func writeFile(filename string, body []byte) error {
+	fd, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	defer fd.Close()
+
+	err = fd.Chmod(0o600)
+	if err != nil {
+		return err
+	}
+
+	count, err := fd.Write(body)
+	if err != nil {
+		return err
+	}
+
+	if count != len(body) {
+		return fmt.Errorf("failed to write state file '%s': only wrote %d of %d bytes", filename, count, len(body))
+	}
+
+	// Ensure the file contents have been properly synced to disk.
+	return fd.Sync()
 }
 
 // initialize sets default values for a new state file.
