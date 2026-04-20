@@ -118,7 +118,7 @@ func (*common) NeedsLateUpdateCheck() bool {
 }
 
 // WipeLocalData removes local data created by the application.
-func (*common) WipeLocalData() error {
+func (*common) WipeLocalData(_ context.Context) error {
 	return nil
 }
 
@@ -509,7 +509,7 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 	}
 
 	// Wipe local data.
-	err = app.WipeLocalData()
+	err = app.WipeLocalData(ctx)
 	if err != nil {
 		return err
 	}

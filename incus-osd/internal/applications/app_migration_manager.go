@@ -14,11 +14,13 @@ import (
 	"time"
 
 	mmapi "github.com/FuturFusion/migration-manager/shared/api"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 type migrationManager struct {
@@ -30,7 +32,21 @@ func (*migrationManager) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*migrationManager) Start(ctx context.Context) error {
+func (mm *migrationManager) Start(ctx context.Context) error {
+	// If this is the first time starting the application, create a ZFS
+	// dataset for it to use.
+	if !mm.state.Applications["migration-manager"].State.Initialized {
+		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	} else {
+		err := zfs.MountApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Start the unit.
 	return systemd.StartUnit(ctx, "migration-manager.service")
 }
@@ -268,7 +284,7 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = mm.WipeLocalData()
+	err = mm.WipeLocalData(ctx)
 	if err != nil {
 		return err
 	}
@@ -284,8 +300,27 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 }
 
 // WipeLocalData removes local data created by the application.
-func (*migrationManager) WipeLocalData() error {
-	return os.RemoveAll("/var/lib/migration-manager/")
+func (*migrationManager) WipeLocalData(ctx context.Context) error {
+	// Unmount the dataset.
+	err := unix.Unmount("/var/lib/migration-manager/", 0)
+	if err != nil {
+		return err
+	}
+
+	// Destroy the dataset.
+	err = zfs.DestroyDataset(ctx, "local", "migration-manager", false)
+	if err != nil {
+		return err
+	}
+
+	// For good measure, remove the mount point.
+	err = os.RemoveAll("/var/lib/migration-manager/")
+	if err != nil {
+		return err
+	}
+
+	// Create a fresh dataset for the application.
+	return zfs.CreateApplicationDataset(ctx, "migration-manager")
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.

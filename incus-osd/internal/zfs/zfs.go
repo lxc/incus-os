@@ -1058,3 +1058,21 @@ func ScrubAllPools(ctx context.Context) error {
 
 	return nil
 }
+
+// CreateApplicationDataset creates an application-specific dataset in the "local" pool. The dataset is will be
+// mounted under /var/lib/, and is tagged with an "incusos:use" property.
+func CreateApplicationDataset(ctx context.Context, applicationName string) error {
+	_, err := subprocess.RunCommandContext(ctx, "zfs", "create", "-o", "mountpoint=/var/lib/"+applicationName+"/", "-o", "incusos:use="+applicationName, "local/"+applicationName)
+
+	return err
+}
+
+// MountApplicationDataset ensures that an application's dataset is mounted.
+func MountApplicationDataset(ctx context.Context, applicationName string) error {
+	_, err := subprocess.RunCommandContext(ctx, "zfs", "mount", "local/"+applicationName)
+	if err != nil && !strings.Contains(err.Error(), "filesystem already mounted") {
+		return err
+	}
+
+	return nil
+}

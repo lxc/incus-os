@@ -14,11 +14,13 @@ import (
 	"time"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api/system"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
+	"github.com/lxc/incus-os/incus-osd/internal/zfs"
 )
 
 type operationsCenter struct {
@@ -30,7 +32,21 @@ func (*operationsCenter) Name() string {
 }
 
 // Start starts the systemd unit.
-func (*operationsCenter) Start(ctx context.Context) error {
+func (oc *operationsCenter) Start(ctx context.Context) error {
+	// If this is the first time starting the application, create a ZFS
+	// dataset for it to use.
+	if !oc.state.Applications["operations-center"].State.Initialized {
+		err := zfs.CreateApplicationDataset(ctx, "operations-center")
+		if err != nil {
+			return err
+		}
+	} else {
+		err := zfs.MountApplicationDataset(ctx, "operations-center")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Start the unit.
 	return systemd.StartUnit(ctx, "operations-center.service")
 }
@@ -283,7 +299,7 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = oc.WipeLocalData()
+	err = oc.WipeLocalData(ctx)
 	if err != nil {
 		return err
 	}
@@ -305,8 +321,27 @@ func (oc *operationsCenter) FactoryReset(ctx context.Context) error {
 }
 
 // WipeLocalData removes local data created by the application.
-func (*operationsCenter) WipeLocalData() error {
-	return os.RemoveAll("/var/lib/operations-center/")
+func (*operationsCenter) WipeLocalData(ctx context.Context) error {
+	// Unmount the dataset.
+	err := unix.Unmount("/var/lib/operations-center/", 0)
+	if err != nil {
+		return err
+	}
+
+	// Destroy the dataset.
+	err = zfs.DestroyDataset(ctx, "local", "operations-center", false)
+	if err != nil {
+		return err
+	}
+
+	// For good measure, remove the mount point.
+	err = os.RemoveAll("/var/lib/operations-center/")
+	if err != nil {
+		return err
+	}
+
+	// Create a fresh dataset for the application.
+	return zfs.CreateApplicationDataset(ctx, "operations-center")
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.

@@ -274,7 +274,7 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = a.WipeLocalData()
+	err = a.WipeLocalData(ctx)
 	if err != nil {
 		return err
 	}
@@ -290,7 +290,7 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 }
 
 // WipeLocalData removes local data created by the application.
-func (*incus) WipeLocalData() error {
+func (*incus) WipeLocalData(_ context.Context) error {
 	// Attempt to unmount the logs directory if it exists and is mounted.
 	logsPath, err := filepath.EvalSymlinks("/var/lib/incus/logs/")
 	if err == nil && logsPath != "" {
