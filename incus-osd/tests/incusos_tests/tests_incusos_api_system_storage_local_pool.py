@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import time
 
@@ -593,3 +594,44 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
 
                 if result["metadata"]["state"]["pools"][0]["state"] != "ONLINE":
                     raise IncusOSException("pool has unexpected state: " + result["metadata"]["state"]["pools"][0]["state"])
+
+def TestIncusOSAPISystemStorageLocalAutoexpand(install_image):
+    test_name = "incusos-api-system-storage-local-autoexpand"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(test_name, test_image) as vm:
+        vm.WaitSystemReady(incusos_version)
+
+        # Get current storage state.
+        result = vm.APIRequest("/1.0/system/storage")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["state"]["pools"][0]["raw_pool_size_in_bytes"] != 17716740096:
+            raise IncusOSException("local pool has incorrect initial size")
+
+        # Stop the VM and expand the root device
+        vm.StopVM()
+
+        subprocess.run(["incus", "config", "device", "set", vm.vm_name, "root", "size", "55GiB"], capture_output=True, check=True)
+
+        # Start the VM and expect to see a message about expanding the local pool
+        vm.StartVM()
+        vm.WaitAgentRunning()
+        vm.WaitExpectedLog("incus-osd", "Expanding 'local' pool to utilize new disk capacity")
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+
+        # Sleep a few seconds to allow the zpool to settle
+        time.sleep(5)
+
+        # Get updated storage state.
+        result = vm.APIRequest("/1.0/system/storage")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["state"]["pools"][0]["raw_pool_size_in_bytes"] != 23085449216:
+            raise IncusOSException("local pool has incorrect updated size")

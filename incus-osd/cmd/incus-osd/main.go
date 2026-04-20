@@ -875,6 +875,17 @@ func setupLocalStorage(ctx context.Context, s *state.State) error {
 		return err
 	}
 
+	// Detect if the root drive has increased in size. If so, attempt to auto-expand
+	// the zfs "local" pool to use the additional space. systemd-repart uses zero-based
+	// indices when reporting partitions.
+	_, err = subprocess.RunCommandContext(ctx, "journalctl", "-b", "-u", "systemd-repart", "-g", "Growing existing partition 10")
+	if err == nil {
+		err := storage.ExpandLocalPool(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Migrate application data for Migration Manager and Operations Center to
 	// dedicated zfs datasets. This code can be removed after June 2026.
 	_, err = os.Stat("/var/lib/migration-manager")

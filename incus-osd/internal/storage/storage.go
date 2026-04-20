@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1042,4 +1043,33 @@ func IsBMC(entry BlockDevices) bool {
 	}
 
 	return false
+}
+
+// ExpandLocalPool attempts to auto-expand the "local" pool when we detect the underlying storage
+// device has increased its capacity. This only really happens when IncusOS is running in a VM and
+// its root device is expanded. We only perform the pool expansion if it consists of a single
+// device and is configured as RAID0.
+func ExpandLocalPool(ctx context.Context) error {
+	p, err := GetZpoolMembers(ctx, "local")
+	if err != nil {
+		return err
+	}
+
+	// We only support automatically growing the local pool if it exists of a single vdev.
+	if p.Type != "zfs-raid0" || len(p.Devices) != 1 {
+		return nil
+	}
+
+	slog.InfoContext(ctx, "Expanding 'local' pool to utilize new disk capacity")
+
+	// Enable autoexpand.
+	_, err = subprocess.RunCommandContext(ctx, "zpool", "set", "autoexpand=on", "local")
+	if err != nil {
+		return err
+	}
+
+	// Trigger the local pool expansion.
+	_, err = subprocess.RunCommandContext(ctx, "zpool", "online", "-e", "local", p.Devices[0])
+
+	return err
 }
