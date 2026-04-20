@@ -875,5 +875,66 @@ func setupLocalStorage(ctx context.Context, s *state.State) error {
 		return err
 	}
 
+	// Migrate application data for Migration Manager and Operations Center to
+	// dedicated zfs datasets. This code can be removed after June 2026.
+	_, err = os.Stat("/var/lib/migration-manager")
+	if err == nil {
+		err := migrateApplicationData(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = os.Stat("/var/lib/operations-center")
+	if err == nil {
+		err := migrateApplicationData(ctx, "operations-center")
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func migrateApplicationData(ctx context.Context, applicationName string) error {
+	// Check if the application-specific dataset already exists.
+	_, err := subprocess.RunCommandContext(ctx, "zfs", "get", "mountpoint", "local/"+applicationName)
+	if err == nil {
+		return nil
+	}
+
+	slog.InfoContext(ctx, "Moving /var/lib/"+applicationName+" to dedicated dataset")
+
+	// Rename the existing application data directory.
+	err = os.Rename(filepath.Join("/var/lib/", applicationName), filepath.Join("/var/lib/", applicationName+".bak"))
+	if err != nil {
+		return err
+	}
+
+	// Create a new zfs dataset for the application.
+	err = zfs.CreateApplicationDataset(ctx, applicationName)
+	if err != nil {
+		// Attempt to restore the application's data.
+		_ = os.Rename(filepath.Join("/var/lib/", applicationName+".bak"), filepath.Join("/var/lib/", applicationName))
+
+		return err
+	}
+
+	// Move any existing application data.
+	entries, err := os.ReadDir(filepath.Join("/var/lib/", applicationName+".bak"))
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		// os.Rename() doesn't work across file system boundaries, so just be lazy and
+		// rely on `mv`.
+		_, err := subprocess.RunCommandContext(ctx, "mv", filepath.Join("/var/lib/", applicationName+".bak", entry.Name()), filepath.Join("/var/lib/", applicationName, entry.Name()))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Remove the old directory.
+	return os.RemoveAll(filepath.Join("/var/lib/", applicationName+".bak"))
 }
