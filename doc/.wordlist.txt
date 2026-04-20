@@ -110,6 +110,7 @@ SLAAC
 struct
 structs
 SuperMicro
+symlink
 syslog
 systemd
 systemd's

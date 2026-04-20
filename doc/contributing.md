@@ -35,6 +35,25 @@ To test the update process, build a new image and update to it with:
     make
     make test-update
 
+## Extending the `cli` package
+
+IncusOS provides a `cli` package which is imported by Incus, Migration Manager and Operations Center to provide an end-user command line interface to IncusOS.
+
+When adding a new command or making some other change, it's easy to test the changes by building a local client binary. Assuming you already have
+the IncusOS repository cloned in your home directory, clone the Incus repository and create a symlink to the IncusOS `cli` package at the root:
+
+    git clone https://github.com/lxc/incus
+    cd incus/
+    ln -s ~/incus-os/incus-osd/cli/ .
+
+Then, update the import path of `cmd/incus/admin_os.go` from `github.com/lxc/incus-os/incus-osd/cli` to `github.com/lxc/incus/v6/cli`.
+
+Finally, build the local Incus client:
+
+    go build ./cmd/incus/
+
+You can now test your new command or other changes: `./incus admin os ...`
+
 ## Debugging
 
 When IncusOS is run in an Incus virtual machine, it is possible to `exec` into the running
