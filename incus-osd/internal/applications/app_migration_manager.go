@@ -14,6 +14,7 @@ import (
 	"time"
 
 	mmapi "github.com/FuturFusion/migration-manager/shared/api"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -283,7 +284,7 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 	}
 
 	// Wipe local configuration.
-	err = mm.WipeLocalData()
+	err = mm.WipeLocalData(ctx)
 	if err != nil {
 		return err
 	}
@@ -299,8 +300,27 @@ func (mm *migrationManager) FactoryReset(ctx context.Context) error {
 }
 
 // WipeLocalData removes local data created by the application.
-func (*migrationManager) WipeLocalData() error {
-	return os.RemoveAll("/var/lib/migration-manager/")
+func (*migrationManager) WipeLocalData(ctx context.Context) error {
+	// Unmount the dataset.
+	err := unix.Unmount("/var/lib/migration-manager/", 0)
+	if err != nil {
+		return err
+	}
+
+	// Destroy the dataset.
+	err = zfs.DestroyDataset(ctx, "local", "migration-manager", false)
+	if err != nil {
+		return err
+	}
+
+	// For good measure, remove the mount point.
+	err = os.RemoveAll("/var/lib/migration-manager/")
+	if err != nil {
+		return err
+	}
+
+	// Create a fresh dataset for the application.
+	return zfs.CreateApplicationDataset(ctx, "migration-manager")
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
