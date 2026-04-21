@@ -886,6 +886,19 @@ func setupLocalStorage(ctx context.Context, s *state.State) error {
 		}
 	}
 
+	// Mount any application-specific datasets.
+	for appName := range s.Applications {
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return err
+		}
+
+		err = app.ConfigureLocalStorage(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Migrate application data for Migration Manager and Operations Center to
 	// dedicated zfs datasets. This code can be removed after June 2026.
 	_, err = os.Stat("/var/lib/migration-manager")
