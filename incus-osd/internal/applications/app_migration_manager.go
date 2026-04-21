@@ -33,18 +33,9 @@ func (*migrationManager) Name() string {
 
 // Start starts the systemd unit.
 func (mm *migrationManager) Start(ctx context.Context) error {
-	// If this is the first time starting the application, create a ZFS
-	// dataset for it to use.
-	if !mm.state.Applications["migration-manager"].State.Initialized {
-		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
-		if err != nil {
-			return err
-		}
-	} else {
-		err := zfs.MountApplicationDataset(ctx, "migration-manager")
-		if err != nil {
-			return err
-		}
+	err := mm.ConfigureLocalStorage(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Start the unit.
@@ -335,4 +326,22 @@ func (*migrationManager) GetBackup(archive io.Writer, complete bool) error {
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
 func (*migrationManager) RestoreBackup(ctx context.Context, archive io.Reader) error {
 	return extractTarArchive(ctx, "/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
+}
+
+// ConfigureLocalStorage configures local storage for the application.
+func (mm *migrationManager) ConfigureLocalStorage(ctx context.Context) error {
+	// If the application isn't initialized, create a ZFS dataset for it to use.
+	if !mm.state.Applications["migration-manager"].State.Initialized {
+		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	} else {
+		err := zfs.MountApplicationDataset(ctx, "migration-manager")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -11,6 +11,7 @@ import (
 // Application represents an installed application.
 type Application interface { //nolint:interfacebloat
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
+	ConfigureLocalStorage(ctx context.Context) error
 	Debug(ctx context.Context, data any) response.Response
 	DebugStruct() any
 	FactoryReset(ctx context.Context) error
