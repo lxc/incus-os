@@ -640,7 +640,40 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
-	// Get the provider.
+	// Ensure all systemd extensions are applied.
+	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+	if err != nil {
+		return err
+	}
+
+	// Run services startup actions. This must be done before bringing up any storage pools.
+	for _, srvName := range services.Supported(s) {
+		srv, err := services.Load(ctx, s, srvName)
+		if err != nil {
+			return err
+		}
+
+		if !srv.ShouldStart() {
+			continue
+		}
+
+		slog.InfoContext(ctx, "Starting service", "name", srvName)
+
+		err = srv.Start(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed starting service", "name", srvName, "err", err)
+		}
+	}
+
+	// Ensure any locally-defined pools are available.
+	err = setupLocalStorage(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Get the provider. Must be done after storage pools are loaded, since the operations-center
+	// provider depends on fetching the primary application's client certificate which may be
+	// stored in a local zfs dataset.
 	var provider string
 
 	var providerConfig map[string]string
@@ -687,37 +720,6 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	if !delayInitialUpdateCheck {
 		// Perform an initial blocking check for updates before proceeding.
 		update.Checker(ctx, s, p, true, false)
-	}
-
-	// Ensure all systemd extensions are applied.
-	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
-	if err != nil {
-		return err
-	}
-
-	// Run services startup actions. This must be done before bringing up any storage pools.
-	for _, srvName := range services.Supported(s) {
-		srv, err := services.Load(ctx, s, srvName)
-		if err != nil {
-			return err
-		}
-
-		if !srv.ShouldStart() {
-			continue
-		}
-
-		slog.InfoContext(ctx, "Starting service", "name", srvName)
-
-		err = srv.Start(ctx)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed starting service", "name", srvName, "err", err)
-		}
-	}
-
-	// Ensure any locally-defined pools are available.
-	err = setupLocalStorage(ctx, s)
-	if err != nil {
-		return err
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
