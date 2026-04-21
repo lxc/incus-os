@@ -196,6 +196,9 @@ func (*operationsCenter) IsRunning(ctx context.Context) bool {
 
 // NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
 func (*operationsCenter) NeedsLateUpdateCheck() bool {
+	// Depends on application client TLS certificate stored in ZFS dataset.
+	// Operations Center can also be self-hosted, which also requires a delay
+	// before we can check for updates.
 	return true
 }
 

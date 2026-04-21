@@ -181,7 +181,8 @@ func (*migrationManager) IsRunning(ctx context.Context) bool {
 
 // NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
 func (*migrationManager) NeedsLateUpdateCheck() bool {
-	return false
+	// Depends on application client TLS certificate stored in ZFS dataset.
+	return true
 }
 
 // GetClientCertificate returns the keypair for the client certificate.
