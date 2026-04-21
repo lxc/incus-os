@@ -137,6 +137,11 @@ func (*common) RestoreBackup(_ context.Context, _ io.Reader) error {
 	return errors.New("not supported")
 }
 
+// ConfigureLocalStorage configures local storage for the application.
+func (*common) ConfigureLocalStorage(_ context.Context) error {
+	return nil
+}
+
 // Common helper to construct an HTTP client using the provided local Unix socket.
 func unixHTTPClient(socketPath string) (*http.Client, error) {
 	// Setup a Unix socket dialer
