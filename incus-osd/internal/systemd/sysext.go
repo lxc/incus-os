@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus/v6/shared/subprocess"
 
@@ -226,11 +228,80 @@ func reloadExtensions(ctx context.Context) error {
 	// Refresh the installed sysext images.
 	_, err := subprocess.RunCommandContext(ctx, "systemd-sysext", "refresh")
 	if err != nil {
-		return err
+		// Check if we encountered a corrupt sysext image.
+		corruptSysextRegex := regexp.MustCompile(`Failed to read metadata for image (.+): Package not installed`)
+		match := corruptSysextRegex.FindStringSubmatch(err.Error())
+
+		if len(match) != 2 {
+			return err
+		}
+
+		// Attempt to delete any corrupt sysext images that exist on-disk.
+		err := removeCorruptSysext(ctx, match[1])
+		if err != nil {
+			return err
+		}
 	}
 
 	// Reload the systemd daemon.
 	return ReloadDaemon(ctx)
+}
+
+func removeCorruptSysext(ctx context.Context, appName string) error {
+	slog.WarnContext(ctx, "Unable to load application '"+appName+"' due to a corrupt on-disk image, attempting to cleanup")
+
+	removedAtLestOneSysext := false
+
+	// Check each on-disk sysext image, and delete any that are corrupt.
+	versions, err := os.ReadDir(LocalExtensionsPath)
+	if err != nil {
+		return err
+	}
+
+	for _, version := range versions {
+		sysextImageFile := filepath.Join(LocalExtensionsPath, version.Name(), appName+".raw")
+
+		_, err := os.Stat(sysextImageFile)
+		if err == nil {
+			err := VerifyExtension(ctx, sysextImageFile)
+			if err != nil {
+				slog.WarnContext(ctx, "sysext image for application '"+appName+"' version "+version.Name()+" is corrupt, deleting")
+
+				// Remove the corrupt sysext image.
+				err := os.Remove(sysextImageFile)
+				if err != nil {
+					return err
+				}
+
+				// Opportunistically attempt to cleanup a directory that might have become empty.
+				_ = os.Remove(filepath.Join(LocalExtensionsPath, version.Name()))
+
+				removedAtLestOneSysext = true
+			}
+		}
+	}
+
+	if !removedAtLestOneSysext {
+		return errors.New("systemd-sysext failed to load sysext image for application '" + appName + "', but all image(s) on-disk validated correctly")
+	}
+
+	slog.InfoContext(ctx, "System must reboot to finalize cleanup of corrupt application image(s), rebooting in five seconds")
+
+	time.Sleep(5 * time.Second)
+
+	// After deleting corrupt image(s). reboot the system. On next boot, IncusOS will detect and use any remaining on-disk
+	// versions of the application. Additionally, as part of normal startup IncusOS will check for updates, which ensures
+	// that even if all on-disk images were corrupt and deleted, the system will automatically download a known-good application
+	// image and use that to guarantee that the system remains operational as expected.
+	err = SystemReboot(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Sleep to delay any further actions while the system is rebooting.
+	time.Sleep(5 * time.Second)
+
+	return nil
 }
 
 func getApplicationsVersions(currentApps map[string]api.Application) (map[string]*availableApplicationVersions, error) {
@@ -289,10 +360,16 @@ func getApplicationsVersions(currentApps map[string]api.Application) (map[string
 		}
 	}
 
-	// Ensure there's at least one version of each application on disk.
+	// Ensure there's at least one version of each application on disk. If the application version from state
+	// doesn't actually exist on disk, force-set it to the most recent version available.
 	for name, version := range appVersions {
 		if version.latestDiskVersion == "" {
 			return appVersions, errors.New("no on-disk sysext image found for application '" + name + "'")
+		}
+
+		_, err := os.Stat(filepath.Join(LocalExtensionsPath, version.appVersion, name+".raw"))
+		if err != nil {
+			version.appVersion = version.latestDiskVersion
 		}
 	}
 
