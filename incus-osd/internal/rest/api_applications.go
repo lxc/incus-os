@@ -84,10 +84,17 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// Get the list of applications.
-		names := make([]string, 0, len(s.state.Applications))
+		apps, err := applications.GetInstalled(r.Context(), s.state)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
 
-		for name := range s.state.Applications {
-			names = append(names, name)
+			return
+		}
+
+		names := make([]string, 0, len(apps))
+
+		for _, app := range apps {
+			names = append(names, app.Name())
 		}
 
 		slices.Sort(names)
@@ -126,15 +133,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Check if the application is already installed.
-		_, exists := s.state.Applications[app.Name]
-		if exists {
-			_ = response.Conflict(nil).Render(w)
-
-			return
-		}
-
-		// Don't allow more than one primary application to be installed.
+		// Load the application.
 		actualApp, err := applications.Load(r.Context(), s.state, app.Name)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
@@ -142,6 +141,14 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if the application is already installed.
+		if actualApp.IsInstalled() {
+			_ = response.Conflict(nil).Render(w)
+
+			return
+		}
+
+		// Don't allow more than one primary application to be installed.
 		if actualApp.IsPrimary() {
 			_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
 
@@ -216,9 +223,9 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	app, ok := s.state.Applications[name]
-	if !ok {
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -261,22 +268,12 @@ func (s *Server) apiApplicationsDebug(w http.ResponseWriter, r *http.Request) {
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		w.Header().Set("Content-Type", "application/json")
-
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -330,18 +327,10 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -390,18 +379,10 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -466,18 +447,10 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -567,18 +540,10 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	appInfo, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -628,15 +593,15 @@ func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
+	_, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Remove the application.
-	err := applications.UninstallApplication(r.Context(), s.state, name)
+	err = applications.UninstallApplication(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -682,15 +647,15 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
+	_, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Check for and apply application update.
-	err := update.InstallUpdateApp(r.Context(), s.state, name, true)
+	err = update.InstallUpdateApp(r.Context(), s.state, name, true)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -741,8 +706,8 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	app, ok := s.state.Applications[name]
-	if !ok {
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -757,7 +722,7 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 
 	counter := &countWrapper{ReadCloser: r.Body}
 
-	err := json.NewDecoder(counter).Decode(vi)
+	err = json.NewDecoder(counter).Decode(vi)
 	if err != nil && counter.n > 0 {
 		_ = response.BadRequest(err).Render(w)
 
