@@ -30,6 +30,7 @@ type Application interface { //nolint:interfacebloat
 	RestoreBackup(ctx context.Context, archive io.Reader) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
+	SwitchVersion(newVersion string) error
 	Update(ctx context.Context) error
 	WipeLocalData(ctx context.Context) error
 	Version() string

@@ -778,40 +778,15 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Check if it's possible to change the application version.
-	if len(app.State.AvailableVersions) == 1 {
-		_ = response.BadRequest(errors.New("only one version of the application is available locally, cannot switch to a different version")).Render(w)
+	// Switch the application version.
+	err = app.SwitchVersion(vi.Version)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	// Determine the new application version.
-	var version string
-
-	if vi.Version == "" {
-		versionIndex := slices.Index(app.State.AvailableVersions, app.State.Version)
-		if versionIndex == 0 {
-			_ = response.BadRequest(errors.New("cannot rollback application as no earlier version is available locally")).Render(w)
-
-			return
-		}
-
-		version = app.State.AvailableVersions[versionIndex-1]
-	} else {
-		if !slices.Contains(app.State.AvailableVersions, vi.Version) {
-			_ = response.BadRequest(errors.New("cannot switch application to version '" + vi.Version + "' because it does not exist locally")).Render(w)
-
-			return
-		}
-
-		version = vi.Version
-	}
-
-	// Update application state.
-	app.State.Version = version
-	s.state.Applications[name] = app
-
-	// Switch the application version.
+	// Reload sysext images to reload application.
 	err = systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)

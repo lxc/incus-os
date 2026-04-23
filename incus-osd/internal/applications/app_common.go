@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -117,6 +118,40 @@ func (*common) Start(_ context.Context) error {
 
 // Stop runs shutdown action.
 func (*common) Stop(_ context.Context) error {
+	return nil
+}
+
+// SwitchVersion attempts to change the configured version of the application. If no version is specified,
+// try to rollback to the prior available version of the application, if available.
+//
+// Note that the underlying sysext images must be refreshed to actually update the running version of the application.
+func (a *common) SwitchVersion(newVersion string) error {
+	// Check if it's possible to change the application version.
+	if len(a.appState.AvailableVersions) == 1 {
+		return errors.New("only one version of the application is available locally, cannot switch to a different version")
+	}
+
+	// Determine the new application version.
+	var version string
+
+	if newVersion == "" {
+		versionIndex := slices.Index(a.appState.AvailableVersions, a.appState.Version)
+		if versionIndex == 0 {
+			return errors.New("cannot rollback application as no earlier version is available locally")
+		}
+
+		version = a.appState.AvailableVersions[versionIndex-1]
+	} else {
+		if !slices.Contains(a.appState.AvailableVersions, newVersion) {
+			return errors.New("cannot switch application to version '" + newVersion + "' because it does not exist locally")
+		}
+
+		version = newVersion
+	}
+
+	// Update application's version.
+	a.appState.Version = version
+
 	return nil
 }
 
