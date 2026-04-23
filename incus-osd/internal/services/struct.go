@@ -8,8 +8,8 @@ import (
 // Service represents a system service.
 type Service interface {
 	Get(ctx context.Context) (any, error)
-	ShouldStart() bool
 	Reset(ctx context.Context) error
+	ShouldStart() bool
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	Struct() any
@@ -19,8 +19,8 @@ type Service interface {
 
 type common struct{}
 
-func (*common) Get(_ context.Context) (any, error) {
-	return nil, nil //nolint:nilnil
+func (*common) Reset(_ context.Context) error {
+	return errors.New("reset isn't supported by this service")
 }
 
 func (*common) ShouldStart() bool {
@@ -35,18 +35,6 @@ func (*common) Stop(_ context.Context) error {
 	return nil
 }
 
-func (*common) Reset(_ context.Context) error {
-	return errors.New("Reset isn't supported by this service")
-}
-
-func (*common) Struct() any {
-	return nil
-}
-
 func (*common) Supported() bool {
 	return true
-}
-
-func (*common) Update(_ context.Context, _ any) error {
-	return nil
 }
