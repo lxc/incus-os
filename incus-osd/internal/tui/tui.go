@@ -17,6 +17,7 @@ import (
 	"github.com/lxc/incus/v6/shared/units"
 	"github.com/rivo/tview"
 
+	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -310,12 +311,17 @@ func (t *TUI) redrawScreen() {
 		}
 
 		// Get list of applications from state.
-		applications := []string{}
-		for app, info := range t.state.Applications {
-			applications = append(applications, app+"("+info.State.Version+")")
+		apps, err := applications.GetInstalled(context.Background(), t.state)
+		if err != nil {
+			return
 		}
 
-		slices.Sort(applications)
+		appStatus := []string{}
+		for _, app := range apps {
+			appStatus = append(appStatus, app.Name()+"("+app.Version()+")")
+		}
+
+		slices.Sort(appStatus)
 
 		consoleWidth, _ := t.screen.Size()
 		for _, line := range wrapFooterText("Network configuration", strings.Join(t.getIPAddresses(), ", "), consoleWidth) {
@@ -326,7 +332,7 @@ func (t *TUI) redrawScreen() {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
 
-		for _, line := range wrapFooterText("Installed application(s)", strings.Join(applications, ", "), consoleWidth) {
+		for _, line := range wrapFooterText("Installed application(s)", strings.Join(appStatus, ", "), consoleWidth) {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
 
