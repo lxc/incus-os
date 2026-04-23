@@ -310,8 +310,17 @@ func (*operationsCenter) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	return extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
+func (oc *operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	err := extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
+	if err != nil {
+		return err
+	}
+
+	// Record when the application was restored.
+	now := time.Now()
+	oc.appState.LastRestored = &now
+
+	return nil
 }
 
 // Start starts the systemd unit.

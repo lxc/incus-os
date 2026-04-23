@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -587,18 +586,6 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 
 	// Restore the application's backup.
 	err = app.RestoreBackup(r.Context(), r.Body)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Record when the application was restored.
-	now := time.Now()
-	appInfo.State.LastRestored = &now
-	s.state.Applications[name] = appInfo
-
-	err = s.state.Save()
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
