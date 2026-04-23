@@ -90,7 +90,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "",
+        "version": "20260410",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
