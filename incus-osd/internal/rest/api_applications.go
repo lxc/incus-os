@@ -212,14 +212,44 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	          example: {"state":{"initialized":true,"version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
 //	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+
+// swagger:operation PUT /1.0/applications/{name} applications applications_put_application
+//
+//	Update application configuration
+//
+//	Updates an application's configuration.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	  - in: body
+//	    name: configuration
+//	    description: Application configuration
+//	    required: true
+//	    schema:
+//	      type: object
+//	      properties:
+//	        config:
+//	          type: object
+//	          description: The application configuration
+//	          example: {"lxcfs":{"cpu_shares":false,"load_average":true}}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodGet {
-		_ = response.NotImplemented(nil).Render(w)
-
-		return
-	}
 
 	name := r.PathValue("name")
 
@@ -232,7 +262,41 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Handle the request.
-	_ = response.SyncResponse(true, app).Render(w)
+	switch r.Method {
+	case http.MethodGet:
+		resp, err := app.Get(r.Context())
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.SyncResponse(true, resp).Render(w)
+	case http.MethodPut:
+		dest := app.Struct()
+
+		decoder := json.NewDecoder(r.Body)
+
+		err = decoder.Decode(dest)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		err = app.UpdateConfig(r.Context(), dest)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
 }
 
 // swagger:operation POST /1.0/applications/{name}/:debug applications applications_post_debug
