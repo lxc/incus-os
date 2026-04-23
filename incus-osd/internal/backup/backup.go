@@ -262,8 +262,13 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 
 	havePrimaryApp := false
 
-	for app := range newState.Applications {
-		if app == "incus" || app == "migration-manager" || app == "operations-center" {
+	newApps, err := applications.GetInstalled(ctx, newState)
+	if err != nil {
+		return err
+	}
+
+	for _, newApp := range newApps {
+		if newApp.IsPrimary() {
 			havePrimaryApp = true
 
 			break
@@ -274,23 +279,34 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		return errors.New("backup state doesn't include the incus, migration-manager, or operations-center application")
 	}
 
+	oldApps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	// Make sure list of configured applications is consistent with the new state.
-	for oldApp := range s.Applications {
+	for _, oldApp := range oldApps {
 		// Uninstall any application that's not present in the new state.
-		_, exists := newState.Applications[oldApp]
+		exists := slices.ContainsFunc(newApps, func(a applications.Application) bool {
+			return a.Name() == oldApp.Name()
+		})
+
 		if !exists {
-			err := applications.UninstallApplication(ctx, s, oldApp)
+			err := applications.UninstallApplication(ctx, s, oldApp.Name())
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	for newApp := range newState.Applications {
+	for _, newApp := range newApps {
 		// Install any application that's not currently installed.
-		_, exists := s.Applications[newApp]
+		exists := slices.ContainsFunc(oldApps, func(a applications.Application) bool {
+			return a.Name() == newApp.Name()
+		})
+
 		if !exists {
-			err := update.InstallUpdateApp(ctx, s, newApp, false)
+			err := update.InstallUpdateApp(ctx, s, newApp.Name(), false)
 			if err != nil {
 				return err
 			}
