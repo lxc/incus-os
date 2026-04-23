@@ -48,7 +48,7 @@
         ]
     },
     "lego": {
-        "version": "v4.34.0",
+        "version": "v4.35.1",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -90,7 +90,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260410",
+        "version": "",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -125,7 +125,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.7",
+        "version": "v0.6.8",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -202,7 +202,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.5.7",
+        "version": "v0.5.8",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
