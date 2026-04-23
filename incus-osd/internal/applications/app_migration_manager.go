@@ -69,7 +69,7 @@ func (*migrationManager) AddTrustedCertificate(ctx context.Context, _ string, ce
 // ConfigureLocalStorage configures local storage for the application.
 func (mm *migrationManager) ConfigureLocalStorage(ctx context.Context) error {
 	// If the application isn't initialized, create a ZFS dataset for it to use.
-	if !mm.state.Applications["migration-manager"].State.Initialized {
+	if !mm.IsInitialized() {
 		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
 		if err != nil {
 			return err
@@ -255,6 +255,8 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 			return err
 		}
 	}
+
+	mm.appState.Initialized = true
 
 	return nil
 }

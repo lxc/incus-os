@@ -188,6 +188,8 @@ func (a *incus) Initialize(ctx context.Context) error {
 		}
 	}
 
+	a.appState.Initialized = true
+
 	return nil
 }
 

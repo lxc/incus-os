@@ -24,9 +24,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/api"
+	incusapi "github.com/lxc/incus/v6/shared/api"
 	"github.com/lxc/incus/v6/shared/revert"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -58,7 +59,24 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 	}
 
 	// Remove application from the state.
-	delete(s.Applications, app.Name())
+	switch name {
+	case "debug":
+		s.Applications.Debug = api.Application{}
+	case "gpu-support":
+		s.Applications.GPUSupport = api.Application{}
+	case "incus":
+		s.Applications.Incus = api.ApplicationIncus{}
+	case "incus-ceph":
+		s.Applications.IncusCeph = api.Application{}
+	case "incus-linstor":
+		s.Applications.IncusLinstor = api.Application{}
+	case "migration-manager":
+		s.Applications.MigrationManager = api.Application{}
+	case "operations-center":
+		s.Applications.OperationsCenter = api.Application{}
+	default:
+		return errors.New("unknown application '" + name + "'")
+	}
 
 	// Remove the sysext image.
 	err = systemd.RemoveExtension(ctx, app.Name())
@@ -78,11 +96,8 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 		return err
 	}
 
-	// At this point, we know the application will exist in the map.
-	appInfo := s.Applications[appName]
-
 	// Start the application.
-	slog.InfoContext(ctx, "Starting application", "name", appName, "version", appInfo.State.Version)
+	slog.InfoContext(ctx, "Starting application", "name", appName, "version", app.Version())
 
 	err = app.Start(ctx)
 	if err != nil {
@@ -90,16 +105,13 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 	}
 
 	// Run initialization if needed.
-	if !appInfo.State.Initialized {
-		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", appInfo.State.Version)
+	if !app.IsInitialized() {
+		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", app.Version())
 
 		err = app.Initialize(ctx)
 		if err != nil {
 			return err
 		}
-
-		appInfo.State.Initialized = true
-		s.Applications[appName] = appInfo
 	}
 
 	// If the application has a TLS certificate, print its fingerprint so the user can verify it when initially connecting.
@@ -169,7 +181,7 @@ func doRequest(ctx context.Context, socket string, url string, method string, bo
 	}
 	defer resp.Body.Close()
 
-	r := &api.ResponseRaw{}
+	r := &incusapi.ResponseRaw{}
 
 	err = json.NewDecoder(resp.Body).Decode(r)
 	if err != nil {

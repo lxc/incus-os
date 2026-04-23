@@ -20,6 +20,8 @@ type Application interface { //nolint:interfacebloat
 	GetDependencies() []string
 	GetServerCertificate() (*tls.Certificate, error)
 	Initialize(ctx context.Context) error
+	IsInitialized() bool
+	IsInstalled() bool
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool
 	Name() string
@@ -30,4 +32,5 @@ type Application interface { //nolint:interfacebloat
 	Stop(ctx context.Context) error
 	Update(ctx context.Context) error
 	WipeLocalData(ctx context.Context) error
+	Version() string
 }

@@ -6,12 +6,15 @@ import (
 	"errors"
 	"io"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 type common struct {
 	state *state.State
+
+	appState *api.ApplicationState
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
@@ -66,8 +69,20 @@ func (*common) GetServerCertificate() (*tls.Certificate, error) {
 }
 
 // Initialize runs first time initialization.
-func (*common) Initialize(_ context.Context) error {
+func (a *common) Initialize(_ context.Context) error {
+	a.appState.Initialized = true
+
 	return nil
+}
+
+// IsInstalled reports whether the application has been installed.
+func (a *common) IsInstalled() bool {
+	return a.appState.Version != ""
+}
+
+// IsInitialized reports whether the application has been initialized.
+func (a *common) IsInitialized() bool {
+	return a.appState.Initialized
 }
 
 // IsPrimary reports if the application is a primary application.
@@ -117,4 +132,9 @@ func (*common) Update(_ context.Context) error {
 // WipeLocalData removes local data created by the application.
 func (*common) WipeLocalData(_ context.Context) error {
 	return nil
+}
+
+// Version returns the installed version.
+func (a *common) Version() string {
+	return a.appState.Version
 }

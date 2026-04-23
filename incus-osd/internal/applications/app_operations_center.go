@@ -69,7 +69,7 @@ func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, ce
 // ConfigureLocalStorage configures local storage for the application.
 func (oc *operationsCenter) ConfigureLocalStorage(ctx context.Context) error {
 	// If the application isn't initialized, create a ZFS dataset for it to use.
-	if !oc.state.Applications["operations-center"].State.Initialized {
+	if !oc.IsInitialized() {
 		err := zfs.CreateApplicationDataset(ctx, "operations-center")
 		if err != nil {
 			return err
@@ -276,6 +276,8 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 			return err
 		}
 	}
+
+	oc.appState.Initialized = true
 
 	return nil
 }
