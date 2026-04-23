@@ -357,3 +357,15 @@ func (*migrationManager) WipeLocalData(ctx context.Context) error {
 func doMMRequest(ctx context.Context, url string, method string, body []byte) ([]byte, error) {
 	return doRequest(ctx, "/run/migration-manager/unix.socket", url, method, body)
 }
+
+func (mm *migrationManager) Get(_ context.Context) (any, error) {
+	return mm.state.Applications.MigrationManager, nil
+}
+
+func (*migrationManager) Struct() any {
+	return &api.Application{}
+}
+
+func (*migrationManager) UpdateConfig(_ context.Context, _ any) error {
+	return nil
+}

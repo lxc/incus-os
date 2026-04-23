@@ -16,6 +16,7 @@ type Application interface { //nolint:interfacebloat
 	Debug(ctx context.Context, data any) response.Response
 	DebugStruct() any
 	FactoryReset(ctx context.Context) error
+	Get(ctx context.Context) (any, error)
 	GetBackup(archive io.Writer, complete bool) error
 	GetClientCertificate() (*tls.Certificate, error)
 	GetDependencies() []string
@@ -30,10 +31,12 @@ type Application interface { //nolint:interfacebloat
 	Restart(ctx context.Context) error
 	RestoreBackup(ctx context.Context, archive io.Reader) error
 	SetVersions(version string, availableVersions []string)
+	Struct() any
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	SwitchVersion(newVersion string) error
 	Update(ctx context.Context) error
+	UpdateConfig(ctx context.Context, req any) error
 	WipeLocalData(ctx context.Context) error
 	Version() string
 }
