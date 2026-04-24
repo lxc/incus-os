@@ -79,7 +79,7 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 	}
 
 	// Remove the sysext image.
-	err = systemd.RemoveExtension(ctx, app.Name())
+	err = RemoveExtension(ctx, app)
 	if err != nil {
 		return err
 	}

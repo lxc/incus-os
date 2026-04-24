@@ -10,7 +10,6 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
@@ -774,7 +773,7 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 	}
 
 	// Reload sysext images to reload application.
-	err = systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
+	err = applications.RefreshExtensions(r.Context(), s.state)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
