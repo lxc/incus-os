@@ -29,5 +29,5 @@ type Application interface { //nolint:interfacebloat
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	Update(ctx context.Context) error
-	WipeLocalData(_ context.Context) error
+	WipeLocalData(ctx context.Context) error
 }

@@ -15,12 +15,12 @@ type gpuSupport struct {
 	common
 }
 
-func (*gpuSupport) Name() string {
-	return "gpu-support"
-}
-
 func (*gpuSupport) IsRunning(_ context.Context) bool {
 	return true
+}
+
+func (*gpuSupport) Name() string {
+	return "gpu-support"
 }
 
 func (*gpuSupport) Start(ctx context.Context) error {
