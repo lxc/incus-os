@@ -23,6 +23,11 @@ func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) erro
 	return errors.New("not supported")
 }
 
+// AvailableVersions returns a list of available versions.
+func (a *common) AvailableVersions() []string {
+	return a.appState.AvailableVersions
+}
+
 // ConfigureLocalStorage configures local storage for the application.
 func (*common) ConfigureLocalStorage(_ context.Context) error {
 	return nil
@@ -114,6 +119,12 @@ func (*common) RestoreBackup(_ context.Context, _ io.Reader) error {
 // Start runs startup action.
 func (*common) Start(_ context.Context) error {
 	return nil
+}
+
+// SetVersions sets the actual and available versions for the application.
+func (a *common) SetVersions(version string, availableVersions []string) {
+	a.appState.Version = version
+	a.appState.AvailableVersions = availableVersions
 }
 
 // Stop runs shutdown action.

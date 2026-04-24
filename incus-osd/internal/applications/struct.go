@@ -11,6 +11,7 @@ import (
 // Application represents an installed application.
 type Application interface { //nolint:interfacebloat
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
+	AvailableVersions() []string
 	ConfigureLocalStorage(ctx context.Context) error
 	Debug(ctx context.Context, data any) response.Response
 	DebugStruct() any
@@ -28,6 +29,7 @@ type Application interface { //nolint:interfacebloat
 	NeedsLateUpdateCheck() bool
 	Restart(ctx context.Context) error
 	RestoreBackup(ctx context.Context, archive io.Reader) error
+	SetVersions(version string, availableVersions []string)
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	SwitchVersion(newVersion string) error
