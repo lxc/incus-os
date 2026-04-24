@@ -144,7 +144,16 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		}
 	}
 
-	_, err := subprocess.RunCommandContext(ctx, "tailscale", "set", "--advertise-routes", strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","), "--accept-routes="+strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes))
+	args := []string{
+		"set",
+		"--advertise-routes=" + strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","),
+		"--accept-routes=" + strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes),
+		"--advertise-exit-node=" + strconv.FormatBool(n.state.Services.Tailscale.Config.AdvertiseExitNode),
+		"--exit-node=" + n.state.Services.Tailscale.Config.ExitNode,
+		"--exit-node-allow-lan-access=" + strconv.FormatBool(n.state.Services.Tailscale.Config.ExitNodeAllowLanAccess),
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "tailscale", args...)
 	if err != nil {
 		return err
 	}
