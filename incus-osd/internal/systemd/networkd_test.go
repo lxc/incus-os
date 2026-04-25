@@ -127,6 +127,7 @@ dns:
   nameservers:
     - ns1.example.org
     - ns2.example.org
+  dns_over_tls: true
 time:
   ntp_servers:
     - pool.ntp.example.org
@@ -464,6 +465,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Len(t, cfg.DNS.Nameservers, 2)
 		require.Equal(t, "ns1.example.org", cfg.DNS.Nameservers[0])
 		require.Equal(t, "ns2.example.org", cfg.DNS.Nameservers[1])
+		require.True(t, cfg.DNS.DNSOverTLS)
 		require.Len(t, cfg.Time.NTPServers, 2)
 		require.Equal(t, "pool.ntp.example.org", cfg.Time.NTPServers[0])
 		require.Equal(t, "10.10.10.10", cfg.Time.NTPServers[1])
@@ -754,7 +756,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	cfgs = generateNetworkFileContents(networkCfg)
 	require.Len(t, cfgs, 4)
 	require.Equal(t, "20-_vffeeddccbbaa.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nDNSOverTLS=yes\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
 	require.Equal(t, "20-_iffeeddccbbaa.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Network]\nBridge=ffeeddccbbaa\n", cfgs[1].Contents)
 	require.Equal(t, "20-_pffeeddccbbaa.network", cfgs[2].Name)

@@ -1803,7 +1803,7 @@ func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, 
 		}
 	}
 
-	// If there are search domains or name servers, add those to the config.
+	// If there are search domains or name servers or DNS over TLS defined, add those to the config.
 	if dns != nil {
 		if len(dns.SearchDomains) > 0 {
 			_, _ = fmt.Fprintf(&ret, "Domains=%s\n", strings.Join(dns.SearchDomains, " "))
@@ -1811,6 +1811,10 @@ func generateNetworkSectionContents(name string, vlans []api.SystemNetworkVLAN, 
 
 		for _, ns := range dns.Nameservers {
 			_, _ = fmt.Fprintf(&ret, "DNS=%s\n", ns)
+		}
+
+		if dns.DNSOverTLS {
+			_, _ = fmt.Fprint(&ret, "DNSOverTLS=yes\n")
 		}
 	}
 

@@ -143,6 +143,7 @@ type SystemNetworkDNS struct {
 	Hostname      string   `json:"hostname"                 yaml:"hostname"`
 	Nameservers   []string `json:"nameservers,omitempty"    yaml:"nameservers,omitempty"`
 	SearchDomains []string `json:"search_domains,omitempty" yaml:"search_domains,omitempty"`
+	DNSOverTLS    bool     `json:"dns_over_tls,omitempty"   yaml:"dns_over_tls,omitempty"`
 }
 
 // SystemNetworkTime defines various time related configuration options (NTP servers, timezone, etc).

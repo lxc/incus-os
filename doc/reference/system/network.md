@@ -201,6 +201,10 @@ config:
 Changing the system's timezone will take effect immediately, but won't be reflected in the IncusOS terminal UI until after a system reboot because of a [known issue](https://github.com/golang/go/issues/28020) in the Go `time` package.
 ```
 
+```{note}
+Please use name servers that support DNS over TLS when `dns_over_tls` is true
+```
+
 Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```yaml
@@ -216,6 +220,7 @@ config:
     nameservers:
     - "ns1.example.com"
     - "ns2.example.com"
+    dns_over_tls: false
 
   time:
     ntp_servers:
