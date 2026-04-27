@@ -95,10 +95,6 @@ func (*common) IsRunning(_ context.Context) bool {
 	return false
 }
 
-func (*common) Name() string {
-	return ""
-}
-
 // NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
 func (*common) NeedsLateUpdateCheck() bool {
 	return false
