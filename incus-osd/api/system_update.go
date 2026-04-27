@@ -42,9 +42,13 @@ type SystemUpdateMaintenanceWindow struct {
 func (c *SystemUpdateConfig) Validate() error {
 	// Check the update frequency is valid.
 	if c.CheckFrequency != "never" {
-		_, err := time.ParseDuration(c.CheckFrequency)
+		frequency, err := time.ParseDuration(c.CheckFrequency)
 		if err != nil {
 			return errors.New("invalid update check frequency: " + err.Error())
+		}
+
+		if frequency < 0 {
+			return errors.New("invalid update check frequency: must be a positive value")
 		}
 	}
 
