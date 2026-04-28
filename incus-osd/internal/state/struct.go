@@ -22,6 +22,7 @@ type OS struct {
 	RunningRelease string `json:"running_release"`
 	NextRelease    string `json:"next_release"`
 	SuccessfulBoot bool   `json:"successful_boot"`
+	SystemIsReady  bool   `json:"-"`
 }
 
 // State represents the on-disk persistent state.

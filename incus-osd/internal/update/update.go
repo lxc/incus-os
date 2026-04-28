@@ -71,6 +71,14 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 				break
 			}
 
+			if frequency < 0 {
+				// Shouldn't be possible, we validate on update.
+				s.System.Update.State.Status = "Update frequency must be a positive value"
+				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", "Update frequency must be a positive value")
+
+				break
+			}
+
 			// If any maintenance windows are defined, limit the time to sleep to be a minimum
 			// of the configured check frequency and the start of the next maintenance window,
 			// whichever is shorter.

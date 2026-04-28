@@ -150,6 +150,7 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 			"os_name":         s.state.OS.Name,
 			"os_version":      s.state.OS.RunningRelease,
 			"os_version_next": s.state.OS.NextRelease,
+			"system_is_ready": s.state.OS.SystemIsReady,
 			"uptime":          uptime,
 		},
 	}
