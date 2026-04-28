@@ -621,7 +621,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// One such example is when Operations Center is installed and the underlying IncusOS system
 	// is registered to it as the provider. We need to wait until the Operations Center
 	// application has started, otherwise any update check will fail.
-	delayInitialUpdateCheck, err := checkDelayInitialUpdate(apps)
+	delayInitialUpdateCheck, err := checkDelayInitialUpdate(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -671,7 +671,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Ensure any locally-defined pools are available.
-	err = setupLocalStorage(ctx, s, apps)
+	err = setupLocalStorage(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -728,6 +728,11 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
+	apps, err = applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	for _, app := range apps {
 		err := applications.StartInitialize(ctx, s, app.Name())
 		if err != nil {
@@ -842,7 +847,12 @@ func registerJobs(s *state.State) error {
 	return nil
 }
 
-func checkDelayInitialUpdate(apps []applications.Application) (bool, error) {
+func checkDelayInitialUpdate(ctx context.Context, s *state.State) (bool, error) {
+	apps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return false, err
+	}
+
 	// Check if any installed application depends on a delayed update check.
 	for _, app := range apps {
 		if app.NeedsLateUpdateCheck() {
@@ -864,7 +874,7 @@ func setTimezone(ctx context.Context) error {
 	return systemd.SetTimezone(ctx, config.Time)
 }
 
-func setupLocalStorage(ctx context.Context, s *state.State, apps []applications.Application) error {
+func setupLocalStorage(ctx context.Context, s *state.State) error {
 	slog.InfoContext(ctx, "Bringing up the local storage")
 
 	err := storage.DecryptDrives(ctx)
@@ -886,6 +896,11 @@ func setupLocalStorage(ctx context.Context, s *state.State, apps []applications.
 		if err != nil {
 			return err
 		}
+	}
+
+	apps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
 	}
 
 	// Mount any application-specific datasets.
