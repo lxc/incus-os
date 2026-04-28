@@ -24,6 +24,12 @@ The following configuration options can be set:
 
 * `serve_service`: Tailscale [Service](https://tailscale.com/docs/features/tailscale-services) to expose the service as. Corresponds to the `--service=` flag in `tailscale serve`, not passed if empty. Note: At time of writing this feature is [not supported in Headscale](https://github.com/juanfont/headscale/issues/2845).
 
+* `advertise_exit_node`: If `true`, offer to be an [exit node](https://tailscale.com/docs/features/exit-nodes#advertise-a-device-as-an-exit-node) for internet traffic for the tailnet.
+
+* `exit_node`: Tailscale exit node (IP, base name, or auto:any) for internet traffic, or empty string to not use an exit node.
+
+* `exit_node_allow_lan_access`: If `true`, allow direct access to the local network when routing traffic via an exit node. 
+
 ```{note}
 Enabling Tailscale Serve requires provisioning HTTPS certificates on the dashboard beforehand ([documentation](https://tailscale.com/kb/1153/enabling-https#configure-https))
 ```
