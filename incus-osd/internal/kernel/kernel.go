@@ -116,6 +116,10 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		}
 	}
 
+	if netConfig.NetdevMaxBacklog < 0 {
+		return errors.New("maximum backlog cannot be negative")
+	}
+
 	// Remove the existing configuration files, if they exist.
 	err := os.Remove("/etc/sysctl.d/99-local-sysctl.conf")
 	if err != nil && !os.IsNotExist(err) {
@@ -164,6 +168,20 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 
 	if netConfig.TCPCongestionAlgorithm != "" {
 		_, err := fd.WriteString("net.ipv4.tcp_congestion_control = " + netConfig.TCPCongestionAlgorithm + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	if netConfig.NetdevMaxBacklog != 0 {
+		_, err := fmt.Fprintf(fd, "net.core.netdev_max_backlog = %d\n", netConfig.NetdevMaxBacklog)
+		if err != nil {
+			return err
+		}
+	}
+
+	if netConfig.TCPMTUProbing {
+		_, err := fd.WriteString("net.ipv4.tcp_mtu_probing = 1\n")
 		if err != nil {
 			return err
 		}
