@@ -69,7 +69,7 @@ func (*operationsCenter) AddTrustedCertificate(ctx context.Context, _ string, ce
 // ConfigureLocalStorage configures local storage for the application.
 func (oc *operationsCenter) ConfigureLocalStorage(ctx context.Context) error {
 	// If the application isn't initialized, create a ZFS dataset for it to use.
-	if !oc.state.Applications["operations-center"].State.Initialized {
+	if !oc.IsInitialized() {
 		err := zfs.CreateApplicationDataset(ctx, "operations-center")
 		if err != nil {
 			return err
@@ -277,6 +277,8 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 		}
 	}
 
+	oc.appState.Initialized = true
+
 	return nil
 }
 
@@ -308,8 +310,17 @@ func (*operationsCenter) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	return extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
+func (oc *operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	err := extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
+	if err != nil {
+		return err
+	}
+
+	// Record when the application was restored.
+	now := time.Now()
+	oc.appState.LastRestored = &now
+
+	return nil
 }
 
 // Start starts the systemd unit.
@@ -368,4 +379,16 @@ func (*operationsCenter) WipeLocalData(ctx context.Context) error {
 // Operations Center specific helper to interact with the REST API.
 func doOCRequest(ctx context.Context, url string, method string, body []byte) ([]byte, error) {
 	return doRequest(ctx, "/run/operations-center/unix.socket", url, method, body)
+}
+
+func (oc *operationsCenter) Get(_ context.Context) (any, error) {
+	return oc.state.Applications.OperationsCenter, nil
+}
+
+func (*operationsCenter) Struct() any {
+	return &api.Application{}
+}
+
+func (*operationsCenter) UpdateConfig(_ context.Context, _ any) error {
+	return nil
 }

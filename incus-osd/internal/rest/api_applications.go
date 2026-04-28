@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
@@ -86,10 +84,17 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// Get the list of applications.
-		names := make([]string, 0, len(s.state.Applications))
+		apps, err := applications.GetInstalled(r.Context(), s.state)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
 
-		for name := range s.state.Applications {
-			names = append(names, name)
+			return
+		}
+
+		names := make([]string, 0, len(apps))
+
+		for _, app := range apps {
+			names = append(names, app.Name())
 		}
 
 		slices.Sort(names)
@@ -128,15 +133,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Check if the application is already installed.
-		_, exists := s.state.Applications[app.Name]
-		if exists {
-			_ = response.Conflict(nil).Render(w)
-
-			return
-		}
-
-		// Don't allow more than one primary application to be installed.
+		// Load the application.
 		actualApp, err := applications.Load(r.Context(), s.state, app.Name)
 		if err != nil {
 			_ = response.BadRequest(err).Render(w)
@@ -144,6 +141,14 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if the application is already installed.
+		if actualApp.IsInstalled() {
+			_ = response.Conflict(nil).Render(w)
+
+			return
+		}
+
+		// Don't allow more than one primary application to be installed.
 		if actualApp.IsPrimary() {
 			_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
 
@@ -207,27 +212,91 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	          example: {"state":{"initialized":true,"version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
 //	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+
+// swagger:operation PUT /1.0/applications/{name} applications applications_put_application
+//
+//	Update application configuration
+//
+//	Updates an application's configuration.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	  - in: body
+//	    name: configuration
+//	    description: Application configuration
+//	    required: true
+//	    schema:
+//	      type: object
+//	      properties:
+//	        config:
+//	          type: object
+//	          description: The application configuration
+//	          example: {"lxcfs":{"cpu_shares":false,"load_average":true}}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodGet {
-		_ = response.NotImplemented(nil).Render(w)
-
-		return
-	}
-
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	app, ok := s.state.Applications[name]
-	if !ok {
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Handle the request.
-	_ = response.SyncResponse(true, app).Render(w)
+	switch r.Method {
+	case http.MethodGet:
+		resp, err := app.Get(r.Context())
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.SyncResponse(true, resp).Render(w)
+	case http.MethodPut:
+		dest := app.Struct()
+
+		decoder := json.NewDecoder(r.Body)
+
+		err = decoder.Decode(dest)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		err = app.UpdateConfig(r.Context(), dest)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+	default:
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
 }
 
 // swagger:operation POST /1.0/applications/{name}/:debug applications applications_post_debug
@@ -263,22 +332,12 @@ func (s *Server) apiApplicationsDebug(w http.ResponseWriter, r *http.Request) {
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		w.Header().Set("Content-Type", "application/json")
-
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -332,18 +391,10 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -392,18 +443,10 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -468,18 +511,10 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
@@ -569,36 +604,16 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 
 	name := r.PathValue("name")
 
-	// Check if the application is valid.
-	appInfo, ok := s.state.Applications[name]
-	if !ok {
-		_ = response.NotFound(nil).Render(w)
-
-		return
-	}
-
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
-		_ = response.InternalError(err).Render(w)
+		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Restore the application's backup.
 	err = app.RestoreBackup(r.Context(), r.Body)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Record when the application was restored.
-	now := time.Now()
-	appInfo.State.LastRestored = &now
-	s.state.Applications[name] = appInfo
-
-	err = s.state.Save()
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -642,15 +657,15 @@ func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
+	_, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Remove the application.
-	err := applications.UninstallApplication(r.Context(), s.state, name)
+	err = applications.UninstallApplication(r.Context(), s.state, name)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -696,15 +711,15 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, ok := s.state.Applications[name]
-	if !ok {
+	_, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
 	}
 
 	// Check for and apply application update.
-	err := update.InstallUpdateApp(r.Context(), s.state, name, true)
+	err = update.InstallUpdateApp(r.Context(), s.state, name, true)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -755,8 +770,8 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	app, ok := s.state.Applications[name]
-	if !ok {
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -771,48 +786,23 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 
 	counter := &countWrapper{ReadCloser: r.Body}
 
-	err := json.NewDecoder(counter).Decode(vi)
+	err = json.NewDecoder(counter).Decode(vi)
 	if err != nil && counter.n > 0 {
 		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	// Check if it's possible to change the application version.
-	if len(app.State.AvailableVersions) == 1 {
-		_ = response.BadRequest(errors.New("only one version of the application is available locally, cannot switch to a different version")).Render(w)
+	// Switch the application version.
+	err = app.SwitchVersion(vi.Version)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	// Determine the new application version.
-	var version string
-
-	if vi.Version == "" {
-		versionIndex := slices.Index(app.State.AvailableVersions, app.State.Version)
-		if versionIndex == 0 {
-			_ = response.BadRequest(errors.New("cannot rollback application as no earlier version is available locally")).Render(w)
-
-			return
-		}
-
-		version = app.State.AvailableVersions[versionIndex-1]
-	} else {
-		if !slices.Contains(app.State.AvailableVersions, vi.Version) {
-			_ = response.BadRequest(errors.New("cannot switch application to version '" + vi.Version + "' because it does not exist locally")).Render(w)
-
-			return
-		}
-
-		version = vi.Version
-	}
-
-	// Update application state.
-	app.State.Version = version
-	s.state.Applications[name] = app
-
-	// Switch the application version.
-	err = systemd.RefreshExtensions(r.Context(), s.state.Applications, &s.state.OS)
+	// Reload sysext images to reload application.
+	err = applications.RefreshExtensions(r.Context(), s.state)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

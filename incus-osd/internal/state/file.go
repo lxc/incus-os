@@ -5,11 +5,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
-var currentStateVersion = 7
+var currentStateVersion = 8
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
@@ -23,8 +22,6 @@ func LoadOrCreate(path string) (*State, error) {
 		path: path,
 
 		StateVersion: currentStateVersion,
-
-		Applications: map[string]api.Application{},
 
 		JobScheduler: scheduler,
 

@@ -9,6 +9,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
+// Supported lists all supported applications.
+var Supported = []string{"debug", "gpu-support", "incus", "incus-ceph", "incus-linstor", "migration-manager", "operations-center"}
+
 // ErrNoPrimary is returned when the system doesn't yet have a primary application.
 var ErrNoPrimary = errors.New("no primary application")
 
@@ -18,19 +21,19 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 
 	switch name {
 	case "debug":
-		app = &debug{common: common{state: s}}
+		app = &debug{common: common{state: s, appState: &s.Applications.Debug.State}}
 	case "gpu-support":
-		app = &gpuSupport{common: common{state: s}}
+		app = &gpuSupport{common: common{state: s, appState: &s.Applications.GPUSupport.State}}
 	case "incus":
-		app = &incus{common: common{state: s}}
+		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}}
 	case "incus-ceph":
-		app = &incusCeph{common: common{state: s}}
+		app = &incusCeph{common: common{state: s, appState: &s.Applications.IncusCeph.State}}
 	case "incus-linstor":
-		app = &incusLinstor{common: common{state: s}}
+		app = &incusLinstor{common: common{state: s, appState: &s.Applications.IncusLinstor.State}}
 	case "migration-manager":
-		app = &migrationManager{common: common{state: s}}
+		app = &migrationManager{common: common{state: s, appState: &s.Applications.MigrationManager.State}}
 	case "operations-center":
-		app = &operationsCenter{common: common{state: s}}
+		app = &operationsCenter{common: common{state: s, appState: &s.Applications.OperationsCenter.State}}
 	default:
 		return nil, errors.New("unknown application")
 	}
@@ -40,18 +43,19 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 
 // GetPrimary returns the current primary application (optionally checking if initialized).
 func GetPrimary(ctx context.Context, s *state.State, requireInitialized bool) (Application, error) {
-	for appName, v := range s.Applications {
+	// Get the installed applications.
+	apps, err := GetInstalled(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, app := range apps {
 		// Skip uninitialized applications.
-		if requireInitialized && !v.State.Initialized {
+		if requireInitialized && !app.IsInitialized() {
 			continue
 		}
 
-		// Load the application.
-		app, err := Load(ctx, s, appName)
-		if err != nil {
-			return nil, err
-		}
-
+		// Check if a primary application.
 		if app.IsPrimary() {
 			return app, nil
 		}
@@ -60,13 +64,40 @@ func GetPrimary(ctx context.Context, s *state.State, requireInitialized bool) (A
 	return nil, ErrNoPrimary
 }
 
+// GetInstalled returns a list of applications that are currently installed on the system.
+func GetInstalled(ctx context.Context, s *state.State) ([]Application, error) {
+	apps := []Application{}
+
+	for _, appName := range Supported {
+		app, err := Load(ctx, s, appName)
+		if err != nil {
+			return nil, err
+		}
+
+		if !app.IsInstalled() {
+			continue
+		}
+
+		apps = append(apps, app)
+	}
+
+	return apps, nil
+}
+
 // GetInstallApplications returns a list of applications that should be installed on the system.
 // If no applications are currently installed, attempt to get an application list from the seed.
 // If no primary application is defined, the "incus" application will be automatically selected.
 func GetInstallApplications(ctx context.Context, s *state.State) ([]string, error) {
+	// Get the installed applications.
+	apps, err := GetInstalled(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a list of applications to install.
 	toInstall := []string{}
 
-	if len(s.Applications) == 0 {
+	if len(apps) == 0 {
 		// Assume first start of the daemon.
 		apps, err := seed.GetApplications(ctx)
 		if err != nil && !seed.IsMissing(err) {
@@ -83,10 +114,10 @@ func GetInstallApplications(ctx context.Context, s *state.State) ([]string, erro
 		}
 	} else {
 		// We have an existing application list.
-		toInstall = make([]string, 0, len(s.Applications))
+		toInstall = make([]string, 0, len(apps))
 
-		for name := range s.Applications {
-			toInstall = append(toInstall, name)
+		for _, app := range apps {
+			toInstall = append(toInstall, app.Name())
 		}
 	}
 

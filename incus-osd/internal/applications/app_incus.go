@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	incusclient "github.com/lxc/incus/v6/client"
 	incusapi "github.com/lxc/incus/v6/shared/api"
@@ -106,6 +108,10 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	return a.Initialize(ctx)
 }
 
+func (a *incus) Get(_ context.Context) (any, error) {
+	return a.state.Applications.Incus, nil
+}
+
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
 func (*incus) GetBackup(archive io.Writer, _ bool) error {
 	return createTarArchive("/var/lib/incus/", []string{"guestapi", "shmounts", "unix.socket"}, archive)
@@ -188,6 +194,8 @@ func (a *incus) Initialize(ctx context.Context) error {
 		}
 	}
 
+	a.appState.Initialized = true
+
 	return nil
 }
 
@@ -216,8 +224,21 @@ func (*incus) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*incus) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	return extractTarArchive(ctx, "/var/lib/incus/", []string{"incus-startup.service", "incus.socket", "incus.service", "incus-lxcfs.service"}, archive)
+func (a *incus) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	err := extractTarArchive(ctx, "/var/lib/incus/", []string{"incus-startup.service", "incus.socket", "incus.service", "incus-lxcfs.service"}, archive)
+	if err != nil {
+		return err
+	}
+
+	// Record when the application was restored.
+	now := time.Now()
+	a.appState.LastRestored = &now
+
+	return nil
+}
+
+func (*incus) Struct() any {
+	return &api.ApplicationIncus{}
 }
 
 // Start starts all the systemd units.
@@ -271,6 +292,56 @@ func (*incus) Update(ctx context.Context) error {
 
 	// Restart the main unit.
 	return systemd.RestartUnit(ctx, "incus.service")
+}
+
+func (a *incus) UpdateConfig(ctx context.Context, req any) error {
+	newState, ok := req.(*api.ApplicationIncus)
+	if !ok {
+		return fmt.Errorf("request type \"%T\" isn't expected ApplicationIncus", req)
+	}
+
+	// Update the configuration.
+	a.state.Applications.Incus.Config = newState.Config
+
+	// Update /etc/default/incus.
+	err := os.Remove("/etc/default/incus")
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	// Write LXCFS_OPTS to /etc/default/incus if needed.
+	if a.state.Applications.Incus.Config.LXCFS.CPUShares || a.state.Applications.Incus.Config.LXCFS.LoadAverage {
+		f, err := os.Create("/etc/default/incus")
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		args := []string{}
+
+		if a.state.Applications.Incus.Config.LXCFS.CPUShares {
+			args = append(args, "--enable-cfs")
+		}
+
+		if a.state.Applications.Incus.Config.LXCFS.LoadAverage {
+			args = append(args, "--enable-loadavg")
+		}
+
+		_, err = f.WriteString(`LXCFS_OPTS="` + strings.Join(args, " ") + "\"\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save the state.
+	err = a.state.Save()
+	if err != nil {
+		return err
+	}
+
+	// Restart the application.
+	return a.Update(ctx)
 }
 
 // WipeLocalData removes local data created by the application.

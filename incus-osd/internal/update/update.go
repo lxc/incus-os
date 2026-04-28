@@ -172,7 +172,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		if len(appsUpdated) > 0 {
 			slog.DebugContext(ctx, "Refreshing system extensions")
 
-			err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+			err := applications.RefreshExtensions(ctx, s)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to refresh system extensions"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -247,7 +247,7 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 		// Display a post-update message.
 		HandlePostUpdateMessage(s, t, "")
 
-		err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+		err := applications.RefreshExtensions(ctx, s)
 		if err != nil {
 			return err
 		}
@@ -388,10 +388,15 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 	case TypeApplication:
-		updateNeeded = update.Version() != s.Applications[appName].State.Version
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return "", err
+		}
 
-		if updateNeeded && s.Applications[appName].State.Version != "" && !update.IsNewerThan(s.Applications[appName].State.Version) {
-			return "", errors.New("local application " + appName + " version (" + s.Applications[appName].State.Version + ") is newer than available update (" + update.Version() + "); skipping")
+		updateNeeded = update.Version() != app.Version()
+
+		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
+			return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
 		}
 	default:
 		// An invalid update type has been handled previously.
@@ -544,28 +549,25 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 			return "", err
 		}
 
-		// Check if the application is currently installed.
-		appInfo, appExists := s.Applications[appName]
-
-		// Ensure we properly save the application state before returning.
-		defer func() {
-			s.Applications[appName] = appInfo
-			_ = s.Save()
-		}()
+		// Load the application
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return "", err
+		}
 
 		// If we're updating an existing application and are running from the backup IncusOS
 		// image, after verifying the new application sysext don't automatically update to it.
-		if appExists && s.OS.RunningFromBackup() {
+		if app.IsInstalled() && s.OS.RunningFromBackup() {
 			slog.WarnContext(ctx, "Successfully downloaded application update, but not auto-updating while running from backup image", "application", appName)
 
 			// Add the newer version to list of available versions.
-			appInfo.State.AvailableVersions = append(appInfo.State.AvailableVersions, update.Version())
-
-			return "", nil
+			av := app.AvailableVersions()
+			av = append(av, update.Version())
+			app.SetVersions(app.Version(), av)
+		} else {
+			// Record newly installed application and save state to disk.
+			app.SetVersions(update.Version(), nil)
 		}
-
-		// Record newly installed application and save state to disk.
-		appInfo.State.Version = update.Version()
 	default:
 		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}

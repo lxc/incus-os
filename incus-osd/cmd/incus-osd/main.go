@@ -314,16 +314,15 @@ func shutdown(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	// Run application shutdown actions.
-	for appName, appInfo := range s.Applications {
-		// Get the application.
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return err
-		}
+	apps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
+	}
 
+	// Run shutdown actions for each installed application.
+	for _, app := range apps {
 		// Stop the application.
-		slog.InfoContext(ctx, "Stopping application", "name", appName, "version", appInfo.State.Version)
+		slog.InfoContext(ctx, "Stopping application", "name", app.Name(), "version", app.Version())
 
 		err = app.Stop(ctx)
 		if err != nil {
@@ -525,9 +524,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	migratedApps := false
 
-	for appName, appInfo := range s.Applications {
-		oldPath := filepath.Join(systemd.SystemExtensionsPath, appName+".raw")
-		newPath := filepath.Join(systemd.LocalExtensionsPath, appInfo.State.Version, appName+".raw")
+	apps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	for _, app := range apps {
+		oldPath := filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw")
+		newPath := filepath.Join(systemd.LocalExtensionsPath, app.Version(), app.Name()+".raw")
 
 		fileStat, err := os.Lstat(oldPath)
 		if err != nil {
@@ -540,7 +544,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 
 		// Ensure /var/lib/incus-os-extensions/<version>/ exists.
-		err = os.Mkdir(filepath.Join(systemd.LocalExtensionsPath, appInfo.State.Version), 0o700)
+		err = os.Mkdir(filepath.Join(systemd.LocalExtensionsPath, app.Version()), 0o700)
 		if err != nil && !os.IsExist(err) {
 			return err
 		}
@@ -560,7 +564,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	if migratedApps {
-		err := systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+		err := applications.RefreshExtensions(ctx, s)
 		if err != nil {
 			return err
 		}
@@ -616,7 +620,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// One such example is when Operations Center is installed and the underlying IncusOS system
 	// is registered to it as the provider. We need to wait until the Operations Center
 	// application has started, otherwise any update check will fail.
-	delayInitialUpdateCheck, err := checkDelayInitialUpdate(ctx, s)
+	delayInitialUpdateCheck, err := checkDelayInitialUpdate(apps)
 	if err != nil {
 		return err
 	}
@@ -641,7 +645,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Ensure all systemd extensions are applied.
-	err = systemd.RefreshExtensions(ctx, s.Applications, &s.OS)
+	err = applications.RefreshExtensions(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -666,7 +670,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Ensure any locally-defined pools are available.
-	err = setupLocalStorage(ctx, s)
+	err = setupLocalStorage(ctx, s, apps)
 	if err != nil {
 		return err
 	}
@@ -723,8 +727,8 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
-	for appName := range s.Applications {
-		err := applications.StartInitialize(ctx, s, appName)
+	for _, app := range apps {
+		err := applications.StartInitialize(ctx, s, app.Name())
 		if err != nil {
 			return err
 		}
@@ -837,14 +841,9 @@ func registerJobs(s *state.State) error {
 	return nil
 }
 
-func checkDelayInitialUpdate(ctx context.Context, s *state.State) (bool, error) {
+func checkDelayInitialUpdate(apps []applications.Application) (bool, error) {
 	// Check if any installed application depends on a delayed update check.
-	for appName := range s.Applications {
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return false, err
-		}
-
+	for _, app := range apps {
 		if app.NeedsLateUpdateCheck() {
 			return true, nil
 		}
@@ -864,7 +863,7 @@ func setTimezone(ctx context.Context) error {
 	return systemd.SetTimezone(ctx, config.Time)
 }
 
-func setupLocalStorage(ctx context.Context, s *state.State) error {
+func setupLocalStorage(ctx context.Context, s *state.State, apps []applications.Application) error {
 	slog.InfoContext(ctx, "Bringing up the local storage")
 
 	err := storage.DecryptDrives(ctx)
@@ -889,12 +888,7 @@ func setupLocalStorage(ctx context.Context, s *state.State) error {
 	}
 
 	// Mount any application-specific datasets.
-	for appName := range s.Applications {
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return err
-		}
-
+	for _, app := range apps {
 		err = app.ConfigureLocalStorage(ctx)
 		if err != nil {
 			return err

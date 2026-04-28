@@ -69,7 +69,7 @@ func (*migrationManager) AddTrustedCertificate(ctx context.Context, _ string, ce
 // ConfigureLocalStorage configures local storage for the application.
 func (mm *migrationManager) ConfigureLocalStorage(ctx context.Context) error {
 	// If the application isn't initialized, create a ZFS dataset for it to use.
-	if !mm.state.Applications["migration-manager"].State.Initialized {
+	if !mm.IsInitialized() {
 		err := zfs.CreateApplicationDataset(ctx, "migration-manager")
 		if err != nil {
 			return err
@@ -256,6 +256,8 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 		}
 	}
 
+	mm.appState.Initialized = true
+
 	return nil
 }
 
@@ -285,8 +287,17 @@ func (*migrationManager) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*migrationManager) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	return extractTarArchive(ctx, "/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
+func (mm *migrationManager) RestoreBackup(ctx context.Context, archive io.Reader) error {
+	err := extractTarArchive(ctx, "/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
+	if err != nil {
+		return err
+	}
+
+	// Record when the application was restored.
+	now := time.Now()
+	mm.appState.LastRestored = &now
+
+	return nil
 }
 
 // Start starts the systemd unit.
@@ -345,4 +356,16 @@ func (*migrationManager) WipeLocalData(ctx context.Context) error {
 // Migration Manager specific helper to interact with the REST API.
 func doMMRequest(ctx context.Context, url string, method string, body []byte) ([]byte, error) {
 	return doRequest(ctx, "/run/migration-manager/unix.socket", url, method, body)
+}
+
+func (mm *migrationManager) Get(_ context.Context) (any, error) {
+	return mm.state.Applications.MigrationManager, nil
+}
+
+func (*migrationManager) Struct() any {
+	return &api.Application{}
+}
+
+func (*migrationManager) UpdateConfig(_ context.Context, _ any) error {
+	return nil
 }

@@ -162,4 +162,26 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V8: Rewrite application state entries.
+	func(lines []string) ([]string, error) {
+		appNames := map[string]string{
+			"debug":             "Debug",
+			"gpu-support":       "GPUSupport",
+			"incus":             "Incus",
+			"incus-ceph":        "IncusCeph",
+			"incus-linstor":     "IncusLinstor",
+			"migration-manager": "MigrationManager",
+			"operations-center": "OperationsCenter",
+		}
+
+		for i, line := range lines {
+			if strings.HasPrefix(line, "Applications[") {
+				for oldName, newName := range appNames {
+					lines[i] = strings.Replace(lines[i], "["+oldName+"]", "."+newName, 1)
+				}
+			}
+		}
+
+		return lines, nil
+	},
 }
