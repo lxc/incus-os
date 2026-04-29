@@ -33,7 +33,7 @@ incusos-initrd-utils:
 	strip incus-osd/incusos-initrd-utils
 
 .PHONY: initrd-deb-package
-initrd-deb-package: inject-system-certs incusos-initrd-utils
+initrd-deb-package: incusos-initrd-utils
 	cp incus-osd/incusos-initrd-utils mkosi.packages/incusos-initrd-utils/
 	rm -rf mkosi.packages/incusos-initrd-utils/repart.d/ && cp -r mkosi.images/base/mkosi.extra/usr/lib/repart.d/ mkosi.packages/incusos-initrd-utils/
 	(cd mkosi.packages/incusos-initrd-utils && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service)
@@ -80,7 +80,12 @@ ifeq (, $(shell which mkosi))
 	exit 1
 endif
 
-	-mkosi genkey
+# If no mkosi.crt file exists, auto-generate a set of test certificates for development use.
+# The CI system will pre-populate mkosi.crt and mkosi.key when building a production release.
+ifeq (,$(wildcard ./mkosi.crt))
+	make generate-test-certs
+endif
+
 	mkdir -p mkosi.images/base/mkosi.extra/boot/EFI/
 	openssl x509 -in mkosi.crt -out mkosi.images/base/mkosi.extra/boot/EFI/mkosi.der -outform DER
 
@@ -89,7 +94,7 @@ endif
 	cp incus-osd/certs/files/secureboot-DB-*.crt mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 
 .PHONY: build
-build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
+build: inject-system-certs incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
 	cd app-build/ && ./build-applications.py
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
