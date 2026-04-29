@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 from .incus_test_vm import IncusTestVM, IncusOSException, util
@@ -64,7 +65,7 @@ def _commonMultipathChecks(vm, incusos_version, disk):
         raise IncusOSException("Multipath device '3500577a4300c1e34' not reported as active")
 
     result = vm.RunCommand("lsblk", "/dev/mapper/3500577a4300c1e34")
-    if "3500577a4300c1e34          252:0    0    50G  0 mpath" not in str(result):
+    if not re.search(r"3500577a4300c1e34\s+252:0\s+0\s+50G\s+0\s+mpath", str(result)):
         raise IncusOSException("Multipath device isn't properly reported")
-    if "root                   252:13   0    25G  0 crypt /" not in str(result):
+    if not re.search(r"root\s+252:13\s+0\s+25G\s+0\s+crypt\s+/", str(result)):
         raise IncusOSException("Root partition not properly reported")
