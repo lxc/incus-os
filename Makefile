@@ -2,6 +2,8 @@ GO ?= go
 SPHINXENV=doc/.sphinx/venv/bin/activate
 SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
+OSNAME=$(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+
 .PHONY: default
 default: build
 
@@ -32,7 +34,6 @@ incusos-initrd-utils:
 
 .PHONY: initrd-deb-package
 initrd-deb-package: inject-system-certs incusos-initrd-utils
-	$(eval OSNAME := $(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2))
 	cp incus-osd/incusos-initrd-utils mkosi.packages/incusos-initrd-utils/
 	rm -rf mkosi.packages/incusos-initrd-utils/repart.d/ && cp -r mkosi.images/base/mkosi.extra/usr/lib/repart.d/ mkosi.packages/incusos-initrd-utils/
 	(cd mkosi.packages/incusos-initrd-utils && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service)
@@ -96,21 +97,21 @@ build: incus-osd flasher-tool generate-manifests initrd-deb-package microcode-me
 	sudo chown $(shell id -u):$(shell id -g) mkosi.output
 
 	# For some reason getting the image name via $(shell ...) is always empty here?
-	sudo ./scripts/inject-secure-boot-vars.sh `ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1`
+	sudo ./scripts/inject-secure-boot-vars.sh `ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1`
 
 .PHONY: build-iso
 build-iso: build
-	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1)
+	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
 .PHONY: test
 test:
 	# Cleanup
 	incus delete -f test-incus-os || true
-	rm -f mkosi.output/IncusOS_boot_media.img
+	rm -f mkosi.output/${OSNAME}_boot_media.img
 
 	# Prepare the install media
-	cp $(shell ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.img
-	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.img seek=4196352 bs=512 conv=notrunc
+	cp $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.img
+	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.img seek=4196352 bs=512 conv=notrunc
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
@@ -119,7 +120,7 @@ test:
 		-c limits.memory=8GiB \
 		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
-	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/IncusOS_boot_media.img io.bus=usb boot.priority=10 readonly=false
+	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/${OSNAME}_boot_media.img io.bus=usb boot.priority=10 readonly=false
 
 	# Wait for installation to complete
 	incus start test-incus-os --console
@@ -139,13 +140,13 @@ test:
 test-iso:
 	# Cleanup
 	incus delete -f test-incus-os || true
-	incus storage volume delete default IncusOS_boot_media.iso || true
-	rm -f mkosi.output/IncusOS_boot_media.iso
+	incus storage volume delete default ${OSNAME}_boot_media.iso || true
+	rm -f mkosi.output/${OSNAME}_boot_media.iso
 
 	# Prepare the install media
-	cp $(shell ls mkosi.output/IncusOS_*.iso | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/IncusOS_boot_media.iso
-	dd if=test/seed.install.tar of=mkosi.output/IncusOS_boot_media.iso seek=4196352 bs=512 conv=notrunc
-	incus storage volume import default mkosi.output/IncusOS_boot_media.iso IncusOS_boot_media.iso --type=iso
+	cp $(shell ls mkosi.output/${OSNAME}_*.iso | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.iso
+	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.iso seek=4196352 bs=512 conv=notrunc
+	incus storage volume import default mkosi.output/${OSNAME}_boot_media.iso ${OSNAME}_boot_media.iso --type=iso
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
@@ -154,7 +155,7 @@ test-iso:
 		-c limits.memory=8GiB \
 		-d root,size=50GiB
 	incus config device add test-incus-os vtpm tpm
-	incus config device add test-incus-os boot-media disk pool=default source=IncusOS_boot_media.iso boot.priority=10
+	incus config device add test-incus-os boot-media disk pool=default source=${OSNAME}_boot_media.iso boot.priority=10
 
 	# Wait for installation to complete
 	incus start test-incus-os --console
@@ -192,8 +193,8 @@ test-update:
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
 
-	incus file push mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
-	incus file push mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
+	incus file push mkosi.output/${OSNAME}_${RELEASE}.efi test-incus-os/root/updates/
+	incus file push mkosi.output/${OSNAME}_${RELEASE}.usr* test-incus-os/root/updates/
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
