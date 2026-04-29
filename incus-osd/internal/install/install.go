@@ -1174,8 +1174,14 @@ func configureSWTPM(ctx context.Context, isInstall bool) error {
 
 // initializeSWTPM initializes the swtpm state in the given root directory.
 func initializeSWTPM(ctx context.Context, swtpmRoot string) error {
+	// Get the OS name.
+	osName, _, err := systemd.GetCurrentRelease(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Create the swtpm state directory.
-	err := os.MkdirAll(swtpmRoot, 0o700)
+	err = os.MkdirAll(swtpmRoot, 0o700)
 	if err != nil {
 		return err
 	}
@@ -1186,7 +1192,7 @@ func initializeSWTPM(ctx context.Context, swtpmRoot string) error {
 		return err
 	}
 
-	err = os.WriteFile("/etc/swtpm-localca.options", []byte("--platform-manufacturer IncusOS\n--platform-version 1.0\n--platform-model QEMU"), 0o644)
+	err = os.WriteFile("/etc/swtpm-localca.options", []byte("--platform-manufacturer "+osName+"\n--platform-version 1.0\n--platform-model QEMU"), 0o644)
 	if err != nil {
 		return err
 	}
