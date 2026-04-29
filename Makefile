@@ -248,6 +248,13 @@ doc-setup:
 	rm -Rf doc/html
 	rm -Rf doc/.sphinx/.doctrees
 
+	$(eval OSNAME_LOWER := $(shell echo ${OSNAME} | tr '[:upper:]' '[:lower:]'))
+	$(eval OSNAME_UPPER := $(shell echo ${OSNAME} | tr '[:lower:]' '[:upper:]'))
+
+	find ./doc/ -name '*.md' | xargs sed -i -e "s/IncusOS/${OSNAME}/g"
+	find ./doc/ -name '*.md' | xargs sed -i -e "s/INCUSOS/${OSNAME_UPPER}/g"
+	find ./doc/ -name '*.md' | xargs sed -i -e "s/incusos/${OSNAME_LOWER}/g"
+
 .PHONY: doc
 doc: doc-setup doc-incremental
 
