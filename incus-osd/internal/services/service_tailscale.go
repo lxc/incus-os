@@ -33,6 +33,13 @@ func (n *Tailscale) Get(ctx context.Context) (any, error) {
 	// Get the current Tailscale status through tailscale status --json command.
 	tailscaleStatusJSONOutput, err := subprocess.RunCommandContext(ctx, "tailscale", "status", "--json")
 	if err != nil {
+		// If Tailscale isn't running, return a basic struct with the current configuration.
+		if strings.Contains(err.Error(), "Failed to connect to local Tailscale daemon") {
+			return api.ServiceTailscale{
+				Config: n.state.Services.Tailscale.Config,
+			}, nil
+		}
+
 		return nil, fmt.Errorf("failed to run tailscale status: %w", err)
 	}
 
