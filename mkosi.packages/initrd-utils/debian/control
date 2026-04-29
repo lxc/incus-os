@@ -1,11 +1,11 @@
-Source: incusos-initrd-utils
+Source: initrd-utils
 Section: admin
 Priority: optional
 Build-Depends: debhelper-compat (=13)
 Maintainer: Mathias Gibbens <mathias.gibbens@futurfusion.io>
 Standards-Version: 4.7.2
 
-Package: incusos-initrd-utils
+Package: initrd-utils
 Architecture: any
 Depends: kpartx,
          multipath-tools,
@@ -14,6 +14,6 @@ Depends: kpartx,
          swtpm-tools,
          ${misc:Depends},
          ${shlibs:Depends}
-Description: IncusOS initrd utilities
+Description: initrd utilities for IncusOS
  Various utilities, services, and configuration files needed in the IncusOS
  initrd.

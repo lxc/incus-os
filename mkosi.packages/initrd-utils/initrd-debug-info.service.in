@@ -6,6 +6,7 @@ DefaultDependencies=no
 [Service]
 Type=oneshot
 
+Environment=OS_NAME="@OSNAME@"
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
 ExecStart=/usr/bin/initrd-debug-info.sh

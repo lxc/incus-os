@@ -1,0 +1,5 @@
+initrd-utils: hardening-no-pie
+initrd-utils: hardening-no-relro
+initrd-utils: no-manual-page
+initrd-utils: script-with-language-extension
+initrd-utils: systemd-service-file-refers-to-unusual-wantedby-target

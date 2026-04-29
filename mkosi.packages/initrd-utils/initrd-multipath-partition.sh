@@ -10,7 +10,7 @@ for MP in $(dmsetup ls --target multipath | cut -f1); do
     FIRST_PART_LABEL=$(lsblk -o partlabel -dn "/dev/mapper/${MP}-part1")
     SECOND_PART_LABEL=$(lsblk -o partlabel -dn "/dev/mapper/${MP}-part2")
 
-    # Skip any multipath device that doesn't have expected IncusOS partition labels.
+    # Skip any multipath device that doesn't have expected IncusOS/HypervisorOS partition labels.
     if [ "$FIRST_PART_LABEL" != "esp" ] || [ "$SECOND_PART_LABEL" != "seed-data" ]; then
         continue
     fi

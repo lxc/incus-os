@@ -1,4 +1,4 @@
-incusos-initrd-utils          usr/bin/
+initrd-utils                  usr/bin/
 initrd-boot-message.sh        usr/bin/
 initrd-debug-info.sh          usr/bin/
 initrd-finalize-luks-state.sh usr/bin/
