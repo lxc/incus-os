@@ -22,9 +22,9 @@ incus-osd/generate-manifests
 incus-osd/image-customizer
 incus-osd/image-publisher
 incus-osd/incus-osd
-incus-osd/incusos-initrd-utils
+incus-osd/initrd-utils
 
-mkosi.packages/incusos-initrd-utils*
+mkosi.packages/initrd-utils*
 mkosi.packages/microcode-metapackage*
 
 *.swp

@@ -47,30 +47,37 @@ var (
 func main() {
 	ctx := context.Background()
 
+	// Get the OS name and version from /lib/os-release.
+	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
+	if err != nil {
+		tui.EarlyError("unable to get OS name and release: "+err.Error(), "IncusOS")
+		os.Exit(1)
+	}
+
 	// Check privileges.
 	if os.Getuid() != 0 {
-		tui.EarlyError("incus-osd must be run as root")
+		tui.EarlyError("incus-osd must be run as root", osName)
 		os.Exit(1)
 	}
 
 	// Create runtime path if missing.
-	err := os.Mkdir(runPath, 0o700)
+	err = os.Mkdir(runPath, 0o700)
 	if err != nil && !os.IsExist(err) {
-		tui.EarlyError(err.Error())
+		tui.EarlyError(err.Error(), osName)
 		os.Exit(1)
 	}
 
 	// Create storage path if missing.
 	err = os.Mkdir(varPath, 0o700)
 	if err != nil && !os.IsExist(err) {
-		tui.EarlyError(err.Error())
+		tui.EarlyError(err.Error(), osName)
 		os.Exit(1)
 	}
 
 	// Get persistent state.
 	s, err := state.LoadOrCreate(filepath.Join(varPath, "state.txt"))
 	if err != nil {
-		tui.EarlyError("unable to load state file: " + err.Error())
+		tui.EarlyError("unable to load state file: "+err.Error(), osName)
 		os.Exit(1)
 	}
 
@@ -78,18 +85,12 @@ func main() {
 	if len(s.System.Security.Config.CustomCACerts) > 0 {
 		err := util.UpdateSystemCustomCACerts(s.System.Security.Config.CustomCACerts)
 		if err != nil {
-			tui.EarlyError("unable to configure custom CA certificates: " + err.Error())
+			tui.EarlyError("unable to configure custom CA certificates: "+err.Error(), osName)
 			os.Exit(1)
 		}
 	}
 
-	// Get the OS name and version from /lib/os-release.
-	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
-	if err != nil {
-		tui.EarlyError("unable to get OS name and release: " + err.Error())
-		os.Exit(1)
-	}
-
+	// Record the OS name and version in the state.
 	s.OS.Name = osName
 	s.OS.RunningRelease = osRelease
 
@@ -98,7 +99,7 @@ func main() {
 	if s.UsingSWTPM {
 		err := secureboot.BlowTrustedFuse()
 		if err != nil {
-			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			tui.EarlyError("unable to blow security fuse: "+err.Error(), s.OS.Name)
 			os.Exit(1)
 		}
 	}
@@ -106,7 +107,7 @@ func main() {
 	// Record if the system has booted with Secure Boot disabled.
 	sbEnabled, err := secureboot.Enabled()
 	if err != nil {
-		tui.EarlyError("unable to check Secure Boot state: " + err.Error())
+		tui.EarlyError("unable to check Secure Boot state: "+err.Error(), s.OS.Name)
 		os.Exit(1)
 	}
 
@@ -115,18 +116,18 @@ func main() {
 	if s.SecureBootDisabled {
 		err := secureboot.BlowTrustedFuse()
 		if err != nil {
-			tui.EarlyError("unable to blow security fuse: " + err.Error())
+			tui.EarlyError("unable to blow security fuse: "+err.Error(), s.OS.Name)
 			os.Exit(1)
 		}
 	} else {
 		inAuditMode, err := secureboot.InAuditMode()
 		if err != nil {
-			tui.EarlyError("unable to check Secure Boot Audit Mode: " + err.Error())
+			tui.EarlyError("unable to check Secure Boot Audit Mode: "+err.Error(), s.OS.Name)
 			os.Exit(1)
 		}
 
 		if inAuditMode {
-			tui.EarlyError("unable to run while Secure Boot is in Audit Mode")
+			tui.EarlyError("unable to run while Secure Boot is in Audit Mode", s.OS.Name)
 			os.Exit(1)
 		}
 	}
@@ -138,7 +139,7 @@ func main() {
 	if !s.OS.SuccessfulBoot && !s.ShouldPerformInstall && s.System.Network.Config == nil {
 		err := firstBootActions(ctx)
 		if err != nil {
-			tui.EarlyError("unable to perform first boot actions: " + err.Error())
+			tui.EarlyError("unable to perform first boot actions: "+err.Error(), s.OS.Name)
 			os.Exit(1)
 		}
 	}
@@ -155,14 +156,14 @@ func main() {
 	// Get and start the console TUI.
 	tuiApp, err := tui.GetTUI(s)
 	if err != nil {
-		tui.EarlyError(err.Error())
+		tui.EarlyError(err.Error(), s.OS.Name)
 		os.Exit(1)
 	}
 
 	go func() {
 		err := tuiApp.Run()
 		if err != nil {
-			tui.EarlyError(err.Error())
+			tui.EarlyError(err.Error(), s.OS.Name)
 			os.Exit(1)
 		}
 	}()
