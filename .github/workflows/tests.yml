@@ -214,8 +214,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get install aspell aspell-en
-          sudo snap install mdl
+          sudo apt-get install -y aspell aspell-en ruby
+          sudo gem install --no-document mdl
 
       - name: Run markdown linter
         run: |
