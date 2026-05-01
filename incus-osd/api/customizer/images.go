@@ -1,15 +1,19 @@
 package customizer
 
 import (
+	apiimages "github.com/lxc/incus-os/incus-osd/api/images"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
 // ImagesPost represents the data needed for POST /1.0/images.
 type ImagesPost struct {
-	Architecture string          `json:"architecture" yaml:"architecture"`
-	Type         string          `json:"type"         yaml:"type"`
-	Seeds        ImagesPostSeeds `json:"seeds"        yaml:"seeds"`
-	Channel      string          `json:"channel"      yaml:"channel"`
+	Architecture apiimages.UpdateFileArchitecture `json:"architecture" yaml:"architecture"`
+	Type         string                           `json:"type"         yaml:"type"`
+	Channel      string                           `json:"channel"      yaml:"channel"`
+	Version      string                           `json:"version"      yaml:"version"`
+
+	Seeds   ImagesPostSeeds `json:"seeds"   yaml:"seeds"`
+	Offline bool            `json:"offline" yaml:"offline"`
 }
 
 // ImagesPostSeeds represents the seed data included in a ImagesPost request.
@@ -22,4 +26,19 @@ type ImagesPostSeeds struct {
 	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
 	Provider         *apiseed.Provider         `json:"provider"          yaml:"provider"`
 	Update           *apiseed.Update           `json:"update"            yaml:"update"`
+}
+
+// UpdatesPost represents the data needed for POST /1.0/updates.
+type UpdatesPost struct {
+	UpdateFilter `yaml:",inline"`
+}
+
+// UpdateFilter represents filterable parameters for update resources.
+type UpdateFilter struct {
+	Channel string `json:"channel" yaml:"channel"`
+	Version string `json:"version" yaml:"version"`
+
+	Components    []apiimages.UpdateFileComponent    `json:"components"    yaml:"components"`
+	Types         []apiimages.UpdateFileType         `json:"types"         yaml:"types"`
+	Architectures []apiimages.UpdateFileArchitecture `json:"architectures" yaml:"architectures"`
 }

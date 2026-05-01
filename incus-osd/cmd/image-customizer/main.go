@@ -19,10 +19,10 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lxc/incus/v6/shared/subprocess"
 	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
 	"go.yaml.in/yaml/v4"
@@ -30,6 +30,7 @@ import (
 	apicustomizer "github.com/lxc/incus-os/incus-osd/api/customizer"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 //go:embed html
@@ -41,15 +42,21 @@ const (
 
 	imageTypeISO = "iso"
 	imageTypeRaw = "raw"
+
+	osFile     = "os"
+	updateFile = "update"
+	rescueFile = "rescue"
 )
 
-var (
-	images   map[string]apicustomizer.ImagesPost
-	imagesMu sync.Mutex
-)
+type imageOptions struct {
+	Type string
+	Data []byte
+}
+
+var files *util.TTLMap[string, imageOptions]
 
 func main() {
-	images = map[string]apicustomizer.ImagesPost{}
+	files = util.NewTTLMap[string, imageOptions](context.TODO(), time.Second)
 
 	err := do(context.TODO())
 	if err != nil {
@@ -104,7 +111,8 @@ func do(ctx context.Context) error {
 	router.HandleFunc("/1.0", apiRoot10)
 	router.HandleFunc("/1.0/certificate", apiCertificate)
 	router.HandleFunc("/1.0/images", apiImages)
-	router.HandleFunc("/1.0/images/{uuid}", apiImage)
+	router.HandleFunc("/1.0/updates", apiUpdates)
+	router.HandleFunc("/1.0/files/{uuid}", apiFiles)
 	router.HandleFunc("/1.0/oidc", apiOIDC)
 	router.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.FS(fsUI))))
 
@@ -240,6 +248,14 @@ func apiOIDC(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiImages(w http.ResponseWriter, r *http.Request) {
+	recordFileRequest(w, r, osFile)
+}
+
+func apiUpdates(w http.ResponseWriter, r *http.Request) {
+	recordFileRequest(w, r, updateFile)
+}
+
+func recordFileRequest(w http.ResponseWriter, r *http.Request, fileType string) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 
 	// Set CORS headers.
@@ -257,10 +273,7 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the request.
-	var req apicustomizer.ImagesPost
-
-	loader, err := yaml.NewLoader(http.MaxBytesReader(w, r.Body, 1024*1024))
+	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1024*1024))
 	if err != nil {
 		slog.Warn("image request: bad loader", "client", clientAddress(r), "err", err)
 
@@ -270,58 +283,61 @@ func apiImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = loader.Load(&req)
-	if err != nil {
-		slog.Warn("image request: bad JSON", "client", clientAddress(r), "err", err)
-
-		w.Header().Set("Content-Type", "application/json")
-		_ = response.BadRequest(err).Render(w)
-
-		return
-	}
-
-	// Validate input.
-	if !slices.Contains([]string{imageTypeISO, imageTypeRaw}, req.Type) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = response.BadRequest(errors.New("invalid image type")).Render(w)
-
-		return
-	}
-
-	if !slices.Contains([]string{imageArchitectureX86_64, imageArchitectureAARCH64}, req.Architecture) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = response.BadRequest(errors.New("invalid image architecture")).Render(w)
-
-		return
-	}
-
-	// Set default values.
-	if req.Channel == "" {
-		req.Channel = "stable"
-	}
-
 	// Store the request.
-	imagesMu.Lock()
-	defer imagesMu.Unlock()
+	resp := map[string]string{}
 
-	imageUUID := uuid.New().String()
+	switch fileType {
+	case osFile:
+		var req apicustomizer.ImagesPost
 
-	images[imageUUID] = req
+		err := json.Unmarshal(b, &req)
+		if err != nil {
+			slog.Warn("image request: request data", "client", clientAddress(r), "err", err)
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		imageUUID := uuid.New().String()
+		files.Set(imageUUID, imageOptions{Data: b, Type: osFile}, time.Minute*10, nil)
+
+		resp["image"] = "/1.0/files/" + imageUUID
+
+		if req.Offline {
+			resourcesUUID := uuid.New().String()
+			files.Set(resourcesUUID, imageOptions{Data: b, Type: rescueFile}, time.Minute*10, nil)
+			resp["resources"] = "/1.0/files/" + resourcesUUID
+		}
+
+	case updateFile:
+		updateUUID := uuid.New().String()
+		files.Set(updateUUID, imageOptions{Data: b, Type: updateFile}, time.Minute*10, nil)
+		resp["update"] = "/1.0/files/" + updateUUID
+	default:
+		slog.Warn("image request: bad image type", "client", clientAddress(r), "type", fileType)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(fmt.Errorf("unknown image type %q", fileType)).Render(w)
+
+		return
+	}
 
 	// Return image details to the user.
 	w.Header().Set("Content-Type", "application/json")
 
-	err = response.SyncResponse(true, map[string]any{"image": "/1.0/images/" + imageUUID}).Render(w)
+	err = response.SyncResponse(true, resp).Render(w)
 	if err != nil {
 		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	slog.Info("image request: created", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture, "channel", req.Channel)
+	slog.Info("image request: created", "client", clientAddress(r))
 }
 
-func apiImage(w http.ResponseWriter, r *http.Request) {
+func apiFiles(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 
 	// Set CORS headers.
@@ -343,15 +359,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	// Image UUID.
 	imageUUID := r.PathValue("uuid")
 
-	imagesMu.Lock()
-
-	req, ok := images[imageUUID]
-	if ok {
-		delete(images, imageUUID)
-	}
-
-	imagesMu.Unlock()
-
+	opts, ok := files.Get(imageUUID)
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -360,80 +368,97 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	files.Delete(imageUUID)
+
+	switch opts.Type {
+	case rescueFile:
+		sendRescueImage(w, r, imageUUID, opts.Data)
+	case updateFile:
+		sendUpdateTarball(w, r, opts.Data)
+	case osFile:
+		sendOSImage(w, r, opts.Data)
+	default:
+		w.Header().Set("Content-Type", "application/json")
+
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+}
+
+func sendOSImage(w http.ResponseWriter, r *http.Request, b []byte) {
+	var req apicustomizer.ImagesPost
+
+	err := json.Unmarshal(b, &req)
+	if err != nil {
+		slog.Warn("image parse: bad request data", "client", clientAddress(r), "err", err)
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
 	// Determine source image type.
-	var fileType string
+	var fileType apiupdate.UpdateFileType
 
 	switch req.Type {
 	case imageTypeISO:
-		fileType = "image-iso"
+		fileType = apiupdate.UpdateFileTypeImageISO
 	case imageTypeRaw:
-		fileType = "image-raw"
+		fileType = apiupdate.UpdateFileTypeImageRaw
 	default:
-		_ = response.BadRequest(nil).Render(w)
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(fmt.Errorf("unknown file type %q", req.Type)).Render(w)
 
 		return
 	}
 
-	// Find latest image.
-	var metaIndex apiupdate.Index
+	if !slices.Contains([]apiupdate.UpdateFileArchitecture{imageArchitectureX86_64, imageArchitectureAARCH64}, req.Architecture) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(errors.New("invalid image architecture")).Render(w)
 
-	metaFile, err := os.Open(filepath.Join(os.Args[1], "index.json"))
+		return
+	}
+
+	// Set default values.
+	if req.Channel == "" {
+		req.Channel = "stable"
+	}
+
+	metaIndex, err := parseIndex()
 	if err != nil {
-		slog.Warn("image retrieve: bad index", "client", clientAddress(r), "err", err)
-
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	defer func() { _ = metaFile.Close() }()
-
-	err = json.NewDecoder(metaFile).Decode(&metaIndex)
-	if err != nil {
-		slog.Warn("image retrieve: bad index", "client", clientAddress(r), "err", err)
-
-		_ = response.InternalError(err).Render(w)
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(err).Render(w)
 
 		return
 	}
 
-	var imageFilePath string
-
-	for _, update := range metaIndex.Updates {
-		if !slices.Contains(update.Channels, req.Channel) {
-			continue
+	version, assets, err := filterAssets(*metaIndex, apicustomizer.UpdateFilter{
+		Channel:       req.Channel,
+		Version:       req.Version,
+		Components:    []apiupdate.UpdateFileComponent{},
+		Types:         []apiupdate.UpdateFileType{fileType},
+		Architectures: []apiupdate.UpdateFileArchitecture{req.Architecture},
+	})
+	if err != nil || len(assets) != 1 {
+		log := slog.Default()
+		if err != nil {
+			log = log.With("err", err)
 		}
 
-		for _, fileEntry := range update.Files {
-			if string(fileEntry.Architecture) == req.Architecture && string(fileEntry.Type) == fileType {
-				imageFilePath = filepath.Join(os.Args[1], update.Version, fileEntry.Filename)
-
-				break
-			}
-		}
-
-		if imageFilePath != "" {
-			break
-		}
-	}
-
-	if imageFilePath == "" {
-		slog.Warn("image retrieve: image not found", "client", clientAddress(r))
+		log.Warn("image retrieve: failed asset lookup", "client", clientAddress(r))
 
 		_ = response.InternalError(errors.New("couldn't find matching image")).Render(w)
 
 		return
 	}
 
-	// Check if we have compression in-transit.
-	compress := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+	imageFilePath := filepath.Join(os.Args[1], version, assets[0])
 
 	// Open the image file.
 	imageFile, err := os.Open(imageFilePath)
 	if err != nil {
-		slog.Warn("image retrieve: bad image", "client", clientAddress(r), "err", err)
-
 		w.Header().Set("Content-Type", "application/json")
+		slog.Warn("image retrieve: bad image", "client", clientAddress(r), "err", err)
 		_ = response.InternalError(err).Render(w)
 
 		return
@@ -445,7 +470,6 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	rc, err := gzran.NewReader(imageFile)
 	if err != nil {
 		slog.Warn("image retrieve: bad image", "client", clientAddress(r), "err", err)
-
 		w.Header().Set("Content-Type", "application/json")
 		_ = response.InternalError(err).Render(w)
 
@@ -454,19 +478,7 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 
 	// Track down image file.
 	fileName := filepath.Base(imageFilePath)
-
-	// Serve the image.
-	if compress {
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Type", "application/octet-stream")
-
-		fileName = strings.TrimSuffix(fileName, ".gz")
-	} else {
-		w.Header().Set("Content-Type", "application/gzip")
-	}
-
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
-	w.WriteHeader(http.StatusOK)
+	setFileHeaders(w, r, fileName)
 
 	// Setup compressor.
 	writer := gzip.NewWriter(w)
@@ -518,6 +530,453 @@ func apiImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("image retrieve: retrieved", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture)
+}
+
+func sendRescueImage(w http.ResponseWriter, r *http.Request, imageUUID string, b []byte) {
+	var req apicustomizer.ImagesPost
+
+	err := json.Unmarshal(b, &req)
+	if err != nil {
+		slog.Warn("image parse: bad request data", "client", clientAddress(r), "err", err)
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	// Determine source image type.
+	switch req.Type {
+	case imageTypeISO, imageTypeRaw:
+	default:
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(fmt.Errorf("unknown image type: %q", req.Type)).Render(w)
+
+		return
+	}
+
+	if !slices.Contains([]apiupdate.UpdateFileArchitecture{imageArchitectureX86_64, imageArchitectureAARCH64}, req.Architecture) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(errors.New("invalid image architecture")).Render(w)
+
+		return
+	}
+
+	// Set default values.
+	if req.Channel == "" {
+		req.Channel = "stable"
+	}
+
+	metaIndex, err := parseIndex()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	var applications []apiupdate.UpdateFileComponent
+
+	if req.Seeds.Applications != nil {
+		for _, seed := range req.Seeds.Applications.Applications {
+			applications = append(applications, apiupdate.UpdateFileComponent(seed.Name))
+		}
+	}
+
+	if len(applications) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		slog.Warn("image retrieve: no application seed data found", "client", clientAddress(r))
+
+		_ = response.InternalError(errors.New("couldn't find matching update")).Render(w)
+	}
+
+	version, assets, err := filterAssets(*metaIndex, apicustomizer.UpdateFilter{
+		Channel:       req.Channel,
+		Version:       req.Version,
+		Architectures: []apiupdate.UpdateFileArchitecture{req.Architecture},
+		Types:         []apiupdate.UpdateFileType{apiupdate.UpdateFileTypeApplication},
+		Components:    applications,
+	})
+	if err != nil || len(assets) != len(applications) {
+		log := slog.Default()
+		if err != nil {
+			log = slog.With("err", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		log.Warn("image retrieve: applications error", "client", clientAddress(r))
+
+		_ = response.InternalError(errors.New("couldn't find matching update")).Render(w)
+
+		return
+	}
+
+	assets = append(assets, "update.json", "update.sjson")
+
+	tempFile := filepath.Join("/tmp", "rescue-"+imageUUID+"."+req.Type)
+	defer os.Remove(tempFile)
+
+	err = buildImage(imageUUID, req.Type, tempFile, version, assets)
+	if err != nil {
+		slog.Warn("image build: failed to build image", "client", clientAddress(r), "err", err)
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	fileName := req.Channel + "-" + version + "." + req.Type + ".gz"
+	setFileHeaders(w, r, fileName)
+
+	// Setup compressor.
+	writer := gzip.NewWriter(w)
+	defer writer.Close()
+
+	rc, err := os.Open(tempFile)
+	if err != nil {
+		slog.Warn("image write: failed to open image file", "client", clientAddress(r), "err", err)
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	for {
+		_, err = io.CopyN(writer, rc, 4*1024*1024)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return
+		}
+	}
+
+	slog.Info("image retrieve: retrieved", "client", clientAddress(r), "type", req.Type, "architecture", req.Architecture)
+}
+
+func sendUpdateTarball(w http.ResponseWriter, r *http.Request, b []byte) {
+	var req apicustomizer.UpdatesPost
+
+	err := json.Unmarshal(b, &req)
+	if err != nil {
+		slog.Warn("image parse: bad request data", "client", clientAddress(r), "err", err)
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+	// Set default values.
+	if req.Channel == "" {
+		req.Channel = "stable"
+	}
+
+	metaIndex, err := parseIndex()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	version, assets, err := filterAssets(*metaIndex, req.UpdateFilter)
+	if err != nil || len(assets) == 0 {
+		log := slog.Default()
+		if err != nil {
+			log = slog.With("err", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		log.Warn("image retrieve: applications error", "client", clientAddress(r))
+
+		_ = response.InternalError(errors.New("couldn't find matching update")).Render(w)
+
+		return
+	}
+
+	// Include JSON files.
+	assets = append(assets, "update.json", "update.sjson")
+
+	// Check if we have compression in-transit.
+	fileName := "update-" + req.Channel + "-" + version + ".tar.gz"
+	setFileHeaders(w, r, fileName)
+
+	writeToTar := func(tw *tar.Writer, asset string) error {
+		updateFilePath := filepath.Join(os.Args[1], version, asset)
+
+		updateFile, err := os.Open(updateFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to read update file %q: %w", updateFilePath, err)
+		}
+
+		defer func() { _ = updateFile.Close() }()
+
+		var rc io.Reader
+
+		info, err := updateFile.Stat()
+		if err != nil {
+			return fmt.Errorf("failed to stat update file %q: %w", updateFilePath, err)
+		}
+
+		rc = updateFile
+		size := info.Size()
+		fileName := asset
+
+		//  Get the actual file size if compressed.
+		if strings.HasSuffix(updateFilePath, ".gz") {
+			fileName = strings.TrimSuffix(fileName, ".gz")
+
+			rc, err = gzran.NewReader(updateFile)
+			if err != nil {
+				return fmt.Errorf("failed initial read of compressed update file %q: %w", updateFilePath, err)
+			}
+
+			size, err = io.Copy(io.Discard, rc)
+			if err != nil {
+				return fmt.Errorf("failed to read compressed update file %q: %w", updateFilePath, err)
+			}
+
+			err = updateFile.Close()
+			if err != nil {
+				return fmt.Errorf("failed to close update file %q: %w", updateFilePath, err)
+			}
+
+			updateFile, err = os.Open(updateFilePath)
+			if err != nil {
+				return fmt.Errorf("failed to read update file %q: %w", updateFilePath, err)
+			}
+
+			rc, err = gzran.NewReader(updateFile)
+			if err != nil {
+				return fmt.Errorf("failed to read compressed update file %q: %w", updateFilePath, err)
+			}
+		}
+
+		err = tw.WriteHeader(&tar.Header{Name: fileName, Mode: 0o600, Size: size})
+		if err != nil {
+			return fmt.Errorf("failed to write header: %w", err)
+		}
+
+		for {
+			_, err = io.CopyN(tw, rc, 4*1024*1024)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return fmt.Errorf("failed to write %q: %w", updateFilePath, err)
+			}
+		}
+
+		return nil
+	}
+
+	gz := gzip.NewWriter(w)
+	defer gz.Close()
+
+	tw := tar.NewWriter(gz)
+	defer tw.Close()
+
+	for _, asset := range assets {
+		err := writeToTar(tw, asset)
+		if err != nil {
+			slog.Warn("image retrieve: bad update", "client", clientAddress(r), "err", err)
+			w.Header().Set("Content-Type", "application/json")
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+	}
+
+	slog.Info("image retrieve: retrieved", "client", clientAddress(r))
+}
+
+func filterAssets(metaIndex apiupdate.Index, req apicustomizer.UpdateFilter) (string, []string, error) {
+	assets := []string{}
+
+	var highestVersion string
+
+	highestVersionIndex := -1
+
+	for i, update := range metaIndex.Updates {
+		if !slices.Contains(update.Channels, req.Channel) {
+			continue
+		}
+
+		// Match against the version if set.
+		if req.Version != "" && update.Version == req.Version {
+			highestVersionIndex = i
+
+			break
+		}
+
+		if update.Version > highestVersion {
+			highestVersion = update.Version
+			highestVersionIndex = i
+
+			continue
+		}
+	}
+
+	if highestVersionIndex < 0 || (metaIndex.Updates[highestVersionIndex].Version != req.Version && req.Version != "") {
+		return "", nil, errors.New("version not found")
+	}
+
+	for _, fileEntry := range metaIndex.Updates[highestVersionIndex].Files {
+		if len(req.Architectures) > 0 && !slices.Contains(req.Architectures, fileEntry.Architecture) {
+			continue
+		}
+
+		if len(req.Types) > 0 && !slices.Contains(req.Types, fileEntry.Type) {
+			continue
+		}
+
+		if len(req.Components) > 0 && !slices.Contains(req.Components, fileEntry.Component) {
+			continue
+		}
+
+		assets = append(assets, fileEntry.Filename)
+	}
+
+	return metaIndex.Updates[highestVersionIndex].Version, assets, nil
+}
+
+func parseIndex() (*apiupdate.Index, error) {
+	// Find latest update.
+	var metaIndex apiupdate.Index
+
+	metaFile, err := os.Open(filepath.Join(os.Args[1], "index.json"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read index: %w", err)
+	}
+
+	defer func() { _ = metaFile.Close() }()
+
+	err = json.NewDecoder(metaFile).Decode(&metaIndex)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse index: %w", err)
+	}
+
+	return &metaIndex, nil
+}
+
+func setFileHeaders(w http.ResponseWriter, r *http.Request, fileName string) {
+	compress := strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
+	if compress {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Type", "application/octet-stream")
+
+		fileName = strings.TrimSuffix(fileName, ".gz")
+	} else {
+		w.Header().Set("Content-Type", "application/gzip")
+	}
+
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+	w.WriteHeader(http.StatusOK)
+}
+
+func buildImage(imageUUID string, fileType string, tempFile string, version string, assets []string) error {
+	tempDir, err := os.MkdirTemp("/tmp", "rescue-"+imageUUID)
+	if err != nil {
+		return err
+	}
+
+	defer os.RemoveAll(tempDir)
+
+	updateDir := filepath.Join(tempDir, "update")
+
+	err = os.Mkdir(updateDir, 0o700)
+	if err != nil {
+		return err
+	}
+
+	totalSize := int64(0)
+
+	for _, asset := range assets {
+		dir := filepath.Dir(asset)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(updateDir, dir), 0o700)
+			if err != nil {
+				return err
+			}
+		}
+
+		updateFilePath := filepath.Join(os.Args[1], version, asset)
+		targetFile := filepath.Join(updateDir, strings.TrimSuffix(asset, ".gz"))
+
+		o, err := os.Create(targetFile)
+		if err != nil {
+			return fmt.Errorf("failed to create target file %q: %w", targetFile, err)
+		}
+
+		defer o.Close() //nolint:revive
+
+		f, err := os.Open(updateFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to open update file %q: %w", updateFilePath, err)
+		}
+
+		defer f.Close() //nolint:revive
+
+		if strings.HasSuffix(updateFilePath, ".gz") {
+			gz, err := gzip.NewReader(f)
+			if err != nil {
+				return fmt.Errorf("failed to open compressed file %q: %w", updateFilePath, err)
+			}
+
+			defer gz.Close() //nolint:revive
+
+			n, err := io.Copy(o, gz) //nolint:gosec // This file is local to us.
+			if err != nil {
+				return fmt.Errorf("failed to copy files %q -> %q: %w", updateFilePath, targetFile, err)
+			}
+
+			totalSize += n
+		} else {
+			n, err := io.Copy(o, f)
+			if err != nil {
+				return fmt.Errorf("failed to copy files %q -> %q: %w", updateFilePath, targetFile, err)
+			}
+
+			totalSize += n
+		}
+	}
+
+	if fileType == imageTypeISO {
+		_, err := subprocess.RunCommand("mkisofs", "-V", "RESCUE_DATA", "-joliet-long", "-rock", "-o", tempFile, tempDir)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	f, err := os.Create(tempFile)
+	if err != nil {
+		return fmt.Errorf("failed to create file %q: %w", tempFile, err)
+	}
+
+	defer f.Close()
+
+	// Use the total size plus the VFAT offset, plus an additional 10MiB of padding, rounded up to the nearest 512.
+	paddedSize := (totalSize + (512 * 2048) + (10 * 1024 * 1024) + 511) / 512 * 512
+
+	err = f.Truncate(paddedSize)
+	if err != nil {
+		return fmt.Errorf("failed to truncate file %q: %w", tempFile, err)
+	}
+
+	_, err = subprocess.RunCommand("sgdisk", "-n", "1", "-c", "1:RESCUE_DATA", tempFile)
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommand("mkfs.vfat", "-S", "512", "--offset=2048", tempFile)
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommand("mcopy", "-s", "-i", tempFile+"@@1048576", updateDir, "::/")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, error) {
