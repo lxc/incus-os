@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -32,14 +33,18 @@ type cmdSync struct {
 
 func (c *cmdSync) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = "sync <path>"
+	cmd.Use = "sync <path> [local archive]"
 	cmd.Short = "Imports new images and cleans up the tree"
 	cmd.Long = formatSection("Description",
 		`Imports new images and cleans up the tree
 
-This will connect to Github to retrieve any new image that's missing
+This will connect to GitHub to retrieve any new image that's missing
 locally, then import them into the default channel (typically "testing")
 and then cleans up any extra image based on retention policy.
+
+Alternatively, if given an optional path to a local zip archive, import
+that build rather than querying GitHub. This is mostly intended to support
+local development and testing.
 `)
 	cmd.RunE = c.run
 
@@ -50,12 +55,17 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	ctx := context.TODO()
 
 	// Quick checks.
-	exit, err := c.global.CheckArgs(cmd, args, 1, 1)
+	exit, err := c.global.CheckArgs(cmd, args, 1, 2)
 	if exit {
 		return err
 	}
 
 	targetPath := args[0]
+
+	localRelease := ""
+	if len(args) == 2 {
+		localRelease = args[1]
+	}
 
 	err = os.MkdirAll(targetPath, 0o755)
 	if err != nil {
@@ -79,9 +89,28 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get the latest image info.
-	releaseName, releaseURLs, err := getLatestRelease(ctx)
-	if err != nil {
-		return err
+	var releaseName string
+
+	var releaseURLs map[string]*url.URL
+
+	if localRelease == "" {
+		releaseName, releaseURLs, err = getLatestRelease(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		releaseRegexp := regexp.MustCompile(`image-(\d+)-(.+)\.zip$`)
+
+		release := releaseRegexp.FindStringSubmatch(localRelease)
+		if len(release) != 3 {
+			return errors.New("invalid local archive name")
+		}
+
+		releaseName = release[1]
+		releaseURLs = make(map[string]*url.URL)
+		releaseURLs[release[2]] = &url.URL{
+			Path: localRelease,
+		}
 	}
 
 	slog.InfoContext(ctx, "Found latest image", "version", releaseName)
@@ -243,45 +272,53 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 
 	slog.InfoContext(ctx, "Downloading image", "arch", archName)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, releaseURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
+	var zipFilename string
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad response from server: %d", resp.StatusCode)
-	}
-
-	tempImage, err := os.CreateTemp("", "")
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() { _ = os.Remove(tempImage.Name()) }()
-
-	var size int64
-
-	for {
-		n, err := io.CopyN(tempImage, resp.Body, 4*1024*1024)
-		size += n
-
+	if releaseURL.Host != "" { //nolint:nestif
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, releaseURL.String(), nil)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
 			return nil, err
 		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("bad response from server: %d", resp.StatusCode)
+		}
+
+		tempImage, err := os.CreateTemp("", "")
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() { _ = os.Remove(tempImage.Name()) }()
+
+		var size int64
+
+		for {
+			n, err := io.CopyN(tempImage, resp.Body, 4*1024*1024)
+			size += n
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return nil, err
+			}
+		}
+
+		zipFilename = tempImage.Name()
+	} else {
+		zipFilename = releaseURL.Path
 	}
 
 	// Parse the image file.
-	zr, err := zip.OpenReader(tempImage.Name())
+	zr, err := zip.OpenReader(zipFilename)
 	if err != nil {
 		return nil, err
 	}
