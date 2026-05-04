@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
 	"go.yaml.in/yaml/v4"

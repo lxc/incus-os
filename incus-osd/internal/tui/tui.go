@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/lxc/incus/v6/shared/api"
-	"github.com/lxc/incus/v6/shared/resources"
-	"github.com/lxc/incus/v6/shared/units"
+	"github.com/lxc/incus/v7/shared/api"
+	"github.com/lxc/incus/v7/shared/resources"
+	"github.com/lxc/incus/v7/shared/units"
 	"github.com/rivo/tview"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"

@@ -3,7 +3,7 @@ package systemd
 import (
 	"context"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // SystemPowerOff triggers a system shutdown.

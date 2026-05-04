@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/lxc/incus/v6/shared/resources"
+	"github.com/lxc/incus/v7/shared/resources"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )

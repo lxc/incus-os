@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	incusapi "github.com/lxc/incus/v6/shared/api"
-	"github.com/lxc/incus/v6/shared/osarch"
-	incustls "github.com/lxc/incus/v6/shared/tls"
+	incusapi "github.com/lxc/incus/v7/shared/api"
+	"github.com/lxc/incus/v7/shared/osarch"
+	incustls "github.com/lxc/incus/v7/shared/tls"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	incusclient "github.com/lxc/incus/v6/client"
-	incusapi "github.com/lxc/incus/v6/shared/api"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	incusclient "github.com/lxc/incus/v7/client"
+	incusapi "github.com/lxc/incus/v7/shared/api"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"

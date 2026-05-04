@@ -19,7 +19,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	incusoscerts "github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/util"

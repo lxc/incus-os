@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/osarch"
+	"github.com/lxc/incus/v7/shared/osarch"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"

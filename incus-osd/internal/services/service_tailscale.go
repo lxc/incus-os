@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"tailscale.com/ipn/ipnstate"
 
 	"github.com/lxc/incus-os/incus-osd/api"

@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // IsBlockdev checks if the provided file is a block device.

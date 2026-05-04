@@ -1,7 +1,7 @@
 package seed
 
 import (
-	incusapi "github.com/lxc/incus/v6/shared/api"
+	incusapi "github.com/lxc/incus/v7/shared/api"
 )
 
 // Incus represents the Incus seed file.

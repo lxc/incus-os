@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // VerifyExtension takes the filename of a sysext image and verifies its basic format is correct,

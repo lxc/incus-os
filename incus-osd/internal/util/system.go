@@ -4,7 +4,7 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // PriorBootRelease queries the systemd journal to get the version of

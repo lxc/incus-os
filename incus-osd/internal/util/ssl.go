@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // UpdateSystemCustomCACerts regenerates /etc/ssl/certs/ca-certificates.crt with any
