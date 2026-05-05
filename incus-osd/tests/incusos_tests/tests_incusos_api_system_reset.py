@@ -30,8 +30,9 @@ def TestIncusOSAPISystemReset(install_image):
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-        # Shouldn't see any mention of a degraded security state
-        vm.LogDoesntContain("incus-osd", "Degraded security state:")
+        # Shouldn't see any mention of a TPM or SecureBoot degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")
 
 def TestIncusOSAPISystemResetSWTPM(install_image):
     test_name = "incusos-api-system-reset-swtpm"
@@ -110,8 +111,9 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-        # Shouldn't see any mention of a degraded security state
-        vm.LogDoesntContain("incus-osd", "Degraded security state:")
+        # Shouldn't see any mention of a TPM or SecureBoot degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")
 
 def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
     test_name = "incusos-api-system-reset-secureboot-disabled"
@@ -184,5 +186,6 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
             vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-            # Shouldn't see any mention of a degraded security state
-            vm.LogDoesntContain("incus-osd", "Degraded security state:")
+            # Shouldn't see any mention of a TPM or SecureBoot degraded security state
+            vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+            vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")

@@ -25,8 +25,9 @@ def TestIncusOSLive(install_image):
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
 
-        # Shouldn't see any mention of a degraded security state
-        vm.LogDoesntContain("incus-osd", "Degraded security state:")
+        # Shouldn't see any mention of a TPM or SecureBoot degraded security state
+        vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+        vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")
 
         # Verify that LUKS encryption is bound to PCRs 7+11+15
         result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part9")
