@@ -50,6 +50,7 @@ type State struct {
 	SecureBoot         SecureBoot `json:"secure_boot"`
 	UsingSWTPM         bool       `json:"using_swtpm"`
 	SecureBootDisabled bool       `json:"secure_boot_disabled"`
+	FullAgentEnabled   bool       `json:"full_agent_enabled"`
 
 	Applications struct {
 		Debug            api.Application      `json:"debug"`
