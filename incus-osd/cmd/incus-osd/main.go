@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -276,8 +277,23 @@ func run(ctx context.Context, s *state.State) error {
 		slog.WarnContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in /", freeSpace))
 	}
 
+	// Create runtime path if missing.
+	err = os.Mkdir(runPath, 0o700)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	// Setup Unix socket listener.
+	_ = os.Remove(filepath.Join(runPath, "unix.socket"))
+	lc := &net.ListenConfig{}
+
+	unixListener, err := lc.Listen(ctx, "unix", filepath.Join(runPath, "unix.socket"))
+	if err != nil {
+		return err
+	}
+
 	// Start the API.
-	server, err := rest.NewServer(ctx, s, filepath.Join(runPath, "unix.socket"))
+	server, err := rest.NewServer(ctx, s, unixListener)
 	if err != nil {
 		return err
 	}
@@ -285,7 +301,7 @@ func run(ctx context.Context, s *state.State) error {
 	chErr := make(chan error, 1)
 
 	go func() {
-		err := server.Serve(ctx)
+		err := server.Serve()
 		chErr <- err
 	}()
 

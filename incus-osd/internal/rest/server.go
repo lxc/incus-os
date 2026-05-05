@@ -4,8 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -13,38 +11,23 @@ import (
 
 // Server holds the internal state of the REST API server.
 type Server struct {
-	socketPath string
-	state      *state.State
+	listener net.Listener
+	state    *state.State
 }
 
 // NewServer returns a REST API server object.
-func NewServer(_ context.Context, s *state.State, socketPath string) (*Server, error) {
+func NewServer(_ context.Context, s *state.State, l net.Listener) (*Server, error) {
 	// Define the struct.
 	server := Server{
-		socketPath: socketPath,
-		state:      s,
-	}
-
-	// Create runtime path if missing.
-	err := os.Mkdir(filepath.Dir(socketPath), 0o700)
-	if err != nil && !os.IsExist(err) {
-		return nil, err
+		listener: l,
+		state:    s,
 	}
 
 	return &server, nil
 }
 
 // Serve starts the REST API server.
-func (s *Server) Serve(ctx context.Context) error {
-	// Setup listener.
-	_ = os.Remove(s.socketPath)
-	lc := &net.ListenConfig{}
-
-	listener, err := lc.Listen(ctx, "unix", s.socketPath)
-	if err != nil {
-		return err
-	}
-
+func (s *Server) Serve() error {
 	// Setup routing.
 	router := http.NewServeMux()
 
@@ -108,5 +91,5 @@ func (s *Server) Serve(ctx context.Context) error {
 		WriteTimeout: 0,
 	}
 
-	return server.Serve(listener)
+	return server.Serve(s.listener)
 }
