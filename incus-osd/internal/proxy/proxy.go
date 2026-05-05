@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"go.yaml.in/yaml/v4"
 
 	"github.com/lxc/incus-os/incus-osd/api"

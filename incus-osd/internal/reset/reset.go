@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"

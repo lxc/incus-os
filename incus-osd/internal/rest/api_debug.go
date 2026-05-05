@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/go-eventlog/tcg"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"

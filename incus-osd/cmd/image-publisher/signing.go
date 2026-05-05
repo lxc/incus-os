@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // Generate a detached signature if provided with a signing certificate.

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // GetLUKSVolumePartitions returns the underlying partitions that hold the root and swap LUKS volumes.

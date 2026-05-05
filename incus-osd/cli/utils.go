@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v7/shared/api"
 )
 
 const dateLayoutSecond = "2006/01/02 15:04:05 MST"

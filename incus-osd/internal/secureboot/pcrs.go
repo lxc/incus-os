@@ -18,7 +18,7 @@ import (
 
 	"github.com/foxboron/go-uefi/authenticode"
 	"github.com/google/go-eventlog/tcg"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/smallstep/pkcs7"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"

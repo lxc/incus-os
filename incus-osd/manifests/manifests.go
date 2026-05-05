@@ -13,7 +13,7 @@ import (
 
 	"github.com/cavaliergopher/cpio"
 	"github.com/klauspost/compress/zstd"
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // KillUnit kills the systemd unit(s) using the specified signal.

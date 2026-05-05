@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/certs"

@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/ask"
-	"github.com/lxc/incus/v6/shared/revert"
+	"github.com/lxc/incus/v7/shared/ask"
+	"github.com/lxc/incus/v7/shared/revert"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
 

@@ -3,7 +3,7 @@ package systemd
 import (
 	"context"
 
-	"github.com/lxc/incus/v6/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // FlushDNSCache instructs the system to flush the DNS cache. This is needed after network changes to ensure that any cached DNS entries that may have become stale are cleared.

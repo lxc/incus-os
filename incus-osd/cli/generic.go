@@ -12,9 +12,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lxc/incus/v6/shared/ask"
-	cli "github.com/lxc/incus/v6/shared/cmd"
-	"github.com/lxc/incus/v6/shared/termios"
+	"github.com/lxc/incus/v7/shared/ask"
+	cli "github.com/lxc/incus/v7/shared/cmd"
+	"github.com/lxc/incus/v7/shared/termios"
 	"github.com/spf13/cobra"
 	"go.yaml.in/yaml/v4"
 )

@@ -13,8 +13,8 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.18.5
-	github.com/lxc/incus/v6 v6.23.1-0.20260327174201-6acde8bd711a
+	github.com/klauspost/compress v1.18.6
+	github.com/lxc/incus/v7 v7.0.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.12.0
 	github.com/rivo/tview v0.42.0
@@ -38,7 +38,7 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/platforms v1.0.0-rc.2 // indirect
+	github.com/containerd/platforms v1.0.0-rc.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.21 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect
 	github.com/moby/sys/user v0.4.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
@@ -101,12 +101,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
-	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
-	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
+	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

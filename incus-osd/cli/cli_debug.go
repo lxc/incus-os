@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	cli "github.com/lxc/incus/v6/shared/cmd"
+	cli "github.com/lxc/incus/v7/shared/cmd"
 	"github.com/spf13/cobra"
 )
 

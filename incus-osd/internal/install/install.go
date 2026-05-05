@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lxc/incus/v6/shared/osarch"
-	"github.com/lxc/incus/v6/shared/subprocess"
-	"github.com/lxc/incus/v6/shared/units"
+	"github.com/lxc/incus/v7/shared/osarch"
+	"github.com/lxc/incus/v7/shared/subprocess"
+	"github.com/lxc/incus/v7/shared/units"
 	"golang.org/x/sys/unix"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
