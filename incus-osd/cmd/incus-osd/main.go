@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/certs"
@@ -93,6 +94,13 @@ func main() {
 	// Record the OS name and version in the state.
 	s.OS.Name = osName
 	s.OS.RunningRelease = osRelease
+
+	// Configure incus-agent.
+	err = configureIncusAgent(ctx, s)
+	if err != nil {
+		tui.EarlyError("unable to configure incus-agent: "+err.Error(), s.OS.Name)
+		os.Exit(1)
+	}
 
 	// Record if the system is relying on a swtpm-backed TPM.
 	s.UsingSWTPM = secureboot.GetSWTPMInUse()
@@ -974,4 +982,97 @@ func migrateApplicationData(ctx context.Context, applicationName string) error {
 
 	// Remove the old directory.
 	return os.RemoveAll(filepath.Join("/var/lib/", applicationName+".bak"))
+}
+
+func configureIncusAgent(ctx context.Context, s *state.State) error {
+	// Only attempt to configure incus-agent if we're running within an Incus VM.
+	_, err := os.Stat("/dev/virtio-ports/org.linuxcontainers.incus")
+	if err != nil {
+		return nil //nolint:nilerr
+	}
+
+	type agentConfig struct {
+		Features map[string]bool `yaml:"features"`
+	}
+
+	// Check if the systemd credential "fully-enable-incus-agent" is defined.
+	_, err = os.Stat("/run/credentials/@system/fully-enable-incus-agent")
+	enableAgent := err == nil
+
+	// Check if we will need to restart the incus-agent to pickup a configuration change.
+	restartAgent := false
+
+	data, err := os.ReadFile("/etc/incus-agent.yml")
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+
+		restartAgent = true
+	}
+
+	cfg := agentConfig{}
+
+	if len(data) > 0 {
+		err := yaml.Load(data, &cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Set basic incus-agent capabilities.
+	if cfg.Features == nil {
+		cfg.Features = make(map[string]bool)
+	}
+
+	cfg.Features["guestapi"] = true
+	cfg.Features["mounts"] = true
+	cfg.Features["metrics"] = true
+	cfg.Features["state"] = true
+
+	// Update incus-agent configuration if needed.
+	if enableAgent {
+		if !cfg.Features["exec"] || !cfg.Features["files"] {
+			restartAgent = true
+			cfg.Features["exec"] = true
+			cfg.Features["files"] = true
+
+			// This flag will always remain true once set to indicate
+			// that incus-agent was fully enabled at some point.
+			s.FullAgentEnabled = true
+
+			err := secureboot.BlowTrustedFuse()
+			if err != nil {
+				return errors.New("unable to blow security fuse: " + err.Error())
+			}
+		}
+	} else {
+		if cfg.Features["exec"] || cfg.Features["files"] {
+			restartAgent = true
+			cfg.Features["exec"] = false
+			cfg.Features["files"] = false
+		}
+	}
+
+	// Restart incus-agent if necessary.
+	if restartAgent {
+		// Write the configuration file.
+		data, err := yaml.Dump(&cfg, yaml.V2)
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile("/etc/incus-agent.yml", data, 0o600)
+		if err != nil {
+			return err
+		}
+
+		// Restart incus-agent.
+		err = systemd.RestartUnit(ctx, "incus-agent.service")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
