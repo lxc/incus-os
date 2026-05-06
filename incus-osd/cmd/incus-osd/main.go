@@ -598,6 +598,11 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		slog.WarnContext(ctx, "Degraded security state: Secure Boot is disabled")
 	}
 
+	// Display a warning if incus-agent has ever been fully enabled.
+	if s.FullAgentEnabled {
+		slog.WarnContext(ctx, "Degraded security state: incus-agent has been fully enabled")
+	}
+
 	// Display a warning if we're running from the backup image.
 	if s.OS.RunningFromBackup() {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
