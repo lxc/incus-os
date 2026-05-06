@@ -604,6 +604,11 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"))
 
+	// Create this channel early, so we don't block trying to trigger the fallback HTTPS listener.
+	// We can't move the channel processing loop here, because it depends on having a provider (and
+	// therefore potentially a network) properly configured.
+	s.TriggerFallbackListener = make(chan bool, 1)
+
 	// Display a warning if we're running with a swtpm-backed TPM.
 	if s.UsingSWTPM {
 		slog.WarnContext(ctx, "Degraded security state: no physical TPM found, using swtpm")
@@ -834,6 +839,13 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 			goto waitSignal
 		case <-s.TriggerUpdate:
 			update.Checker(ctx, s, p, false, true)
+
+			goto waitSignal
+		case <-s.TriggerFallbackListener:
+			err := startFallbackListener(ctx, s)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to start fallback HTTPS listener", "err", err)
+			}
 
 			goto waitSignal
 		}
@@ -1094,6 +1106,51 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func startFallbackListener(ctx context.Context, s *state.State) error {
+	// Get the primary application, requiring that it be initialized.
+	app, err := applications.GetPrimary(ctx, s, true)
+	if err != nil {
+		return err
+	}
+
+	// Get server TLS certificates from the primary application so we don't trigger potential connection security warnings.
+	serverCert, err := app.GetServerCertificate()
+	if err != nil {
+		return err
+	}
+
+	listenAddress := s.System.FallbackListener.Config.ListenAddress
+	if listenAddress == "" {
+		// If no address is configured, attempt to listen on all interfaces.
+		listenAddress = ":0"
+	}
+
+	// Setup a TCP listener on the interface(s).
+	listenConfig := net.ListenConfig{}
+
+	tcpListener, err := listenConfig.Listen(ctx, "tcp", listenAddress)
+	if err != nil {
+		return err
+	}
+
+	// Start the fallback HTTPS server.
+	server, err := rest.NewServer(ctx, s, util.NewFancyTLSListener(tcpListener, *serverCert))
+	if err != nil {
+		return err
+	}
+
+	s.System.FallbackListener.State.Active = true
+
+	slog.InfoContext(ctx, "Fallback HTTPS listener started on "+tcpListener.Addr().String())
+
+	// Listen until reboot.
+	go func() {
+		_ = server.Serve()
+	}()
 
 	return nil
 }
