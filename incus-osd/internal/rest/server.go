@@ -1,9 +1,14 @@
 package rest
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -85,7 +90,66 @@ func (s *Server) Serve() error {
 
 	// Setup server.
 	server := &http.Server{
-		Handler: router,
+		// If not listening on the local Unix socket, define a custom handler that first checks for
+		// a trusted client TLS certificate and then ensures a proper proxy header is present and
+		// trims the "/os" prefix if present before passing the request to the standard handler.
+		Handler: func(h http.Handler) http.Handler {
+			if s.listener.Addr().Network() != "unix" {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.TLS == nil {
+						http.Error(w, "Upgrade Required", http.StatusUpgradeRequired)
+
+						return
+					}
+
+					if len(r.TLS.PeerCertificates) == 0 {
+						http.Error(w, "Forbidden", http.StatusForbidden)
+
+						return
+					}
+
+					// Verify the client provided a TLS certificate that matches a trusted fingerprint.
+					foundTrustedClient := false
+
+					clientFp := sha256.Sum256(r.TLS.PeerCertificates[0].Raw)
+
+					for _, trustedCert := range s.state.System.FallbackListener.Config.TrustedClientCertificates {
+						block, _ := pem.Decode([]byte(trustedCert))
+						if block == nil || block.Type != "CERTIFICATE" {
+							continue
+						}
+
+						cert, err := x509.ParseCertificate(block.Bytes)
+						if err != nil {
+							continue
+						}
+
+						certFp := sha256.Sum256(cert.Raw)
+
+						if bytes.Equal(clientFp[:], certFp[:]) {
+							foundTrustedClient = true
+
+							break
+						}
+					}
+
+					if !foundTrustedClient {
+						http.Error(w, "Forbidden", http.StatusForbidden)
+
+						return
+					}
+
+					// Ensure a proper proxy header is set and trim the "/os" prefix if present.
+					r.Header.Set("X-IncusOS-Proxy", "/os")
+					r.URL.Path = strings.TrimPrefix(r.URL.Path, "/os")
+
+					// Serve the request.
+					h.ServeHTTP(w, r)
+				})
+			}
+
+			return h
+		}(router),
 
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
