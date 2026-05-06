@@ -775,7 +775,19 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	for _, app := range apps {
 		err := applications.StartInitialize(ctx, s, app.Name())
 		if err != nil {
-			return err
+			if !app.IsPrimary() {
+				return err
+			}
+
+			slog.ErrorContext(ctx, err.Error())
+
+			// If not running from the backup image, which automatically starts the fallback HTTPS listener,
+			// attempt to start it when the primary application has failed to start.
+			if !s.OS.RunningFromBackup() {
+				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
+
+				s.TriggerFallbackListener <- true
+			}
 		}
 	}
 
