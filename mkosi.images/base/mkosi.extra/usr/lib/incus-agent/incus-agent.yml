@@ -1,0 +1,7 @@
+features:
+  exec: false
+  files: false
+  guestapi: true
+  metrics: true
+  mounts: true
+  state: true
