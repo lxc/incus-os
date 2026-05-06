@@ -67,6 +67,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/system/:reboot", s.apiSystemReboot)
 	router.HandleFunc("/1.0/system/:restore", s.apiSystemRestore)
 	router.HandleFunc("/1.0/system/:suspend", s.apiSystemSuspend)
+	router.HandleFunc("/1.0/system/fallback-listener", s.apiSystemFallbackListener)
 	router.HandleFunc("/1.0/system/kernel", s.apiSystemKernel)
 	router.HandleFunc("/1.0/system/logging", s.apiSystemLogging)
 	router.HandleFunc("/1.0/system/network", s.apiSystemNetwork)
