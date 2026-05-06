@@ -1,6 +1,6 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.9
@@ -26,7 +26,7 @@ require (
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
 	software.sslmate.com/src/go-pkcs12 v0.7.1
-	tailscale.com v1.96.5
+	tailscale.com v1.98.0
 )
 
 require (
@@ -46,10 +46,10 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
-	github.com/go-json-experiment/json v0.0.0-20250813024750-ebf49471dced // indirect
+	github.com/go-json-experiment/json v0.0.0-20260505212615-e40f80bf6836 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
