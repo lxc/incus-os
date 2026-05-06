@@ -19,8 +19,9 @@ def TestInstallMultipath(install_image):
         with IncusTestVM(test_name, test_image) as vm:
             _commonMultipathChecks(vm, incusos_version, disk_img.name)
 
-            # Shouldn't see any mention of a degraded security state
-            vm.LogDoesntContain("incus-osd", "Degraded security state:")
+            # Shouldn't see any mention of a TPM or SecureBoot degraded security state
+            vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
+            vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")
 
 def TestInstallMultipathUseSWTPM(install_image):
     test_name = "multipath-use-swtpm"

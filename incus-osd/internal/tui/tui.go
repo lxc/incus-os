@@ -310,6 +310,10 @@ func (t *TUI) redrawScreen() {
 			t.frame.AddText("WARNING: Degraded security state: Secure Boot is disabled", true, tview.AlignCenter, tcell.ColorRed)
 		}
 
+		if t.state.FullAgentEnabled {
+			t.frame.AddText("WARNING: Degraded security state: incus-agent has been fully enabled", true, tview.AlignCenter, tcell.ColorRed)
+		}
+
 		// Get list of applications from state.
 		apps, err := applications.GetInstalled(context.Background(), t.state)
 		if err != nil {

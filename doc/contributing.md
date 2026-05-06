@@ -56,6 +56,16 @@ You can now test your new command or other changes: `./incus admin os ...`
 
 ## Debugging
 
+```{note}
+Running commands or opening a shell on an IncusOS server is only possible when run as an Incus virtual machine and requires fully enabling `incus-agent`
+support. Be aware that this will cause the system to report a degraded security state via the API and an on-screen message. This is because running
+arbitrary commands within the virtual machine can make changes outside of the control of IncusOS.
+
+To fully enable `incus-agent` support in the virtual machine, run the following command and then restart the virtual machine.
+
+    incus config set <vm> systemd.credential.fully-enable-incus-agent true
+```
+
 When IncusOS is run in an Incus virtual machine, it is possible to `exec` into the running
 system to facilitate debugging of the system:
 
