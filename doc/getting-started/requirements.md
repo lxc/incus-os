@@ -35,3 +35,13 @@ Certain physical servers and Microsoft Hyper-V have known incomplete and/or brok
 ### Using a software-backed TPM
 
 Most consumer-grade ARM systems lack physical TPM chips, and it can be cost prohibitive to purchase one, such as when using a RaspberryPi. To support these systems, IncusOS can utilize `swtpm` for its TPM. For further details, see [Installing without a TPM](../reference/installing-without-tpm.md).
+
+## Compatible clients
+
+Some incus-os administrative functions can be accessed via `incus admin os ...`. `incus admin os` was added to Incus in the following client versions:
+
+ - 6.0.6 LTS
+ - 6.19
+ - 7.0 LTS
+
+Other client functions (eg launching instances) work with all versions of the `incus` client.
