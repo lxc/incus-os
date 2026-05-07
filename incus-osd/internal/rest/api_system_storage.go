@@ -637,7 +637,7 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 //
 //	Encrypt a raw drive
 //
-//	Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+//	Wipes and encrypts a raw drive using a random LUKS key that will be used by the system to unlock on boot.
 //	Existing data on the drive will be opportunistically wiped via `blkdiscard` unless "secure_wipe" is true,
 //	which will guarantee all data is erased. On large spinning drives that don't support `blkdiscard`, securely
 //	wiping the drive may take a very long time.
