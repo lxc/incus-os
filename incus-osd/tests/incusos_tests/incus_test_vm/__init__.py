@@ -12,7 +12,8 @@ class IncusOSException(Exception):
     pass
 
 class IncusTestVM:
-    def __init__(self, vm_name_base, install_image, root_size="50GiB", readonly_install_image="false"):
+    def __init__(self, os_name, vm_name_base, install_image, root_size="50GiB", readonly_install_image="false"):
+        self.os_name = os_name
         self.vm_name = vm_name_base + "-" + util._get_random_string()
         self.root_size = root_size
         self.install_image = install_image
@@ -88,14 +89,14 @@ class IncusTestVM:
         else:
             subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def WaitSystemReady(self, incusos_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[], agent_timeout=300, secureboot_disabled=False):
+    def WaitSystemReady(self, os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[], agent_timeout=300, secureboot_disabled=False):
         """Wait for the system install to complete, the given application to be configured and the system become ready for use."""
 
         # Perform IncusOS install.
         self.StartVM()
         self.WaitAgentRunning(agent_timeout)
-        self.WaitExpectedLog("incus-osd", "Installing IncusOS source=" + source + " target=" + target, regex=True)
-        self.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+        self.WaitExpectedLog("incus-osd", "Installing " + self.os_name + " source=" + source + " target=" + target, regex=True)
+        self.WaitExpectedLog("incus-osd", self.os_name + " was successfully installed")
 
         # Stop the VM post-install and remove install media.
         self.StopVM()
@@ -110,8 +111,8 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         if not secureboot_disabled:
             self.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+incusos_version)
-        self.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+os_version)
+        self.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     def WaitAgentRunning(self, timeout=420):
         """Wait for the Incus agent to start in the VM."""

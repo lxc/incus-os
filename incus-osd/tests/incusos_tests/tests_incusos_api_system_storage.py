@@ -11,15 +11,15 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         disk_img.truncate(10*1024*1024*1024)
 
-        with IncusTestVM(test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
-            vm.WaitSystemReady(incusos_version)
+            vm.WaitSystemReady(os_version)
 
             # Can't import an unencrypted pool
             vm.RunCommand("zpool", "create", "mypool", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
@@ -73,15 +73,15 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         disk_img.truncate(10*1024*1024*1024)
 
-        with IncusTestVM(test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
-            vm.WaitSystemReady(incusos_version)
+            vm.WaitSystemReady(os_version)
 
             # Get the current storage state.
             result = vm.APIRequest("/1.0/system/storage")
@@ -196,7 +196,7 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -205,12 +205,12 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
                 disk_img2.truncate(10*1024*1024*1024)
                 disk_img3.truncate(11*1024*1024*1024)
 
-                with IncusTestVM(test_name, test_image) as vm:
+                with IncusTestVM(os_name, test_name, test_image) as vm:
                     vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                     vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                     vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
 
-                    vm.WaitSystemReady(incusos_version)
+                    vm.WaitSystemReady(os_version)
 
                     # By default, can't create a storage pool with devices of different sizes.
                     result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
@@ -246,18 +246,18 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
             disk_img1.truncate(10*1024*1024*1024)
             disk_img2.truncate(10*1024*1024*1024)
 
-            with IncusTestVM(test_name, test_image) as vm:
+            with IncusTestVM(os_name, test_name, test_image) as vm:
                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
 
-                vm.WaitSystemReady(incusos_version)
+                vm.WaitSystemReady(os_version)
 
                 # Create a storage pool using a single device.
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
@@ -311,7 +311,7 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -320,12 +320,12 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                 disk_img2.truncate(10*1024*1024*1024)
                 disk_img3.truncate(10*1024*1024*1024)
 
-                with IncusTestVM(test_name, test_image) as vm:
+                with IncusTestVM(os_name, test_name, test_image) as vm:
                     vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                     vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                     vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
 
-                    vm.WaitSystemReady(incusos_version)
+                    vm.WaitSystemReady(os_version)
 
                     # Create a simple pool with one log device.
                     result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"log":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
@@ -416,7 +416,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -427,13 +427,13 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                     disk_img3.truncate(10*1024*1024*1024)
                     disk_img4.truncate(10*1024*1024*1024)
 
-                    with IncusTestVM(test_name, test_image) as vm:
+                    with IncusTestVM(os_name, test_name, test_image) as vm:
                         vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                         vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                         vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
                         vm.AddDevice("disk4", "disk", "source="+disk_img4.name)
 
-                        vm.WaitSystemReady(incusos_version)
+                        vm.WaitSystemReady(os_version)
 
                         # Create a basic raidz1 pool
                         result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
@@ -563,7 +563,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -578,7 +578,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                             disk_img5.truncate(10*1024*1024*1024)
                             disk_img6.truncate(10*1024*1024*1024)
 
-                            with IncusTestVM(test_name, test_image) as vm:
+                            with IncusTestVM(os_name, test_name, test_image) as vm:
                                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                                 vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -586,7 +586,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 vm.AddDevice("disk5", "disk", "source="+disk_img5.name)
                                 vm.AddDevice("disk6", "disk", "source="+disk_img6.name)
 
-                                vm.WaitSystemReady(incusos_version)
+                                vm.WaitSystemReady(os_version)
 
                                 # raid0 testing
 
@@ -866,7 +866,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -881,7 +881,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                             disk_img5.truncate(10*1024*1024*1024)
                             disk_img6.truncate(10*1024*1024*1024)
 
-                            with IncusTestVM(test_name, test_image) as vm:
+                            with IncusTestVM(os_name, test_name, test_image) as vm:
                                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                                 vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -889,7 +889,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 vm.AddDevice("disk5", "disk", "source="+disk_img5.name)
                                 vm.AddDevice("disk6", "disk", "source="+disk_img6.name)
 
-                                vm.WaitSystemReady(incusos_version)
+                                vm.WaitSystemReady(os_version)
 
                                 # Special device for a raid0 pool
 

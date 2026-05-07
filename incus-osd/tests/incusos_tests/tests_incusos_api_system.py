@@ -8,10 +8,10 @@ def TestIncusOSAPISystem(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/system endpoint.
         result = vm.APIRequest("/1.0/system")
@@ -32,10 +32,10 @@ def TestIncusOSAPISystemPoweroff(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Command the system to poweroff.
         result = vm.APIRequest("/1.0/system/:poweroff", method="POST")
@@ -58,10 +58,10 @@ def TestIncusOSAPISystemReboot(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Command the system to reboot.
         result = vm.APIRequest("/1.0/system/:reboot", method="POST")
@@ -72,7 +72,7 @@ def TestIncusOSAPISystemReboot(install_image):
 
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Get journal entries from the prior boot, which can only happen if the VM successfully rebooted.
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd&boot=-1")

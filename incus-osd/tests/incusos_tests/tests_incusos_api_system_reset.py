@@ -11,10 +11,10 @@ def TestIncusOSAPISystemReset(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Command the system to perform a factory reset.
         result = vm.APIRequest("/1.0/system/:factory-reset", method="POST")
@@ -27,8 +27,8 @@ def TestIncusOSAPISystemReset(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
         vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -40,13 +40,13 @@ def TestIncusOSAPISystemResetSWTPM(install_image):
         "install.json": """{"security":{"missing_tpm":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Remove the tpm
         vm.RemoveDevice("vtpm")
 
-        vm.WaitSystemReady(incusos_version)
+        vm.WaitSystemReady(os_version)
 
         # Should see a log message about swtpm
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -69,8 +69,8 @@ def TestIncusOSAPISystemResetSWTPM(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Should see a log message about swtpm
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -81,13 +81,13 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         "install.json": """{"security":{"missing_tpm":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Remove the tpm
         vm.RemoveDevice("vtpm")
 
-        vm.WaitSystemReady(incusos_version)
+        vm.WaitSystemReady(os_version)
 
         # Should see a log message about swtpm
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -108,8 +108,8 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
         vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -121,11 +121,11 @@ def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
         "install.json": """{"security":{"missing_secure_boot":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
     util._remove_secureboot_keys(test_image)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version, secureboot_disabled=True)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version, secureboot_disabled=True)
 
         # Should see a log message about SecureBoot being disabled
         vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
@@ -140,8 +140,8 @@ def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Should see a log message about SecureBoot being disabled
         vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
@@ -152,14 +152,14 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
         "install.json": """{"security":{"missing_secure_boot":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
         util._extract_secureboot_keys(test_image, tmp_dir)
         util._remove_secureboot_keys(test_image)
 
-        with IncusTestVM(test_name, test_image) as vm:
-            vm.WaitSystemReady(incusos_version, secureboot_disabled=True)
+        with IncusTestVM(os_name, test_name, test_image) as vm:
+            vm.WaitSystemReady(os_version, secureboot_disabled=True)
 
             # Should see a log message about SecureBoot being disabled
             vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
@@ -183,8 +183,8 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
             vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-            vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
-            vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+            vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+            vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
             # Shouldn't see any mention of a TPM or SecureBoot degraded security state
             vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")

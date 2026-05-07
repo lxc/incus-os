@@ -8,9 +8,9 @@ def TestInstallNoSeed(install_image):
     test_name = "no-seed"
     test_seed = None
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -20,9 +20,9 @@ def TestInstallNoSeedReadonlyImage(install_image):
     test_name = "no-seed-readonly-image"
     test_seed = None
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image, readonly_install_image="true") as vm:
+    with IncusTestVM(os_name, test_name, test_image, readonly_install_image="true") as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -34,10 +34,10 @@ def TestInstallTooManyTargets(install_image):
         "install.json": "{}"
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
-        with IncusTestVM(test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             # Perform IncusOS install.
@@ -51,9 +51,9 @@ def TestInstallDriveTooSmall(install_image):
         "install.json": "{}"
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image, root_size="10GiB") as vm:
+    with IncusTestVM(os_name, test_name, test_image, root_size="10GiB") as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -65,14 +65,14 @@ def TestInstallDriveWithGPT(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_disk1"}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         # Truncate the disk image file to 50GiB and setup a single GPT partition.
         disk_img.truncate(50*1024*1024*1024)
         subprocess.run(["/sbin/sgdisk", "-n", "1", disk_img.name], capture_output=True, check=True)
 
-        with IncusTestVM(test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             # Perform IncusOS install.
@@ -86,9 +86,9 @@ def TestInstallCantDisableSBandTPM(install_image):
         "install.json": """{"security":{"missing_tpm":true,"missing_secure_boot":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -100,9 +100,9 @@ def TestInstallNoSWTPMwithTPM(install_image):
         "install.json": """{"security":{"missing_tpm":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -114,9 +114,9 @@ def TestInstallNoDisabledSBwithSB(install_image):
         "install.json": """{"security":{"missing_secure_boot":true}}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -128,9 +128,9 @@ def TestInstallNoTPMNoSWTPM(install_image):
         "install.json": "{}"
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         vm.RemoveDevice("vtpm")
 
         # Verify we get expected error
@@ -144,10 +144,10 @@ def TestInstallSecureBootDisabledNoFallback(install_image):
         "install.json": "{}"
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
     util._remove_secureboot_keys(test_image)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Verify we get expected error
         vm.StartVM()
         vm.WaitAgentRunning()

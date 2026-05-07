@@ -11,14 +11,14 @@ def TestRecoveryUpdateFromUSB(install_image):
         "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        _installStartChecks(vm, incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        _installStartChecks(vm, os_name, os_version)
 
         # Apply the updates from a USB stick.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", incusos_version)
+            util._manual_download_application(tmp_dir, "incus", os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_img:
                 # Create a vfat partition labeled RESCUE_DATA and copy the updates.
@@ -28,7 +28,7 @@ def TestRecoveryUpdateFromUSB(install_image):
                 vm.StopVM()
                 vm.AddDevice("recovery", "disk", "source="+recovery_img.name, "io.bus=usb")
 
-                _recoveryChecks(vm, incusos_version)
+                _recoveryChecks(vm, os_version)
 
 def TestRecoveryUpdateFromISO(install_image):
     test_name = "recovery-update-from-iso"
@@ -38,14 +38,14 @@ def TestRecoveryUpdateFromISO(install_image):
         "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        _installStartChecks(vm, incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        _installStartChecks(vm, os_name, os_version)
 
         # Apply the updates from an ISO image.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", incusos_version)
+            util._manual_download_application(tmp_dir, "incus", os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_iso:
                 # Create an ISO labeled RESCUE_DATA containing the updates.
@@ -55,14 +55,14 @@ def TestRecoveryUpdateFromISO(install_image):
                 vm.StopVM()
                 vm.AttachISO(recovery_iso.name, "recovery")
 
-                _recoveryChecks(vm, incusos_version)
+                _recoveryChecks(vm, os_version)
 
-def _installStartChecks(vm, incusos_version):
+def _installStartChecks(vm, os_name, os_version):
     # Perform IncusOS install.
     vm.StartVM()
     vm.WaitAgentRunning()
-    vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-    vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+    vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+    vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
     # Stop the VM post-install and remove install media.
     vm.StopVM()
@@ -75,7 +75,7 @@ def _installStartChecks(vm, incusos_version):
     vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
-    vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+    vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     # Verify that no applications are installed.
     result = vm.APIRequest("/1.0/applications")
@@ -85,22 +85,22 @@ def _installStartChecks(vm, incusos_version):
     if len(result["metadata"]) != 0:
         raise IncusOSException("expected no application to be installed")
 
-def _recoveryChecks(vm, incusos_version):
+def _recoveryChecks(vm, os_version):
     # Start the VM and install incus from the recovery media.
     vm.StartVM()
     vm.WaitAgentRunning()
     vm.WaitExpectedLog("incus-osd", "Recovery partition detected")
     vm.WaitExpectedLog("incus-osd", "Update metadata detected, verifying signature")
-    vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+incusos_version)
+    vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+os_version)
     vm.WaitExpectedLog("incus-osd", "Decompressing and verifying each update file")
     vm.WaitExpectedLog("incus-osd", "Skipping missing file: 'x86_64/debug.raw.gz")
-    vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
+    vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
     vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
-    vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+incusos_version)
-    vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+incusos_version)
-    vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+    vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+os_version)
+    vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+os_version)
+    vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     # Verity the incus application is installed.
     result = vm.APIRequest("/1.0/applications")
