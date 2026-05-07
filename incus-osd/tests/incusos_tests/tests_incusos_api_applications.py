@@ -8,10 +8,10 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
@@ -33,8 +33,8 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         if not state["initialized"]:
             raise IncusOSException("incus application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("incus application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("incus application version mismatch (%s vs %s)" % (state["version"], os_version))
 
         # Verify we can't install more than one primary application
         result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"migration-manager"}""")
@@ -75,10 +75,10 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         "applications.json": """{"applications":[{"name":"migration-manager"}]}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version, application="migration-manager")
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version, application="migration-manager")
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
@@ -100,8 +100,8 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         if not state["initialized"]:
             raise IncusOSException("migration manager application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("migration manager application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("migration manager application version mismatch (%s vs %s)" % (state["version"], os_version))
 
         # For testing, create an empty test file that should be included in the backup/restore steps
         vm.RunCommand("touch", "/var/lib/migration-manager/test-file")
@@ -134,10 +134,10 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         "applications.json": """{"applications":[{"name":"operations-center"}]}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version, application="operations-center")
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version, application="operations-center")
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
@@ -159,8 +159,8 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         if not state["initialized"]:
             raise IncusOSException("operations center application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("operations center application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("operations center application version mismatch (%s vs %s)" % (state["version"], os_version))
 
         # For testing, create an empty test file that should be included in the backup/restore steps
         vm.RunCommand("touch", "/var/lib/operations-center/test-file")
@@ -193,10 +193,10 @@ def TestIncusOSAPIApplicationsIncusCeph(install_image):
         "applications.json": """{"applications":[{"name":"incus-ceph"}]}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version, application="incus-ceph")
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version, application="incus-ceph")
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
@@ -222,8 +222,8 @@ def TestIncusOSAPIApplicationsIncusCeph(install_image):
         if not state["initialized"]:
             raise IncusOSException("incus-ceph application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("incus-ceph application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("incus-ceph application version mismatch (%s vs %s)" % (state["version"], os_version))
 
 def TestIncusOSAPIApplicationsIncusLinstor(install_image):
     test_name = "incusos-api-applications-incus-linstor"
@@ -231,10 +231,10 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")
@@ -256,16 +256,16 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         if not state["initialized"]:
             raise IncusOSException("incus application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("incus application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("incus application version mismatch (%s vs %s)" % (state["version"], os_version))
 
         # Install incus-linstor via REST API
         result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"incus-linstor"}""")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus-linstor version="+incusos_version)
-        vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus-linstor version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version="+os_version)
 
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
@@ -290,8 +290,8 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         if not state["initialized"]:
             raise IncusOSException("incus-linstor application isn't initialized")
 
-        if state["version"] != incusos_version:
-            raise IncusOSException("incus-linstor application version mismatch (%s vs %s)" % (state["version"], incusos_version))
+        if state["version"] != os_version:
+            raise IncusOSException("incus-linstor application version mismatch (%s vs %s)" % (state["version"], os_version))
 
 def TestIncusOSAPIApplicationsRemove(install_image):
     test_name = "incusos-api-applications-remove"
@@ -299,10 +299,10 @@ def TestIncusOSAPIApplicationsRemove(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.
         result = vm.APIRequest("/1.0/applications")

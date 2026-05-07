@@ -21,6 +21,7 @@ type Certificates struct {
 	RootCACertificate       *x509.Certificate
 	SecureBootCACertificate *x509.Certificate
 	HotfixCACertificate     *x509.Certificate
+	SupportCACertificate    *x509.Certificate
 	UpdateCACertificate     *x509.Certificate
 
 	SecureBootCertificates SecureBootCertificates
@@ -131,6 +132,29 @@ func GetEmbeddedCertificates() (Certificates, error) { //nolint:revive
 	} else if os.IsNotExist(err) {
 		// If a hotfix-specific CA isn't available, use the update CA instead.
 		parsedCerts.HotfixCACertificate = parsedCerts.UpdateCACertificate
+	} else {
+		return parsedCerts, err
+	}
+
+	// Decode the support CA cert.
+	contents, err = files.ReadFile("files/support-E1.crt")
+	if err == nil { //nolint:gocritic
+		pemBlock, _ = pem.Decode(contents)
+		if pemBlock == nil {
+			return parsedCerts, errors.New("unable to decode support CA certificate")
+		}
+
+		if pemBlock.Type != "CERTIFICATE" {
+			return parsedCerts, errors.New("support CA certificate isn't PEM-encoded")
+		}
+
+		parsedCerts.SupportCACertificate, err = x509.ParseCertificate(pemBlock.Bytes)
+		if err != nil {
+			return parsedCerts, err
+		}
+	} else if os.IsNotExist(err) {
+		// If a support-specific CA isn't available, use the update CA instead.
+		parsedCerts.SupportCACertificate = parsedCerts.UpdateCACertificate
 	} else {
 		return parsedCerts, err
 	}

@@ -89,10 +89,12 @@ jobs:
           mv mkosi.output/migration-manager.raw upload/
           mv mkosi.output/operations-center.raw upload/
 
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.raw upload/IncusOS_${{ github.ref_name }}.img
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.iso upload/IncusOS_${{ github.ref_name }}.iso
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.efi upload/
-          mv mkosi.output/IncusOS_${{ github.ref_name }}.usr-*.raw upload/
+          OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+
+          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.raw upload/${OSNAME}_${{ github.ref_name }}.img
+          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.iso upload/${OSNAME}_${{ github.ref_name }}.iso
+          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.efi upload/
+          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.usr-*.raw upload/
 
       - name: Compress the files
         run: |
@@ -101,8 +103,24 @@ jobs:
             gzip -9 "${i}"
           done
 
-      - name: Upload binaries as artifacts
+      - name: Upload binaries to GitHub
         uses: actions/upload-artifact@v4
+        env:
+          UPLOAD_HOST: ${{ secrets.UPLOAD_HOST }}
+        if: ${{ env.UPLOAD_HOST == '' }}
         with:
           name: image-${{ matrix.arch }}
           path: upload/
+
+      - name: Upload binaries to local server
+        env:
+          UPLOAD_HOST: ${{ secrets.UPLOAD_HOST }}
+        if: ${{ env.UPLOAD_HOST != '' }}
+        run: |
+          mkdir ~/.ssh/
+          chmod 700 ~/.ssh/
+          echo "${{ secrets.UPLOAD_HOST_CERT }}" > ~/.ssh/known_hosts
+          echo "${{ secrets.UPLOAD_CLIENT_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          scp upload/* ${{ secrets.UPLOAD_USERNAME }}@${{ secrets.UPLOAD_HOST }}:${{ secrets.UPLOAD_PATH }}

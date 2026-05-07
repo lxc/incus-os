@@ -2,13 +2,13 @@ definitions:
     ACMEChallengeType:
         title: ACMEChallengeType represents challenge types for ACME configuration.
         type: string
-        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Access:
         items:
             $ref: '#/definitions/AccessEntry'
         title: Access represents everyone that may access a particular resource.
         type: array
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     AccessEntry:
         properties:
             identifier:
@@ -28,7 +28,7 @@ definitions:
                 x-go-name: Role
         title: AccessEntry represents an entity having access to the resource.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Artifact:
         properties:
             architectures:
@@ -173,7 +173,7 @@ definitions:
                 x-go-name: URL
         title: BackupTarget represents the target storage server for an instance or volume backup.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Batch:
         properties:
             config:
@@ -385,7 +385,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     CertificateAddToken:
         properties:
             addresses:
@@ -419,7 +419,7 @@ definitions:
                 x-go-name: Secret
         title: CertificateAddToken represents the fields contained within an encoded certificate add token.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     CertificatePost:
         description: |-
             CertificatePost represents the fields available for an update of the
@@ -476,7 +476,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     CertificatesPost:
         description: CertificatesPost represents the fields of a new certificate
         properties:
@@ -526,7 +526,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Cluster:
         properties:
             enabled:
@@ -548,7 +548,7 @@ definitions:
                 x-go-name: ServerName
         title: Cluster represents high-level information about a cluster.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterCertificatePut:
         description: ClusterCertificatePut represents the certificate and key pair for all cluster members
         properties:
@@ -563,7 +563,7 @@ definitions:
                 type: string
                 x-go-name: ClusterCertificateKey
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterGroup:
         properties:
             config:
@@ -603,7 +603,7 @@ definitions:
                 x-go-name: UsedBy
         title: ClusterGroup represents a cluster group.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterGroupPost:
         properties:
             name:
@@ -613,7 +613,7 @@ definitions:
                 x-go-name: Name
         title: ClusterGroupPost represents the fields required to rename a cluster group.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterGroupPut:
         properties:
             config:
@@ -638,7 +638,7 @@ definitions:
                 x-go-name: Members
         title: ClusterGroupPut represents the modifiable fields of a cluster group.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterGroupsPost:
         properties:
             config:
@@ -668,7 +668,7 @@ definitions:
                 x-go-name: Name
         title: ClusterGroupsPost represents the fields available for a new cluster group.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMember:
         properties:
             architecture:
@@ -736,7 +736,7 @@ definitions:
                 x-go-name: URL
         title: ClusterMember represents a member of a cluster.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberConfigKey:
         description: |-
             The Value field is empty when getting clustering information with GET
@@ -772,7 +772,7 @@ definitions:
             ClusterMemberConfigKey represents a single config key that a new member of
             the cluster is required to provide when joining.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberJoinToken:
         properties:
             addresses:
@@ -806,7 +806,7 @@ definitions:
                 x-go-name: ServerName
         title: ClusterMemberJoinToken represents the fields contained within an encoded cluster member join token.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberPost:
         properties:
             server_name:
@@ -816,7 +816,7 @@ definitions:
                 x-go-name: ServerName
         title: ClusterMemberPost represents the fields required to rename a cluster member.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberPut:
         description: ClusterMemberPut represents the modifiable fields of a cluster member
         properties:
@@ -854,7 +854,7 @@ definitions:
                 type: array
                 x-go-name: Roles
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberState:
         properties:
             storage_pools:
@@ -866,7 +866,7 @@ definitions:
                 $ref: '#/definitions/ClusterMemberSysInfo'
         title: ClusterMemberState represents the state of a cluster member.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberStatePost:
         properties:
             action:
@@ -881,7 +881,7 @@ definitions:
                 x-go-name: Mode
         title: ClusterMemberStatePost represents the fields required to evacuate a cluster member.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMemberSysInfo:
         properties:
             buffered_ram:
@@ -924,7 +924,7 @@ definitions:
                 x-go-name: Uptime
         title: ClusterMemberSysInfo represents the sysinfo of a cluster member.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterMembersPost:
         properties:
             server_name:
@@ -934,7 +934,7 @@ definitions:
                 x-go-name: ServerName
         title: ClusterMembersPost represents the fields required to request a join token to add a member to the cluster.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ClusterPut:
         properties:
             cluster_address:
@@ -976,7 +976,7 @@ definitions:
                 x-go-name: ServerName
         title: ClusterPut represents the fields required to bootstrap or join a cluster.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ConfigMap:
         additionalProperties:
             type: string
@@ -985,7 +985,7 @@ definitions:
             map[string]string it provides unmarshal methods for JSON and YAML, which
             gracefully handle numbers and bools.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     DevicesMap:
         additionalProperties:
             additionalProperties:
@@ -996,7 +996,7 @@ definitions:
             plain map[string]map[string]string it provides unmarshal methods for JSON and
             YAML, which gracefully handle numbers and bools.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Distro:
         type: string
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
@@ -1037,7 +1037,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Image:
         description: Image represents an image
         properties:
@@ -1138,7 +1138,7 @@ definitions:
                 type: string
                 x-go-name: UploadedAt
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageAlias:
         description: ImageAlias represents an alias from the alias list of an image
         properties:
@@ -1153,7 +1153,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageAliasesEntry:
         description: ImageAliasesEntry represents an image alias
         properties:
@@ -1178,7 +1178,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageAliasesEntryPost:
         description: ImageAliasesEntryPost represents the required fields to rename an image alias
         properties:
@@ -1188,7 +1188,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageAliasesEntryPut:
         description: ImageAliasesEntryPut represents the modifiable fields of an image alias
         properties:
@@ -1203,7 +1203,7 @@ definitions:
                 type: string
                 x-go-name: Target
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageAliasesPost:
         description: ImageAliasesPost represents a new image alias
         properties:
@@ -1228,7 +1228,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageExportPost:
         description: ImageExportPost represents the fields required to export an image
         properties:
@@ -1267,7 +1267,7 @@ definitions:
                 type: string
                 x-go-name: Target
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageMetadata:
         description: ImageMetadata represents image metadata (used in image tarball)
         properties:
@@ -1305,7 +1305,7 @@ definitions:
                 type: object
                 x-go-name: Templates
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageMetadataTemplate:
         description: ImageMetadataTemplate represents a template entry in image metadata (used in image tarball)
         properties:
@@ -1350,7 +1350,7 @@ definitions:
                 type: array
                 x-go-name: When
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImagePut:
         description: ImagePut represents the modifiable fields of an image
         properties:
@@ -1389,7 +1389,7 @@ definitions:
                 type: boolean
                 x-go-name: Public
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImageSource:
         description: ImageSource represents the source of an image
         properties:
@@ -1419,7 +1419,7 @@ definitions:
                 type: string
                 x-go-name: Server
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImagesPost:
         description: ImagesPost represents the fields available for a new image
         properties:
@@ -1484,7 +1484,7 @@ definitions:
             source:
                 $ref: '#/definitions/ImagesPostSource'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ImagesPostSource:
         description: ImagesPostSource represents the source of a new image
         properties:
@@ -1549,7 +1549,7 @@ definitions:
                 type: string
                 x-go-name: URL
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     IncusNICType:
         type: string
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
@@ -1599,7 +1599,7 @@ definitions:
                 x-go-name: ServerName
         title: InitClusterPreseed represents initialization configuration for the cluster.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InitLocalPreseed:
         properties:
             certificates:
@@ -1661,7 +1661,7 @@ definitions:
                 x-go-name: StorageVolumes
         title: InitLocalPreseed represents initialization configuration.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InitNetworksProjectPost:
         properties:
             Project:
@@ -1693,7 +1693,7 @@ definitions:
                 x-go-name: Type
         title: InitNetworksProjectPost represents the fields of a new network along with its associated project.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InitPreseed:
         properties:
             certificates:
@@ -1757,7 +1757,7 @@ definitions:
                 x-go-name: StorageVolumes
         title: InitPreseed represents initialization configuration that can be supplied to `init`.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InitProfileProjectPost:
         properties:
             Project:
@@ -1796,7 +1796,7 @@ definitions:
                 x-go-name: Name
         title: InitProfileProjectPost represents the fields of a new profile along with its associated project.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InitStorageVolumesProjectPost:
         properties:
             Pool:
@@ -1843,121 +1843,145 @@ definitions:
                 x-go-name: Type
         title: InitStorageVolumesProjectPost represents the fields of a new storage volume along with its associated pool.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Instance:
         properties:
             architecture:
-                description: Architecture name
+                description: Architecture of the Instance.
                 example: x86_64
                 type: string
                 x-go-name: Architecture
+            background_import:
+                description: Whether the Instance supports background-import migrations.
+                example: true
+                type: boolean
+                x-go-name: BackgroundImport
             config:
                 additionalProperties:
                     type: string
-                description: Instance configuration (see doc/instances.md)
+                description: Additional configuration of the Instance.
                 example:
                     security.nesting: "true"
                 type: object
                 x-go-name: Config
-            created_at:
-                description: Instance creation timestamp
-                example: "2021-03-23T20:00:00-04:00"
-                format: date-time
-                type: string
-                x-go-name: CreatedAt
+            cpus:
+                description: Number of CPUs assigned to the Instance.
+                example: 4
+                format: int64
+                type: integer
+                x-go-name: CPUs
             description:
-                description: Instance description
-                example: My test instance
+                description: Description of the Instance.
+                example: Windows Server 2025
                 type: string
                 x-go-name: Description
-            devices:
-                description: Instance devices (see doc/instances.md)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: Devices
-            disk_only:
-                description: Whether only the instances disk should be restored
-                example: false
-                type: boolean
-                x-go-name: DiskOnly
-            ephemeral:
-                description: Whether the instance is ephemeral (deleted on shutdown)
-                example: false
-                type: boolean
-                x-go-name: Ephemeral
-            expanded_config:
-                description: Expanded configuration (all profiles and local config merged)
-                example:
-                    security.nesting: "true"
-                type: object
-                x-go-name: ExpandedConfig
-            expanded_devices:
-                description: Expanded devices (all profiles and local devices merged)
-                example:
-                    root:
-                        path: /
-                        pool: default
-                        type: disk
-                type: object
-                x-go-name: ExpandedDevices
-            last_used_at:
-                description: Last start timestamp
-                example: "2021-03-23T20:00:00-04:00"
+            disks:
+                description: List of disks assigned to the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesDisk'
+                type: array
+                x-go-name: Disks
+            distribution:
+                $ref: '#/definitions/Distro'
+            distribution_version:
+                description: Distribution version used for specific post-migration handling.
+                example: "7"
+                type: string
+                x-go-name: DistributionVersion
+            last_update_from_source:
+                description: Last synced update from the source.
+                example: "2025-01-01 01:00:00"
                 format: date-time
                 type: string
-                x-go-name: LastUsedAt
+                x-go-name: LastUpdateFromSource
+            legacy_boot:
+                description: Whether the Instance uses legacy (CSM) boot.
+                example: true
+                type: boolean
+                x-go-name: LegacyBoot
             location:
-                description: What cluster member this instance is located on
-                example: server01
+                description: Location path of the Instance.
+                example: /path/to/instance_name
                 type: string
                 x-go-name: Location
+            memory:
+                description: Memory in bytes assigned to the Instance.
+                example: 1073741824
+                format: int64
+                type: integer
+                x-go-name: Memory
             name:
-                description: Instance name
-                example: foo
+                description: Name of the Instance.
+                example: myVM
                 type: string
                 x-go-name: Name
-            profiles:
-                description: List of profiles applied to the instance
-                example:
-                    - default
+            nics:
+                description: List of network interface cards assigned to the Instance.
                 items:
-                    type: string
+                    $ref: '#/definitions/InstancePropertiesNIC'
                 type: array
-                x-go-name: Profiles
-            project:
-                description: Instance project name
-                example: foo
+                x-go-name: NICs
+            os:
+                description: OS name of the Instance.
+                example: Ubuntu
                 type: string
-                x-go-name: Project
-            restore:
-                description: If set, instance will be restored to the provided snapshot name
-                example: snap0
+                x-go-name: OS
+            os_description:
+                description: OS version of the Instance.
+                example: "24.04"
                 type: string
-                x-go-name: Restore
-            stateful:
-                description: Whether the instance currently has saved state on disk
-                example: false
+                x-go-name: OSDescription
+            os_template:
+                description: OS template of the Instance.
+                example: Ubuntu Linux
+                type: string
+                x-go-name: OSTemplate
+            os_type:
+                $ref: '#/definitions/OSType'
+            overrides:
+                $ref: '#/definitions/InstanceOverride'
+            running:
+                description: Whether the Instance was running when the sync was performed.
+                example: true
                 type: boolean
-                x-go-name: Stateful
-            status:
-                description: Instance status (see instance_state)
-                example: Running
+                x-go-name: Running
+            secure_boot:
+                description: Whether the Instance has secure-boot enabled.
+                example: true
+                type: boolean
+                x-go-name: SecureBoot
+            snapshots:
+                description: List of snapshots for the Instance.
+                items:
+                    $ref: '#/definitions/InstancePropertiesSnapshot'
+                type: array
+                x-go-name: Snapshots
+            source:
+                description: The originating source name for this instance
+                example: MySource
                 type: string
-                x-go-name: Status
-            status_code:
-                $ref: '#/definitions/StatusCode'
-            type:
-                description: The type of instance (container or virtual-machine)
-                example: container
+                x-go-name: Source
+            source_specific_id:
+                description: SourceSpecificID is the unique identifier internal to the source type.
+                example: vm-123 (vmware)
                 type: string
-                x-go-name: Type
-        title: Instance represents an instance.
+                x-go-name: SourceSpecificID
+            source_type:
+                $ref: '#/definitions/SourceType'
+            tpm:
+                description: Whether the Instance has a TPM.
+                example: true
+                type: boolean
+                x-go-name: TPM
+            uuid:
+                description: Unique identifier of the Instance.
+                example: a2095069-a527-4b2a-ab23-1739325dcac7
+                format: uuid
+                type: string
+                x-go-name: UUID
+        title: Instance defines a VM instance to be migrated.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     InstanceBackup:
         properties:
             created_at:
@@ -1989,7 +2013,7 @@ definitions:
                 x-go-name: OptimizedStorage
         title: InstanceBackup represents an instance backup.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceBackupPost:
         properties:
             name:
@@ -1999,7 +2023,7 @@ definitions:
                 x-go-name: Name
         title: InstanceBackupPost represents the fields available for the renaming of a instance backup.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceBackupsPost:
         properties:
             compression_algorithm:
@@ -2037,7 +2061,7 @@ definitions:
                 $ref: '#/definitions/BackupTarget'
         title: InstanceBackupsPost represents the fields available for a new instance backup.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceConsolePost:
         properties:
             force:
@@ -2064,7 +2088,7 @@ definitions:
                 x-go-name: Width
         title: InstanceConsolePost represents an instance console request.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceDebugRepairPost:
         properties:
             action:
@@ -2074,7 +2098,7 @@ definitions:
                 x-go-name: Action
         title: InstanceDebugRepairPost represents an instance repair request.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceExecPost:
         properties:
             command:
@@ -2138,7 +2162,7 @@ definitions:
                 x-go-name: Width
         title: InstanceExecPost represents an instance exec request.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceFull:
         properties:
             architecture:
@@ -2264,7 +2288,7 @@ definitions:
                 x-go-name: Type
         title: InstanceFull is a combination of Instance, InstanceBackup, InstanceState and InstanceSnapshot.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceOverride:
         properties:
             architecture:
@@ -2399,7 +2423,7 @@ definitions:
                 $ref: '#/definitions/InstancePostTarget'
         title: InstancePost represents the fields required to rename/move an instance.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstancePostTarget:
         properties:
             certificate:
@@ -2423,7 +2447,7 @@ definitions:
                 x-go-name: Websockets
         title: InstancePostTarget represents the migration target host and operation.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceProperties:
         properties:
             architecture:
@@ -2703,14 +2727,14 @@ definitions:
                 x-go-name: Stateful
         title: InstancePut represents the modifiable fields of an instance.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceRebuildPost:
         properties:
             source:
                 $ref: '#/definitions/InstanceSource'
         title: InstanceRebuildPost indicates how to rebuild an instance.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceRestrictionOverride:
         properties:
             allow_no_background_import:
@@ -2818,7 +2842,7 @@ definitions:
                 x-go-name: Stateful
         title: InstanceSnapshot represents an instance snapshot.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceSnapshotPost:
         properties:
             live:
@@ -2840,7 +2864,7 @@ definitions:
                 $ref: '#/definitions/InstancePostTarget'
         title: InstanceSnapshotPost represents the fields required to rename/move an instance snapshot.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceSnapshotPut:
         properties:
             expires_at:
@@ -2851,7 +2875,7 @@ definitions:
                 x-go-name: ExpiresAt
         title: InstanceSnapshotPut represents the modifiable fields of an instance snapshot.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceSnapshotsPost:
         properties:
             expires_at:
@@ -2872,7 +2896,7 @@ definitions:
                 x-go-name: Stateful
         title: InstanceSnapshotsPost represents the fields available for a new instance snapshot.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceSource:
         properties:
             alias:
@@ -2981,7 +3005,7 @@ definitions:
                 x-go-name: Type
         title: InstanceSource represents the creation source for a new instance.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceState:
         properties:
             cpu:
@@ -3031,7 +3055,7 @@ definitions:
                 $ref: '#/definitions/StatusCode'
         title: InstanceState represents an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateCPU:
         properties:
             allocated_time:
@@ -3048,7 +3072,7 @@ definitions:
                 x-go-name: Usage
         title: InstanceStateCPU represents the cpu information section of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateDisk:
         properties:
             total:
@@ -3065,7 +3089,7 @@ definitions:
                 x-go-name: Usage
         title: InstanceStateDisk represents the disk information section of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateMemory:
         properties:
             swap_usage:
@@ -3100,7 +3124,7 @@ definitions:
                 x-go-name: UsagePeak
         title: InstanceStateMemory represents the memory information section of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateNetwork:
         properties:
             addresses:
@@ -3139,7 +3163,7 @@ definitions:
                 x-go-name: Type
         title: InstanceStateNetwork represents the network information section of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateNetworkAddress:
         description: |-
             InstanceStateNetworkAddress represents a network address as part of the network section of an
@@ -3166,7 +3190,7 @@ definitions:
                 type: string
                 x-go-name: Scope
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateNetworkCounters:
         description: |-
             InstanceStateNetworkCounters represents packet counters as part of the network section of an
@@ -3221,7 +3245,7 @@ definitions:
                 type: integer
                 x-go-name: PacketsSent
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStateOSInfo:
         properties:
             fqdn:
@@ -3251,7 +3275,7 @@ definitions:
                 x-go-name: OSVersion
         title: InstanceStateOSInfo represents the operating system information section of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceStatePut:
         properties:
             action:
@@ -3277,11 +3301,11 @@ definitions:
                 x-go-name: Timeout
         title: InstanceStatePut represents the modifiable fields of an instance's state.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceType:
         title: InstanceType represents the type if instance being returned or requested via the API.
         type: string
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstancesPost:
         properties:
             architecture:
@@ -3358,14 +3382,14 @@ definitions:
                 $ref: '#/definitions/InstanceType'
         title: InstancesPost represents the fields available for a new instance.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstancesPut:
         properties:
             state:
                 $ref: '#/definitions/InstanceStatePut'
         title: InstancesPut represents the fields available for a mass update.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     LogScope:
         title: LogScope is a type of log that a logging target will receive.
         type: string
@@ -3381,12 +3405,12 @@ definitions:
             type: object
         description: MetadataConfig repreents metadata about configuration keys
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MetadataConfigEntityName:
         description: MetadataConfigEntityName represents a main API object type
         example: instance
         type: string
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MetadataConfigGroup:
         description: MetadataConfigGroup represents a group of config keys
         properties:
@@ -3398,12 +3422,12 @@ definitions:
                 type: array
                 x-go-name: Keys
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MetadataConfigGroupName:
         description: MetadataConfigGroupName represents the name of a group of config keys
         example: volatile
         type: string
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MetadataConfigKey:
         description: MetadataConfigKey describe a configuration key
         properties:
@@ -3443,14 +3467,14 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MetadataConfiguration:
         description: MetadataConfiguration represents a server's exposed configuration metadata
         properties:
             configs:
                 $ref: '#/definitions/MetadataConfig'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     MigrationNetworkPlacement:
         properties:
             network:
@@ -3515,17 +3539,44 @@ definitions:
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
         properties:
-            address:
-                description: Address of Operations Center which is used by managed servers to connect.
+            location:
+                description: Full inventory location path of the network
+                example: /vcenter01/network/net0
                 type: string
-                x-go-name: OperationsCenterAddress
-            rest_server_address:
-                description: Address and port to bind the REST API to.
+                x-go-name: Location
+            overrides:
+                $ref: '#/definitions/NetworkPlacement'
+            placement:
+                $ref: '#/definitions/NetworkPlacement'
+            properties:
+                description: Additional properties of the network.
+                type: object
+                x-go-name: Properties
+            source:
+                description: vCenter source for the network
+                example: vcenter01
                 type: string
-                x-go-name: RestServerAddress
-        title: Network represents the system's network configuration.
+                x-go-name: Source
+            source_specific_id:
+                description: The source-specific identifier of the network
+                example: network-23
+                type: string
+                x-go-name: SourceSpecificID
+            type:
+                $ref: '#/definitions/NetworkType'
+                description: The network type
+                example: bridge
+                readOnly: true
+                type: string
+                x-go-name: Type
+            uuid:
+                description: UUID of the network.
+                format: uuid
+                type: string
+                x-go-name: UUID
+        title: Network defines the network config for use by the migration manager.
         type: object
-        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     NetworkACL:
         properties:
             config:
@@ -3574,7 +3625,7 @@ definitions:
                 x-go-name: UsedBy
         title: NetworkACL used for displaying an ACL.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkACLPost:
         properties:
             name:
@@ -3584,7 +3635,7 @@ definitions:
                 x-go-name: Name
         title: NetworkACLPost used for renaming an ACL.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkACLPut:
         properties:
             config:
@@ -3612,7 +3663,7 @@ definitions:
                 x-go-name: Ingress
         title: NetworkACLPut used for updating an ACL.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkACLRule:
         description: Refer to doc/network-acls.md for details.
         properties:
@@ -3668,7 +3719,7 @@ definitions:
                 x-go-name: State
         title: NetworkACLRule represents a single rule in an ACL ruleset.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkACLsPost:
         properties:
             config:
@@ -3701,7 +3752,7 @@ definitions:
                 x-go-name: Name
         title: NetworkACLsPost used for creating an ACL.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkAddressSet:
         description: Refer to doc/howto/network_address_sets.md for details.
         properties:
@@ -3748,7 +3799,7 @@ definitions:
                 x-go-name: UsedBy
         title: NetworkAddressSet represents an address set.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkAddressSetPost:
         properties:
             name:
@@ -3758,7 +3809,7 @@ definitions:
                 x-go-name: Name
         title: NetworkAddressSetPost used for renaming an address set.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkAddressSetPut:
         properties:
             addresses:
@@ -3783,7 +3834,7 @@ definitions:
                 x-go-name: Description
         title: NetworkAddressSetPut used for updating an address set.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkAddressSetsPost:
         properties:
             addresses:
@@ -3813,7 +3864,7 @@ definitions:
                 x-go-name: Name
         title: NetworkAddressSetsPost used for creating a new address set.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkAllocations:
         description: |-
             NetworkAllocations used for displaying network addresses used by a consuming entity
@@ -3841,7 +3892,7 @@ definitions:
                 type: string
                 x-go-name: UsedBy
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkForward:
         properties:
             config:
@@ -3873,7 +3924,7 @@ definitions:
                 x-go-name: Ports
         title: NetworkForward used for displaying an network address forward.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkForwardPort:
         description: NetworkForwardPort represents a port specification in a network address forward
         properties:
@@ -3908,7 +3959,7 @@ definitions:
                 type: string
                 x-go-name: TargetPort
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkForwardPut:
         description: NetworkForwardPut represents the modifiable fields of a network address forward
         properties:
@@ -3930,7 +3981,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkForwardsPost:
         description: NetworkForwardsPost represents the fields of a new network address forward
         properties:
@@ -3957,7 +4008,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkIntegration:
         properties:
             config:
@@ -3993,7 +4044,7 @@ definitions:
                 x-go-name: UsedBy
         title: NetworkIntegration represents a network integration.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkIntegrationPost:
         description: NetworkIntegrationPost represents the fields required to rename a network integration
         properties:
@@ -4003,7 +4054,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkIntegrationPut:
         description: NetworkIntegrationPut represents the modifiable fields of a network integration
         properties:
@@ -4019,7 +4070,7 @@ definitions:
                 type: string
                 x-go-name: Description
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkIntegrationsPost:
         description: NetworkIntegrationsPost represents the fields of a new network integration
         properties:
@@ -4045,7 +4096,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLease:
         description: NetworkLease represents a DHCP lease
         properties:
@@ -4075,7 +4126,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancer:
         description: NetworkLoadBalancer used for displaying a network load balancer
         properties:
@@ -4113,7 +4164,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerBackend:
         description: NetworkLoadBalancerBackend represents a target backend specification in a network load balancer
         properties:
@@ -4138,7 +4189,7 @@ definitions:
                 type: string
                 x-go-name: TargetPort
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerPort:
         description: NetworkLoadBalancerPort represents a port specification in a network load balancer
         properties:
@@ -4167,7 +4218,7 @@ definitions:
                 type: array
                 x-go-name: TargetBackend
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerPut:
         description: NetworkLoadBalancerPut represents the modifiable fields of a network load balancer
         properties:
@@ -4195,7 +4246,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerState:
         description: NetworkLoadBalancerState is used for showing current state of a load balancer
         properties:
@@ -4205,7 +4256,7 @@ definitions:
                 type: object
                 x-go-name: BackendHealth
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerStateBackendHealth:
         description: NetworkLoadBalancerStateBackendHealth represents the health of a particular load-balancer backend
         properties:
@@ -4218,7 +4269,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancerStateBackendHealthPort:
         properties:
             port:
@@ -4233,7 +4284,7 @@ definitions:
                 x-go-name: Status
         title: NetworkLoadBalancerStateBackendHealthPort represents the health status of a particular load-balancer backend port.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkLoadBalancersPost:
         description: NetworkLoadBalancersPost represents the fields of a new network load balancer
         properties:
@@ -4266,7 +4317,7 @@ definitions:
                 type: array
                 x-go-name: Ports
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkPeer:
         properties:
             config:
@@ -4326,7 +4377,7 @@ definitions:
                 x-go-name: UsedBy
         title: NetworkPeer used for displaying a network peering.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkPeerPut:
         description: NetworkPeerPut represents the modifiable fields of a network peering
         properties:
@@ -4342,7 +4393,7 @@ definitions:
                 type: string
                 x-go-name: Description
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkPeersPost:
         description: NetworkPeersPost represents the fields of a new network peering
         properties:
@@ -4383,7 +4434,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkPlacement:
         properties:
             network:
@@ -4410,7 +4461,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkPut:
         description: |-
             NetworkPut represents the fields available for an update of the
@@ -4467,7 +4518,7 @@ definitions:
             vlan:
                 $ref: '#/definitions/NetworkStateVLAN'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateAddress:
         description: NetworkStateAddress represents a network address
         properties:
@@ -4492,7 +4543,7 @@ definitions:
                 type: string
                 x-go-name: Scope
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateBond:
         description: NetworkStateBond represents bond specific state
         properties:
@@ -4539,7 +4590,7 @@ definitions:
                 type: integer
                 x-go-name: UpDelay
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateBridge:
         description: NetworkStateBridge represents bridge specific state
         properties:
@@ -4580,7 +4631,7 @@ definitions:
                 type: boolean
                 x-go-name: VLANFiltering
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateCounters:
         description: NetworkStateCounters represents packet counters
         properties:
@@ -4609,7 +4660,7 @@ definitions:
                 type: integer
                 x-go-name: PacketsSent
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateOVN:
         description: NetworkStateOVN represents OVN specific state
         properties:
@@ -4639,7 +4690,7 @@ definitions:
                 type: string
                 x-go-name: UplinkIPv6
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkStateVLAN:
         description: NetworkStateVLAN represents VLAN specific state
         properties:
@@ -4655,7 +4706,7 @@ definitions:
                 type: integer
                 x-go-name: VID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkType:
         type: string
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
@@ -4694,7 +4745,7 @@ definitions:
                 x-go-name: UsedBy
         title: NetworkZone represents a network zone (DNS).
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZonePut:
         description: NetworkZonePut represents the modifiable fields of a network zone
         properties:
@@ -4710,7 +4761,7 @@ definitions:
                 type: string
                 x-go-name: Description
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZoneRecord:
         properties:
             config:
@@ -4737,7 +4788,7 @@ definitions:
                 x-go-name: Name
         title: NetworkZoneRecord represents a network zone (DNS) record.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZoneRecordEntry:
         description: NetworkZoneRecordEntry represents the fields in a record entry
         properties:
@@ -4758,7 +4809,7 @@ definitions:
                 type: string
                 x-go-name: Value
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZoneRecordPut:
         description: NetworkZoneRecordPut represents the modifiable fields of a network zone record
         properties:
@@ -4780,7 +4831,7 @@ definitions:
                 type: array
                 x-go-name: Entries
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZoneRecordsPost:
         description: NetworkZoneRecordsPost represents the fields of a new network zone record
         properties:
@@ -4807,7 +4858,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworkZonesPost:
         description: NetworkZonesPost represents the fields of a new network zone
         properties:
@@ -4828,7 +4879,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     NetworksPost:
         description: NetworksPost represents the fields of a new network
         properties:
@@ -4856,7 +4907,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     OSType:
         type: string
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
@@ -4942,7 +4993,7 @@ definitions:
                 type: string
                 x-go-name: UpdatedAt
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Placement:
         properties:
             networks:
@@ -5029,7 +5080,7 @@ definitions:
                 type: array
                 x-go-name: UsedBy
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProfilePost:
         description: ProfilePost represents the fields required to rename a profile
         properties:
@@ -5039,7 +5090,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProfilePut:
         description: ProfilePut represents the modifiable fields of a profile
         properties:
@@ -5069,7 +5120,7 @@ definitions:
                 type: object
                 x-go-name: Devices
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProfilesPost:
         description: ProfilesPost represents the fields of a new profile
         properties:
@@ -5104,7 +5155,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Project:
         description: Project represents a project
         properties:
@@ -5140,7 +5191,7 @@ definitions:
                 type: array
                 x-go-name: UsedBy
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProjectPost:
         description: ProjectPost represents the fields required to rename a project
         properties:
@@ -5150,7 +5201,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProjectPut:
         description: ProjectPut represents the modifiable fields of a project
         properties:
@@ -5167,7 +5218,7 @@ definitions:
                 type: string
                 x-go-name: Description
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProjectState:
         description: ProjectState represents the current running state of a project
         properties:
@@ -5186,7 +5237,7 @@ definitions:
                 type: object
                 x-go-name: Resources
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProjectStateResource:
         description: ProjectStateResource represents the state of a particular resource in a project
         properties:
@@ -5201,7 +5252,7 @@ definitions:
                 format: int64
                 type: integer
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ProjectsPost:
         description: ProjectsPost represents the fields of a new project
         properties:
@@ -5223,7 +5274,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     QueueEntry:
         properties:
             LastWorkerResponse:
@@ -5284,7 +5335,7 @@ definitions:
             usb:
                 $ref: '#/definitions/ResourcesUSB'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPU:
         description: ResourcesCPU represents the cpu resources available on the system
         properties:
@@ -5306,7 +5357,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPUAddressSizes:
         properties:
             physical_bits:
@@ -5319,7 +5370,7 @@ definitions:
                 x-go-name: VirtualBits
         title: ResourcesCPUAddressSizes resprents address size information for a CPU socket.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPUCache:
         description: ResourcesCPUCache represents a CPU cache
         properties:
@@ -5341,7 +5392,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPUCore:
         description: ResourcesCPUCore represents a CPU core on the system
         properties:
@@ -5377,7 +5428,7 @@ definitions:
                 type: array
                 x-go-name: Threads
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPUSocket:
         description: ResourcesCPUSocket represents a CPU socket on the system
         properties:
@@ -5430,7 +5481,7 @@ definitions:
                 type: string
                 x-go-name: Vendor
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesCPUThread:
         description: ResourcesCPUThread represents a CPU thread on the system
         properties:
@@ -5463,7 +5514,7 @@ definitions:
                 type: integer
                 x-go-name: Thread
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPU:
         description: ResourcesGPU represents the GPU resources available on the system
         properties:
@@ -5480,7 +5531,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPUCard:
         description: ResourcesGPUCard represents a GPU card on the system
         properties:
@@ -5544,7 +5595,7 @@ definitions:
                 type: string
                 x-go-name: VendorID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPUCardDRM:
         description: ResourcesGPUCardDRM represents the Linux DRM configuration of the GPU
         properties:
@@ -5585,7 +5636,7 @@ definitions:
                 type: string
                 x-go-name: RenderName
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPUCardMdev:
         description: ResourcesGPUCardMdev represents the mediated devices configuration of the GPU
         properties:
@@ -5620,7 +5671,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPUCardNvidia:
         description: ResourcesGPUCardNvidia represents additional information for NVIDIA GPUs
         properties:
@@ -5665,7 +5716,7 @@ definitions:
                 type: string
                 x-go-name: UUID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesGPUCardSRIOV:
         description: ResourcesGPUCardSRIOV represents the SRIOV configuration of the GPU
         properties:
@@ -5689,7 +5740,7 @@ definitions:
                 type: array
                 x-go-name: VFs
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesLoad:
         description: ResourcesLoad represents system load information
         properties:
@@ -5714,7 +5765,7 @@ definitions:
                 format: int64
                 type: integer
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesMemory:
         description: ResourcesMemory represents the memory resources available on the system
         properties:
@@ -5756,7 +5807,7 @@ definitions:
                 type: integer
                 x-go-name: Used
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesMemoryNode:
         description: ResourcesMemoryNode represents the node-specific memory resources available on the system
         properties:
@@ -5791,7 +5842,7 @@ definitions:
                 type: integer
                 x-go-name: Used
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetwork:
         description: ResourcesNetwork represents the network cards available on the system
         properties:
@@ -5808,7 +5859,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetworkCard:
         description: ResourcesNetworkCard represents a network card on the system
         properties:
@@ -5874,7 +5925,7 @@ definitions:
                 type: string
                 x-go-name: VendorID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetworkCardPort:
         description: ResourcesNetworkCardPort represents a network port on the system
         properties:
@@ -5953,7 +6004,7 @@ definitions:
                 type: string
                 x-go-name: TransceiverType
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetworkCardPortInfiniband:
         description: ResourcesNetworkCardPortInfiniband represents the Linux Infiniband configuration for the port
         properties:
@@ -5988,7 +6039,7 @@ definitions:
                 type: string
                 x-go-name: VerbName
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetworkCardSRIOV:
         description: ResourcesNetworkCardSRIOV represents the SRIOV configuration of the network card
         properties:
@@ -6012,7 +6063,7 @@ definitions:
                 type: array
                 x-go-name: VFs
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesNetworkCardVDPA:
         description: ResourcesNetworkCardVDPA represents the VDPA configuration of the network card
         properties:
@@ -6025,7 +6076,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesPCI:
         description: ResourcesPCI represents the PCI devices available on the system
         properties:
@@ -6042,7 +6093,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesPCIDevice:
         description: ResourcesPCIDevice represents a PCI device
         properties:
@@ -6096,7 +6147,7 @@ definitions:
             vpd:
                 $ref: '#/definitions/ResourcesPCIVPD'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesPCIVPD:
         description: ResourcesPCIVPD represents VPD entries for a device
         properties:
@@ -6113,7 +6164,7 @@ definitions:
                 type: string
                 x-go-name: ProductName
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSerial:
         description: ResourcesSerial represents the serial devices available on the system
         properties:
@@ -6130,7 +6181,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSerialDevice:
         description: ResourcesSerialDevice represents a serial device
         properties:
@@ -6180,7 +6231,7 @@ definitions:
                 type: string
                 x-go-name: VendorID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStorage:
         description: ResourcesStorage represents the local storage
         properties:
@@ -6197,7 +6248,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStorageDisk:
         description: ResourcesStorageDisk represents a disk
         properties:
@@ -6297,7 +6348,7 @@ definitions:
                 type: string
                 x-go-name: WWN
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStorageDiskPartition:
         description: ResourcesStorageDiskPartition represents a partition on a disk
         properties:
@@ -6329,7 +6380,7 @@ definitions:
                 type: integer
                 x-go-name: Size
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStoragePool:
         description: ResourcesStoragePool represents the resources available to a given storage pool
         properties:
@@ -6338,7 +6389,7 @@ definitions:
             space:
                 $ref: '#/definitions/ResourcesStoragePoolSpace'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStoragePoolInodes:
         description: ResourcesStoragePoolInodes represents the inodes available to a given storage pool
         properties:
@@ -6355,7 +6406,7 @@ definitions:
                 type: integer
                 x-go-name: Used
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesStoragePoolSpace:
         description: ResourcesStoragePoolSpace represents the space available to a given storage pool
         properties:
@@ -6372,7 +6423,7 @@ definitions:
                 type: integer
                 x-go-name: Used
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSystem:
         description: ResourcesSystem represents the system
         properties:
@@ -6424,7 +6475,7 @@ definitions:
                 type: string
                 x-go-name: Version
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSystemChassis:
         description: ResourcesSystemChassis represents the system chassis
         properties:
@@ -6449,7 +6500,7 @@ definitions:
                 type: string
                 x-go-name: Version
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSystemFirmware:
         description: ResourcesSystemFirmware represents the system firmware
         properties:
@@ -6469,7 +6520,7 @@ definitions:
                 type: string
                 x-go-name: Version
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesSystemMotherboard:
         description: ResourcesSystemMotherboard represents the motherboard
         properties:
@@ -6494,7 +6545,7 @@ definitions:
                 type: string
                 x-go-name: Version
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesUSB:
         description: ResourcesUSB represents the USB devices available on the system
         properties:
@@ -6511,7 +6562,7 @@ definitions:
                 type: integer
                 x-go-name: Total
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesUSBDevice:
         description: ResourcesUSBDevice represents a USB device
         properties:
@@ -6565,7 +6616,7 @@ definitions:
                 type: string
                 x-go-name: VendorID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ResourcesUSBDeviceInterface:
         description: ResourcesUSBDeviceInterface represents a USB device interface
         properties:
@@ -6608,7 +6659,7 @@ definitions:
                 type: integer
                 x-go-name: SubClassID
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     Security:
         properties:
             acme:
@@ -6814,7 +6865,7 @@ definitions:
                 type: boolean
                 x-go-name: Public
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ServerEnvironment:
         properties:
             addresses:
@@ -6959,7 +7010,7 @@ definitions:
                 x-go-name: StorageVersion
         title: ServerEnvironment represents the read-only environment fields of a server configuration.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ServerPut:
         description: ServerPut represents the modifiable fields of a server configuration
         properties:
@@ -6972,7 +7023,7 @@ definitions:
                 type: object
                 x-go-name: Config
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ServerStorageDriverInfo:
         description: ServerStorageDriverInfo represents the read-only info about a storage driver
         properties:
@@ -6989,7 +7040,7 @@ definitions:
                 example: 0.8.4-1ubuntu11
                 type: string
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     ServerUntrusted:
         description: ServerUntrusted represents a server configuration for an untrusted client
         properties:
@@ -7098,7 +7149,7 @@ definitions:
         format: int64
         title: StatusCode represents a valid operation and container status.
         type: integer
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucket:
         description: StorageBucket represents the fields of a storage pool bucket
         properties:
@@ -7134,7 +7185,7 @@ definitions:
                 type: string
                 x-go-name: S3URL
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketBackup:
         description: StorageBucketBackup represents the fields available for a new storage bucket backup
         properties:
@@ -7156,7 +7207,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketBackupPost:
         description: StorageBucketBackupPost represents the fields available for the renaming of a bucket backup
         properties:
@@ -7166,7 +7217,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketBackupsPost:
         description: StorageBucketBackupsPost represents the fields available for a new storage bucket backup
         properties:
@@ -7187,7 +7238,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketFull:
         properties:
             backups:
@@ -7235,7 +7286,7 @@ definitions:
                 x-go-name: S3URL
         title: StorageBucketFull is a combination of StorageBucket, StorageBucketBackup and StorageBucketKey.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketKey:
         description: StorageBucketKey represents the fields of a storage pool bucket key
         properties:
@@ -7265,7 +7316,7 @@ definitions:
                 type: string
                 x-go-name: SecretKey
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketKeyPut:
         description: StorageBucketKeyPut represents the modifiable fields of a storage pool bucket key
         properties:
@@ -7290,7 +7341,7 @@ definitions:
                 type: string
                 x-go-name: SecretKey
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketKeysPost:
         description: StorageBucketKeysPost represents the fields of a new storage pool bucket key
         properties:
@@ -7320,7 +7371,7 @@ definitions:
                 type: string
                 x-go-name: SecretKey
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketPut:
         description: StorageBucketPut represents the modifiable fields of a storage pool bucket
         properties:
@@ -7336,7 +7387,7 @@ definitions:
                 type: string
                 x-go-name: Description
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageBucketsPost:
         description: StorageBucketsPost represents the fields of a new storage pool bucket
         properties:
@@ -7357,7 +7408,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StoragePool:
         properties:
             config:
@@ -7410,7 +7461,7 @@ definitions:
                 x-go-name: UsedBy
         title: StoragePool represents the fields of a storage pool.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StoragePoolPut:
         properties:
             config:
@@ -7427,7 +7478,7 @@ definitions:
                 x-go-name: Description
         title: StoragePoolPut represents the modifiable fields of a storage pool.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StoragePoolState:
         properties:
             inodes:
@@ -7436,7 +7487,7 @@ definitions:
                 $ref: '#/definitions/ResourcesStoragePoolSpace'
         title: StoragePoolState represents the state of a storage pool.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StoragePoolsPost:
         description: StoragePoolsPost represents the fields of a new storage pool
         properties:
@@ -7463,7 +7514,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolume:
         properties:
             config:
@@ -7524,7 +7575,7 @@ definitions:
                 x-go-name: UsedBy
         title: StorageVolume represents the fields of a storage volume.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeBackup:
         description: StorageVolumeBackup represents a volume backup
         properties:
@@ -7556,7 +7607,7 @@ definitions:
                 type: boolean
                 x-go-name: VolumeOnly
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeBackupPost:
         description: StorageVolumeBackupPost represents the fields available for the renaming of a volume backup
         properties:
@@ -7566,7 +7617,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeBackupsPost:
         description: StorageVolumeBackupsPost represents the fields available for a new volume backup
         properties:
@@ -7599,7 +7650,75 @@ definitions:
                 type: boolean
                 x-go-name: VolumeOnly
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
+    StorageVolumeBitmap:
+        description: StorageVolumeBitmap represents a volume bitmap
+        properties:
+            busy:
+                description: true if the bitmap is in-use by some operation
+                example: true
+                type: boolean
+                x-go-name: Busy
+            count:
+                description: Number of dirty bytes
+                example: 300
+                format: int64
+                type: integer
+                x-go-name: Count
+            granularity:
+                description: Granularity of the dirty bitmap in bytes
+                example: 32768
+                format: int64
+                type: integer
+                x-go-name: Granularity
+            inconsistent:
+                description: true if this is a persistent bitmap that was improperly stored
+                example: true
+                type: boolean
+                x-go-name: Inconsistent
+            name:
+                description: Bitmap name
+                example: bitmap0
+                type: string
+                x-go-name: Name
+            persistent:
+                description: true if the bitmap was stored on disk, is scheduled to be stored on disk, or both
+                example: false
+                type: boolean
+                x-go-name: Persistent
+            recording:
+                description: true if the bitmap is recording new writes from the guest
+                example: false
+                type: boolean
+                x-go-name: Recording
+        type: object
+        x-go-package: github.com/lxc/incus/v7/shared/api
+    StorageVolumeBitmapsPost:
+        description: StorageVolumeBitmapsPost represents the fields available for a new volume bitmap
+        properties:
+            disabled:
+                description: The bitmap is created in the disabled state
+                example: false
+                type: boolean
+                x-go-name: Disabled
+            granularity:
+                description: Granularity of the dirty bitmap in bytes
+                example: 32768
+                format: int64
+                type: integer
+                x-go-name: Granularity
+            name:
+                description: Bitmap name
+                example: bitmap0
+                type: string
+                x-go-name: Name
+            persistent:
+                description: true if the bitmap was stored on disk, is scheduled to be stored on disk, or both
+                example: false
+                type: boolean
+                x-go-name: Persistent
+        type: object
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeFull:
         properties:
             backups:
@@ -7674,7 +7793,7 @@ definitions:
                 x-go-name: UsedBy
         title: StorageVolumeFull is a combination of StorageVolume, StorageVolumeBackup, StorageVolumeSnapshot and StorageVolumeState.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumePost:
         description: StorageVolumePost represents the fields required to rename a storage pool volume
         properties:
@@ -7708,7 +7827,7 @@ definitions:
                 type: boolean
                 x-go-name: VolumeOnly
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumePostTarget:
         description: StorageVolumePostTarget represents the migration target host and operation
         properties:
@@ -7731,7 +7850,7 @@ definitions:
                 type: object
                 x-go-name: Websockets
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumePut:
         description: StorageVolumePut represents the modifiable fields of a storage volume
         properties:
@@ -7753,7 +7872,7 @@ definitions:
                 type: string
                 x-go-name: Restore
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeSnapshot:
         description: StorageVolumeSnapshot represents a storage volume snapshot
         properties:
@@ -7792,7 +7911,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeSnapshotPost:
         description: StorageVolumeSnapshotPost represents the fields required to rename/move a storage volume snapshot
         properties:
@@ -7809,7 +7928,7 @@ definitions:
             target:
                 $ref: '#/definitions/StorageVolumePostTarget'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeSnapshotPut:
         description: StorageVolumeSnapshotPut represents the modifiable fields of a storage volume
         properties:
@@ -7825,7 +7944,7 @@ definitions:
                 type: string
                 x-go-name: ExpiresAt
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeSnapshotsPost:
         description: StorageVolumeSnapshotsPost represents the fields available for a new storage volume snapshot
         properties:
@@ -7841,7 +7960,7 @@ definitions:
                 type: string
                 x-go-name: Name
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeSource:
         description: StorageVolumeSource represents the creation source for a new storage volume
         properties:
@@ -7909,14 +8028,14 @@ definitions:
                 type: boolean
                 x-go-name: VolumeOnly
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeState:
         description: StorageVolumeState represents the live state of the volume
         properties:
             usage:
                 $ref: '#/definitions/StorageVolumeStateUsage'
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumeStateUsage:
         description: StorageVolumeStateUsage represents the disk usage of a volume
         properties:
@@ -7933,7 +8052,7 @@ definitions:
                 type: integer
                 x-go-name: Used
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     StorageVolumesPost:
         description: StorageVolumesPost represents the fields of a new storage pool volume
         properties:
@@ -7972,7 +8091,7 @@ definitions:
                 type: string
                 x-go-name: Type
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     SystemBackupPost:
         properties:
             include_artifacts:
@@ -8360,55 +8479,64 @@ definitions:
     Warning:
         properties:
             count:
-                description: Number of times the warning has been seen.
-                example: 10
+                description: The number of times this warning occurred
+                example: 1
                 format: int64
                 type: integer
                 x-go-name: Count
-            first_seen_date:
-                description: First time the warning was seen.
-                example: "2025-01-01 01:00:00"
+            entity_url:
+                description: The entity affected by this warning
+                example: /1.0/instances/c1?project=default
+                type: string
+                x-go-name: EntityURL
+            first_seen_at:
+                description: The first time this warning occurred
+                example: "2021-03-23T17:38:37.753398689-04:00"
                 format: date-time
                 type: string
-                x-go-name: FirstSeenDate
-            last_seen_date:
-                description: Most recent time the warning was seen.
-                example: "2025-01-01 01:00:00"
+                x-go-name: FirstSeenAt
+            last_message:
+                description: The warning message
+                example: Couldn't find the CGroup blkio.weight, disk priority will be ignored
+                type: string
+                x-go-name: LastMessage
+            last_seen_at:
+                description: The last time this warning occurred
+                example: "2021-03-23T17:38:37.753398689-04:00"
                 format: date-time
                 type: string
-                x-go-name: LastSeenDate
-            messages:
-                description: Messages associated with the warning type.
-                example: list of messages
-                items:
-                    type: string
-                type: array
-                x-go-name: Messages
-            scope:
-                $ref: '#/definitions/WarningScope'
+                x-go-name: LastSeenAt
+            location:
+                description: What cluster member this warning occurred on
+                example: server01
+                type: string
+                x-go-name: Location
+            project:
+                description: The project the warning occurred in
+                example: default
+                type: string
+                x-go-name: Project
+            severity:
+                description: The severity of this warning
+                example: low
+                type: string
+                x-go-name: Severity
             status:
                 $ref: '#/definitions/WarningStatus'
-                description: Status of the warning (new, acknowledged, or resolved)
-                example: new
                 type: string
-                x-go-name: Status
             type:
-                $ref: '#/definitions/WarningType'
-            updated_date:
-                description: Last time the warning was changed.
-                example: "2025-01-01 01:00:00"
-                format: date-time
+                description: Type type of warning
+                example: Couldn't find CGroup
                 type: string
-                x-go-name: UpdatedDate
+                x-go-name: Type
             uuid:
-                description: Unique identifier of the warning.
-                example: a2095069-a527-4b2a-ab23-1739325dcac7
-                format: uuid
+                description: UUID of the warning
+                example: e9e9da0d-2538-4351-8047-46d4a8ae4dbb
                 type: string
                 x-go-name: UUID
-        title: Warning represents a record of a warning.
+        title: Warning represents a warning entry.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     WarningPut:
         properties:
             status:
@@ -8416,7 +8544,7 @@ definitions:
                 type: string
         title: WarningPut represents the modifiable fields of a warning.
         type: object
-        x-go-package: github.com/lxc/incus/v6/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/api
     WarningScope:
         properties:
             entity:
@@ -10187,7 +10315,7 @@ paths:
             consumes:
                 - application/json
             description: |-
-                Wipes and encrypts a raw drive using a random LUKS key that will be used by IncusOS to unlock on boot.
+                Wipes and encrypts a raw drive using a random LUKS key that will be used by the system to unlock on boot.
                 Existing data on the drive will be opportunistically wiped via `blkdiscard` unless "secure_wipe" is true,
                 which will guarantee all data is erased. On large spinning drives that don't support `blkdiscard`, securely
                 wiping the drive may take a very long time.

@@ -7,7 +7,7 @@ if [ -e /sys/class/tpm/tpm0/tpm_version_major ]; then
     peBinaryStatus=$(/usr/bin/initrd-utils validate-pe-binaries 2>&1)
     if [ "$peBinaryStatus" != "" ]; then
         for TTY in $TTYS; do
-            echo "\033[31m$OS_NAME failed to verify PE binaries: $peBinaryStatus\033[0m" > "$TTY" || true
+            echo "\033[31m$NAME failed to verify PE binaries: $peBinaryStatus\033[0m" > "$TTY" || true
         done
         sleep 3600
     fi

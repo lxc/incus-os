@@ -10,19 +10,22 @@ if incus info "${1}" >/dev/null 2>&1; then
     exit 1
 fi
 
+# Get the OS name
+OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+
 # Setup temporary directory
 cleanup() {
-    rm -f IncusOS_*.iso
+    rm -f "${OSNAME}_*.iso"
 }
 trap cleanup EXIT HUP INT TERM
 
 # Grab and configure the image
-INCUSOS_SEED_TAR=test/seed.install.tar INCUSOS_IMAGE_FORMAT=iso incus-osd/flasher-tool
+incus-osd/flasher-tool --seed test/seed.install.tar --format iso
 # shellcheck disable=SC2010
-IMG_NAME=$(ls IncusOS_*.iso | grep -v usr | grep -v esp | sort | tail -1)
+IMG_NAME=$(ls "${OSNAME}_*.iso" | grep -v usr | grep -v esp | sort | tail -1)
 
 # Create an instance
-echo "=> Creating an IncusOS instance"
+echo "=> Creating an ${OSNAME} instance"
 incus create --vm --empty "${1}" \
     -c security.secureboot=false \
     -c limits.cpu=4 \
@@ -31,7 +34,7 @@ incus create --vm --empty "${1}" \
 incus config device add "${1}" vtpm tpm
 incus config device add "${1}" boot-media disk source="$(pwd)/${IMG_NAME}" boot.priority=10
 
-echo "=> Starting IncusOS for installation"
+echo "=> Starting ${OSNAME} for installation"
 incus start "${1}" --console
 sleep 5
 incus console "${1}"
@@ -43,5 +46,5 @@ incus stop -f "${1}"
 incus config device remove "${1}" boot-media
 
 # Start the installed system
-echo "=> Starting installed IncusOS"
+echo "=> Starting installed ${OSNAME}"
 incus start "${1}" --console

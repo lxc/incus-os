@@ -12,10 +12,10 @@ def TestIncusOSAPISystemNetworkDefaults(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Allow the network state to settle
         time.sleep(5)
@@ -69,14 +69,14 @@ def TestIncusOSAPISystemNetworkBadMAC(install_image):
         "network.json": """{"interfaces":[{"addresses":["dhcp4"],"hwaddr":"00:11:22:33:44:55","name":"eth0"},{"addresses":["slaac"],"hwaddr":"ff:ee:dd:cc:bb:aa","name":"eth1"}]}""",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-        vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+        vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+        vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
         # Stop the VM post-install and remove install media.
         vm.StopVM()
@@ -91,7 +91,7 @@ def TestIncusOSAPISystemNetworkBadMAC(install_image):
         vm.WaitExpectedLog("incus-osd", "timed out waiting for configured network interfaces, missing interface(s): eth0 (00:11:22:33:44:55), eth1 (ff:ee:dd:cc:bb:aa)")
 
         # We shouldn't see anything about the system being ready.
-        vm.LogDoesntContain("incus-osd", "System is ready version="+incusos_version)
+        vm.LogDoesntContain("incus-osd", "System is ready version="+os_version)
 
 def TestIncusOSAPISystemNetworkRollback(install_image):
     test_name = "incusos-api-system-network-rollback"
@@ -99,10 +99,10 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Allow the network state to settle
         time.sleep(5)

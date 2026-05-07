@@ -8,10 +8,10 @@ def TestIncusOSAPISystemLogging(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Get current logging configuration.
         result = vm.APIRequest("/1.0/system/logging")

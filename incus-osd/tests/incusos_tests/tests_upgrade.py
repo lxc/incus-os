@@ -10,14 +10,14 @@ def TestBaselineUpgrade(install_image):
         "install.json": "{}"
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-        vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+        vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+        vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
         # Stop the VM post-install and remove install media.
         vm.StopVM()
@@ -47,14 +47,14 @@ def TestBaselineUpgradeOSOnly(install_image):
         "provider.json": """{"name":"local"}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-        vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+        vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+        vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
         # Stop the VM post-install and remove install media.
         vm.StopVM()
@@ -65,7 +65,7 @@ def TestBaselineUpgradeOSOnly(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         vm.LogDoesntContain("incus-osd", "Downloading OS update")
         vm.LogDoesntContain("incus-osd", "Downloading application update")
@@ -83,7 +83,7 @@ def TestBaselineUpgradeOSOnly(install_image):
         new_version = match.group(1)
         vm.WaitExpectedLog("incus-osd", "Applying OS update version="+new_version)
 
-        if new_version == incusos_version:
+        if new_version == os_version:
             raise IncusOSException("expected a different OS version when applying update")
 
         vm.LogDoesntContain("incus-osd", "Downloading application update")
@@ -95,14 +95,14 @@ def TestBaselineUpgradeApplicationOnly(install_image):
         "provider.json": """{"name":"local"}"""
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "Installing IncusOS source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-        vm.WaitExpectedLog("incus-osd", "IncusOS was successfully installed")
+        vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+        vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
         # Stop the VM post-install and remove install media.
         vm.StopVM()
@@ -110,7 +110,7 @@ def TestBaselineUpgradeApplicationOnly(install_image):
 
         # Prepare to install an older version of the incus app via the recovery mechanism.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", incusos_version)
+            util._manual_download_application(tmp_dir, "incus", os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_img:
                 # Create a vfat partition labeled RESCUE_DATA and copy the updates.
@@ -124,15 +124,15 @@ def TestBaselineUpgradeApplicationOnly(install_image):
                 vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
                 vm.WaitExpectedLog("incus-osd", "Recovery partition detected")
                 vm.WaitExpectedLog("incus-osd", "Update metadata detected, verifying signature")
-                vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+incusos_version)
+                vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+os_version)
                 vm.WaitExpectedLog("incus-osd", "Decompressing and verifying each update file")
                 vm.WaitExpectedLog("incus-osd", "Skipping missing file: 'x86_64/debug.raw.gz")
-                vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+incusos_version)
+                vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
                 vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
                 vm.WaitExpectedLog("incus-osd", "Bringing up the network")
-                vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+incusos_version)
-                vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+incusos_version)
-                vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+                vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+os_version)
+                vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+os_version)
+                vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
                 vm.LogDoesntContain("incus-osd", "Downloading OS update")
 
@@ -145,11 +145,11 @@ def TestBaselineUpgradeApplicationOnly(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                match = vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version=((?!" + incusos_version + ")\\d+)", regex=True)
+                match = vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version=((?!" + os_version + ")\\d+)", regex=True)
                 new_version = match.group(1)
                 vm.WaitExpectedLog("incus-osd", "Reloading application name=incus version="+new_version)
 
-                if new_version == incusos_version:
+                if new_version == os_version:
                     raise IncusOSException("expected a different application version when applying update")
 
                 vm.LogDoesntContain("incus-osd", "Downloading OS update")

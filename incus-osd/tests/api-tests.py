@@ -11,6 +11,7 @@ import urllib.request
 from incusos_tests import IncusOSTests
 from incusos_tests.incus_test_vm import IncusOSException
 
+os_name = ""
 current_release = None
 prior_stable_release = None
 urls = []
@@ -49,8 +50,11 @@ with urllib.request.urlopen("https://images.linuxcontainers.org/os/index.json") 
 for url in urls:
     basename = os.path.basename(url)
 
+    if os_name == "":
+        os_name = basename.split("_")[0]
+
     if not os.path.exists(basename.replace(".gz", "")):
-        print("Downloading IncusOS image " + basename, flush=True)
+        print("Downloading " + os_name + " image " + basename, flush=True)
 
         with requests.get(url, stream=True) as r:
             with open(basename, "wb") as f:
@@ -62,9 +66,9 @@ for url in urls:
 
         os.remove(basename)
 
-prior_image_img = os.path.join(os.getcwd(), "IncusOS_" + prior_stable_release["version"] + ".img")
-current_image_img = os.path.join(os.getcwd(), "IncusOS_" + current_release["version"] + ".img")
-current_image_iso = os.path.join(os.getcwd(), "IncusOS_" + current_release["version"] + ".iso")
+prior_image_img = os.path.join(os.getcwd(), os_name + "_" + prior_stable_release["version"] + ".img")
+current_image_img = os.path.join(os.getcwd(), os_name + "_" + current_release["version"] + ".img")
+current_image_iso = os.path.join(os.getcwd(), os_name + "_" + current_release["version"] + ".iso")
 
 num_pass = 0
 num_fail = 0

@@ -23,3 +23,5 @@ systemd-repart.conf     usr/lib/systemd/system/systemd-repart.service.d/
 99-add-cdrom-partitions.rules usr/lib/udev/rules.d/
 
 repart.d        usr/lib/incus-os/
+
+os-release      usr/lib/

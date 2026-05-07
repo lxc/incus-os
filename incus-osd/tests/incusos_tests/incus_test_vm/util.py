@@ -35,8 +35,9 @@ def _prepare_test_image(image, seed):
 
                     tar.addfile(ti, buf)
 
-    # Return the path of the customized install image and IncusOS version.
-    return test_image, basename.replace("IncusOS_", "").replace(ext, "")
+    # Return the path of the customized install image, the OS name, and the OS version.
+    parts = basename.split("_")
+    return test_image, parts[0], parts[1].replace(ext, "")
 
 def _manual_download_application(directory, name, version):
     os.mkdir(directory+"/update")

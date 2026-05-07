@@ -9,7 +9,7 @@ ConditionPathExists=!/boot/swtpm/
 [Service]
 Type=oneshot
 
-Environment=OS_NAME="@OSNAME@"
+EnvironmentFile=/usr/lib/os-release
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
 ExecStart=/usr/bin/initrd-startup-checks.sh

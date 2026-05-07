@@ -7,7 +7,7 @@ DefaultDependencies=no
 Type=oneshot
 RemainAfterExit=yes
 
-Environment=OS_NAME="@OSNAME@"
+EnvironmentFile=/usr/lib/os-release
 Environment=TTYS="/dev/tty1 /dev/ttyS0"
 
 ExecStart=/usr/bin/initrd-boot-message.sh

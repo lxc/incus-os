@@ -36,9 +36,7 @@ initrd-utils:
 initrd-deb-package: initrd-utils
 	cp incus-osd/initrd-utils mkosi.packages/initrd-utils/
 	rm -rf mkosi.packages/initrd-utils/repart.d/ && cp -r mkosi.images/base/mkosi.extra/usr/lib/repart.d/ mkosi.packages/initrd-utils/
-	(cd mkosi.packages/initrd-utils && cp initrd-boot-message.service.in initrd-boot-message.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-boot-message.service)
-	(cd mkosi.packages/initrd-utils && cp initrd-debug-info.service.in initrd-debug-info.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-debug-info.service)
-	(cd mkosi.packages/initrd-utils && cp initrd-startup-checks.service.in initrd-startup-checks.service && sed -i -e "s/@OSNAME@/${OSNAME}/" initrd-startup-checks.service)
+	(cd mkosi.packages/initrd-utils && cp os-release.in os-release && sed -i -e "s/@IMAGE_ID@/${OSNAME}/" os-release)
 	(cd mkosi.packages/initrd-utils && debuild)
 	rm -rf mkosi.packages/initrd-utils/debian/.debhelper/  mkosi.packages/initrd-utils/debian/debhelper-build-stamp \
           mkosi.packages/initrd-utils/debian/files \mkosi.packages/initrd-utils/debian/initrd-utils.postrm.debhelper \

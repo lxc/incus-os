@@ -9,10 +9,10 @@ def TestIncusOSAPISystemBackup(install_image):
         "install.json": "{}",
     }
 
-    test_image, incusos_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(test_name, test_image) as vm:
-        vm.WaitSystemReady(incusos_version)
+    with IncusTestVM(os_name, test_name, test_image) as vm:
+        vm.WaitSystemReady(os_version)
 
         # Allow the network state to settle
         time.sleep(5)
@@ -67,7 +67,7 @@ def TestIncusOSAPISystemBackup(install_image):
         # Sleep a bit to allow the restoration to complete and then wait for the VM to reboot
         time.sleep(15)
         vm.WaitAgentRunning()
-        vm.WaitExpectedLog("incus-osd", "System is ready version="+incusos_version)
+        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Allow the network state to settle
         time.sleep(5)
