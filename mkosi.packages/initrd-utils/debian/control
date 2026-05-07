@@ -3,10 +3,11 @@ Section: admin
 Priority: optional
 Build-Depends: debhelper-compat (=13)
 Maintainer: Mathias Gibbens <mathias.gibbens@futurfusion.io>
-Standards-Version: 4.7.2
+Standards-Version: 4.7.4
 
 Package: initrd-utils
 Architecture: any
+Replaces: base-files
 Depends: kpartx,
          multipath-tools,
          pciutils,
