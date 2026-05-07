@@ -51,7 +51,7 @@ func main() {
 	// Get the OS name and version from /lib/os-release.
 	osName, osRelease, err := systemd.GetCurrentRelease(ctx)
 	if err != nil {
-		tui.EarlyError("unable to get OS name and release: "+err.Error(), "IncusOS")
+		tui.EarlyError("unable to get OS name and release: "+err.Error(), "Operating system")
 		os.Exit(1)
 	}
 
