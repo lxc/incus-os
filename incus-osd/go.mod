@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.9
-	github.com/FuturFusion/operations-center v0.5.8
+	github.com/FuturFusion/operations-center v0.6.0
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.9
@@ -26,7 +26,7 @@ require (
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.43.0
 	software.sslmate.com/src/go-pkcs12 v0.7.1
-	tailscale.com v1.98.0
+	tailscale.com v1.98.1
 )
 
 require (
