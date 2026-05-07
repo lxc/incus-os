@@ -121,9 +121,11 @@ jobs:
           make generate-test-certs
           make
 
-      - name: Start IncusOS
+      - name: Start the VM
         run: |
-          qemu-img convert -f raw -O qcow2 $(ls mkosi.output/IncusOS_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
+          OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+
+          qemu-img convert -f raw -O qcow2 $(ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
           incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 
           incus create --quiet --vm incus-os test-incus-os \
@@ -187,10 +189,11 @@ jobs:
       - name: Apply the update
         run: |
           RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
+          OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
 
           echo ${RELEASE} | incus file push --quiet - test-incus-os/root/updates/RELEASE
-          incus file push --quiet mkosi.output/IncusOS_${RELEASE}.efi test-incus-os/root/updates/
-          incus file push --quiet mkosi.output/IncusOS_${RELEASE}.usr* test-incus-os/root/updates/
+          incus file push --quiet mkosi.output/${OSNAME}_${RELEASE}.efi test-incus-os/root/updates/
+          incus file push --quiet mkosi.output/${OSNAME}_${RELEASE}.usr* test-incus-os/root/updates/
 
           incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
 
