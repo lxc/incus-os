@@ -12,9 +12,9 @@ if [ -d certs/ ]; then
     exit 0
 fi
 
-find incus-osd/certs/files/ -name '*.auth' -delete
-find incus-osd/certs/files/ -name '*.crt' -delete
-find incus-osd/certs/files/ -name '*.der' -delete
+rm -rf incus-osd/certs/files/
+mkdir incus-osd/certs/files/
+touch incus-osd/certs/files/production-cert-subject-key-ids.txt
 
 mkdir -p certs/cas/
 cat <<EOF > certs/cas/ssl.conf

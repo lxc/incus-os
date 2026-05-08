@@ -58,6 +58,7 @@ jobs:
 
       - name: Run test build
         run: |
+          ./scripts/test/generate-test-certificates.sh
           cd incus-osd
           go build ./cmd/incus-osd
 
@@ -118,7 +119,6 @@ jobs:
       - name: Build initial image
         run: |
           export PATH=${PATH}:/root/.local/bin
-          make generate-test-certs
           make
 
       - name: Start the VM
