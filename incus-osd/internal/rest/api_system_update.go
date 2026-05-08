@@ -177,7 +177,7 @@ func (s *Server) apiSystemUpdateCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the provider.
-	p, err := providers.Load(r.Context(), s.state)
+	p, err := providers.Load(r.Context(), s.state, false)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

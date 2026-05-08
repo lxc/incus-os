@@ -97,7 +97,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 		// If switching providers, unregister from the current one.
 		if newConfig.Config.Name != oldConfig.Name {
 			// Load the current provider and deregister it.
-			p, err := providers.Load(r.Context(), s.state)
+			p, err := providers.Load(r.Context(), s.state, false)
 			if err != nil {
 				_ = response.InternalError(err).Render(w)
 
@@ -118,7 +118,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 		s.state.System.Provider.Config = newConfig.Config
 
 		// Load the new provider.
-		p, err := providers.Load(r.Context(), s.state)
+		p, err := providers.Load(r.Context(), s.state, false)
 		if err != nil {
 			s.state.System.Provider.Config = oldConfig
 			_ = s.state.Save()

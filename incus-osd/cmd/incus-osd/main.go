@@ -731,7 +731,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	p, err := providers.Load(ctx, s)
+	p, err := providers.Load(ctx, s, false)
 	if err != nil {
 		return err
 	}
@@ -762,7 +762,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Handle registration.
 	if !s.System.Provider.State.Registered {
 		// Reload the provider following application startup (so it can fetch the certificate).
-		p, err = providers.Load(ctx, s)
+		p, err = providers.Load(ctx, s, false)
 		if err != nil {
 			return err
 		}

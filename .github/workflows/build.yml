@@ -57,6 +57,9 @@ jobs:
 
       - name: Load the signing keys
         run: |
+          mkdir incus-osd/certs/files/
+          echo "${{ secrets.SB_CERTS }}" | base64 -d | tar x --zstd -C incus-osd/certs/files/
+
           ln -s incus-osd/certs/files/secureboot-DB-2026-R1.crt mkosi.crt
 
           echo "${{ secrets.SB_KEY }}" > mkosi.key

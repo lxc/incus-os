@@ -698,7 +698,7 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFo
 	s.System.Provider.Config.Name = "images"
 	s.System.Update.Config.Channel = channel
 
-	provider, err := providers.Load(ctx, &s)
+	provider, err := providers.Load(ctx, &s, true)
 	if err != nil {
 		return "", err
 	}
