@@ -3539,44 +3539,17 @@ definitions:
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
     Network:
         properties:
-            location:
-                description: Full inventory location path of the network
-                example: /vcenter01/network/net0
+            address:
+                description: Address of Operations Center which is used by managed servers to connect.
                 type: string
-                x-go-name: Location
-            overrides:
-                $ref: '#/definitions/NetworkPlacement'
-            placement:
-                $ref: '#/definitions/NetworkPlacement'
-            properties:
-                description: Additional properties of the network.
-                type: object
-                x-go-name: Properties
-            source:
-                description: vCenter source for the network
-                example: vcenter01
+                x-go-name: OperationsCenterAddress
+            rest_server_address:
+                description: Address and port to bind the REST API to.
                 type: string
-                x-go-name: Source
-            source_specific_id:
-                description: The source-specific identifier of the network
-                example: network-23
-                type: string
-                x-go-name: SourceSpecificID
-            type:
-                $ref: '#/definitions/NetworkType'
-                description: The network type
-                example: bridge
-                readOnly: true
-                type: string
-                x-go-name: Type
-            uuid:
-                description: UUID of the network.
-                format: uuid
-                type: string
-                x-go-name: UUID
-        title: Network defines the network config for use by the migration manager.
+                x-go-name: RestServerAddress
+        title: Network represents the system's network configuration.
         type: object
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/FuturFusion/operations-center/shared/api/system
     NetworkACL:
         properties:
             config:
@@ -7019,11 +6992,11 @@ definitions:
                     type: string
                 description: Server configuration map (refer to doc/server.md)
                 example:
-                    core.https_address: :8443
+                    core.https_address: :6443
                 type: object
                 x-go-name: Config
         type: object
-        x-go-package: github.com/lxc/incus/v7/shared/api
+        x-go-package: github.com/FuturFusion/migration-manager/shared/api
     ServerStorageDriverInfo:
         description: ServerStorageDriverInfo represents the read-only info about a storage driver
         properties:
@@ -7093,6 +7066,10 @@ definitions:
                 description: Daemon log level.
                 type: string
                 x-go-name: LogLevel
+            server_registration_scriptlet:
+                description: ServerRegistrationScriptlet hold the server registration scriptlet.
+                type: string
+                x-go-name: ServerRegistrationScriptlet
         title: Settings represents global system settings.
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api/system
@@ -7105,6 +7082,10 @@ definitions:
                 description: Daemon log level.
                 type: string
                 x-go-name: LogLevel
+            server_registration_scriptlet:
+                description: ServerRegistrationScriptlet hold the server registration scriptlet.
+                type: string
+                x-go-name: ServerRegistrationScriptlet
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api/system
     Source:
@@ -9583,6 +9564,89 @@ paths:
                 "200":
                     $ref: '#/responses/EmptySyncResponse'
             summary: Suspend the system
+            tags:
+                - system
+    /1.0/system/fallback-listener:
+        get:
+            description: |-
+                Returns information about the system's fallback HTTPS listener, which is activated if
+                the primary application fails to start.
+            operationId: system_get_fallback_listener
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: State and configuration for the fallback listener
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: State and configuration for the fallback listener
+                                example:
+                                    config:
+                                        listen_address: 192.168.100.100:8443
+                                        trusted_client_certificates:
+                                            - |-
+                                              -----BEGIN CERTIFICATE-----
+                                              [cert]
+                                              -----END CERTIFICATE-----
+                                    state:
+                                        active: false
+                                type: json
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get information about the fallback HTTPS listener
+            tags:
+                - system
+        put:
+            consumes:
+                - application/json
+            description: |-
+                Updates the configuration for the fallback HTTPS listener. Supported options include
+                listening on a specific IP:port and setting the list of trusted client TLS certificates,
+                which should be provided as PEM-encoded certificates.
+            operationId: system_put_fallback_listener
+            parameters:
+                - description: Fallback listener configuration
+                  in: body
+                  name: configuration
+                  required: true
+                  schema:
+                    properties:
+                        config:
+                            description: The fallback listener configuration
+                            example:
+                                listen_address: 192.168.100.100:8443
+                                trusted_client_certificates:
+                                    - |-
+                                      -----BEGIN CERTIFICATE-----
+                                      [cert]
+                                      -----END CERTIFICATE-----
+                            type: object
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Update the fallback HTTPS listener configuration
             tags:
                 - system
     /1.0/system/kernel:
