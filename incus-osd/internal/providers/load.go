@@ -9,14 +9,15 @@ import (
 )
 
 // Load gets a specific provider and initializes it with the provider configuration.
-func Load(ctx context.Context, s *state.State) (Provider, error) {
+func Load(ctx context.Context, s *state.State, ignoreSignedJSON bool) (Provider, error) {
 	var p Provider
 
 	switch s.System.Provider.Config.Name {
 	case "images":
 		// Setup the images provider.
 		p = &images{
-			state: s,
+			state:            s,
+			ignoreSignedJSON: ignoreSignedJSON,
 		}
 
 	case "local":
@@ -49,7 +50,7 @@ func Refresh(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
-	p, err := Load(ctx, s)
+	p, err := Load(ctx, s, false)
 	if err != nil {
 		return err
 	}

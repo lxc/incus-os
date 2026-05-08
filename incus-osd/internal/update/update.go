@@ -231,7 +231,7 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 	}
 
 	// Get the provider.
-	p, err := providers.Load(ctx, s)
+	p, err := providers.Load(ctx, s, false)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 // reloadApplication wraps common logic used when starting/updating an application after it is updated.
 func reloadApplication(ctx context.Context, s *state.State, appName string, appVersion string) error {
 	// Get the provider.
-	p, err := providers.Load(ctx, s)
+	p, err := providers.Load(ctx, s, false)
 	if err != nil {
 		return err
 	}

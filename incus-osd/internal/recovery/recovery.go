@@ -245,7 +245,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		},
 	}
 
-	p, err := providers.Load(ctx, s)
+	p, err := providers.Load(ctx, s, false)
 	if err != nil {
 		return err
 	}
