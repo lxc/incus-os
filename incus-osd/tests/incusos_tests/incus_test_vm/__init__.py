@@ -35,7 +35,7 @@ class IncusTestVM:
         else:
             self.AddDevice("boot-media", "disk", "pool=default", "source="+self.vm_name+".iso", "boot.priority=10")
 
-        subprocess.run(["incus", "config", "set", self.vm_name, "systemd.credential.fully-enable-incus-agent", "true"], capture_output=True, check=True)
+        subprocess.run(["incus", "config", "set", self.vm_name, "systemd.credential.fully-enable-incus-agent=true"], capture_output=True, check=True)
 
         return self
 
