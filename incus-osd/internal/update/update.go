@@ -565,7 +565,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		// If we're updating an existing application and are running from the backup IncusOS
 		// image, after verifying the new application sysext don't automatically update to it.
-		if app.IsInstalled() && s.OS.RunningFromBackup() {
+		if app.IsInstalled() && !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() {
 			slog.WarnContext(ctx, "Successfully downloaded application update, but not auto-updating while running from backup image", "application", appName)
 
 			// Add the newer version to list of available versions.
