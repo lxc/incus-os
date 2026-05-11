@@ -63,7 +63,7 @@ arbitrary commands within the virtual machine can make changes outside of the co
 
 To fully enable `incus-agent` support in the virtual machine, run the following command and then restart the virtual machine.
 
-    incus config set <vm> systemd.credential.fully-enable-incus-agent true
+    incus config set <vm> systemd.credential.fully-enable-incus-agent=true
 ```
 
 When IncusOS is run in an Incus virtual machine, it is possible to `exec` into the running
