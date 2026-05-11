@@ -627,6 +627,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Display a warning if we're running from the backup image.
 	if s.OS.RunningFromBackup() {
 		slog.WarnContext(ctx, "Booted from backup "+s.OS.Name+" image version "+s.OS.RunningRelease)
+
+		slog.WarnContext(ctx, "Will attempt to enable fallback HTTPS server for additional connectivity after completing startup tasks")
+
+		s.TriggerFallbackListener <- true
 	}
 
 	// Check for and run recovery logic if present.
