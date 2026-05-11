@@ -127,7 +127,7 @@ test:
 	incus config device add test-incus-os boot-media disk source=$$(pwd)/mkosi.output/${OSNAME}_boot_media.img io.bus=usb boot.priority=10 readonly=false
 
 	# Enable full incus-agent capability
-	incus config set test-incus-os systemd.credential.fully-enable-incus-agent true
+	incus config set test-incus-os systemd.credential.fully-enable-incus-agent=true
 
 	# Wait for installation to complete
 	incus start test-incus-os --console
@@ -165,7 +165,7 @@ test-iso:
 	incus config device add test-incus-os boot-media disk pool=default source=${OSNAME}_boot_media.iso boot.priority=10
 
 	# Enable full incus-agent capability
-	incus config set test-incus-os systemd.credential.fully-enable-incus-agent true
+	incus config set test-incus-os systemd.credential.fully-enable-incus-agent=true
 
 	# Wait for installation to complete
 	incus start test-incus-os --console
