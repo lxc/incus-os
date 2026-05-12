@@ -233,9 +233,11 @@ func (p *images) load(_ context.Context) error {
 
 		p.serverURL = "https://images.linuxcontainers.org/os"
 
-		p.updateCA, err = GetUpdateCACert()
-		if err != nil {
-			return err
+		if !p.ignoreSignedJSON {
+			p.updateCA, err = GetUpdateCACert()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
