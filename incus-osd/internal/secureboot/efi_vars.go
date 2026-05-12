@@ -406,3 +406,16 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 
 	return nil
 }
+
+// ClearIncusOSInstallComplete removes the "IncusOSInstallComplete" UEFI variable, if it exists.
+func ClearIncusOSInstallComplete(ctx context.Context) error {
+	_, err := subprocess.RunCommandContext(ctx, "chattr", "-i", "/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+	if err == nil {
+		err := os.Remove("/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
