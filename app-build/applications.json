@@ -48,7 +48,7 @@
         ]
     },
     "lego": {
-        "version": "v5.0.0",
+        "version": "v5.0.1",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -56,7 +56,7 @@
                 "dist/lego",
                 "-ldflags",
                 "-X main.version=@VERSION@",
-                "./cmd/lego"
+                "."
             ]
         ],
         "install_targets": [
