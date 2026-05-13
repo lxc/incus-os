@@ -11,3 +11,4 @@ StateDirectory=tailscale
 StateDirectoryMode=0700
 CacheDirectory=tailscale
 CacheDirectoryMode=0750
+LogLevelMax=notice
