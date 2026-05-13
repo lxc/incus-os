@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
+
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
@@ -44,8 +46,8 @@ func Load(ctx context.Context, s *state.State, ignoreSignedJSON bool) (Provider,
 	return p, nil
 }
 
-// Refresh is a hook being called whenever the current provider should be refreshed.
-func Refresh(ctx context.Context, s *state.State) error {
+// Notify is a hook that is called whenever the current provider should be notified of an event.
+func Notify(ctx context.Context, s *state.State, cause ocapi.ServerSelfUpdateCause) error {
 	if s.System.Provider.Config.Name == "" {
 		return nil
 	}
@@ -55,7 +57,7 @@ func Refresh(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	err = p.RefreshRegister(ctx)
+	err = p.RefreshRegister(ctx, cause)
 	if err != nil && !errors.Is(err, ErrRegistrationUnsupported) {
 		return err
 	}

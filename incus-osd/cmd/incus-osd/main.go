@@ -670,7 +670,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Refresh, delayInitialUpdateCheck)
+	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Notify, delayInitialUpdateCheck)
 	if err != nil {
 		return err
 	}

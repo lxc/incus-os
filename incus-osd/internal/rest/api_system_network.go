@@ -237,7 +237,7 @@ func applyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, networkCfg, timeout, false, providers.Refresh, false)
+	err = systemd.ApplyNetworkConfiguration(ctx, s, networkCfg, timeout, false, providers.Notify, false)
 	if err != nil {
 		return err
 	}

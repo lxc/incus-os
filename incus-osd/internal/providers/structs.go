@@ -6,6 +6,8 @@ import (
 	"encoding/pem"
 	"strconv"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
+
 	"github.com/lxc/incus-os/incus-osd/certs"
 )
 
@@ -49,7 +51,7 @@ type Provider interface {
 	GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error)
 
 	Register(ctx context.Context, isFirstBoot bool) error
-	RefreshRegister(ctx context.Context) error
+	RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error
 	Deregister(ctx context.Context) error
 
 	load(ctx context.Context) error

@@ -74,7 +74,7 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
+func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error {
 	// Check if registered.
 	if !p.state.System.Provider.State.Registered {
 		return nil
@@ -89,6 +89,7 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
 	// Prepare the registration request.
 	req := ocapi.ServerSelfUpdate{
 		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+		Cause:         cause,
 	}
 
 	data, err := json.Marshal(req)

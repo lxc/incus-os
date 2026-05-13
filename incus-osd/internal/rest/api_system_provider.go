@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
+
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -144,7 +146,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 			s.state.System.Provider.State.Registered = true
 		} else {
 			// Refresh the registration.
-			err = p.RefreshRegister(r.Context())
+			err = p.RefreshRegister(r.Context(), ocapi.ServerSelfUpdateCauseDefault)
 			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 				s.state.System.Provider.Config = oldConfig
 				_ = s.state.Save()
