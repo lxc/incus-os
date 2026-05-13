@@ -29,6 +29,7 @@ import (
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -106,12 +107,52 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 	}
 
 	// Run initialization if needed.
-	if !app.IsInitialized() {
+	if !app.IsInitialized() { //nolint:nestif
 		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", app.Version())
 
 		err = app.Initialize(ctx)
 		if err != nil {
 			return err
+		}
+
+		// After initializing a primary application, fetch any provided trusted client certificates from
+		// seed data for use by the fallback HTTPS server authentication.
+		switch appName {
+		case "incus":
+			incusSeed, err := seed.GetIncus(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				return err
+			}
+
+			if incusSeed != nil && incusSeed.Preseed != nil {
+				for _, cert := range incusSeed.Preseed.Certificates {
+					if cert.Type != "client" {
+						continue
+					}
+
+					s.System.FallbackListener.Config.TrustedClientCertificates = append(s.System.FallbackListener.Config.TrustedClientCertificates, cert.Certificate)
+				}
+			}
+		case "migration-manager":
+			mmSeed, err := seed.GetMigrationManager(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				return err
+			}
+
+			if mmSeed != nil {
+				s.System.FallbackListener.Config.TrustedClientCertificates = mmSeed.TrustedClientCertificates
+			}
+		case "operations-center":
+			ocSeed, err := seed.GetOperationsCenter(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				return err
+			}
+
+			if ocSeed != nil {
+				s.System.FallbackListener.Config.TrustedClientCertificates = ocSeed.TrustedClientCertificates
+			}
+		default:
+			// Nothing to do
 		}
 	}
 

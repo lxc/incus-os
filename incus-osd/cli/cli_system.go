@@ -98,6 +98,11 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 
 	subCommands := []subCommand{
 		{
+			name:        "fallback-listener",
+			description: "System fallback HTTPS listener configuration",
+			isWritable:  true,
+		},
+		{
 			name:        "kernel",
 			description: "System kernel configuration",
 			isWritable:  true,

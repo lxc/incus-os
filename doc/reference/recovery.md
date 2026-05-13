@@ -4,6 +4,26 @@ IncusOS is designed to be fairly resilient to failures, but there may be times w
 your system misbehaves. Here are some suggestions that might be useful if you ever
 need to recover an IncusOS system.
 
+## Fallback API endpoint
+
+When IncusOS boots from the prior installed version, or if the primary application fails
+to start, the system will automatically attempt to activate a fallback API endpoint.
+This fallback endpoint allows trusted clients to maintain access to IncusOS via the
+network even if the primary application is unavailable for some reason.
+
+By default, IncusOS will pick a random port and attempt to listen on all available
+network interfaces. The chosen port number will be displayed on the system's terminal.
+A specific IP address and/or port can be set to limit where the fallback API endpoint
+is configured to listen.
+
+On first boot, IncusOS will attempt to extract any trusted client certificates present
+in seed data and set them as trusted client certificates for the fallback API endpoint.
+However, no further automatic synchronization of trusted client certificates is performed.
+The list of trusted client certificates for the fallback API endpoint can be updated at
+any time via
+
+    incus admin os system fallback-listener edit
+
 ## Try booting into the previous image
 
 IncusOS uses an A/B update mechanism to reboot onto the newer version while keeping

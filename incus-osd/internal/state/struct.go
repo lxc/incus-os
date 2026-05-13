@@ -42,10 +42,11 @@ type State struct {
 	NetworkConfigurationChannel chan error `json:"-"`
 
 	// Triggers for daemon actions.
-	TriggerReboot   chan bool `json:"-"`
-	TriggerShutdown chan bool `json:"-"`
-	TriggerSuspend  chan bool `json:"-"`
-	TriggerUpdate   chan bool `json:"-"`
+	TriggerReboot           chan bool `json:"-"`
+	TriggerShutdown         chan bool `json:"-"`
+	TriggerSuspend          chan bool `json:"-"`
+	TriggerUpdate           chan bool `json:"-"`
+	TriggerFallbackListener chan bool `json:"-"`
 
 	SecureBoot         SecureBoot `json:"secure_boot"`
 	UsingSWTPM         bool       `json:"using_swtpm"`
@@ -78,13 +79,14 @@ type State struct {
 	} `json:"services"`
 
 	System struct {
-		Kernel   api.SystemKernel   `json:"kernel"`
-		Logging  api.SystemLogging  `json:"logging"`
-		Network  api.SystemNetwork  `json:"network"`
-		Provider api.SystemProvider `json:"provider"`
-		Security api.SystemSecurity `json:"security"`
-		Update   api.SystemUpdate   `json:"update"`
-		Storage  api.SystemStorage  `json:"storage"`
+		FallbackListener api.SystemFallbackListener `json:"fallback_listener"`
+		Kernel           api.SystemKernel           `json:"kernel"`
+		Logging          api.SystemLogging          `json:"logging"`
+		Network          api.SystemNetwork          `json:"network"`
+		Provider         api.SystemProvider         `json:"provider"`
+		Security         api.SystemSecurity         `json:"security"`
+		Update           api.SystemUpdate           `json:"update"`
+		Storage          api.SystemStorage          `json:"storage"`
 	} `json:"system"`
 
 	// Used to handle an edge case of a new network configuration being applied, but

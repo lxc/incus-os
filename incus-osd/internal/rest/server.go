@@ -1,11 +1,14 @@
 package rest
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -13,38 +16,23 @@ import (
 
 // Server holds the internal state of the REST API server.
 type Server struct {
-	socketPath string
-	state      *state.State
+	listener net.Listener
+	state    *state.State
 }
 
 // NewServer returns a REST API server object.
-func NewServer(_ context.Context, s *state.State, socketPath string) (*Server, error) {
+func NewServer(_ context.Context, s *state.State, l net.Listener) (*Server, error) {
 	// Define the struct.
 	server := Server{
-		socketPath: socketPath,
-		state:      s,
-	}
-
-	// Create runtime path if missing.
-	err := os.Mkdir(filepath.Dir(socketPath), 0o700)
-	if err != nil && !os.IsExist(err) {
-		return nil, err
+		listener: l,
+		state:    s,
 	}
 
 	return &server, nil
 }
 
 // Serve starts the REST API server.
-func (s *Server) Serve(ctx context.Context) error {
-	// Setup listener.
-	_ = os.Remove(s.socketPath)
-	lc := &net.ListenConfig{}
-
-	listener, err := lc.Listen(ctx, "unix", s.socketPath)
-	if err != nil {
-		return err
-	}
-
+func (s *Server) Serve() error {
 	// Setup routing.
 	router := http.NewServeMux()
 
@@ -79,6 +67,7 @@ func (s *Server) Serve(ctx context.Context) error {
 	router.HandleFunc("/1.0/system/:reboot", s.apiSystemReboot)
 	router.HandleFunc("/1.0/system/:restore", s.apiSystemRestore)
 	router.HandleFunc("/1.0/system/:suspend", s.apiSystemSuspend)
+	router.HandleFunc("/1.0/system/fallback-listener", s.apiSystemFallbackListener)
 	router.HandleFunc("/1.0/system/kernel", s.apiSystemKernel)
 	router.HandleFunc("/1.0/system/logging", s.apiSystemLogging)
 	router.HandleFunc("/1.0/system/network", s.apiSystemNetwork)
@@ -102,11 +91,70 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	// Setup server.
 	server := &http.Server{
-		Handler: router,
+		// If not listening on the local Unix socket, define a custom handler that first checks for
+		// a trusted client TLS certificate and then ensures a proper proxy header is present and
+		// trims the "/os" prefix if present before passing the request to the standard handler.
+		Handler: func(h http.Handler) http.Handler {
+			if s.listener.Addr().Network() != "unix" {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.TLS == nil {
+						http.Error(w, "Upgrade Required", http.StatusUpgradeRequired)
+
+						return
+					}
+
+					if len(r.TLS.PeerCertificates) == 0 {
+						http.Error(w, "Forbidden", http.StatusForbidden)
+
+						return
+					}
+
+					// Verify the client provided a TLS certificate that matches a trusted fingerprint.
+					foundTrustedClient := false
+
+					clientFp := sha256.Sum256(r.TLS.PeerCertificates[0].Raw)
+
+					for _, trustedCert := range s.state.System.FallbackListener.Config.TrustedClientCertificates {
+						block, _ := pem.Decode([]byte(trustedCert))
+						if block == nil || block.Type != "CERTIFICATE" {
+							continue
+						}
+
+						cert, err := x509.ParseCertificate(block.Bytes)
+						if err != nil {
+							continue
+						}
+
+						certFp := sha256.Sum256(cert.Raw)
+
+						if bytes.Equal(clientFp[:], certFp[:]) {
+							foundTrustedClient = true
+
+							break
+						}
+					}
+
+					if !foundTrustedClient {
+						http.Error(w, "Forbidden", http.StatusForbidden)
+
+						return
+					}
+
+					// Ensure a proper proxy header is set and trim the "/os" prefix if present.
+					r.Header.Set("X-IncusOS-Proxy", "/os")
+					r.URL.Path = strings.TrimPrefix(r.URL.Path, "/os")
+
+					// Serve the request.
+					h.ServeHTTP(w, r)
+				})
+			}
+
+			return h
+		}(router),
 
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 0,
 	}
 
-	return server.Serve(listener)
+	return server.Serve(s.listener)
 }

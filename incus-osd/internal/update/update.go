@@ -295,6 +295,12 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 			s.System.Update.State.Status = "Failed to reload application"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
+			if app.IsPrimary() {
+				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to reload; attempting to enable fallback HTTPS server for basic connectivity")
+
+				s.TriggerFallbackListener <- true
+			}
+
 			return err
 		}
 	} else {
@@ -302,6 +308,12 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 		if err != nil {
 			s.System.Update.State.Status = "Failed to start application"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			if app.IsPrimary() {
+				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
+
+				s.TriggerFallbackListener <- true
+			}
 
 			return err
 		}
