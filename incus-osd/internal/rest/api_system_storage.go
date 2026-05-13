@@ -8,7 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
+
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -153,6 +156,14 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Notify the provider.
+		err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
 		_ = response.EmptySyncResponse.Render(w)
 	default:
 		// If none of the supported methods, return NotImplemented.
@@ -186,7 +197,7 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -224,6 +235,14 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
 	_ = response.EmptySyncResponse.Render(w)
 }
 
@@ -255,7 +274,7 @@ func (*Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Request
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -283,6 +302,14 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 	}
 
 	err = storage.WipeDrive(r.Context(), wipeStruct.ID, wipeStruct.SecureWipe)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -318,7 +345,7 @@ func (*Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request)
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -358,6 +385,14 @@ func (*Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
 	_ = response.EmptySyncResponse.Render(w)
 }
 
@@ -387,7 +422,7 @@ func (*Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Request
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -470,6 +505,14 @@ func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
 	_ = response.EmptySyncResponse.Render(w)
 }
 
@@ -499,7 +542,7 @@ func (*Server) apiSystemStorageCreateVolume(w http.ResponseWriter, r *http.Reque
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -551,6 +594,14 @@ func (*Server) apiSystemStorageDeleteVolume(w http.ResponseWriter, r *http.Reque
 
 	// Delete the volume.
 	err = zfs.DestroyDataset(r.Context(), config.Pool, config.Name, config.Force)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -662,7 +713,7 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -691,6 +742,14 @@ func (*Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Reque
 
 	// Encrypt the drive.
 	err = storage.EncryptDrive(r.Context(), encryptStruct.ID, encryptStruct.SecureWipe)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -726,7 +785,7 @@ func (*Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Reque
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiSystemStorageImportEncryptedDrive(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiSystemStorageImportEncryptedDrive(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -755,6 +814,14 @@ func (*Server) apiSystemStorageImportEncryptedDrive(w http.ResponseWriter, r *ht
 
 	// Import the key for the drive.
 	err = storage.ImportEncryptedDrive(r.Context(), decryptStruct.ID, decryptStruct.Key)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Notify the provider.
+	err = providers.Notify(r.Context(), s.state, ocapi.ServerSelfUpdateCauseStorageConfigChanged)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
