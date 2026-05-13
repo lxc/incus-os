@@ -158,6 +158,15 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 
 	// Perform install-specific checks.
 	if installSeed != nil { //nolint:nestif
+		// If ForceInstall is true, wipe the IncusOSInstallComplete UEFI variable, if set. This makes it
+		// easier to perform a re-installation without needing to manually wipe the UEFI variable.
+		if installSeed.ForceInstall {
+			err := secureboot.ClearIncusOSInstallComplete(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
 		// Sanity check: If the "IncusOSInstallComplete" UEFI variable is set, that means an IncusOS install
 		// completed successfully but incus-osd hasn't yet cleared this UEFI variable on its first boot. This
 		// means we've likely accidentally booted from the install media rather than the newly installed system.
