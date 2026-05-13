@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
 	"github.com/lxc/incus/v7/shared/subprocess"
 	"go.yaml.in/yaml/v4"
 	"golang.org/x/sys/unix"
@@ -312,6 +313,11 @@ func run(ctx context.Context, s *state.State) error {
 	slog.InfoContext(ctx, "System is ready", "version", s.OS.RunningRelease)
 	s.OS.SuccessfulBoot = true
 	s.OS.SystemIsReady = true
+
+	err = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemIsReady)
+	if err != nil {
+		return err
+	}
 
 	// Wait for the API to go down.
 	return <-chErr
@@ -841,8 +847,12 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		case <-chSignal:
 		case <-s.TriggerReboot:
 			action = "reboot"
+
+			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
 		case <-s.TriggerShutdown:
 			action = "shutdown"
+
+			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseShutdownTriggered)
 		case <-s.TriggerSuspend:
 			action = "suspend"
 
