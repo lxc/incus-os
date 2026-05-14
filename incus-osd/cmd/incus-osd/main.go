@@ -14,6 +14,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,6 +82,13 @@ func main() {
 	s, err := state.LoadOrCreate(filepath.Join(varPath, "state.txt"))
 	if err != nil {
 		tui.EarlyError("unable to load state file: "+err.Error(), osName)
+		os.Exit(1)
+	}
+
+	// Configure console devices with custom baud rates, if defined.
+	err = configureConsoleDevices(ctx, s)
+	if err != nil {
+		tui.EarlyError("unable to configure console baud rates: "+err.Error(), osName)
 		os.Exit(1)
 	}
 
@@ -1174,6 +1182,31 @@ func startFallbackListener(ctx context.Context, s *state.State) error {
 	go func() {
 		_ = server.Serve()
 	}()
+
+	return nil
+}
+
+func configureConsoleDevices(ctx context.Context, s *state.State) error {
+	// Get the kernel seed if it exists.
+	kernelSeed, err := seed.GetKernel(ctx)
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
+	// If no console configuration already exists, copy any existing value from the seed.
+	if len(s.System.Kernel.Config.Console) == 0 {
+		s.System.Kernel.Config.Console = kernelSeed.Console
+	}
+
+	// Set any configured baud speeds.
+	for _, console := range s.System.Kernel.Config.Console {
+		if console.BaudRate != 0 {
+			_, err := subprocess.RunCommandContext(ctx, "/usr/bin/stty", "-F", console.Device, strconv.Itoa(console.BaudRate))
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
