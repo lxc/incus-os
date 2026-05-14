@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
+
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -548,12 +550,23 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 			return "", err
 		}
 
+		// Notify the provider.
+		err = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseOSUpdateApplied)
+		if err != nil {
+			return "", err
+		}
+
 		// Handle reboot if needed.
 		if s.System.Update.Config.AutoReboot || isStartupCheck {
+			err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
+			if err != nil {
+				return "", err
+			}
+
 			// Rather than closing s.TriggerReboot, explicitly reboot here. This is needed when
 			// applying an update via the recovery mechanism since at that point in startup
 			// the channels won't be available yet.
-			err := systemd.SystemReboot(ctx)
+			err = systemd.SystemReboot(ctx)
 			if err != nil {
 				return "", err
 			}
@@ -587,6 +600,12 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		} else {
 			// Record newly installed application and save state to disk.
 			app.SetVersions(update.Version(), nil)
+
+			// Notify the provider.
+			err = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseApplicationUpdateApplied)
+			if err != nil {
+				return "", err
+			}
 		}
 	default:
 		// An invalid update type has been handled previously in checkDownloadUpdate().

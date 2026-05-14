@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
 	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/lxc/incus/v7/shared/units"
 
@@ -42,7 +43,7 @@ type expPhysDev struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State) error, delayRefreshCheck bool) error {
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State, ocapi.ServerSelfUpdateCause) error, delayRefreshCheck bool) error {
 	// If a timezone is specified, apply it before doing any network configuration.
 	err := SetTimezone(ctx, networkCfg.Time)
 	if err != nil {
@@ -176,7 +177,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 			ctx, ctxCancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer ctxCancel()
 
-			err := refresh(ctx, s)
+			err := refresh(ctx, s, ocapi.ServerSelfUpdateCauseNetworkConfigChanged)
 			if err != nil {
 				slog.WarnContext(ctx, "Failed to refresh provider registration", "err", err)
 			}

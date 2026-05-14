@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
 	incusapi "github.com/lxc/incus/v7/shared/api"
 	"github.com/lxc/incus/v7/shared/osarch"
 	incustls "github.com/lxc/incus/v7/shared/tls"
@@ -73,15 +74,10 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
+func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error {
 	// Check if registered.
 	if !p.state.System.Provider.State.Registered {
 		return nil
-	}
-
-	// API structs.
-	type serverPut struct {
-		ConnectionURL string `json:"connection_url"`
 	}
 
 	// Get the management address.
@@ -91,8 +87,9 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
 	}
 
 	// Prepare the registration request.
-	req := serverPut{
+	req := ocapi.ServerSelfUpdate{
 		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+		Cause:         cause,
 	}
 
 	data, err := json.Marshal(req)
@@ -110,16 +107,6 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context) error {
 }
 
 func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
-	// API structs.
-	type serverPost struct {
-		Name          string `json:"name"`
-		ConnectionURL string `json:"connection_url"`
-	}
-
-	type serverPostResp struct {
-		Certificate string `json:"certificate"`
-	}
-
 	// Get the management address.
 	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
@@ -127,7 +114,7 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Prepare the registration request.
-	req := serverPost{
+	req := ocapi.ServerPost{
 		Name:          p.state.Hostname(),
 		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
 	}
@@ -152,7 +139,7 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Parse the response.
-	registrationResp := serverPostResp{}
+	registrationResp := ocapi.ServerRegistrationResponse{}
 
 	err = resp.MetadataAsStruct(&registrationResp)
 	if err != nil {
@@ -160,14 +147,14 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 	}
 
 	// Get the server certificate.
-	if registrationResp.Certificate != "" {
+	if registrationResp.ClientCertificate != "" {
 		// Get the primary application.
 		app, err := applications.GetPrimary(ctx, p.state, true)
 		if err != nil {
 			return err
 		}
 
-		err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.Certificate)
+		err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.ClientCertificate)
 		if err != nil {
 			return err
 		}

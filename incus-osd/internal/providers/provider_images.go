@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	ocapi "github.com/FuturFusion/operations-center/shared/api"
 	"github.com/lxc/incus/v7/shared/osarch"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
@@ -66,7 +67,7 @@ func (p *images) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (p *images) RefreshRegister(_ context.Context) error {
+func (p *images) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCause) error {
 	if p.token != "" {
 		return nil
 	}
