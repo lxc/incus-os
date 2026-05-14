@@ -10,7 +10,7 @@ system.
 :maxdepth: 1
 
 System requirements </getting-started/requirements>
-Getting an image </getting-started/download>
+Downloading IncusOS </getting-started/download>
 Installing </getting-started/installation>
 Accessing the system </getting-started/access>
 ```
