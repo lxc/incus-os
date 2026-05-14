@@ -70,6 +70,13 @@ func GetTUI(s *state.State) (*TUI, error) {
 		ttyDevs = append(ttyDevs, "/dev/ttyS0")
 	}
 
+	// Add any additional user-provided console devices.
+	for _, console := range s.System.Kernel.Config.Console {
+		if !slices.Contains(ttyDevs, console.Device) {
+			ttyDevs = append(ttyDevs, console.Device)
+		}
+	}
+
 	// Get information about the system's resources. Since we only display CPU
 	// and RAM, caching the results at creation time should be sufficient.
 	singletonTUI.systemResources, err = resources.GetResources()
