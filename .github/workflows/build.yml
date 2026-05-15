@@ -119,7 +119,7 @@ jobs:
           UPLOAD_HOST: ${{ secrets.UPLOAD_HOST }}
         if: ${{ env.UPLOAD_HOST != '' }}
         run: |
-          mkdir ~/.ssh/
+          mkdir -p ~/.ssh/
           chmod 700 ~/.ssh/
           echo "${{ secrets.UPLOAD_HOST_CERT }}" > ~/.ssh/known_hosts
           echo "${{ secrets.UPLOAD_CLIENT_KEY }}" > ~/.ssh/id_ed25519
