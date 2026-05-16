@@ -49,7 +49,8 @@ jobs:
             parted \
             pkgconf \
             pipx \
-            qemu-utils
+            qemu-utils \
+            zip
 
       - name: Setup mkosi
         run: |
@@ -125,4 +126,7 @@ jobs:
           echo "${{ secrets.UPLOAD_CLIENT_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-          scp upload/* ${{ secrets.UPLOAD_USERNAME }}@${{ secrets.UPLOAD_HOST }}:${{ secrets.UPLOAD_PATH }}
+          OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+
+          zip -j ${OSNAME}-${{ github.ref_name }}-${{ matrix.arch }}.zip upload/*
+          scp ${OSNAME}-${{ github.ref_name }}-${{ matrix.arch }}.zip ${{ secrets.UPLOAD_USERNAME }}@${{ secrets.UPLOAD_HOST }}:${{ secrets.UPLOAD_PATH }}
