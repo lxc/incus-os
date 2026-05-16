@@ -122,6 +122,10 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 				field.Set(reflect.MakeMap(field.Type()))
 			}
 
+			if len(parts) != 2 {
+				return errUnrecognizedConfigField
+			}
+
 			decodedMapKey := strings.ReplaceAll(parts[1], "__DOT__", ".")
 
 			mapField := field.MapIndex(reflect.ValueOf(decodedMapKey))
@@ -146,6 +150,10 @@ func decodeHelper(v reflect.Value, keys []string, value string) error {
 				field.Set(reflect.New(field.Type().Elem()))
 			}
 		case reflect.Slice:
+			if len(parts) != 2 {
+				return errUnrecognizedConfigField
+			}
+
 			index, err := strconv.Atoi(parts[1])
 			if err != nil {
 				return err
