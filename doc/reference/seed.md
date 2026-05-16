@@ -71,6 +71,17 @@ and references Incus' [`InitPreseed` API](https://github.com/lxc/incus/blob/main
 - `preseed`: Additional preseed information to be passed to Incus during
   install.
 
+### `kernel.{json,yml,yaml}`
+This file defines kernel configuration options that may need to be set before the
+installation process begins or the IncusOS API is available to fully configure
+available kernel options.
+
+The structure is defined in [`api/seed/kernel.go`](https://github.com/lxc/incus-os/blob/main/incus-osd/api/seed/kernel.go):
+
+- `console`: An array of console devices that should be used by the IncusOS
+  terminal user interface. Optionally, a baud rate may be specified to configure
+  the speed of that specific console device.
+
 ### `network.{json,yml,yaml}`
 This file defines what network configuration should be applied when IncusOS
 boots. If not specified, IncusOS will attempt automatic {abbr}`DHCP (Dynamic Host Configuration Protocol)`/{abbr}`SLAAC (Stateless Address Configuration)`

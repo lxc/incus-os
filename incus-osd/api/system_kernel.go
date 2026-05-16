@@ -2,10 +2,17 @@ package api
 
 // SystemKernelConfig holds the kernel-level configuration data.
 type SystemKernelConfig struct {
-	BlacklistModules []string                   `json:"blacklist_modules,omitempty" yaml:"blacklist_modules,omitempty"`
-	Memory           *SystemKernelConfigMemory  `json:"memory,omitempty"            yaml:"memory,omitempty"`
-	Network          *SystemKernelConfigNetwork `json:"network,omitempty"           yaml:"network,omitempty"`
-	PCI              *SystemKernelConfigPCI     `json:"pci,omitempty"               yaml:"pci,omitempty"`
+	Console          []SystemKernelConfigConsole `json:"console,omitempty"           yaml:"console,omitempty"`
+	BlacklistModules []string                    `json:"blacklist_modules,omitempty" yaml:"blacklist_modules,omitempty"`
+	Memory           *SystemKernelConfigMemory   `json:"memory,omitempty"            yaml:"memory,omitempty"`
+	Network          *SystemKernelConfigNetwork  `json:"network,omitempty"           yaml:"network,omitempty"`
+	PCI              *SystemKernelConfigPCI      `json:"pci,omitempty"               yaml:"pci,omitempty"`
+}
+
+// SystemKernelConfigConsole holds console-specific kernel configuration.
+type SystemKernelConfigConsole struct {
+	Device   string `json:"device"              yaml:"device"`
+	BaudRate int    `json:"baud_rate,omitempty" yaml:"baud_rate,omitempty"`
 }
 
 // SystemKernelConfigMemory holds memory-specific kernel configuration.
