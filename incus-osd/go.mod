@@ -1,6 +1,6 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.10
@@ -26,7 +26,7 @@ require (
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.44.0
 	software.sslmate.com/src/go-pkcs12 v0.7.1
-	tailscale.com v1.98.1
+	tailscale.com v1.98.2
 )
 
 require (
