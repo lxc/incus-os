@@ -131,6 +131,21 @@ func (n *OVN) Start(ctx context.Context) error {
 	return n.configure(ctx)
 }
 
+// Reset will forcefully restart the OVN controller and OVS daemons.
+func (n *OVN) Reset(ctx context.Context) error {
+	if !n.state.Services.OVN.Config.Enabled {
+		return errors.New("OVN isn't currently enabled")
+	}
+
+	// Restart OVS and OVN.
+	err := systemd.RestartUnit(ctx, "ovn-controller.service", "ovs-vswitchd.service")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ShouldStart returns true if the service should be started on boot.
 func (n *OVN) ShouldStart() bool {
 	return n.state.Services.OVN.Config.Enabled
