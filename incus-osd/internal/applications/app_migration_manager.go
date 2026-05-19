@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	mmapi "github.com/FuturFusion/migration-manager/shared/api"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -296,6 +298,18 @@ func (mm *migrationManager) RestoreBackup(ctx context.Context, archive io.Reader
 	// Record when the application was restored.
 	now := time.Now()
 	mm.appState.LastRestored = &now
+
+	return nil
+}
+
+// SetFriendlyVersion records the friendly version.
+func (mm *migrationManager) SetFriendlyVersion(ctx context.Context) error {
+	output, err := subprocess.RunCommandContext(ctx, "migration-managerd", "--version")
+	if err != nil {
+		return err
+	}
+
+	mm.appState.FriendlyVersion = strings.TrimSuffix(output, "\n") + " [" + mm.appState.Version + "]"
 
 	return nil
 }

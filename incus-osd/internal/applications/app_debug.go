@@ -18,6 +18,13 @@ func (*debug) Name() string {
 	return "debug"
 }
 
+// SetFriendlyVersion records the friendly version.
+func (d *debug) SetFriendlyVersion(_ context.Context) error {
+	d.appState.FriendlyVersion = d.appState.Version
+
+	return nil
+}
+
 func (*debug) Struct() any {
 	return &api.Application{}
 }

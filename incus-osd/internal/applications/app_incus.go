@@ -237,6 +237,18 @@ func (a *incus) RestoreBackup(ctx context.Context, archive io.Reader) error {
 	return nil
 }
 
+// SetFriendlyVersion records the friendly version.
+func (a *incus) SetFriendlyVersion(ctx context.Context) error {
+	output, err := subprocess.RunCommandContext(ctx, "incus", "--version")
+	if err != nil {
+		return err
+	}
+
+	a.appState.FriendlyVersion = strings.TrimSuffix(output, "\n") + " [" + a.appState.Version + "]"
+
+	return nil
+}
+
 func (*incus) Struct() any {
 	return &api.ApplicationIncus{}
 }

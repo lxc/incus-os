@@ -359,7 +359,7 @@ func shutdown(ctx context.Context, s *state.State) error {
 	// Run shutdown actions for each installed application.
 	for _, app := range apps {
 		// Stop the application.
-		slog.InfoContext(ctx, "Stopping application", "name", app.Name(), "version", app.Version())
+		slog.InfoContext(ctx, "Stopping application", "name", app.Name(), "version", app.FriendlyVersion())
 
 		err = app.Stop(ctx)
 		if err != nil {

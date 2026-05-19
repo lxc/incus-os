@@ -50,6 +50,11 @@ func (*common) FactoryReset(_ context.Context) error {
 	return errors.New("not supported")
 }
 
+// FriendlyVersion returns the friendly version of the application.
+func (a *common) FriendlyVersion() string {
+	return a.appState.FriendlyVersion
+}
+
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
 func (*common) GetBackup(_ io.Writer, _ bool) error {
 	return errors.New("not supported")

@@ -2,6 +2,10 @@ package applications
 
 import (
 	"context"
+	"errors"
+	"strings"
+
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 )
@@ -21,6 +25,22 @@ func (*incusCeph) GetDependencies() []string {
 
 func (*incusCeph) Name() string {
 	return "incus-ceph"
+}
+
+// SetFriendlyVersion records the friendly version.
+func (i *incusCeph) SetFriendlyVersion(ctx context.Context) error {
+	output, err := subprocess.RunCommandContext(ctx, "ceph", "--version")
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasPrefix(output, "ceph version ") {
+		return errors.New("unable to determine ceph version")
+	}
+
+	i.appState.FriendlyVersion = strings.Split(output, " ")[2] + " [" + i.appState.Version + "]"
+
+	return nil
 }
 
 func (*incusCeph) Struct() any {
@@ -46,6 +66,23 @@ func (*incusLinstor) GetDependencies() []string {
 
 func (*incusLinstor) Name() string {
 	return "incus-linstor"
+}
+
+// SetFriendlyVersion records the friendly version.
+func (i *incusLinstor) SetFriendlyVersion(ctx context.Context) error {
+	output, err := subprocess.RunCommandContext(ctx, "/usr/share/linstor-server/bin/Satellite", "--version")
+	if err != nil {
+		return err
+	}
+
+	s := strings.Split(output, "\n")
+	if !strings.HasPrefix(s[len(s)-2], "LINSTOR Satellite ") {
+		return errors.New("unable to determine Linstor version")
+	}
+
+	i.appState.FriendlyVersion = strings.Split(s[len(s)-2], " ")[2] + " [" + i.appState.Version + "]"
+
+	return nil
 }
 
 func (*incusLinstor) Struct() any {

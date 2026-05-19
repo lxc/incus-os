@@ -29,6 +29,18 @@ func (*gpuSupport) Name() string {
 	return "gpu-support"
 }
 
+// SetFriendlyVersion records the friendly version.
+func (g *gpuSupport) SetFriendlyVersion(_ context.Context) error {
+	version, err := os.ReadFile("/usr/lib/firmware/linux-firmware-gpu-version")
+	if err != nil {
+		return err
+	}
+
+	g.appState.FriendlyVersion = string(version) + " [" + g.appState.Version + "]"
+
+	return nil
+}
+
 func (*gpuSupport) Start(ctx context.Context) error {
 	// Reload the modules if loaded.
 	for _, module := range []string{"amdgpu", "i915", "intel_vpu", "nouveau", "xe"} {

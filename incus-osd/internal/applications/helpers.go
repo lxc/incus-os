@@ -99,7 +99,7 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 	}
 
 	// Start the application.
-	slog.InfoContext(ctx, "Starting application", "name", appName, "version", app.Version())
+	slog.InfoContext(ctx, "Starting application", "name", appName, "version", app.FriendlyVersion())
 
 	err = app.Start(ctx)
 	if err != nil {
@@ -108,7 +108,7 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 
 	// Run initialization if needed.
 	if !app.IsInitialized() { //nolint:nestif
-		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", app.Version())
+		slog.InfoContext(ctx, "Initializing application", "name", appName, "version", app.FriendlyVersion())
 
 		err = app.Initialize(ctx)
 		if err != nil {

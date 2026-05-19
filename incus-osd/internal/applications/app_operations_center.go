@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 	"time"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api/system"
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -319,6 +321,18 @@ func (oc *operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader
 	// Record when the application was restored.
 	now := time.Now()
 	oc.appState.LastRestored = &now
+
+	return nil
+}
+
+// SetFriendlyVersion records the friendly version.
+func (oc *operationsCenter) SetFriendlyVersion(ctx context.Context) error {
+	output, err := subprocess.RunCommandContext(ctx, "operations-centerd", "--version")
+	if err != nil {
+		return err
+	}
+
+	oc.appState.FriendlyVersion = strings.TrimSuffix(output, "\n") + " [" + oc.appState.Version + "]"
 
 	return nil
 }
