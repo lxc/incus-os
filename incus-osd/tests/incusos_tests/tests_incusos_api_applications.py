@@ -265,7 +265,7 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus-linstor version="+os_version)
-        vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Initializing application name=incus-linstor version=.+ \\["+os_version+"\\]", regex=True)
 
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:

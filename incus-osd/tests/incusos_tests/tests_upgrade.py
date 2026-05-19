@@ -130,8 +130,8 @@ def TestBaselineUpgradeApplicationOnly(install_image):
                 vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
                 vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
                 vm.WaitExpectedLog("incus-osd", "Bringing up the network")
-                vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+os_version)
-                vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+os_version)
+                vm.WaitExpectedLog("incus-osd", "Starting application name=incus version=.+ \\["+os_version+"\\]", regex=True)
+                vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version=.+ \\["+os_version+"\\]", regex=True)
                 vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
                 vm.LogDoesntContain("incus-osd", "Downloading OS update")
