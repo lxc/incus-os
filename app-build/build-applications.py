@@ -188,6 +188,11 @@ def install(image, artifact):
         subprocess.run(["mkdir", "-p", os.path.join(base_path, "usr/share/migration-manager/images/")], check=True)
         subprocess.run(["cp", "migration-manager/worker-x86_64.img", os.path.join(base_path, "usr/share/migration-manager/images/")], check=True)
 
+    # Embed the linux-firmware-gpu version so it can be reported when the application is installed
+    if artifact == "linux-firmware-gpu":
+        with open(os.path.join(base_path, "usr/lib/firmware/linux-firmware-gpu-version"), "w") as f:
+            f.write(applications[artifact]["version"])
+
 def create_image_manifest(image, applications):
     manifest = []
 

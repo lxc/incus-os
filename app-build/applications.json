@@ -121,7 +121,8 @@
             "usr/lib/firmware/i915",
             "usr/lib/firmware/intel/vpu",
             "usr/lib/firmware/nvidia",
-            "usr/lib/firmware/xe"
+            "usr/lib/firmware/xe",
+            "usr/lib/firmware/linux-firmware-gpu-version"
         ]
     },
     "migration-manager": {
