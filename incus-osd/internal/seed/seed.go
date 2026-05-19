@@ -270,8 +270,9 @@ func parseFileContentsFromRawTar(partition string, filename string, target any) 
 			return err
 		}
 
-		// Check if expected file.
-		switch hdr.Name {
+		// Check if this is the expected file. Some invocations of tar prefix files
+		// with "./", so trim that first if present.
+		switch strings.TrimPrefix(hdr.Name, "./") {
 		case filename + ".json":
 			decoder := json.NewDecoder(tr)
 			decoder.DisallowUnknownFields()
