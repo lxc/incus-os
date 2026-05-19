@@ -462,7 +462,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		targetPath = filepath.Join(systemd.LocalExtensionsPath, update.Version())
 
 		slog.InfoContext(ctx, "Downloading application update", "application", appName, "version", update.Version())
-		updateModal.Update("Downloading application update " + appName + " update " + update.Version())
+		updateModal.Update("Downloading application update " + appName + " version " + update.Version())
 	default:
 		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}
