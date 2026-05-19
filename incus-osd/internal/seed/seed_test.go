@@ -9,6 +9,30 @@ import (
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 )
 
+func TestGoodSeed(t *testing.T) {
+	t.Parallel()
+
+	var config apiseed.Applications
+
+	err := parseFileContents("testdata.tar", "applications", &config)
+
+	require.NoError(t, err)
+	require.Len(t, config.Applications, 2)
+	require.Equal(t, "foo", config.Applications[0].Name)
+}
+
+func TestSeedLeadingDotSlash(t *testing.T) {
+	t.Parallel()
+
+	var config apiseed.Kernel
+
+	err := parseFileContents("testdata.tar", "kernel", &config)
+
+	require.NoError(t, err)
+	require.Len(t, config.Console, 1)
+	require.Equal(t, "/dev/ttyS0", config.Console[0].Device)
+}
+
 func TestBadJSONFields(t *testing.T) {
 	t.Parallel()
 
