@@ -33,7 +33,7 @@ type cmdSync struct {
 
 func (c *cmdSync) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = "sync <path> [local archive]"
+	cmd.Use = "sync <path> [local archive(s)]"
 	cmd.Short = "Imports new images and cleans up the tree"
 	cmd.Long = formatSection("Description",
 		`Imports new images and cleans up the tree
@@ -42,9 +42,9 @@ This will connect to GitHub to retrieve any new image that's missing
 locally, then import them into the default channel (typically "testing")
 and then cleans up any extra image based on retention policy.
 
-Alternatively, if given an optional path to a local zip archive, import
-that build rather than querying GitHub. This is mostly intended to support
-local development and testing.
+Alternatively, if given an optional path to one or more local zip archives,
+import those builds rather than querying GitHub. This is mostly intended to
+support publishing to private image servers or local development and testing.
 `)
 	cmd.RunE = c.run
 
@@ -55,16 +55,16 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	ctx := context.TODO()
 
 	// Quick checks.
-	exit, err := c.global.CheckArgs(cmd, args, 1, 2)
+	exit, err := c.global.CheckArgs(cmd, args, 1, 100)
 	if exit {
 		return err
 	}
 
 	targetPath := args[0]
 
-	localRelease := ""
-	if len(args) == 2 {
-		localRelease = args[1]
+	localReleases := []string{}
+	if len(args) > 1 {
+		localReleases = args[1:]
 	}
 
 	err = os.MkdirAll(targetPath, 0o755)
@@ -93,23 +93,31 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 	var releaseURLs map[string]*url.URL
 
-	if localRelease == "" {
+	if len(localReleases) == 0 {
 		releaseName, releaseURLs, err = getLatestRelease(ctx)
 		if err != nil {
 			return err
 		}
 	} else {
-		releaseRegexp := regexp.MustCompile(`image-(\d+)-(.+)\.zip$`)
-
-		release := releaseRegexp.FindStringSubmatch(localRelease)
-		if len(release) != 3 {
-			return errors.New("invalid local archive name")
-		}
-
-		releaseName = release[1]
 		releaseURLs = make(map[string]*url.URL)
-		releaseURLs[release[2]] = &url.URL{
-			Path: localRelease,
+
+		// Expect the filename to be "<label>-<version>-<arch>.zip".
+		releaseRegexp := regexp.MustCompile(`.+-(\d+)-(.+)\.zip$`)
+
+		for _, releaseZipName := range localReleases {
+			release := releaseRegexp.FindStringSubmatch(releaseZipName)
+			if len(release) != 3 {
+				return errors.New("invalid local archive name '" + releaseZipName + "'")
+			}
+
+			if releaseName != "" && releaseName != release[1] {
+				return errors.New("all local archives must have the same release version")
+			}
+
+			releaseName = release[1]
+			releaseURLs[release[2]] = &url.URL{
+				Path: releaseZipName,
+			}
 		}
 	}
 
