@@ -266,7 +266,8 @@ type cmdGenericRun struct {
 	hasFileOutput bool
 	extraArgs     []cmdGenericRunArgs
 
-	flagData string
+	flagData  string
+	flagForce bool
 
 	os *cmdAdminOS
 }
@@ -310,6 +311,10 @@ func (c *cmdGenericRun) command() *cobra.Command {
 
 	if c.hasData {
 		cmd.Flags().StringVarP(&c.flagData, "data", "d", "", "Command data``")
+	}
+
+	if c.confirm != "" {
+		cmd.Flags().BoolVar(&c.flagForce, "force", false, "Skip the confirmation prompt")
 	}
 
 	for i := range c.extraArgs {
@@ -357,7 +362,7 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Ask for confirmation if needed.
-	if c.confirm != "" {
+	if c.confirm != "" && !c.flagForce {
 		asker := ask.NewAsker(bufio.NewReader(os.Stdin))
 
 		confirm, err := asker.AskBool(fmt.Sprintf("Are you sure you want to %s? (yes/no) [default=no]: ", c.confirm), "no")
