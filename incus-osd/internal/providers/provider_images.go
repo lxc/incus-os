@@ -228,17 +228,18 @@ func (p *images) load(_ context.Context) error {
 	p.token = p.state.System.Provider.Config.Config["token"]
 	p.client = http.DefaultClient
 
-	// Basic validation.
+	// Set default server URL if not configured.
 	if p.serverURL == "" {
+		p.serverURL = "https://images.linuxcontainers.org/os"
+	}
+
+	// Set default update CA if not configured.
+	if p.updateCA == "" && !p.ignoreSignedJSON {
 		var err error
 
-		p.serverURL = "https://images.linuxcontainers.org/os"
-
-		if !p.ignoreSignedJSON {
-			p.updateCA, err = GetUpdateCACert()
-			if err != nil {
-				return err
-			}
+		p.updateCA, err = GetUpdateCACert()
+		if err != nil {
+			return err
 		}
 	}
 
