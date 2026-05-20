@@ -50,7 +50,7 @@ type Provider interface {
 	GetOSUpdate(ctx context.Context) (OSUpdate, error)
 	GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error)
 
-	Register(ctx context.Context, isFirstBoot bool) error
+	Register(ctx context.Context) error
 	RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error
 	Deregister(ctx context.Context) error
 

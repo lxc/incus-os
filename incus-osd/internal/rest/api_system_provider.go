@@ -131,7 +131,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 
 		// If not registered, register now.
 		if !s.state.System.Provider.State.Registered {
-			err = p.Register(r.Context(), false)
+			err = p.Register(r.Context())
 			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 				s.state.System.Provider.Config = oldConfig
 				_ = s.state.Save()

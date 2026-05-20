@@ -75,7 +75,7 @@ func (p *images) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCaus
 	return ErrRegistrationUnsupported
 }
 
-func (p *images) Register(ctx context.Context, _ bool) error {
+func (p *images) Register(ctx context.Context) error {
 	if p.token != "" {
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.

@@ -37,7 +37,7 @@ func (*local) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCause) 
 	return ErrRegistrationUnsupported
 }
 
-func (*local) Register(_ context.Context, _ bool) error {
+func (*local) Register(_ context.Context) error {
 	// No registration with the local provider.
 	return ErrRegistrationUnsupported
 }

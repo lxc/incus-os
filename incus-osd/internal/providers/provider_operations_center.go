@@ -106,7 +106,7 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.Serv
 	return nil
 }
 
-func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
+func (p *operationsCenter) Register(ctx context.Context) error {
 	// Get the management address.
 	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
