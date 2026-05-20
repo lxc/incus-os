@@ -113,7 +113,12 @@ func (p *images) Register(ctx context.Context) error {
 			return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
 		}
 
-		return nil
+		// Log our successful registration and save state.
+		slog.InfoContext(ctx, "Server successfully registered with the 'images' provider")
+
+		p.state.System.Provider.State.Registered = true
+
+		return p.state.Save()
 	}
 
 	// No registration with the images provider.

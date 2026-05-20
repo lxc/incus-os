@@ -160,7 +160,12 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	// Log our successful registration and save state.
+	slog.InfoContext(ctx, "Server successfully registered with the 'operations-center' provider")
+
+	p.state.System.Provider.State.Registered = true
+
+	return p.state.Save()
 }
 
 func (*operationsCenter) Deregister(_ context.Context) error {

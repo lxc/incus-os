@@ -820,13 +820,6 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 			return err
 		}
-
-		if err == nil {
-			slog.InfoContext(ctx, "Server registered with the provider")
-
-			s.System.Provider.State.Registered = true
-			_ = s.Save()
-		}
 	}
 
 	// Register background jobs.
