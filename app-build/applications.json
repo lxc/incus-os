@@ -70,7 +70,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20260410",
+        "version": "20260519",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -90,7 +90,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260410",
+        "version": "20260519",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
