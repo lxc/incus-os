@@ -10,6 +10,7 @@ type ApplicationConfig struct{}
 // ApplicationState represents the state of a generic application.
 type ApplicationState struct {
 	Initialized       bool       `json:"initialized"             yaml:"initialized"`
+	FriendlyVersion   string     `json:"friendly_version"        yaml:"friendly_version"`
 	Version           string     `json:"version"                 yaml:"version"`
 	AvailableVersions []string   `json:"available_versions"      yaml:"available_versions"`
 	LastRestored      *time.Time `json:"last_restored,omitempty" yaml:"last_restored,omitempty"` // In system's timezone.

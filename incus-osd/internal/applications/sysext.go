@@ -115,9 +115,14 @@ func RefreshExtensions(ctx context.Context, s *state.State) error {
 	// and don't unexpectedly try to force-reset application versions.
 	priorBootRelease = s.OS.RunningRelease
 
-	// Remove any old versions of each application.
+	// Remove any old versions of each application and update their friendly version.
 	for _, app := range apps {
 		err := removeStaleSysextImages(app.Name(), app.AvailableVersions())
+		if err != nil {
+			return err
+		}
+
+		err = app.SetFriendlyVersion(ctx)
 		if err != nil {
 			return err
 		}

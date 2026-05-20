@@ -329,7 +329,7 @@ func (t *TUI) redrawScreen() {
 
 		appStatus := []string{}
 		for _, app := range apps {
-			appStatus = append(appStatus, app.Name()+"("+app.Version()+")")
+			appStatus = append(appStatus, app.Name()+"("+app.FriendlyVersion()+")")
 		}
 
 		slices.Sort(appStatus)

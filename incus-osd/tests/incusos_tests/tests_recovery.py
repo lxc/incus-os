@@ -98,8 +98,8 @@ def _recoveryChecks(vm, os_version):
     vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
-    vm.WaitExpectedLog("incus-osd", "Starting application name=incus version="+os_version)
-    vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version="+os_version)
+    vm.WaitExpectedLog("incus-osd", "Starting application name=incus version=.+ \\["+os_version+"\\]", regex=True)
+    vm.WaitExpectedLog("incus-osd", "Initializing application name=incus version=.+ \\["+os_version+"\\]", regex=True)
     vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     # Verity the incus application is installed.
