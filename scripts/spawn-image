@@ -22,7 +22,7 @@ trap cleanup EXIT HUP INT TERM
 # Grab and configure the image
 incus-osd/flasher-tool --seed test/seed.install.tar --format iso
 # shellcheck disable=SC2010
-IMG_NAME=$(ls "${OSNAME}_*.iso" | grep -v usr | grep -v esp | sort | tail -1)
+IMG_NAME=$(ls "${OSNAME}"_*.iso | grep -v usr | grep -v esp | sort | tail -1)
 
 # Create an instance
 echo "=> Creating an ${OSNAME} instance"
