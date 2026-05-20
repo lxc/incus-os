@@ -226,7 +226,7 @@ func (p *images) GetApplicationUpdate(ctx context.Context, name string) (Applica
 	return &app, nil
 }
 
-func (p *images) load(_ context.Context) error {
+func (p *images) load(ctx context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
@@ -261,6 +261,13 @@ func (p *images) load(_ context.Context) error {
 
 		p.client = &http.Client{
 			Transport: transport,
+		}
+
+		// The images provider can register immediately, since no local application state
+		// needs to be updated post-registration.
+		err = p.Register(ctx)
+		if err != nil {
+			return err
 		}
 	}
 
