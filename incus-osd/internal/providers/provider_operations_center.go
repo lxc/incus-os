@@ -106,7 +106,7 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.Serv
 	return nil
 }
 
-func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
+func (p *operationsCenter) Register(ctx context.Context) error {
 	// Get the management address.
 	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
@@ -160,7 +160,12 @@ func (p *operationsCenter) Register(ctx context.Context, _ bool) error {
 		}
 	}
 
-	return nil
+	// Log our successful registration and save state.
+	slog.InfoContext(ctx, "Server successfully registered with the 'operations-center' provider")
+
+	p.state.System.Provider.State.Registered = true
+
+	return p.state.Save()
 }
 
 func (*operationsCenter) Deregister(_ context.Context) error {

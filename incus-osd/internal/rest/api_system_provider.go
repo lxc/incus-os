@@ -3,7 +3,6 @@ package rest
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
@@ -131,7 +130,7 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 
 		// If not registered, register now.
 		if !s.state.System.Provider.State.Registered {
-			err = p.Register(r.Context(), false)
+			err = p.Register(r.Context())
 			if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 				s.state.System.Provider.Config = oldConfig
 				_ = s.state.Save()
@@ -139,11 +138,6 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 
 				return
 			}
-
-			// We've successfully registered.
-			slog.InfoContext(r.Context(), "Server registered with the provider")
-
-			s.state.System.Provider.State.Registered = true
 		} else {
 			// Refresh the registration.
 			err = p.RefreshRegister(r.Context(), ocapi.ServerSelfUpdateCauseDefault)

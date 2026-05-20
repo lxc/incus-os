@@ -75,7 +75,7 @@ func (p *images) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCaus
 	return ErrRegistrationUnsupported
 }
 
-func (p *images) Register(ctx context.Context, _ bool) error {
+func (p *images) Register(ctx context.Context) error {
 	if p.token != "" {
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.
@@ -113,7 +113,12 @@ func (p *images) Register(ctx context.Context, _ bool) error {
 			return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
 		}
 
-		return nil
+		// Log our successful registration and save state.
+		slog.InfoContext(ctx, "Server successfully registered with the 'images' provider")
+
+		p.state.System.Provider.State.Registered = true
+
+		return p.state.Save()
 	}
 
 	// No registration with the images provider.
@@ -221,7 +226,7 @@ func (p *images) GetApplicationUpdate(ctx context.Context, name string) (Applica
 	return &app, nil
 }
 
-func (p *images) load(_ context.Context) error {
+func (p *images) load(ctx context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
@@ -256,6 +261,13 @@ func (p *images) load(_ context.Context) error {
 
 		p.client = &http.Client{
 			Transport: transport,
+		}
+
+		// The images provider can register immediately, since no local application state
+		// needs to be updated post-registration.
+		err = p.Register(ctx)
+		if err != nil {
+			return err
 		}
 	}
 

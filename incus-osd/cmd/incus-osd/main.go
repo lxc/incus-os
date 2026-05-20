@@ -816,16 +816,9 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 
 		// Register with the provider.
-		err = p.Register(ctx, true)
+		err = p.Register(ctx)
 		if err != nil && !errors.Is(err, providers.ErrRegistrationUnsupported) {
 			return err
-		}
-
-		if err == nil {
-			slog.InfoContext(ctx, "Server registered with the provider")
-
-			s.System.Provider.State.Registered = true
-			_ = s.Save()
 		}
 	}
 
