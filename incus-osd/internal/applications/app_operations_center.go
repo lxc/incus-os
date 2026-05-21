@@ -193,6 +193,25 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 		time.Sleep(500 * time.Millisecond)
 	}
 
+	// Apply SystemSettings, if any.
+	if ocSeed.Preseed.SystemSettings == nil {
+		ocSeed.Preseed.SystemSettings = new(ocapi.SettingsPut)
+	}
+
+	{
+		if *ocSeed.Preseed.SystemSettings != (ocapi.SettingsPut{}) {
+			contentJSON, err := json.Marshal(ocSeed.Preseed.SystemSettings)
+			if err != nil {
+				return err
+			}
+
+			_, err = doOCRequest(ctx, "http://localhost/1.0/system/settings", http.MethodPut, contentJSON)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Apply SystemCertificate, if any.
 	if ocSeed.Preseed.SystemCertificate != nil {
 		contentJSON, err := json.Marshal(ocSeed.Preseed.SystemCertificate)

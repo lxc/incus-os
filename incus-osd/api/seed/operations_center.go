@@ -23,4 +23,5 @@ type OperationsCenterPreseed struct {
 	SystemNetwork     *system.NetworkPut      `json:"system_network,omitempty"     yaml:"system_network,omitempty"`
 	SystemSecurity    *system.SecurityPut     `json:"system_security,omitempty"    yaml:"system_security,omitempty"`
 	SystemUpdates     *system.UpdatesPut      `json:"system_updates,omitempty"     yaml:"system_updates,omitempty"`
+	SystemSettings    *system.SettingsPut     `json:"system_settings,omitempty"    yaml:"system_settings,omitempty"`
 }
