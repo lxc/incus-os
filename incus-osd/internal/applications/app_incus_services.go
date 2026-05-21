@@ -23,6 +23,15 @@ func (*incusCeph) GetDependencies() []string {
 	return []string{"incus"}
 }
 
+// IsInstalled reports whether the application has been installed.
+func (i *incusCeph) IsInstalled() bool {
+	if i.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(i.Name(), i.appState.Version)
+}
+
 func (*incusCeph) Name() string {
 	return "incus-ceph"
 }
@@ -62,6 +71,15 @@ func (i *incusLinstor) Get(_ context.Context) (any, error) {
 // GetDependencies returns a list of other applications this application depends on.
 func (*incusLinstor) GetDependencies() []string {
 	return []string{"incus"}
+}
+
+// IsInstalled reports whether the application has been installed.
+func (i *incusLinstor) IsInstalled() bool {
+	if i.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(i.Name(), i.appState.Version)
 }
 
 func (*incusLinstor) Name() string {

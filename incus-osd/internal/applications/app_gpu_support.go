@@ -21,6 +21,15 @@ func (g *gpuSupport) Get(_ context.Context) (any, error) {
 	return g.state.Applications.GPUSupport, nil
 }
 
+// IsInstalled reports whether the application has been installed.
+func (g *gpuSupport) IsInstalled() bool {
+	if g.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(g.Name(), g.appState.Version)
+}
+
 func (*gpuSupport) IsRunning(_ context.Context) bool {
 	return true
 }

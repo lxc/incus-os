@@ -86,11 +86,6 @@ func (a *common) Initialize(_ context.Context) error {
 	return nil
 }
 
-// IsInstalled reports whether the application has been installed.
-func (a *common) IsInstalled() bool {
-	return a.appState.Version != ""
-}
-
 // IsInitialized reports whether the application has been initialized.
 func (a *common) IsInitialized() bool {
 	return a.appState.Initialized
