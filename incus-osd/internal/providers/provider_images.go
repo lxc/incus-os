@@ -76,6 +76,11 @@ func (p *images) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCaus
 }
 
 func (p *images) Register(ctx context.Context) error {
+	// Nothing to do if currently registered.
+	if p.state.System.Provider.State.Registered {
+		return nil
+	}
+
 	if p.token != "" {
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.
@@ -125,8 +130,13 @@ func (p *images) Register(ctx context.Context) error {
 	return ErrRegistrationUnsupported
 }
 
-func (*images) Deregister(_ context.Context) error {
-	return nil
+func (p *images) Deregister(ctx context.Context) error {
+	// Log our successful deregistration and save state.
+	slog.InfoContext(ctx, "Server successfully deregistered from the 'images' provider")
+
+	p.state.System.Provider.State.Registered = false
+
+	return p.state.Save()
 }
 
 func (*images) Type() string {
