@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.10
-	github.com/FuturFusion/operations-center v0.6.3
+	github.com/FuturFusion/operations-center v0.6.4
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.9
@@ -24,9 +24,9 @@ require (
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.45.0
 	software.sslmate.com/src/go-pkcs12 v0.7.1
-	tailscale.com v1.98.2
+	tailscale.com v1.98.3
 )
 
 require (
