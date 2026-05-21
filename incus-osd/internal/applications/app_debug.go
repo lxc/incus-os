@@ -14,6 +14,15 @@ func (d *debug) Get(_ context.Context) (any, error) {
 	return d.state.Applications.Debug, nil
 }
 
+// IsInstalled reports whether the application has been installed.
+func (d *debug) IsInstalled() bool {
+	if d.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(d.Name(), d.appState.Version)
+}
+
 func (*debug) Name() string {
 	return "debug"
 }

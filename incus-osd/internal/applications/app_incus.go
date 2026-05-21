@@ -199,6 +199,15 @@ func (a *incus) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// IsInstalled reports whether the application has been installed.
+func (a *incus) IsInstalled() bool {
+	if a.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(a.Name(), a.appState.Version)
+}
+
 // IsPrimary reports if the application is a primary application.
 func (*incus) IsPrimary() bool {
 	return true

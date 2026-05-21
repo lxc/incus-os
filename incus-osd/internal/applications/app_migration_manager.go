@@ -263,6 +263,15 @@ func (mm *migrationManager) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// IsInstalled reports whether the application has been installed.
+func (mm *migrationManager) IsInstalled() bool {
+	if mm.appState.Version == "" {
+		return false
+	}
+
+	return sysextImageExists(mm.Name(), mm.appState.Version)
+}
+
 // IsPrimary reports if the application is a primary application.
 func (*migrationManager) IsPrimary() bool {
 	return true
