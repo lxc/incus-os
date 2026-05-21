@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -81,7 +82,7 @@ func (p *images) Register(ctx context.Context) error {
 		return nil
 	}
 
-	if p.token != "" {
+	if p.token != "" { //nolint:nestif
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.
 		machineID, err := p.state.MachineID()
@@ -115,7 +116,18 @@ func (p *images) Register(ctx context.Context) error {
 
 		// Check the response.
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
+			switch resp.StatusCode {
+			case http.StatusBadRequest:
+				// The remote server should provide an error to return.
+				b, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return err
+				}
+
+				return errors.New(string(b))
+			default:
+				return fmt.Errorf("bad HTTP response code for registration: %d", resp.StatusCode)
+			}
 		}
 
 		// Log our successful registration and save state.
