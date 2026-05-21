@@ -91,6 +91,7 @@ jobs:
           mv mkosi.output/incus-ceph.raw upload/
           mv mkosi.output/incus-linstor.raw upload/
           mv mkosi.output/migration-manager.raw upload/
+          mv mkosi.output/openfga.raw upload/
           mv mkosi.output/operations-center.raw upload/
 
           OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)

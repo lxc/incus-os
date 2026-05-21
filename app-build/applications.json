@@ -184,6 +184,26 @@
             "usr/local/bin/netbird"
         ]
     },
+    "openfga": {
+        "version": "v1.16.0",
+        "repo": "https://github.com/openfga/openfga.git",
+        "build_targets": [
+            [
+                "-ldflags",
+                "-X github.com/openfga/openfga/internal/build.Version=@VERSION@",
+                "./cmd/openfga"
+            ]
+        ],
+        "install_targets": [
+            [
+                "openfga",
+                "usr/local/bin/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/local/bin/openfga"
+        ]
+    },
     "opentofu": {
         "version": "v1.12.0",
         "repo": "https://github.com/opentofu/opentofu.git",
