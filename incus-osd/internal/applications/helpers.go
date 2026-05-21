@@ -207,12 +207,16 @@ func unixHTTPClient(socketPath string) (*http.Client, error) {
 
 // Common helper for performing REST API calls.
 func doRequest(ctx context.Context, socket string, url string, method string, body []byte) ([]byte, error) {
+	// Set a limit of five seconds for the request to complete.
+	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	client, err := unixHTTPClient(socket)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctxTimeout, method, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
