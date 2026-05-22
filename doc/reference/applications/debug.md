@@ -5,8 +5,9 @@ The Debug (`debug`) application provides several additional tools that can be us
 * `htop`
 * `ifstat`
 * `iputils-ping`
-* `nano`
+* `jq`
 * `mtr-tiny`
+* `nano`
 * `net-tools`
 * `netcat-openbsd`
 * `procps`
