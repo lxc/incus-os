@@ -85,6 +85,7 @@ NVMe
 OCI
 oddlama
 OEM
+OpenFGA
 OVMF
 OVN
 OVS
