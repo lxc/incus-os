@@ -12,7 +12,7 @@
         ]
     },
     "edk2": {
-        "version": "edk2-stable202602",
+        "version": "edk2-stable202605",
         "repo": "https://github.com/tianocore/edk2",
         "submodules": true,
         "build_targets": [],
@@ -48,7 +48,7 @@
         ]
     },
     "lego": {
-        "version": "v5.0.4",
+        "version": "v5.1.0",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -203,7 +203,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.6.4",
+        "version": "v0.6.5",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
