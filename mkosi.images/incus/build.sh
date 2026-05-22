@@ -26,7 +26,7 @@ cp /work/src/patches/edk2-logo.bmp MdeModulePkg/Logo/Logo.bmp
 
 make -C "BaseTools" "ARCH=${ARCH}"
 build -m "MdeModulePkg/Logo/LogoDxe.inf" \
-      -a "${ARCH}" -t "GCC5" -b "RELEASE" -p "${PKG}"
+      -a "${ARCH}" -t "GCC" -b "RELEASE" -p "${PKG}"
 
 # shellcheck disable=SC2046
 LOGO_DXE_FFS=$(ls -1 Build/*/*/FV/Ffs/${LOGO_DXE_GUID}LogoDxe/${LOGO_DXE_GUID}.ffs)
