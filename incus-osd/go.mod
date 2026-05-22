@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.10
-	github.com/FuturFusion/operations-center v0.6.4
+	github.com/FuturFusion/operations-center v0.6.5
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.9
@@ -101,9 +101,9 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
