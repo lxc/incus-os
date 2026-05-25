@@ -7,7 +7,7 @@ require (
 	github.com/FuturFusion/operations-center v0.6.6
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
-	github.com/gdamore/tcell/v2 v2.13.9
+	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v84 v84.0.0
