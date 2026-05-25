@@ -26,6 +26,7 @@ import (
 )
 
 type imagesAuthenticatedTransport struct {
+	authParam bool
 	machineID string
 }
 
@@ -35,7 +36,13 @@ func (t *imagesAuthenticatedTransport) RoundTrip(req *http.Request) (*http.Respo
 		return nil, err
 	}
 
-	req.Header.Set("X-IncusOS-Authentication", authToken)
+	if t.authParam {
+		q := req.URL.Query()
+		q.Set("token", authToken)
+		req.URL.RawQuery = q.Encode()
+	} else {
+		req.Header.Set("X-IncusOS-Authentication", authToken)
+	}
 
 	transport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
@@ -51,6 +58,7 @@ type images struct {
 
 	serverURL string
 	updateCA  string
+	authParam bool
 	token     string
 	client    *http.Client
 
@@ -252,6 +260,7 @@ func (p *images) load(ctx context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
+	p.authParam = strings.ToLower(p.state.System.Provider.Config.Config["authentication_by_query_param"]) == "true"
 	p.token = p.state.System.Provider.Config.Config["token"]
 	p.client = http.DefaultClient
 
@@ -279,6 +288,7 @@ func (p *images) load(ctx context.Context) error {
 
 		transport := &imagesAuthenticatedTransport{
 			machineID: machineID,
+			authParam: p.authParam,
 		}
 
 		p.client = &http.Client{
