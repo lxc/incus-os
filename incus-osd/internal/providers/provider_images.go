@@ -3,12 +3,14 @@ package providers
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -109,12 +111,30 @@ func (p *images) Register(ctx context.Context) error {
 		}
 
 		// Prepare the request.
-		r, err := http.NewRequestWithContext(ctx, http.MethodPost, p.serverURL+"/register", bytes.NewReader(reqBody))
-		if err != nil {
-			return errors.New("unable to create http request: " + err.Error())
+		var r *http.Request
+
+		if p.authParam {
+			u, err := url.Parse(p.serverURL + "/register")
+			if err != nil {
+				return err
+			}
+
+			q := u.Query()
+			q.Set("registration", base64.RawURLEncoding.EncodeToString(reqBody))
+			u.RawQuery = q.Encode()
+
+			r, err = http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+			if err != nil {
+				return errors.New("unable to create http request: " + err.Error())
+			}
+		} else {
+			r, err = http.NewRequestWithContext(ctx, http.MethodPost, p.serverURL+"/register", bytes.NewReader(reqBody))
+			if err != nil {
+				return errors.New("unable to create http request: " + err.Error())
+			}
 		}
 
-		// Get a reader for the release asset.
+		// Send the request.
 		resp, err := p.client.Do(r)
 		if err != nil {
 			return errors.New("unable to get http register response: " + err.Error())
