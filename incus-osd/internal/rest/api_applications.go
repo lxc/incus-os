@@ -1,13 +1,17 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
@@ -158,6 +162,56 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 
 		for _, installedApp := range apps {
 			if actualApp.IsPrimary() && installedApp.IsPrimary() {
+				// If the currently installed primary application is some version of incus and the app we're
+				// trying to install is a different version of incus, attempt to replace the existing application.
+				if strings.HasPrefix(installedApp.Name(), "incus") && strings.HasPrefix(app.Name, "incus") {
+					err := installedApp.CanBeReplaced(r.Context(), app.Name)
+					if err != nil {
+						_ = response.BadRequest(err).Render(w)
+
+						return
+					}
+
+					// It is possible to replace the currently installed version of incus,
+					// so let's attempt to do so.
+					slog.InfoContext(r.Context(), "Preparing to replace Incus application '"+installedApp.Name()+"' with '"+app.Name+"'")
+
+					// Perform the replacement of the incus application in its own gofunc. Without doing
+					// this, an error occurs when attempting to restart incus.service.
+					go func() { //nolint:contextcheck,gosec
+						// We must use our own context here, since the request's context will quickly go away.
+						ctx := context.Background()
+
+						// Clear the current incus application state. We do manually set its
+						// initialized state to true, since we shouldn't try to re-initialize
+						// the incus application when installing the different version.
+						s.state.Applications.Incus = api.ApplicationIncus{}
+						s.state.Applications.Incus.State.Initialized = true
+
+						// Remove the existing sysext image(s).
+						err = applications.RemoveExtension(ctx, installedApp)
+						if err != nil {
+							slog.ErrorContext(ctx, "Failed to remove sysext images for application '"+installedApp.Name()+"'", "error", err)
+
+							return
+						}
+
+						// At this point, the prior incus application is gone, although any local data
+						// is still preserved. Install the "new" incus application to complete the
+						// version switch.
+						err = update.InstallUpdateApp(ctx, s.state, app.Name, false)
+						if err != nil {
+							slog.ErrorContext(ctx, "Failed to install new application '"+app.Name+"'", "error", err)
+
+							return
+						}
+					}()
+
+					_ = response.EmptySyncResponse.Render(w)
+
+					return
+				}
+
 				_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
 
 				return
