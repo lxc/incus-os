@@ -11,7 +11,7 @@ import (
 )
 
 // Supported lists all supported applications.
-var Supported = []string{"debug", "gpu-support", "incus", "incus-ceph", "incus-linstor", "migration-manager", "operations-center"}
+var Supported = []string{"debug", "gpu-support", incusVersionStable, incusVersionLTS70, "incus-ceph", "incus-linstor", "migration-manager", "operations-center"}
 
 // ErrNoPrimary is returned when the system doesn't yet have a primary application.
 var ErrNoPrimary = errors.New("no primary application")
@@ -30,8 +30,10 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 		app = &debug{common: common{state: s, appState: &s.Applications.Debug.State}}
 	case "gpu-support":
 		app = &gpuSupport{common: common{state: s, appState: &s.Applications.GPUSupport.State}}
-	case "incus":
-		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}}
+	case incusVersionStable:
+		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionStable}
+	case incusVersionLTS70:
+		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionLTS70}
 	case "incus-ceph":
 		app = &incusCeph{common: common{state: s, appState: &s.Applications.IncusCeph.State}}
 	case "incus-linstor":

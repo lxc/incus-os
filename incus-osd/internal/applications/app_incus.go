@@ -24,12 +24,26 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
+// IncusOS supports both stable (aka "feature" or "monthly") and 7.0 LTS versions
+// of the Incus application. When the application is loaded, the appropriate
+// version constant defined below is used, which then sets the reported name and
+// expected sysext filepath. The actual logic for initializing/starting/etc of the
+// Incus application is currently identical regardless of version; down the road if
+// needed code can refer to the "incusVersion" field to determine which version of
+// Incus is running to properly handle any differences.
+const (
+	incusVersionStable = "incus"
+	incusVersionLTS70  = "incus-lts-7.0"
+)
+
 type incusDebug struct {
 	Action string `json:"action"`
 }
 
 type incus struct {
 	common
+
+	incusVersion string
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
@@ -213,8 +227,8 @@ func (*incus) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "incus.service")
 }
 
-func (*incus) Name() string {
-	return "incus"
+func (a *incus) Name() string {
+	return a.incusVersion
 }
 
 // NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.
