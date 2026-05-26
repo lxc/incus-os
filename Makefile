@@ -190,6 +190,7 @@ test-applications:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
 	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
@@ -208,6 +209,7 @@ test-update:
 	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
 	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
+	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
 	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
 	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
