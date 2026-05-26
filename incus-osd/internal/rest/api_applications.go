@@ -149,10 +149,19 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Don't allow more than one primary application to be installed.
-		if actualApp.IsPrimary() {
-			_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
+		apps, err := applications.GetInstalled(r.Context(), s.state)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
 
 			return
+		}
+
+		for _, installedApp := range apps {
+			if actualApp.IsPrimary() && installedApp.IsPrimary() {
+				_ = response.BadRequest(errors.New("a primary application is already installed")).Render(w)
+
+				return
+			}
 		}
 
 		// Install the application.
