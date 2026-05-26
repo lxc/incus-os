@@ -28,6 +28,11 @@ func (a *common) AvailableVersions() []string {
 	return a.appState.AvailableVersions
 }
 
+// CanBeReplaced checks if it is possible to replace the installed application with an equivalent one.
+func (*common) CanBeReplaced(_ context.Context, _ string) error {
+	return errors.New("not supported")
+}
+
 // ConfigureLocalStorage configures local storage for the application.
 func (*common) ConfigureLocalStorage(_ context.Context) error {
 	return nil

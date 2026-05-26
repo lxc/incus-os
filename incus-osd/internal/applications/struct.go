@@ -12,6 +12,7 @@ import (
 type Application interface { //nolint:interfacebloat
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
 	AvailableVersions() []string
+	CanBeReplaced(ctx context.Context, otherAppName string) error
 	ConfigureLocalStorage(ctx context.Context) error
 	Debug(ctx context.Context, data any) response.Response
 	DebugStruct() any

@@ -68,6 +68,46 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 	return nil
 }
 
+// CanBeReplaced checks if it is possible to replace the installed application with an equivalent one.
+func (a *incus) CanBeReplaced(ctx context.Context, otherAppName string) error {
+	if a.Name() == otherAppName {
+		return errors.New("can't replace application '" + a.Name() + "' with itself")
+	}
+
+	// Check if it's possible to switch application editions.
+	switch a.Name() {
+	case incusVersionStable:
+		// Currently running stable, attempt to switch to LTS branch.
+		if otherAppName != incusVersionLTS70 {
+			return errors.New("unable to replace application '" + a.Name() + "' with '" + otherAppName + "': unsupported application")
+		}
+
+		// Get the current Incus application version.
+		output, err := subprocess.RunCommandContext(ctx, "incus", "--version")
+		if err != nil {
+			return err
+		}
+
+		currentVersion := strings.TrimSuffix(output, "\n")
+
+		if currentVersion != "7.0.0" {
+			return errors.New("unable to replace application '" + a.Name() + "' with '" + otherAppName + "': current Incus version (" + currentVersion + ") is too new to rollback to older LTS branch")
+		}
+	case incusVersionLTS70:
+		// Currently running LTS, attempt to switch to stable branch.
+		if otherAppName != "incus" {
+			return errors.New("can't replace application '" + a.Name() + "' with a non-Incus application")
+		}
+
+		// Nothing else to check; it's always possible to move from LTS to the current feature release.
+	default:
+		return errors.New("unable to check replacement of application '" + a.Name() + "': unsupported application branch")
+	}
+
+	// It is possible to replace the current Incus application.
+	return nil
+}
+
 // Debug runs a debug action.
 func (*incus) Debug(ctx context.Context, data any) response.Response {
 	req, ok := data.(*incusDebug)
