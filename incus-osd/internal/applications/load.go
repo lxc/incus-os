@@ -19,6 +19,11 @@ var ErrNoPrimary = errors.New("no primary application")
 func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	var app Application
 
+	// Ensure the requested application is one of the known, supported ones.
+	if !slices.Contains(Supported, name) {
+		return nil, errors.New("unknown application '" + name + "'")
+	}
+
 	switch name {
 	case "debug":
 		app = &debug{common: common{state: s, appState: &s.Applications.Debug.State}}
@@ -35,7 +40,7 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 	case "operations-center":
 		app = &operationsCenter{common: common{state: s, appState: &s.Applications.OperationsCenter.State}}
 	default:
-		return nil, errors.New("unknown application")
+		return nil, errors.New("unknown application '" + name + "'")
 	}
 
 	return app, nil
