@@ -153,8 +153,23 @@ func GetInstallApplications(ctx context.Context, s *state.State) ([]string, erro
 		}
 
 		for _, dep := range app.GetDependencies() {
-			if !slices.Contains(toInstall, dep) {
-				toInstall = append(toInstall, dep)
+			// Each individual dependency is required, but some dependencies can be satisfied
+			// by more than one application, such as the incus stable or incus lts versions.
+			deps := strings.Split(dep, " OR ")
+			foundDep := false
+
+			// Check if the dependency exists in the list of applications to install.
+			for _, d := range deps {
+				if slices.Contains(toInstall, d) {
+					foundDep = true
+
+					break
+				}
+			}
+
+			// Add dependency to list of applications to install if needed.
+			if !foundDep {
+				toInstall = append(toInstall, deps[0])
 			}
 		}
 	}

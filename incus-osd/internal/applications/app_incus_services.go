@@ -20,7 +20,7 @@ func (i *incusCeph) Get(_ context.Context) (any, error) {
 
 // GetDependencies returns a list of other applications this application depends on.
 func (*incusCeph) GetDependencies() []string {
-	return []string{"incus"}
+	return []string{incusVersionStable + " OR " + incusVersionLTS70}
 }
 
 // IsInstalled reports whether the application has been installed.
@@ -70,7 +70,7 @@ func (i *incusLinstor) Get(_ context.Context) (any, error) {
 
 // GetDependencies returns a list of other applications this application depends on.
 func (*incusLinstor) GetDependencies() []string {
-	return []string{"incus"}
+	return []string{incusVersionStable + " OR " + incusVersionLTS70}
 }
 
 // IsInstalled reports whether the application has been installed.
