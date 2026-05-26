@@ -76,6 +76,8 @@ function download() {
     app = "";
     if (document.getElementById("imageApplicationIncus").checked) {
         app = "incus";
+    } else if (document.getElementById("imageApplicationIncusLTS").checked) {
+        app = "incus-lts-7.0";
     } else if (document.getElementById("imageApplicationOperationsCenter").checked) {
         app = "operations-center";
     } else if (document.getElementById("imageApplicationMigrationManager").checked) {
