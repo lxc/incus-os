@@ -1,4 +1,7 @@
 #!/bin/sh
+
+set -eu
+
 [ "$1" = "final" ] || exit 0
 
 # Get the repository keyring key.

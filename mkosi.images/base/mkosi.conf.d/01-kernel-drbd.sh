@@ -1,5 +1,4 @@
-#!/bin/sh
-set -eux
+#!/bin/sh -eux
 
 KERNEL="$(ls /buildroot/usr/lib/modules/)"
 

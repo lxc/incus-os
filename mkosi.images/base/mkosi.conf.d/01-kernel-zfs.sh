@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eux
 KERNEL="$(ls /buildroot/usr/lib/modules/)"
 
 mkdir -p "${DESTDIR}/usr/lib/modules/${KERNEL}/updates/dkms/"
