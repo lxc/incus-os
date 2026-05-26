@@ -27,6 +27,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
+var imageRegisterMu sync.Mutex
+
 type imagesAuthenticatedTransport struct {
 	authParam bool
 	machineID string
@@ -93,6 +95,13 @@ func (p *images) Register(ctx context.Context) error {
 	}
 
 	if p.token != "" { //nolint:nestif
+		// Prevent concurent registration attempts.
+		// The image provider triggers Register on load, so it's
+		// possible/likely that we get two concurrent registration attempts during
+		// first boot.
+		imageRegisterMu.Lock()
+		defer imageRegisterMu.Unlock()
+
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.
 		machineID, err := p.state.MachineID()
