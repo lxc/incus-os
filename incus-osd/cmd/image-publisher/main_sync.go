@@ -350,6 +350,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case assetName == "incus.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncus
 			assetType = apiupdate.UpdateFileTypeApplication
+		case assetName == "incus-lts-7.0.raw.gz":
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeApplication
 		case assetName == "incus-ceph.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncusCeph
 			assetType = apiupdate.UpdateFileTypeApplication
@@ -387,6 +390,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 			assetComponent = apiupdate.UpdateFileComponentGPUSupport
 			assetType = apiupdate.UpdateFileTypeImageManifest
 		case strings.HasSuffix(assetName, "incus.manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "incus-lts-7.0.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentIncus
 			assetType = apiupdate.UpdateFileTypeImageManifest
 		case strings.HasSuffix(assetName, "incus-ceph.manifest.json.gz"):
