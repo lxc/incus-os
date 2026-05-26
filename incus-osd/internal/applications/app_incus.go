@@ -122,11 +122,6 @@ func (a *incus) GetClientCertificate() (*tls.Certificate, error) {
 	return a.getCertificate("server")
 }
 
-// GetDependencies returns a list of other applications this application depends on.
-func (*incus) GetDependencies() []string {
-	return nil
-}
-
 // GetServerCertificate returns the keypair for the server certificate.
 func (a *incus) GetServerCertificate() (*tls.Certificate, error) {
 	cert, err := a.getCertificate("cluster")

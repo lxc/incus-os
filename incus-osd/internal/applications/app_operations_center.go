@@ -131,11 +131,6 @@ func (oc *operationsCenter) GetClientCertificate() (*tls.Certificate, error) {
 	return oc.GetServerCertificate()
 }
 
-// GetDependencies returns a list of other applications this application depends on.
-func (*operationsCenter) GetDependencies() []string {
-	return nil
-}
-
 // GetServerCertificate returns the keypair for the server certificate.
 func (*operationsCenter) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.
