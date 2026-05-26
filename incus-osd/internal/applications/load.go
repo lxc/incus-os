@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -159,6 +160,24 @@ func GetInstallApplications(ctx context.Context, s *state.State) ([]string, erro
 	// Sort and remove any duplicates.
 	slices.Sort(toInstall)
 	toInstall = slices.Compact(toInstall)
+
+	// Ensure that only one primary application is in the list of applications to install.
+	numPrimaryApps := 0
+
+	for _, appName := range toInstall {
+		app, err := Load(ctx, s, appName)
+		if err != nil {
+			return nil, errors.New("failed to load application '" + appName + "': " + err.Error())
+		}
+
+		if app.IsPrimary() {
+			numPrimaryApps++
+		}
+	}
+
+	if numPrimaryApps > 1 {
+		return nil, errors.New("more than one primary application present in installation list: " + strings.Join(toInstall, ", "))
+	}
 
 	return toInstall, nil
 }
