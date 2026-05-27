@@ -74,7 +74,7 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error {
+func (p *operationsCenter) RefreshRegister(_ context.Context, cause ocapi.ServerSelfUpdateCause) error {
 	// Check if registered.
 	if !p.state.System.Provider.State.Registered {
 		return nil
@@ -97,11 +97,29 @@ func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.Serv
 		return err
 	}
 
-	// Register.
-	_, err = p.apiRequest(ctx, http.MethodPut, "/1.0/provisioning/servers/:self", bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
+	// Attempt to register. Because Operations Center might be offline during an upgrade/reboot, attempt
+	// the request a few times if it doesn't succeed. If we ultimately fail, log the failure.
+	go func(d []byte) { //nolint:contextcheck,gosec
+		privateCtx := context.Background() // Must use a local context here.
+		tries := 0
+
+		for {
+			_, err := p.apiRequest(privateCtx, http.MethodPut, "/1.0/provisioning/servers/:self", bytes.NewReader(d))
+			if err == nil {
+				break
+			}
+
+			tries++
+
+			if tries > 4 {
+				slog.WarnContext(privateCtx, "Failed to refresh Operations Center registration", "err", err)
+
+				break
+			}
+
+			time.Sleep(30 * time.Second)
+		}
+	}(data)
 
 	return nil
 }
