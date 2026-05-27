@@ -5,8 +5,8 @@ github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/FuturFusion/migration-manager v0.6.10 h1:v58e5+4u+08nqyahwdOhOktaKuFJDq+Uq76gjZGhZjw=
 github.com/FuturFusion/migration-manager v0.6.10/go.mod h1:Si7dBSilhF7FIbaYMG+V804C0ESIm7t6pF2x8es3IOk=
-github.com/FuturFusion/operations-center v0.6.6 h1:G5v8ptOKPZgfjWrl1rOJe182rOgodQvZkZNStj/MMBk=
-github.com/FuturFusion/operations-center v0.6.6/go.mod h1:DaH3sy8xxPoI6jPAroDf4SPy4KVhHcI9xkVAHbGTRPc=
+github.com/FuturFusion/operations-center v0.6.7 h1:smQLdJoYvgDEeIa0EXy6Se9pY0Xiuf+htOX8HLxKHDs=
+github.com/FuturFusion/operations-center v0.6.7/go.mod h1:xhi4/a4jw2TEGU3La1s2GzZYk17QH9CfkVaIr8/lKRQ=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
 github.com/apex/log v1.9.0/go.mod h1:m82fZlWIuiWzWP04XCTXmnX0xRkYYbCdYn8jbJeLBEA=
 github.com/apex/logs v1.0.0/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
