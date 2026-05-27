@@ -74,6 +74,8 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 		s.Applications.IncusLinstor = api.Application{}
 	case "migration-manager":
 		s.Applications.MigrationManager = api.Application{}
+	case "openfga":
+		s.Applications.OpenFGA = api.ApplicationOpenFGA{}
 	case "operations-center":
 		s.Applications.OperationsCenter = api.Application{}
 	default:
