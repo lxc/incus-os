@@ -264,7 +264,7 @@ func (p *images) GetApplicationUpdate(ctx context.Context, name string) (Applica
 	found := false
 
 	for _, file := range latestUpdate.Files {
-		if string(file.Component) == name && file.Type == apiupdate.UpdateFileTypeApplication {
+		if filepath.Base(file.Filename) == name+".raw.gz" && file.Type == apiupdate.UpdateFileTypeApplication {
 			found = true
 
 			break
@@ -498,7 +498,7 @@ func (a *imagesApplication) Download(ctx context.Context, targetPath string, pro
 
 	for _, file := range a.latestUpdate.Files {
 		// Only select the desired applications.
-		if string(file.Component) != a.name || file.Type != apiupdate.UpdateFileTypeApplication {
+		if filepath.Base(file.Filename) != a.name+".raw.gz" || file.Type != apiupdate.UpdateFileTypeApplication {
 			continue
 		}
 
