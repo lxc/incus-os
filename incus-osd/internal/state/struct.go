@@ -54,13 +54,14 @@ type State struct {
 	FullAgentEnabled   bool       `json:"full_agent_enabled"`
 
 	Applications struct {
-		Debug            api.Application      `json:"debug"`
-		GPUSupport       api.Application      `json:"gpu_support"`
-		Incus            api.ApplicationIncus `json:"incus"`
-		IncusCeph        api.Application      `json:"incus_ceph"`
-		IncusLinstor     api.Application      `json:"incus_linstor"`
-		MigrationManager api.Application      `json:"migration_manager"`
-		OperationsCenter api.Application      `json:"operations_center"`
+		Debug            api.Application        `json:"debug"`
+		GPUSupport       api.Application        `json:"gpu_support"`
+		Incus            api.ApplicationIncus   `json:"incus"`
+		IncusCeph        api.Application        `json:"incus_ceph"`
+		IncusLinstor     api.Application        `json:"incus_linstor"`
+		MigrationManager api.Application        `json:"migration_manager"`
+		OpenFGA          api.ApplicationOpenFGA `json:"openfga"`
+		OperationsCenter api.Application        `json:"operations_center"`
 	}
 
 	OS OS `json:"os"`
