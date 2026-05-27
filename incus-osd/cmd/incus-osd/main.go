@@ -539,6 +539,17 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
+	// Remove an accidental install of the incus-lts-7.0 application. This only affected
+	// IncusOS version 202605270119, but it was in the stable channel for a short while.
+	// This cleanup can be removed in early June.
+	_, err = os.Stat("/var/lib/incus-os-extensions/202605270119/incus-lts-7.0.raw")
+	if err == nil {
+		err := os.Remove("/var/lib/incus-os-extensions/202605270119/incus-lts-7.0.raw")
+		if err != nil {
+			return err
+		}
+	}
+
 	// Cleanup any accidentally downloaded manifest files. This code can be removed after April 2026.
 	_, err = os.Stat(systemd.SystemExtensionsPath)
 	if err == nil {
