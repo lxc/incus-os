@@ -176,7 +176,7 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		}
 	}
 
-	_, err := subprocess.RunCommandContext(ctx, "tailscale", "set", "--advertise-routes", strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","), "--accept-routes="+strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes))
+	_, err := subprocess.RunCommandContext(ctx, "tailscale", "set", "--advertise-routes", strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","), "--accept-routes="+strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes), "--accept-dns="+strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptDNS))
 	if err != nil {
 		return err
 	}
