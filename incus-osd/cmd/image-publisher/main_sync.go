@@ -350,6 +350,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case assetName == "incus.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncus
 			assetType = apiupdate.UpdateFileTypeApplication
+		case assetName == "incus-lts-7.0.raw.gz":
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeApplication
 		case assetName == "incus-ceph.raw.gz":
 			assetComponent = apiupdate.UpdateFileComponentIncusCeph
 			assetType = apiupdate.UpdateFileTypeApplication
@@ -383,8 +386,20 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case strings.HasSuffix(assetName, "debug.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentDebug
 			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "gpu-support.manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentGPUSupport
+			assetType = apiupdate.UpdateFileTypeImageManifest
 		case strings.HasSuffix(assetName, "incus.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "incus-lts-7.0.manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentIncus
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "incus-ceph.manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentIncusCeph
+			assetType = apiupdate.UpdateFileTypeImageManifest
+		case strings.HasSuffix(assetName, "incus-linstor.manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentIncusLinstor
 			assetType = apiupdate.UpdateFileTypeImageManifest
 		case strings.HasSuffix(assetName, "migration-manager.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentMigrationManager
@@ -392,10 +407,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case strings.HasSuffix(assetName, "operations-center.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentOperationsCenter
 			assetType = apiupdate.UpdateFileTypeImageManifest
-		case strings.HasSuffix(assetName, ".manifest.json.gz"):
-			assetComponent = apiupdate.UpdateFileComponentOS
-			assetType = apiupdate.UpdateFileTypeImageManifest
 		default:
+			slog.WarnContext(ctx, "Skipping unrecognized asset", "filename", assetName)
+
 			continue
 		}
 

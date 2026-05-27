@@ -197,7 +197,7 @@ func mainMenu(ctx context.Context, asker ask.Asker, imageFilename string) error 
 		menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
 
 		if applicationsSeed != nil && slices.ContainsFunc(applicationsSeed.Applications, func(a apiseed.Application) bool {
-			return a.Name == "incus"
+			return a.Name == "incus" || a.Name == "incus-lts-7.0"
 		}) {
 			menuOptions = append(menuOptions, "Configure Incus seed")
 			menuSelectionOptions = append(menuSelectionOptions, strconv.Itoa(len(menuOptions)))
@@ -335,7 +335,7 @@ func toggleInstallRunningMode(ctx context.Context, asker ask.Asker, imageFilenam
 }
 
 func selectApplications(asker ask.Asker) error {
-	menuOptions := []string{"Incus", "Migration Manager", "Operations Center", "None"}
+	menuOptions := []string{"Incus", "Incus (LTS 7.0)", "Migration Manager", "Operations Center", "None"}
 
 	var menuPrompt strings.Builder
 
@@ -347,7 +347,7 @@ func selectApplications(asker ask.Asker) error {
 	_, _ = menuPrompt.WriteString("\nSelection: ")
 
 	// Prompt the user for a selection.
-	selection, err := asker.AskChoice(menuPrompt.String(), []string{"1", "2", "3", "4"}, strconv.Itoa(len(menuOptions)))
+	selection, err := asker.AskChoice(menuPrompt.String(), []string{"1", "2", "3", "4", "5"}, strconv.Itoa(len(menuOptions)))
 	if err != nil {
 		return err
 	}
@@ -357,10 +357,16 @@ func selectApplications(asker ask.Asker) error {
 	applicationsSeed = &apiseed.Applications{}
 
 	switch menuOptions[selectionInt-1] {
-	case "Incus":
-		applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
-			Name: "incus",
-		})
+	case "Incus", "Incus (LTS 7.0)":
+		if menuOptions[selectionInt-1] == "Incus" {
+			applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+				Name: "incus",
+			})
+		} else {
+			applicationsSeed.Applications = append(applicationsSeed.Applications, apiseed.Application{
+				Name: "incus-lts-7.0",
+			})
+		}
 
 		installIncusCeph, err := asker.AskBool("Install Incus Ceph add-on? [y/N] ", "n")
 		if err != nil {

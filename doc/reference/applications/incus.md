@@ -1,8 +1,28 @@
 # Incus
 
-The Incus application includes the current Incus feature release as packaged from the [Zabbly stable channel](https://github.com/zabbly/incus). It includes everything needed to run containers, OCI images, and virtual machines.
+The Incus application includes Incus as packaged by [Zabbly](https://github.com/zabbly/incus). It includes everything needed to run containers, OCI images, and virtual machines.
 
+```{warning}
 At least one trusted client certificate must be provided in the Incus preseed, otherwise it will be impossible to authenticate to any API endpoint or the web UI post-install.
+```
+
+There are currently two "flavors" of the Incus application which can be installed:
+
+* The current stable (aka "monthly" or "feature") release is available as the `incus` application and receives new features and bug fixes on a regular monthly schedule. This is the default version of Incus selected by IncusOS if not otherwise configured.
+
+* The {abbr}`LTS (Long Term Support)` 7.0 series of releases is available as the `incus-lts-7.0` application. The LTS series of Incus is recommended for enterprise environments and will receive only bug and security fixes for the duration of its five year support cycle.
+
+```{note}
+It is possible to switch between the stable and LTS Incus release tracks under certain conditions:
+
+* It is always possible to switch from a LTS release to the current stable release.
+
+* It is possible to switch from a stable release to the LTS series, but _only_ from versions of Incus less than or equal to the first LTS release of that LTS series. For example, it's possible to switch both Incus versions 6.23.0 and 7.0.0 to the 7.0 LTS series, but it is NOT possible to switch Incus version 7.1.0 to the 7.0 LTS series.
+
+These limitations are due to how Incus tracks internal database schema changes. It's always possible to move forward, but rolling back to a prior schema version is not supported.
+
+IncusOS can switch the installed release of Incus, if supported, by running `incus admin os application add -d '{"name":"<desired incus application>"}'`.
+```
 
 ## Default configuration
 

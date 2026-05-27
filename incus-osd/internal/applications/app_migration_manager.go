@@ -125,11 +125,6 @@ func (mm *migrationManager) GetClientCertificate() (*tls.Certificate, error) {
 	return mm.GetServerCertificate()
 }
 
-// GetDependencies returns a list of other applications this application depends on.
-func (*migrationManager) GetDependencies() []string {
-	return nil
-}
-
 // GetServerCertificate returns the keypair for the server certificate.
 func (*migrationManager) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.

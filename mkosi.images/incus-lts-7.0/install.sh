@@ -15,7 +15,7 @@ set -eu
 mkdir -p /run/apt/preferences.d/
 cat <<EOF > /run/apt/preferences.d/zabbly
 Package: *
-Pin: release l=incus-stable
+Pin: release l=incus-lts-7.0
 Pin-Priority: 900
 EOF
 

@@ -24,12 +24,26 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
+// IncusOS supports both stable (aka "feature" or "monthly") and 7.0 LTS versions
+// of the Incus application. When the application is loaded, the appropriate
+// version constant defined below is used, which then sets the reported name and
+// expected sysext filepath. The actual logic for initializing/starting/etc of the
+// Incus application is currently identical regardless of version; down the road if
+// needed code can refer to the "incusVersion" field to determine which version of
+// Incus is running to properly handle any differences.
+const (
+	incusVersionStable = "incus"
+	incusVersionLTS70  = "incus-lts-7.0"
+)
+
 type incusDebug struct {
 	Action string `json:"action"`
 }
 
 type incus struct {
 	common
+
+	incusVersion string
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
@@ -51,6 +65,46 @@ func (*incus) AddTrustedCertificate(_ context.Context, name string, cert string)
 		return err
 	}
 
+	return nil
+}
+
+// CanBeReplaced checks if it is possible to replace the installed application with an equivalent one.
+func (a *incus) CanBeReplaced(ctx context.Context, otherAppName string) error {
+	if a.Name() == otherAppName {
+		return errors.New("can't replace application '" + a.Name() + "' with itself")
+	}
+
+	// Check if it's possible to switch application editions.
+	switch a.Name() {
+	case incusVersionStable:
+		// Currently running stable, attempt to switch to LTS branch.
+		if otherAppName != incusVersionLTS70 {
+			return errors.New("unable to replace application '" + a.Name() + "' with '" + otherAppName + "': unsupported application")
+		}
+
+		// Get the current Incus application version.
+		output, err := subprocess.RunCommandContext(ctx, "incus", "--version")
+		if err != nil {
+			return err
+		}
+
+		currentVersion := strings.TrimSuffix(output, "\n")
+
+		if currentVersion != "7.0.0" {
+			return errors.New("unable to replace application '" + a.Name() + "' with '" + otherAppName + "': current Incus version (" + currentVersion + ") is too new to rollback to older LTS branch")
+		}
+	case incusVersionLTS70:
+		// Currently running LTS, attempt to switch to stable branch.
+		if otherAppName != "incus" {
+			return errors.New("can't replace application '" + a.Name() + "' with a non-Incus application")
+		}
+
+		// Nothing else to check; it's always possible to move from LTS to the current feature release.
+	default:
+		return errors.New("unable to check replacement of application '" + a.Name() + "': unsupported application branch")
+	}
+
+	// It is possible to replace the current Incus application.
 	return nil
 }
 
@@ -120,11 +174,6 @@ func (*incus) GetBackup(archive io.Writer, _ bool) error {
 // GetClientCertificate returns the keypair for the client certificate.
 func (a *incus) GetClientCertificate() (*tls.Certificate, error) {
 	return a.getCertificate("server")
-}
-
-// GetDependencies returns a list of other applications this application depends on.
-func (*incus) GetDependencies() []string {
-	return nil
 }
 
 // GetServerCertificate returns the keypair for the server certificate.
@@ -218,8 +267,8 @@ func (*incus) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "incus.service")
 }
 
-func (*incus) Name() string {
-	return "incus"
+func (a *incus) Name() string {
+	return a.incusVersion
 }
 
 // NeedsLateUpdateCheck reports if the application depends on a delayed provider update check.

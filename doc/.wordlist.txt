@@ -65,6 +65,7 @@ libvirt
 Linstor
 LLDP
 LLMs
+LTS
 LUKS
 LVM
 MAC
