@@ -126,7 +126,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.11",
+        "version": "v0.6.12",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -203,7 +203,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.6.8",
+        "version": "v0.6.9",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
