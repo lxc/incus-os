@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -580,6 +581,22 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		err = systemd.VerifyExtension(ctx, filepath.Join(targetPath, appName+".raw"))
 		if err != nil {
 			return "", err
+		}
+
+		// Ensure a proper application symlink exists.
+		_, err = os.Lstat(filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+		if err != nil && os.IsNotExist(err) {
+			// Ensure /var/lib/extensions/ exists.
+			err := os.MkdirAll(systemd.SystemExtensionsPath, 0o700)
+			if err != nil {
+				return "", err
+			}
+
+			// Create the application symlink.
+			err = os.Symlink(filepath.Join(targetPath, appName+".raw"), filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+			if err != nil {
+				return "", err
+			}
 		}
 
 		// Load the application

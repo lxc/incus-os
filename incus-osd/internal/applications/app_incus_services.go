@@ -25,11 +25,7 @@ func (*incusCeph) GetDependencies() []string {
 
 // IsInstalled reports whether the application has been installed.
 func (i *incusCeph) IsInstalled() bool {
-	if i.appState.Version == "" {
-		return false
-	}
-
-	return sysextImageExists(i.Name(), i.appState.Version)
+	return isInstalled(i.Name(), i.appState.Version)
 }
 
 func (*incusCeph) Name() string {
@@ -75,11 +71,7 @@ func (*incusLinstor) GetDependencies() []string {
 
 // IsInstalled reports whether the application has been installed.
 func (i *incusLinstor) IsInstalled() bool {
-	if i.appState.Version == "" {
-		return false
-	}
-
-	return sysextImageExists(i.Name(), i.appState.Version)
+	return isInstalled(i.Name(), i.appState.Version)
 }
 
 func (*incusLinstor) Name() string {
