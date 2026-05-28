@@ -3,11 +3,14 @@ package applications
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // Supported lists all supported applications.
@@ -197,4 +200,20 @@ func GetInstallApplications(ctx context.Context, s *state.State) ([]string, erro
 	}
 
 	return toInstall, nil
+}
+
+func isInstalled(appName string, appVersion string) bool {
+	// Not installed if no version is set.
+	if appVersion == "" {
+		return false
+	}
+
+	// Not installed if the symlink doesn't exist under /var/lib/extensions/.
+	_, err := os.Lstat(filepath.Join(systemd.SystemExtensionsPath, appName+".raw"))
+	if err != nil {
+		return false
+	}
+
+	// Check if versioned sysext image exists under /var/lib/incus-os-extensions/.
+	return sysextImageExists(appName, appVersion)
 }

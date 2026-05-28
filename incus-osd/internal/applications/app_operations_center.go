@@ -300,11 +300,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 
 // IsInstalled reports whether the application has been installed.
 func (oc *operationsCenter) IsInstalled() bool {
-	if oc.appState.Version == "" {
-		return false
-	}
-
-	return sysextImageExists(oc.Name(), oc.appState.Version)
+	return isInstalled(oc.Name(), oc.appState.Version)
 }
 
 // IsPrimary reports if the application is a primary application.
