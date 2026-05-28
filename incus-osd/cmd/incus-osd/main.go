@@ -540,13 +540,21 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Remove an accidental install of the incus-lts-7.0 application. This only affected
-	// IncusOS version 202605270119, but it was in the stable channel for a short while.
-	// This cleanup can be removed in early June.
-	_, err = os.Stat("/var/lib/incus-os-extensions/202605270119/incus-lts-7.0.raw")
+	// a few versions of IncusOS, but one was promoted to the stable channel for a short
+	// while. This cleanup can be removed in early June 2026.
+
+	// Check if the "incus" application is present. If so, opportunistically remove any
+	// "incus-lts-7.0" sysext images or symlink that may exist. Only one version of Incus
+	// can be installed, and the LTS version being present is an accident.
+	_, err = os.Stat(filepath.Join(systemd.SystemExtensionsPath, "incus.raw"))
 	if err == nil {
-		err := os.Remove("/var/lib/incus-os-extensions/202605270119/incus-lts-7.0.raw")
-		if err != nil {
-			return err
+		_ = os.Remove(filepath.Join(systemd.SystemExtensionsPath, "incus-lts-7.0.raw"))
+
+		versions, err := os.ReadDir(systemd.LocalExtensionsPath)
+		if err == nil {
+			for _, version := range versions {
+				_ = os.Remove(filepath.Join(systemd.LocalExtensionsPath, version.Name(), "incus-lts-7.0.raw"))
+			}
 		}
 	}
 
