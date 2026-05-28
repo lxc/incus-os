@@ -3,10 +3,10 @@ filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/FuturFusion/migration-manager v0.6.11 h1:2Fa2aUOyKyWYIJnZizjzTp9AvxFm4tzWUNGXB+F6kOM=
-github.com/FuturFusion/migration-manager v0.6.11/go.mod h1:Si7dBSilhF7FIbaYMG+V804C0ESIm7t6pF2x8es3IOk=
-github.com/FuturFusion/operations-center v0.6.8 h1:GogjK1rIbeo5ul0BoNqH2D2W+PRraZeL7nzdKXD8k88=
-github.com/FuturFusion/operations-center v0.6.8/go.mod h1:xhi4/a4jw2TEGU3La1s2GzZYk17QH9CfkVaIr8/lKRQ=
+github.com/FuturFusion/migration-manager v0.6.12 h1:eOXq7l3xeM7VTwO1uXplknj2cL9I5NurYxs+tFkLTYo=
+github.com/FuturFusion/migration-manager v0.6.12/go.mod h1:Si7dBSilhF7FIbaYMG+V804C0ESIm7t6pF2x8es3IOk=
+github.com/FuturFusion/operations-center v0.6.9 h1:shfQxGS9aaAwMl2QI0bmZgDAsYEXErJUOGAYfJ9glDs=
+github.com/FuturFusion/operations-center v0.6.9/go.mod h1:xhi4/a4jw2TEGU3La1s2GzZYk17QH9CfkVaIr8/lKRQ=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
 github.com/apex/log v1.9.0/go.mod h1:m82fZlWIuiWzWP04XCTXmnX0xRkYYbCdYn8jbJeLBEA=
 github.com/apex/logs v1.0.0/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
