@@ -408,6 +408,15 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return errors.New("invalid Secure Boot environment detected, no platform keys loaded")
 	}
 
+	// Check for and run recovery logic if present. We want to run this as early as possible in the startup
+	// code to minimize possible fatal errors before having a chance to run a recovery that could fix things.
+	err = recovery.CheckRunRecovery(ctx, s)
+	if err != nil {
+		// If recovery fails, don't return the error, since that will likely put us into a restart loop,
+		// resulting in a soft-brick of the server until the recovery media is removed.
+		slog.ErrorContext(ctx, "Recovery failed: "+err.Error())
+	}
+
 	// Determine runtime mode.
 	mode := "unsafe"
 
@@ -661,14 +670,6 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		slog.WarnContext(ctx, "Will attempt to enable fallback HTTPS server for additional connectivity after completing startup tasks")
 
 		s.TriggerFallbackListener <- true
-	}
-
-	// Check for and run recovery logic if present.
-	err = recovery.CheckRunRecovery(ctx, s)
-	if err != nil {
-		// If recovery fails, don't return the error, since that will likely put us into a restart loop,
-		// resulting in a soft-brick of the server until the recovery media is removed.
-		slog.ErrorContext(ctx, "Recovery failed: "+err.Error())
 	}
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
