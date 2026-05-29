@@ -102,6 +102,11 @@ func (p *images) Register(ctx context.Context) error {
 		imageRegisterMu.Lock()
 		defer imageRegisterMu.Unlock()
 
+		// Check that another goroutine didn't register the system.
+		if p.state.System.Provider.State.Registered {
+			return nil
+		}
+
 		// Register our TPM public key with the image server.
 		// This is then used to validate authentication headers.
 		machineID, err := p.state.MachineID()
