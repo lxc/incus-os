@@ -54,6 +54,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/debug", s.apiDebug)
 	router.HandleFunc("/1.0/debug/log", s.apiDebugLog)
 	router.HandleFunc("/1.0/debug/processes", s.apiDebugProcesses)
+	router.HandleFunc("/1.0/debug/:run-script", s.apiDebugRunScript)
 	router.HandleFunc("/1.0/debug/secureboot", s.apiDebugSecureBoot)
 	router.HandleFunc("/1.0/debug/secureboot/event-log", s.apiDebugSecureBootEventLog)
 	router.HandleFunc("/1.0/debug/secureboot/:update", s.apiDebugSecureBootUpdate)

@@ -14,6 +14,8 @@ import (
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v7/shared/subprocess"
 
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 )
@@ -67,7 +69,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"log", "processes", "secureboot"} {
+	for _, debug := range []string{"log", "processes", "run-script", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}
@@ -476,6 +478,59 @@ func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) 
 
 	// Invoke the Secure Boot update process.
 	_, err = secureboot.UpdateSecureBootCerts(r.Context(), f.Name())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/debug/:run-script debug debug_post_run_script
+//
+//	Run a signed debug script
+//
+//	Run an S/MIME-signed shell script, verifying the signature against the image update signing key.
+//
+//	---
+//	consumes:
+//	  - application/octet-stream
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: signed script
+//	    description: S/MIME-signed shell script to run
+//	    required: true
+//	    schema:
+//	      type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiDebugRunScript(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Get the expected CA certificate to validate the signed script.
+	updateCA, err := providers.GetUpdateCACert()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Verify the signature and run the script.
+	err = recovery.RunSignedScript(r.Context(), updateCA, r.Body)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
