@@ -25,7 +25,9 @@ const (
 
 	privatePath = "/var/lib/incus-os/tpm-auth.priv"
 	publicPath  = "/var/lib/incus-os/tpm-auth.pub"
-	pemPath     = "/var/lib/incus-os/tpm-auth.pem"
+
+	// PEMPath is the path of the TPM's public key.
+	PEMPath = "/var/lib/incus-os/tpm-auth.pem"
 )
 
 func ensureSigningKey(ctx context.Context) error {
@@ -46,7 +48,7 @@ func ensureSigningKey(ctx context.Context) error {
 	_, err = os.Stat(privatePath)
 	if err != nil {
 		// Create a new key.
-		_, err = subprocess.RunCommandContext(ctx, "tpm2_create", "-G", "ecc", "-u", publicPath, "-r", privatePath, "-C", ctxPrimaryPath, "-f", "pem", "-o", pemPath)
+		_, err = subprocess.RunCommandContext(ctx, "tpm2_create", "-G", "ecc", "-u", publicPath, "-r", privatePath, "-C", ctxPrimaryPath, "-f", "pem", "-o", PEMPath)
 		if err != nil {
 			return err
 		}
@@ -80,7 +82,7 @@ func publicKey(ctx context.Context) (string, error) {
 	}
 
 	// Get the PEM encoded public key.
-	content, err := os.ReadFile(pemPath)
+	content, err := os.ReadFile(PEMPath)
 	if err != nil {
 		return "", err
 	}

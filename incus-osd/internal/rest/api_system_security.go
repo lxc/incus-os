@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"slices"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -130,6 +132,12 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.state.System.Security.State.SystemStateIsTrusted = !secureboot.IsTrustedFuseBlown()
+
+		// Get TPM public key, if it exists.
+		contents, err := os.ReadFile(auth.PEMPath)
+		if err == nil {
+			s.state.System.Security.State.TPMPublicKey = string(contents)
+		}
 
 		// Return the current system security state.
 		_ = response.SyncResponse(true, s.state.System.Security).Render(w)
