@@ -1,13 +1,16 @@
 # Installing IncusOS on an OpenStack Cloud
 
-It is possible to install **IncusOS** with full security on OpenStack-based cloud platforms. This guide was tested on the **Infomaniak Public Cloud**, but the steps are applicable to most OpenStack-compatible providers worldwide.
+It is possible to install **IncusOS** with full security on OpenStack-based
+cloud platforms. This guide was tested on the **Infomaniak Public Cloud**,
+but the steps are applicable to most OpenStack-compatible providers worldwide.
 
 ---
 
 ## 1. Order and Prepare a Cloud Project
 
 1. **Order a public cloud** and create a project within it.
-2. **Enable OpenStack access** for your project. This provides access to the **Horizon dashboard**, where you can:
+2. **Enable OpenStack access** for your project. This provides access to
+   the **Horizon dashboard**, where you can:
    - Create instances
    - Add volumes
    - Configure networks
@@ -18,7 +21,8 @@ It is possible to install **IncusOS** with full security on OpenStack-based clou
 ## 2. Obtain a Suitable IncusOS Image
 
 1. Follow the instructions to **[download an IncusOS image](../download.md)**.
-2. Use the **Web Customizer** to generate a **USB operation mode image** (required for direct execution).
+2. Use the **Web Customizer** to generate a **USB operation mode image**
+   (required for direct execution).
 3. In the customization form:
    - **Add the required TLS client certificate** (mandatory).
    - Fill in the remaining fields as needed (optional).
@@ -30,7 +34,8 @@ It is possible to install **IncusOS** with full security on OpenStack-based clou
 
 ### Convert the Image to QCOW2 Format
 
-OpenStack requires the image to be in **QCOW2 format**. Convert the downloaded image locally using the following command:
+OpenStack requires the image to be in **QCOW2 format**.
+Convert the downloaded image locally using the following command:
 
 ```bash
 qemu-img convert -f raw -O qcow2 IncusOS_202605181246.img incusos-openstack.qcow2
@@ -50,20 +55,23 @@ openstack image create "IncusOS-Hypervisor" \
   --property hw_tpm_model=tpm-tis
 ```
 
-> **Note:** Explicitly configuring **UEFI** and **TPM 2.0** is required for IncusOS compatibility.
+> **Note:** Explicitly configuring **UEFI** and **TPM 2.0**
+> is required for IncusOS compatibility.
 
 ---
 
 ## 4. Create an OpenStack Instance
 
-1. **Select an instance type** with a minimum of **50GB storage** (IncusOS will run on most instance types meeting this requirement).
+1. **Select an instance type** with a minimum of **50GB storage**
+(IncusOS will run on most instance types meeting this requirement).
 2. **Choose the uploaded image** (`IncusOS-Hypervisor`) as the boot source.
 3. **Attach a network** to the instance.
 4. **Create the instance**.
 
 ### Configure Security Group
 
-Modify the default OpenStack **security group** to allow inbound traffic on **port 8443**, where IncusOS listens for connections.
+Modify the default OpenStack **security group** to allow inbound traffic on
+**port 8443**, where IncusOS listens for connections.
 
 ---
 
@@ -77,8 +85,9 @@ Modify the default OpenStack **security group** to allow inbound traffic on **po
 
 ## ⚠️ Important Notice
 
-Most operations on OpenStack instances - such as **adding/modifying volumes, RAM, or CPUs** - will trigger the **TPM (Trusted Platform Module)**.
+Most operations on OpenStack instances - such as **adding/modifying
+volumes, RAM, or CPUs** - will trigger the **TPM (Trusted Platform Module)**.
 
 - **Download the TPM unlock password** as soon as possible.
-- **Keep it secure and accessible**, as after instance changes you will need to enter it during boot via the OpenStack Console.
-
+- **Keep it secure and accessible**, as after instance changes you will
+  need to enter it during boot via the OpenStack Console.
