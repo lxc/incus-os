@@ -48,7 +48,7 @@
         ]
     },
     "lego": {
-        "version": "v5.1.0",
+        "version": "v5.2.0",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [
@@ -235,7 +235,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.98.3",
+        "version": "v1.98.5",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
