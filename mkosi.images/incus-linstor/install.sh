@@ -16,11 +16,13 @@ rm \
     "/buildroot/usr/bin/keytool" \
     "/buildroot/usr/bin/rmiregistry"
 
-ln -s "/usr/lib/jvm/java-21-openjdk-amd64/lib/jexec" "/buildroot/usr/bin/jexec"
-ln -s "/usr/lib/jvm/java-21-openjdk-amd64/bin/java" "/buildroot/usr/bin/java"
-ln -s "/usr/lib/jvm/java-21-openjdk-amd64/bin/jpackage" "/buildroot/usr/bin/jpackage"
-ln -s "/usr/lib/jvm/java-21-openjdk-amd64/bin/keytool" "/buildroot/usr/bin/keytool"
-ln -s "/usr/lib/jvm/java-21-openjdk-amd64/bin/rmiregistry" "/buildroot/usr/bin/rmiregistry"
+ARCH="$(dpkg --print-architecture)"
+
+ln -s "/usr/lib/jvm/java-21-openjdk-${ARCH}/lib/jexec" "/buildroot/usr/bin/jexec"
+ln -s "/usr/lib/jvm/java-21-openjdk-${ARCH}/bin/java" "/buildroot/usr/bin/java"
+ln -s "/usr/lib/jvm/java-21-openjdk-${ARCH}/bin/jpackage" "/buildroot/usr/bin/jpackage"
+ln -s "/usr/lib/jvm/java-21-openjdk-${ARCH}/bin/keytool" "/buildroot/usr/bin/keytool"
+ln -s "/usr/lib/jvm/java-21-openjdk-${ARCH}/bin/rmiregistry" "/buildroot/usr/bin/rmiregistry"
 
 mv /buildroot/etc/java-21-openjdk/ /buildroot/usr/share/java-21-openjdk/
 
