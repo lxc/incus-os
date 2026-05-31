@@ -110,8 +110,14 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 	}
 	defer f.Close()
 
+	err = RunSignedScript(ctx, updateCA, f)
+
+	return err
+}
+
+func RunSignedScript(ctx context.Context, updateCA string, signedScript io.Reader) error {
 	// Validate the signed hotfix script.
-	verified, err := util.VerifySMIME(ctx, updateCA, f)
+	verified, err := util.VerifySMIME(ctx, updateCA, signedScript)
 	if err != nil {
 		return err
 	}
