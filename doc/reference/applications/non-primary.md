@@ -15,4 +15,5 @@ Debug </reference/applications/debug>
 GPU Support </reference/applications/gpu-support>
 Incus-Ceph </reference/applications/incus-ceph>
 Incus-Linstor </reference/applications/incus-linstor>
+OpenFGA </reference/applications/openfga>
 ```

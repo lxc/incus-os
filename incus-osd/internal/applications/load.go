@@ -14,7 +14,7 @@ import (
 )
 
 // Supported lists all supported applications.
-var Supported = []string{"debug", "gpu-support", incusVersionStable, incusVersionLTS70, "incus-ceph", "incus-linstor", "migration-manager", "operations-center"}
+var Supported = []string{"debug", "gpu-support", incusVersionStable, incusVersionLTS70, "incus-ceph", "incus-linstor", "migration-manager", "openfga", "operations-center"}
 
 // ErrNoPrimary is returned when the system doesn't yet have a primary application.
 var ErrNoPrimary = errors.New("no primary application")
@@ -43,6 +43,8 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 		app = &incusLinstor{common: common{state: s, appState: &s.Applications.IncusLinstor.State}}
 	case "migration-manager":
 		app = &migrationManager{common: common{state: s, appState: &s.Applications.MigrationManager.State}}
+	case "openfga":
+		app = &openfga{common: common{state: s, appState: &s.Applications.OpenFGA.State.ApplicationState}}
 	case "operations-center":
 		app = &operationsCenter{common: common{state: s, appState: &s.Applications.OperationsCenter.State}}
 	default:
