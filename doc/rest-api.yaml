@@ -10647,6 +10647,7 @@ paths:
                                         os_name: IncusOS
                                         os_version: "202511041601"
                                         os_version_next: "202511152230"
+                                        os_version_other: "202511162345"
                                         system_is_ready: true
                                         uptime: "3237039"
                                 type: json
