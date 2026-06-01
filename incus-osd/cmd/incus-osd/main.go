@@ -589,17 +589,21 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	migratedApps := false
 
-	apps, err := applications.GetInstalled(ctx, s)
-	if err != nil {
-		return err
-	}
+	for _, appName := range applications.Supported {
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return err
+		}
 
-	for _, app := range apps {
 		oldPath := filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw")
 		newPath := filepath.Join(systemd.LocalExtensionsPath, app.Version(), app.Name()+".raw")
 
 		fileStat, err := os.Lstat(oldPath)
 		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
 			return err
 		}
 
@@ -798,7 +802,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
-	apps, err = applications.GetInstalled(ctx, s)
+	apps, err := applications.GetInstalled(ctx, s)
 	if err != nil {
 		return err
 	}
