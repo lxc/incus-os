@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
@@ -514,13 +515,19 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Trigger the restart.
-	err = app.Restart(r.Context())
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
+	// Trigger the restart. Run in its own gofunc to allow the HTTP request time
+	// to properly return without causing an EOF on the client-side if the primary
+	// application is restarted.
+	go func() { //nolint:contextcheck,gosec
+		time.Sleep(1 * time.Second)
 
-		return
-	}
+		ctx := context.Background() // Must use our own context here.
+
+		err := app.Restart(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+		}
+	}()
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -864,13 +871,27 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Reload sysext images to reload application.
+	// Reload sysext images pickup the new application version.
 	err = applications.RefreshExtensions(r.Context(), s.state)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
 		return
 	}
+
+	// Restart the application. Run in its own gofunc to allow the HTTP request time
+	// to properly return without causing an EOF on the client-side if the primary
+	// application is restarted.
+	go func() { //nolint:contextcheck,gosec
+		time.Sleep(1 * time.Second)
+
+		ctx := context.Background() // Must use our own context here.
+
+		err := app.Restart(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+		}
+	}()
 
 	_ = response.EmptySyncResponse.Render(w)
 }
