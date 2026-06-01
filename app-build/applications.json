@@ -49,6 +49,7 @@
     },
     "lego": {
         "version": "v4.35.2",
+        "version_prefix": "v4",
         "repo": "https://github.com/go-acme/lego.git",
         "build_targets": [
             [

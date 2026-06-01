@@ -17,7 +17,7 @@ for app in applications:
 
     version = subprocess.run(["sh", "-c", """ git ls-remote --sort="v:refname" --tags "%s" 2>/dev/null | grep -v '{}' | grep -v \\\\.99 | grep -Ev 'rc|beta|alpha|pre|vUDK' | tail -1 | sed "s#.*refs/tags/##g" """ % applications[app]["repo"]], capture_output=True, check=True).stdout.strip().decode("utf-8")
 
-    if applications[app]["version"] != version:
+    if applications[app]["version"] != version and version.startswith(applications[app].get("version_prefix", "")):
         print(app + " updated to version " + version)
         applications[app]["version"] = version
 
