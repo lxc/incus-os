@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -81,7 +82,11 @@ func RefreshExtensions(ctx context.Context, s *state.State) error {
 		// Create the new symlink.
 		err := os.Symlink(filepath.Join(systemd.LocalExtensionsPath, bestVersion, app.Name()+".raw"), filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw"))
 		if err != nil {
-			return err
+			if !os.IsExist(err) {
+				return err
+			}
+
+			slog.WarnContext(ctx, "Existing file '"+filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw")+"' was not a symlink as expected, refusing to replace.")
 		}
 
 		// Update the application's state to reflect the on-disk version.
