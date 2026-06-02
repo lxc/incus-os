@@ -132,6 +132,7 @@ test:
 	# Wait for installation to complete
 	incus start test-incus-os --console
 	@sleep 5 # Wait for VM self-reboot
+	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the VM performs a full reset after the install completes
 	incus console test-incus-os
 	@sleep 5 # Wait for VM self-reboot
 	@clear # Clear the console
@@ -170,6 +171,7 @@ test-iso:
 	# Wait for installation to complete
 	incus start test-incus-os --console
 	@sleep 5 # Wait for VM self-reboot
+	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the VM performs a full reset after the install completes
 	incus console test-incus-os
 	@sleep 5 # Wait for VM self-reboot
 	@clear # Clear the console
