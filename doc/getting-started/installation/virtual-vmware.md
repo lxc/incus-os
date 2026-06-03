@@ -73,6 +73,13 @@ Customize the virtual machine hardware, recommended changes are:
 - Attach a TPM module
 - Attach the previously uploaded ISO image to the CDROM device and make sure to have it connect on start-up
 
+```{note}
+In environments with network port security, it's recommended to use the
+`Intel E1000` network card to avoid an issue where the `VMware vmxnet3`
+virtual network adapter issues some incorrect ARP packets causing the
+port to get shut down.
+```
+
 ![Customize the virtual machine](../../images/vsphere-create-vm6.png)
 
 In the options tab, under `Boot Options`, make sure that `Secure Boot` is enabled.
@@ -82,8 +89,8 @@ In the options tab, under `Boot Options`, make sure that `Secure Boot` is enable
 In the `Advanced Parameters` tab, add the following entries:
 
 - `uefi.secureBoot.kekDefault.file0` set to `secureboot-KEK-R1.der`
-- `uefi.secureBoot.dbDefault.file0` set to `secureboot-2025-R1.der`
-- `uefi.secureBoot.dbDefault.file1` set to `secureboot-2026-R1.der`
+- `uefi.secureBoot.dbDefault.file0` set to `secureboot-DB-2025-R1.der`
+- `uefi.secureBoot.dbDefault.file1` set to `secureboot-DB-2026-R1.der`
 
 Then complete the virtual machine creation.
 
@@ -97,8 +104,8 @@ Open the datastore view and go to the virtual machine's folder.
 Then go to [`https://images.linuxcontainers.org/os/keys/`](https://images.linuxcontainers.org/os/keys/) and download:
 
 - `secureboot-KEK-R1.der`
-- `secureboot-2025-R1.der`
-- `secureboot-2026-R1.der`
+- `secureboot-DB-2025-R1.der`
+- `secureboot-DB-2026-R1.der`
 
 Once downloaded, upload those three files to the virtual machine's folder.
 
