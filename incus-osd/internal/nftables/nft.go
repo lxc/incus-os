@@ -33,7 +33,7 @@ func SetupChains(ctx context.Context) error {
 	}
 
 	// Ensure we have a MAC filtering chain.
-	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "chain", "bridge", "incus-osd", "mac-filters", "{ type filter hook output priority 0 ; policy accept ; }")
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "chain", "bridge", "incus-osd", "mac-filters", "{ type filter hook postrouting priority 0 ; policy accept ; }")
 	if err != nil {
 		return err
 	}
