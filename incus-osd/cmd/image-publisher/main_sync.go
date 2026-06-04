@@ -383,6 +383,9 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		case strings.Contains(assetName, ".usr-x86-64."), strings.Contains(assetName, ".usr-arm64."):
 			assetComponent = apiupdate.UpdateFileComponentOS
 			assetType = apiupdate.UpdateFileTypeUpdateUsr
+		case (strings.HasPrefix(assetName, "IncusOS_") || strings.HasPrefix(assetName, "HypervisorOS_")) && strings.HasSuffix(assetName, ".manifest.json.gz"):
+			assetComponent = apiupdate.UpdateFileComponentOS
+			assetType = apiupdate.UpdateFileTypeImageManifest
 		case strings.HasSuffix(assetName, "debug.manifest.json.gz"):
 			assetComponent = apiupdate.UpdateFileComponentDebug
 			assetType = apiupdate.UpdateFileTypeImageManifest
