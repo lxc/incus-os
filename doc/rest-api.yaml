@@ -10646,6 +10646,7 @@ paths:
                                         machine_id: af94e64e199341b68f10a8eebb828fce
                                         os_name: IncusOS
                                         os_version: "202511041601"
+                                        os_version_alternate: "202511162345"
                                         os_version_next: "202511152230"
                                         system_is_ready: true
                                         uptime: "3237039"
