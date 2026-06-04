@@ -6,9 +6,9 @@ def TestIncusOSAPIDebug(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/debug endpoint.
@@ -33,13 +33,13 @@ def TestIncusOSAPIDebug(install_image):
             raise IncusOSException("got unexpected final log line: '" + lines[-1] + "'")
 
         # Test sending log messages via API.
-        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"INFO","message":"Test message one"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"INFO","message":"Test message one"}', use_unix_socket=True)
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
-        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"WARN","message":"Test message two"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"WARN","message":"Test message two"}', use_unix_socket=True)
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
-        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"ERROR","message":"Test message three"}')
+        result = vm.APIRequest("/internal/tui/:write-message", method="POST", body='{"level":"ERROR","message":"Test message three"}', use_unix_socket=True)
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 

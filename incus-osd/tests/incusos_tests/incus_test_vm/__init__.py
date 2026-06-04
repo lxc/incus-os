@@ -12,13 +12,15 @@ class IncusOSException(Exception):
     pass
 
 class IncusTestVM:
-    def __init__(self, os_name, vm_name_base, install_image, root_size="50GiB", readonly_install_image="false"):
+    def __init__(self, os_name, vm_name_base, install_image, client_cert_file, root_size="50GiB", readonly_install_image="false"):
         self.os_name = os_name
         self.vm_name = vm_name_base + "-" + util._get_random_string()
+        self.vm_ip = None
         self.root_size = root_size
         self.install_image = install_image
         self.readonly_install_image = readonly_install_image
         self.is_raw_image = self.install_image.endswith(".img")
+        self.client_cert_file = client_cert_file
         self.isos = []
 
     def __enter__(self):
@@ -50,6 +52,9 @@ class IncusTestVM:
 
         for iso in self.isos:
             subprocess.run(["incus", "storage", "volume", "delete", "default", iso], capture_output=True)
+
+        if self.client_cert_file != "":
+            os.remove(self.client_cert_file)
 
     def AddDevice(self, device, *args):
         """Add a device to the VM."""
@@ -149,11 +154,30 @@ class IncusTestVM:
         if log in str(result.stdout):
             raise IncusOSException(f"wasn't expecting log entry '{log}' to appear")
 
-    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False):
+    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False):
         """Perform a HTTP REST API call, and return the result."""
-
-        args = ["incus", "exec", self.vm_name, "--", "curl", "--unix-socket", "/run/incus-os/unix.socket", "http://localhost"+path, "-X", method]
+        args = []
         cmd_input = None
+
+        if use_unix_socket:
+            args = ["incus", "exec", self.vm_name, "--", "curl", "--unix-socket", "/run/incus-os/unix.socket", "http://localhost"+path]
+        else:
+            if self.vm_ip is None:
+                result = subprocess.run(["incus", "list", self.vm_name, "--columns", "4", "--format", "csv"], capture_output=True, check=True)
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+) \(_venp5s0\)", str(result.stdout))
+                if match is None:
+                    raise IncusOSException("failed to get IP address for VM")
+
+                self.vm_ip = match.group(1)
+
+            args = ["curl", "-k", "https://" + self.vm_ip + ":8443/os" + path, "-H", "X-IncusOS-Proxy: /"]
+
+            if self.client_cert_file != "":
+                args.append("--cert")
+                args.append(self.client_cert_file)
+
+        args.append("-X")
+        args.append(method)
 
         if body is not None:
             if isinstance(body, str):

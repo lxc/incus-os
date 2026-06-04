@@ -11,9 +11,9 @@ def TestSeedInstallReboot(install_image):
         "install.json": """{"force_reboot":true}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -33,10 +33,10 @@ def TestSeedInstallTarget(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             # Perform IncusOS install.
@@ -51,7 +51,7 @@ def TestSeedInstallForce(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_disk1"},"force_install":true}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         # Truncate the disk image file to 50GiB and setup a single GPT partition.
@@ -60,7 +60,7 @@ def TestSeedInstallForce(install_image):
         disk_img.truncate(50*1024*1024*1024)
         subprocess.run(["/sbin/sgdisk", "-n", "1", disk_img.name], capture_output=True, check=True)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             # Perform IncusOS install.
@@ -75,9 +75,9 @@ def TestSeedInstallEmpty(install_image):
         "install.json": ""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -88,7 +88,7 @@ def TestExternalSeedInstallEmpty(install_image):
     test_name = "external-seed-install-empty"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
         # Create and populate a user-provided ISO image with an empty install seed file on it
@@ -98,7 +98,7 @@ def TestExternalSeedInstallEmpty(install_image):
 
             util._create_user_media(seed_img, tmp_dir, "iso", 0, "SEED_DATA")
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AttachISO(seed_img.name, "seed")
 
             # Perform IncusOS install.
@@ -111,7 +111,7 @@ def TestExternalSeedInstallTarget(install_image):
     test_name = "external-seed-install-target"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
@@ -122,7 +122,7 @@ def TestExternalSeedInstallTarget(install_image):
 
                 util._create_user_media(seed_img, tmp_dir, "img", 1024*1024*1024, "SEED_DATA")
 
-            with IncusTestVM(os_name, test_name, test_image) as vm:
+            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                 vm.AddDevice("disk1", "disk", "source="+disk_img.name)
                 vm.AddDevice("recovery", "disk", "source="+seed_img.name, "io.bus=usb")
 

@@ -331,8 +331,8 @@ func (*operationsCenter) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (oc *operationsCenter) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	err := extractTarArchive(ctx, "/var/lib/operations-center/", []string{"operations-center.service"}, archive)
+func (oc *operationsCenter) RestoreBackup(archive io.Reader) error {
+	err := extractTarArchive("/var/lib/operations-center/", []string{"operations-center.service"}, archive)
 	if err != nil {
 		return err
 	}

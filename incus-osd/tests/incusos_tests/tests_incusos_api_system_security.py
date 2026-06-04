@@ -8,9 +8,9 @@ def TestIncusOSAPISystemSecurity(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Get current security configuration and state.
@@ -53,9 +53,9 @@ def TestIncusOSAPISystemSecurityTPMRebind(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # By default, forcing a TPM rebind will fail unless the system is in a changed state.

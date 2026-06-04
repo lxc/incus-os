@@ -117,7 +117,7 @@ func (*common) Restart(_ context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (*common) RestoreBackup(_ context.Context, _ io.Reader) error {
+func (*common) RestoreBackup(_ io.Reader) error {
 	return errors.New("not supported")
 }
 

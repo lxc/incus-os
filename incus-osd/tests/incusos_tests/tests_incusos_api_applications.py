@@ -8,9 +8,9 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.
@@ -75,9 +75,9 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         "applications.json": """{"applications":[{"name":"migration-manager"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="migration-manager")
 
         # Test top-level /1.0/applications endpoint.
@@ -134,9 +134,9 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         "applications.json": """{"applications":[{"name":"operations-center"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="operations-center")
 
         # Test top-level /1.0/applications endpoint.
@@ -193,9 +193,9 @@ def TestIncusOSAPIApplicationsIncusCeph(install_image):
         "applications.json": """{"applications":[{"name":"incus-ceph"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="incus-ceph")
 
         # Test top-level /1.0/applications endpoint.
@@ -231,9 +231,9 @@ def TestIncusOSAPIApplicationsIncusLinstor(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.
@@ -299,9 +299,9 @@ def TestIncusOSAPIApplicationsRemove(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/applications endpoint.

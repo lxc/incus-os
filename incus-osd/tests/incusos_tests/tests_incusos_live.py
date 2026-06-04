@@ -7,9 +7,9 @@ def TestIncusOSLive(install_image):
     test_name = "incusos-live"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, root_size="1MiB") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, root_size="1MiB") as vm:
         # Remove the install image, enlarge its size and re-attach it
         vm.RemoveDevice("boot-media")
 
@@ -42,9 +42,9 @@ def TestIncusOSLiveSWTPM(install_image):
     test_name = "incusos-live-swtpm"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, root_size="1MiB") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, root_size="1MiB") as vm:
         # Remove the install image, enlarge its size and re-attach it
         vm.RemoveDevice("boot-media")
 
@@ -100,10 +100,10 @@ def TestIncusOSLiveNoSecureBoot(install_image):
     test_name = "incusos-live-no-secure-boot"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
     util._remove_secureboot_keys(test_image)
 
-    with IncusTestVM(os_name, test_name, test_image, root_size="1MiB") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, root_size="1MiB") as vm:
         # Remove the install image, enlarge its size and re-attach it
         vm.RemoveDevice("boot-media")
 

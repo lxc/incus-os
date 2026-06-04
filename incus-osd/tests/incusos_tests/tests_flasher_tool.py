@@ -12,7 +12,7 @@ def TestFlasherToolStableIMG(_):
 
     os_name, test_image = _flasher_download_image("stable", "img")
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, "") as vm:
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
@@ -23,7 +23,7 @@ def TestFlasherToolTestingISO(_):
 
     os_name, test_image = _flasher_download_image("testing", "iso")
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, "") as vm:
         vm.StartVM()
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_incus_boot--media target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")

@@ -8,9 +8,9 @@ def TestIncusOSAPISystem(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Test top-level /1.0/system endpoint.
@@ -32,9 +32,9 @@ def TestIncusOSAPISystemPoweroff(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Command the system to poweroff.
@@ -58,9 +58,9 @@ def TestIncusOSAPISystemReboot(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Command the system to reboot.

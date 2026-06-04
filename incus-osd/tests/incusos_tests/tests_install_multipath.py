@@ -10,13 +10,13 @@ def TestInstallMultipath(install_image):
         "install.json": """{"target":{"id":"scsi-3500577a4300c1e34"}}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         # Truncate the disk image file to 50GiB.
         disk_img.truncate(50*1024*1024*1024)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             _commonMultipathChecks(vm, os_version, disk_img.name)
 
             # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -29,13 +29,13 @@ def TestInstallMultipathUseSWTPM(install_image):
         "install.json": """{"target":{"id":"scsi-3500577a4300c1e34"},"security":{"missing_tpm":true}}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         # Truncate the disk image file to 50GiB.
         disk_img.truncate(50*1024*1024*1024)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.RemoveDevice("vtpm")
 
             _commonMultipathChecks(vm, os_version, disk_img.name)

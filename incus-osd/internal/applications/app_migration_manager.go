@@ -289,8 +289,8 @@ func (*migrationManager) Restart(ctx context.Context) error {
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
-func (mm *migrationManager) RestoreBackup(ctx context.Context, archive io.Reader) error {
-	err := extractTarArchive(ctx, "/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
+func (mm *migrationManager) RestoreBackup(archive io.Reader) error {
+	err := extractTarArchive("/var/lib/migration-manager/", []string{"migration-manager.service"}, archive)
 	if err != nil {
 		return err
 	}

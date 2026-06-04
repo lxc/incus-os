@@ -36,10 +36,12 @@ jobs:
           sudo apt-get install --yes \
             linux-headers-$(uname -r)
           sudo --preserve-env=DEBIAN_FRONTEND apt-get install --yes \
+            curl \
             dosfstools \
             gdisk \
             genisoimage \
             mtools \
+            openssl \
             zfsutils-linux
 
       - name: Setup Incus
