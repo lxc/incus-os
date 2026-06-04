@@ -683,7 +683,7 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Restore the application's backup.
-	err = app.RestoreBackup(r.Context(), r.Body)
+	err = app.RestoreBackup(r.Body)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

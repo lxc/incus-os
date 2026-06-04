@@ -399,7 +399,7 @@ func createTarArchive(archiveRoot string, excludePaths []string, archive io.Writ
 	return zw.Close()
 }
 
-func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []string, archive io.Reader) error {
+func extractTarArchive(archiveRoot string, restartUnits []string, archive io.Reader) error {
 	reverter := revert.New()
 	defer reverter.Fail()
 
@@ -494,66 +494,96 @@ func extractTarArchive(ctx context.Context, archiveRoot string, restartUnits []s
 		}
 	}
 
-	// Stop unit(s).
-	err = systemd.StopUnit(ctx, restartUnits...)
-	if err != nil {
-		return err
-	}
+	// Beyond this point we commit to restoring the application's state
+	// from the extracted tar archive contents.
+	reverter.Success()
 
-	// Clean out the existing directory.
-	entries, err := os.ReadDir(archiveRoot)
-	if err != nil {
-		return err
-	}
+	// Run the remainder of the archive restore logic in its own gofunc.
+	// This is required when restoring a primary application, because
+	// stopping it will cause the proxied client request to error out
+	// when the HTTPS server is stopped.
+	go func() {
+		time.Sleep(1 * time.Second)
 
-	for _, entry := range entries {
-		err := os.RemoveAll(filepath.Join(archiveRoot, entry.Name()))
+		ctx := context.Background()
+
+		// Stop unit(s).
+		err := systemd.StopUnit(ctx, restartUnits...)
 		if err != nil {
-			return err
+			slog.WarnContext(ctx, "Failed to stop "+strings.Join(restartUnits, ", "), "error", err)
+
+			return
 		}
-	}
 
-	// Attempt to remove the now-empty existing directory.
-	err = os.Remove(archiveRoot)
-	switch {
-	case err == nil:
-		// Easy case, simply rename the new directory.
-		err := os.Rename(newArchiveRoot, archiveRoot)
+		// Clean out the existing directory.
+		entries, err := os.ReadDir(archiveRoot)
 		if err != nil {
-			return err
-		}
-	case errors.Is(err, syscall.EBUSY):
-		// The directory is empty, but attempting to remove it returned -EBUSY, so
-		// it's likely a zfs dataset that's been mounted for the application.
-		// Manually move contents from the new archive root to the existing one.
-		entries, err := os.ReadDir(newArchiveRoot)
-		if err != nil {
-			return err
+			slog.WarnContext(ctx, "Failed to read directory "+archiveRoot, "error", err)
+
+			return
 		}
 
 		for _, entry := range entries {
-			_, err := subprocess.RunCommandContext(ctx, "mv", filepath.Join(newArchiveRoot, entry.Name()), filepath.Join(archiveRoot, entry.Name()))
+			err := os.RemoveAll(filepath.Join(archiveRoot, entry.Name()))
 			if err != nil {
-				return err
+				slog.WarnContext(ctx, "Failed to remove "+filepath.Join(archiveRoot, entry.Name()), "error", err)
+
+				return
 			}
 		}
 
-		// Remove the empty new root directory.
-		err = os.Remove(newArchiveRoot)
-		if err != nil {
-			return err
+		// Attempt to remove the now-empty existing directory.
+		err = os.Remove(archiveRoot)
+		switch {
+		case err == nil:
+			// Easy case, simply rename the new directory.
+			err := os.Rename(newArchiveRoot, archiveRoot)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed to rename "+newArchiveRoot+" to "+archiveRoot, "error", err)
+
+				return
+			}
+		case errors.Is(err, syscall.EBUSY):
+			// The directory is empty, but attempting to remove it returned -EBUSY, so
+			// it's likely a zfs dataset that's been mounted for the application.
+			// Manually move contents from the new archive root to the existing one.
+			entries, err := os.ReadDir(newArchiveRoot)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed to read directory "+newArchiveRoot, "error", err)
+
+				return
+			}
+
+			for _, entry := range entries {
+				_, err := subprocess.RunCommandContext(ctx, "mv", filepath.Join(newArchiveRoot, entry.Name()), filepath.Join(archiveRoot, entry.Name()))
+				if err != nil {
+					slog.WarnContext(ctx, "Failed to move files", "error", err)
+
+					return
+				}
+			}
+
+			// Remove the empty new root directory.
+			err = os.Remove(newArchiveRoot)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed to remove directory "+newArchiveRoot, "error", err)
+
+				return
+			}
+		default:
+			slog.WarnContext(ctx, "Failed to remove directory "+archiveRoot, "error", err)
+
+			return
 		}
-	default:
-		return err
-	}
 
-	// Start unit(s).
-	err = systemd.StartUnit(ctx, restartUnits...)
-	if err != nil {
-		return err
-	}
+		// Start unit(s).
+		err = systemd.StartUnit(ctx, restartUnits...)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed to start "+strings.Join(restartUnits, ", "), "error", err)
 
-	reverter.Success()
+			return
+		}
+	}()
 
 	return nil
 }
