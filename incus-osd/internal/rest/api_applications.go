@@ -463,13 +463,19 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Do the factory reset.
-	err = app.FactoryReset(r.Context())
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
+	// Do the factory reset. Run in a gofunc with its own context so the calling HTTP
+	// request can cleanly return to the client in the cases when we're resetting
+	// a primary application.
+	go func() { //nolint:contextcheck,gosec
+		time.Sleep(1 * time.Second)
 
-		return
-	}
+		ctx := context.Background() // Must use our own context here.
+
+		err := app.FactoryReset(ctx)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed to perform factory reset of application '"+name+"'", "error", err)
+		}
+	}()
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -788,13 +794,19 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check for and apply application update.
-	err = update.InstallUpdateApp(r.Context(), s.state, name, true)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
+	// Check for and apply application update. Run in its own gofunc to allow the
+	// HTTP request time to properly return without causing an EOF on the client-side
+	// if the primary application is restarted.
+	go func() { //nolint:contextcheck,gosec
+		time.Sleep(1 * time.Second)
 
-		return
-	}
+		ctx := context.Background() // Must use our own context here.
+
+		err := update.InstallUpdateApp(ctx, s.state, name, true)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
+		}
+	}()
 
 	_ = response.EmptySyncResponse.Render(w)
 }
