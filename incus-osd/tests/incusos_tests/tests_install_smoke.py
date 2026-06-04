@@ -6,9 +6,9 @@ def TestInstallDontRemoveInstallMedia(install_image):
         "install.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -29,9 +29,9 @@ def TestBaselineInstall(install_image):
         "install.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, source="/dev/disk/by-id/(usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0|scsi-0QEMU_QEMU_CD-ROM_incus_boot--media)")
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -53,9 +53,9 @@ def TestBaselineInstallReadonlyImage(install_image):
         "install.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, readonly_install_image="true") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, readonly_install_image="true") as vm:
         vm.WaitSystemReady(os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -77,9 +77,9 @@ def TestBaselineInstallNVME(install_image):
         "install.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.SetDeviceProperty("root", "io.bus=nvme")
 
         vm.WaitSystemReady(os_version, source="/dev/disk/by-id/(usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0|scsi-0QEMU_QEMU_CD-ROM_incus_boot--media)", target="/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_root")
@@ -103,9 +103,9 @@ def TestBaselineInstallNVMEReadonlyImage(install_image):
         "install.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, readonly_install_image="true") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, readonly_install_image="true") as vm:
         vm.SetDeviceProperty("root", "io.bus=nvme")
 
         vm.WaitSystemReady(os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_root")

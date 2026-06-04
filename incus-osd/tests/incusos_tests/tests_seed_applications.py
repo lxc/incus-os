@@ -10,9 +10,9 @@ def TestSeedApplictionsEmpty(install_image):
         "applications.json": "{}"
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -25,9 +25,9 @@ def TestSeedApplictionsInvalid(install_image):
         "applications.json": """{"applications":[{"name":"foobarbiz"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         # Perform IncusOS install.
         vm.StartVM()
         vm.WaitAgentRunning()
@@ -56,9 +56,9 @@ def TestSeedApplictionsGPUSupport(install_image):
         "applications.json": """{"applications":[{"name":"gpu-support"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="gpu-support")
 
 def TestSeedApplictionsIncus(install_image):
@@ -68,9 +68,9 @@ def TestSeedApplictionsIncus(install_image):
         "applications.json": """{"applications":[{"name":"incus"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="incus")
 
 def TestSeedApplictionsIncusCeph(install_image):
@@ -80,9 +80,9 @@ def TestSeedApplictionsIncusCeph(install_image):
         "applications.json": """{"applications":[{"name":"incus-ceph"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="incus-ceph")
 
         # We should also see Incus pulled in as a dependency
@@ -95,9 +95,9 @@ def TestSeedApplictionsIncusLinstor(install_image):
         "applications.json": """{"applications":[{"name":"incus-linstor"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="incus-linstor")
 
         # We should also see Incus pulled in as a dependency
@@ -110,9 +110,9 @@ def TestSeedApplictionsMigrationManager(install_image):
         "applications.json": """{"applications":[{"name":"migration-manager"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="migration-manager")
 
 def TestSeedApplictionsOperationsCenter(install_image):
@@ -122,16 +122,16 @@ def TestSeedApplictionsOperationsCenter(install_image):
         "applications.json": """{"applications":[{"name":"operations-center"}]}"""
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="operations-center")
 
 def TestExternalSeedApplictionsMigrationManager(install_image):
     test_name = "external-seed-applications-migration-manager"
     test_seed = None
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
         # Create and populate a user-provided ISO with seed files on it
@@ -144,7 +144,7 @@ def TestExternalSeedApplictionsMigrationManager(install_image):
 
             util._create_user_media(seed_img, tmp_dir, "iso", 0, "SEED_DATA")
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AttachISO(seed_img.name, "seed")
 
             vm.WaitSystemReady(os_version, application="migration-manager", remove_devices=["seed"])

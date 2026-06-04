@@ -11,9 +11,9 @@ def TestRecoveryUpdateFromUSB(install_image):
         "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         _installStartChecks(vm, os_name, os_version)
 
         # Apply the updates from a USB stick.
@@ -38,9 +38,9 @@ def TestRecoveryUpdateFromISO(install_image):
         "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         _installStartChecks(vm, os_name, os_version)
 
         # Apply the updates from an ISO image.
@@ -78,7 +78,7 @@ def _installStartChecks(vm, os_name, os_version):
     vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     # Verify that no applications are installed.
-    result = vm.APIRequest("/1.0/applications")
+    result = vm.APIRequest("/1.0/applications", use_unix_socket=True)
     if result["status_code"] != 200:
         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -103,7 +103,7 @@ def _recoveryChecks(vm, os_version):
     vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     # Verity the incus application is installed.
-    result = vm.APIRequest("/1.0/applications")
+    result = vm.APIRequest("/1.0/applications", use_unix_socket=True)
     if result["status_code"] != 200:
         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 

@@ -11,9 +11,9 @@ def TestIncusOSAPISystemStorageLocalPool(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Get current storage state.
@@ -48,12 +48,12 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         disk_img.truncate(50*1024*1024*1024)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             vm.WaitSystemReady(os_version)
@@ -190,14 +190,14 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk1_img:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk2_img:
             disk1_img.truncate(50*1024*1024*1024)
             disk2_img.truncate(50*1024*1024*1024)
 
-            with IncusTestVM(os_name, test_name, test_image) as vm:
+            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                 vm.AddDevice("disk1", "disk", "source="+disk1_img.name)
                 vm.AddDevice("disk2", "disk", "source="+disk2_img.name)
 
@@ -361,10 +361,10 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
 
         encryption_key = ""
 
-        test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+        test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
         # First, configure an existing "local" pool
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             vm.WaitSystemReady(os_version)
@@ -381,8 +381,8 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
             encryption_key = result["metadata"]["state"]["pool_recovery_keys"]["local"]
 
         # Second, install a new VM and recover the existing "local" pool
-        test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             vm.WaitSystemReady(os_version)
@@ -399,9 +399,9 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Get current storage state.
@@ -455,9 +455,9 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Get current storage state.
@@ -490,14 +490,14 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk1_img:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk2_img:
             disk1_img.truncate(50*1024*1024*1024)
             disk2_img.truncate(50*1024*1024*1024)
 
-            with IncusTestVM(os_name, test_name, test_image) as vm:
+            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                 vm.AddDevice("disk1", "disk", "source="+disk1_img.name)
                 vm.AddDevice("disk2", "disk", "source="+disk2_img.name)
 
@@ -601,9 +601,9 @@ def TestIncusOSAPISystemStorageLocalAutoexpand(install_image):
         "install.json": "{}",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version)
 
         # Get current storage state.

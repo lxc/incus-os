@@ -11,12 +11,12 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         disk_img.truncate(10*1024*1024*1024)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             vm.WaitSystemReady(os_version)
@@ -73,12 +73,12 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
         disk_img.truncate(10*1024*1024*1024)
 
-        with IncusTestVM(os_name, test_name, test_image) as vm:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
             vm.AddDevice("disk1", "disk", "source="+disk_img.name)
 
             vm.WaitSystemReady(os_version)
@@ -196,7 +196,7 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -205,7 +205,7 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
                 disk_img2.truncate(10*1024*1024*1024)
                 disk_img3.truncate(11*1024*1024*1024)
 
-                with IncusTestVM(os_name, test_name, test_image) as vm:
+                with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                     vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                     vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                     vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -246,14 +246,14 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
             disk_img1.truncate(10*1024*1024*1024)
             disk_img2.truncate(10*1024*1024*1024)
 
-            with IncusTestVM(os_name, test_name, test_image) as vm:
+            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
 
@@ -311,7 +311,7 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -320,7 +320,7 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                 disk_img2.truncate(10*1024*1024*1024)
                 disk_img3.truncate(10*1024*1024*1024)
 
-                with IncusTestVM(os_name, test_name, test_image) as vm:
+                with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                     vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                     vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                     vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -416,7 +416,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -427,7 +427,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                     disk_img3.truncate(10*1024*1024*1024)
                     disk_img4.truncate(10*1024*1024*1024)
 
-                    with IncusTestVM(os_name, test_name, test_image) as vm:
+                    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                         vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                         vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                         vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -563,7 +563,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -578,7 +578,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                             disk_img5.truncate(10*1024*1024*1024)
                             disk_img6.truncate(10*1024*1024*1024)
 
-                            with IncusTestVM(os_name, test_name, test_image) as vm:
+                            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                                 vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
@@ -866,7 +866,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
     }
 
-    test_image, os_name, os_version = util._prepare_test_image(install_image, test_seed)
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
         with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
@@ -881,7 +881,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                             disk_img5.truncate(10*1024*1024*1024)
                             disk_img6.truncate(10*1024*1024*1024)
 
-                            with IncusTestVM(os_name, test_name, test_image) as vm:
+                            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
                                 vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
                                 vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
                                 vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
