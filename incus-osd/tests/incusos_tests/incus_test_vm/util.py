@@ -90,6 +90,12 @@ def _prepare_test_image(image, seed):
 
     seed["operations-center.json"] = json.dumps(oc_json)
 
+    # Configure the images provider, if needed
+    IMAGES_SERVER = os.getenv("IMAGES_SERVER")
+    if IMAGES_SERVER is not None:
+        if "provider.json" not in seed:
+            seed["provider.json"] = '{"name":"images","config":{"server_url":"' + IMAGES_SERVER + '/os"}}'
+
     # Inject seed data.
     with open(test_image, "rb+") as f:
         f.seek(4196352*512)
@@ -108,10 +114,12 @@ def _prepare_test_image(image, seed):
     return test_image, parts[0], parts[1].replace(ext, ""), client_cert_name
 
 def _manual_download_application(directory, name, version):
+    IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
+
     os.mkdir(directory+"/update")
 
-    urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/update.json", directory+"/update/update.json")
-    urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/update.sjson", directory+"/update/update.sjson")
+    urllib.request.urlretrieve(IMAGES_SERVER + "/os/"+version+"/update.json", directory+"/update/update.json")
+    urllib.request.urlretrieve(IMAGES_SERVER + "/os/"+version+"/update.sjson", directory+"/update/update.sjson")
 
     os.mkdir(directory+"/update/x86_64")
 
@@ -125,7 +133,7 @@ def _manual_download_application(directory, name, version):
             if updateFile["type"] != "application" or updateFile["component"] != name:
                 continue
 
-            urllib.request.urlretrieve("https://images.linuxcontainers.org/os/"+version+"/"+updateFile["filename"], directory+"/update/"+updateFile["filename"])
+            urllib.request.urlretrieve(IMAGES_SERVER + "/os/"+version+"/"+updateFile["filename"], directory+"/update/"+updateFile["filename"])
 
 def _create_user_media(f, d, media_type, media_size, media_label):
     if media_type == "img":

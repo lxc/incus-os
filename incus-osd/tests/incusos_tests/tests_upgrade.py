@@ -70,8 +70,10 @@ def TestBaselineUpgradeOSOnly(install_image):
         vm.LogDoesntContain("incus-osd", "Downloading OS update")
         vm.LogDoesntContain("incus-osd", "Downloading application update")
 
+        IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
+
         # Now that we've started up, switch the provider back to the main "images" and check for an OS update.
-        result = vm.APIRequest("/1.0/system/provider", method="PUT", body="""{"config":{"name":"images"}}""", use_unix_socket=True)
+        result = vm.APIRequest("/1.0/system/provider", method="PUT", body='{"config":{"name":"images","config":{"server_url":"' + IMAGES_SERVER + '/os"}}}', use_unix_socket=True)
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -136,8 +138,10 @@ def TestBaselineUpgradeApplicationOnly(install_image):
 
                 vm.LogDoesntContain("incus-osd", "Downloading OS update")
 
+                IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
+
                 # Now that we've started up, switch the provider back to the main "images" and check for an application update.
-                result = vm.APIRequest("/1.0/system/provider", method="PUT", body="""{"config":{"name":"images"}}""")
+                result = vm.APIRequest("/1.0/system/provider", method="PUT", body='{"config":{"name":"images","config":{"server_url":"' + IMAGES_SERVER + '/os"}}}')
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
