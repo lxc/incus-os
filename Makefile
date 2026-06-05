@@ -114,7 +114,7 @@ build-iso: build
 	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
 .PHONY: test
-test: publish-local-update
+test: publish-local-update start-local-image-server
 	# Cleanup
 	incus delete -f test-incus-os || true
 	rm -f mkosi.output/${OSNAME}_boot_media.img
@@ -160,7 +160,7 @@ test: publish-local-update
 	incus start test-incus-os --console
 
 .PHONY: test-iso
-test-iso: publish-local-update
+test-iso: publish-local-update start-local-image-server
 	# Cleanup
 	incus delete -f test-incus-os || true
 	incus storage volume delete default ${OSNAME}_boot_media.iso || true
@@ -208,7 +208,7 @@ test-iso: publish-local-update
 	incus start test-incus-os --console
 
 .PHONY: test-update
-test-update: publish-local-update
+test-update: publish-local-update start-local-image-server
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
 
 .PHONY: publish-local-update
@@ -228,6 +228,12 @@ ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
 
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
 endif
+
+.PHONY: start-local-image-server
+start-local-image-server:
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+
+	./scripts/test/local-images-server.py ${SERVER_IP} &
 
 .PHONY: test-update-sb-keys
 test-update-sb-keys:

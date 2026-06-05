@@ -28,6 +28,8 @@ incus-osd/initrd-utils
 mkosi.packages/initrd-utils*
 mkosi.packages/microcode-metapackage*
 
+scripts/test/local-images-server.pid
+
 *.swp
 
 # Sphinx
