@@ -296,7 +296,7 @@ func (p *images) load(ctx context.Context) error {
 	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
 	p.authParam = strings.ToLower(p.state.System.Provider.Config.Config["authentication_by_query_param"]) == "true"
 	p.token = p.state.System.Provider.Config.Config["token"]
-	p.client = http.DefaultClient
+	p.client = &http.Client{}
 
 	// Set default server URL if not configured.
 	if p.serverURL == "" {
@@ -517,7 +517,7 @@ func (a *imagesApplication) Download(ctx context.Context, targetPath string, pro
 		}
 
 		// Download the application.
-		err = downloadAsset(ctx, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, a.provider.state.OS.Name, a.provider.state.OS.RunningRelease, a.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
@@ -564,7 +564,7 @@ func (o *imagesOSUpdate) Download(ctx context.Context, targetPath string, progre
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}
@@ -590,7 +590,7 @@ func (o *imagesOSUpdate) DownloadImage(ctx context.Context, imageType string, ta
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
@@ -633,7 +633,7 @@ func (o *imagesSecureBootCertUpdate) Download(ctx context.Context, targetPath st
 		fileURL := o.provider.serverURL + "/" + o.latestUpdate.Version + "/" + file.Filename
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, fileURL, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", fileURL, err.Error())
 		}

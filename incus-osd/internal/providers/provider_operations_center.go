@@ -631,7 +631,7 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 		}
 
 		// Download the application.
-		err = downloadAsset(ctx, a.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, a.provider.state.OS.Name, a.provider.state.OS.RunningRelease, a.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}
@@ -677,7 +677,7 @@ func (o *operationsCenterOSUpdate) Download(ctx context.Context, targetPath stri
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}
@@ -702,7 +702,7 @@ func (o *operationsCenterOSUpdate) DownloadImage(ctx context.Context, imageType 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, targetName), progressFunc)
 
 		return targetName, err
 	}
@@ -743,7 +743,7 @@ func (o *operationsCenterSecureBootCertUpdate) Download(ctx context.Context, tar
 		}
 
 		// Download the application.
-		err = downloadAsset(ctx, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
+		err = downloadAsset(ctx, o.provider.state.OS.Name, o.provider.state.OS.RunningRelease, o.provider.client, file.url, file.Sha256, filepath.Join(targetPath, o.GetFilename()), nil)
 		if err != nil {
 			return fmt.Errorf("while downloading %s, got error '%s'", file.url, err.Error())
 		}

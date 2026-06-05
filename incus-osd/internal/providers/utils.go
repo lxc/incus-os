@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func downloadAsset(ctx context.Context, client *http.Client, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
+func downloadAsset(ctx context.Context, osName string, osVersion string, client *http.Client, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
 	// Remove the target file, if it exists. If we don't, truncating the existing file causes spurious
 	// kernel log messages about verity device-mapper corrupted data blocks for sysext images.
 	err := os.Remove(target)
@@ -26,6 +26,9 @@ func downloadAsset(ctx context.Context, client *http.Client, assetURL string, ex
 	if err != nil {
 		return errors.New("unable to create http request: " + err.Error())
 	}
+
+	// Set a custom User-Agent string.
+	req.Header.Set("User-Agent", osName+"/"+osVersion)
 
 	// Get a reader for the release asset.
 	resp, err := client.Do(req)
