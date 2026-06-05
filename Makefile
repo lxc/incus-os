@@ -189,40 +189,8 @@ test-iso:
 	# Start the installed system
 	incus start test-incus-os --console
 
-.PHONY: test-applications
-test-applications:
-	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
-	incus exec test-incus-os -- mkdir -p /root/updates
-	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
-
-	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
-	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
-	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
-	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
-
-	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
-
 .PHONY: test-update
-test-update:
-	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
-	incus exec test-incus-os -- mkdir -p /root/updates
-	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
-
-	incus file push mkosi.output/${OSNAME}_${RELEASE}.efi test-incus-os/root/updates/
-	incus file push mkosi.output/${OSNAME}_${RELEASE}.usr* test-incus-os/root/updates/
-	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
-	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
-	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
-	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
-
+test-update: publish-local-update
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
 
 .PHONY: publish-local-update
