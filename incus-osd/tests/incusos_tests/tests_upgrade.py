@@ -44,7 +44,7 @@ def TestBaselineUpgradeOSOnly(install_image):
     test_name = "baseline-upgrade-os-only"
     test_seed = {
         "install.json": "{}",
-        "provider.json": """{"name":"local"}"""
+        "provider.json": """{"name":"debug"}"""
     }
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
@@ -92,7 +92,7 @@ def TestBaselineUpgradeApplicationOnly(install_image):
     test_name = "baseline-upgrade-application-only"
     test_seed = {
         "install.json": "{}",
-        "provider.json": """{"name":"local"}"""
+        "provider.json": """{"name":"debug"}"""
     }
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)

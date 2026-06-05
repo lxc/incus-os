@@ -761,7 +761,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	case "production":
 		provider = "images"
 	case "dev":
-		provider = "local"
+		provider = "debug"
 	default:
 		return errors.New("currently unsupported operating mode")
 	}
