@@ -647,6 +647,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"))
 
+	if mode != "production" && mode != "dev" {
+		return errors.New("currently unsupported operating mode")
+	}
+
 	// Create this channel early, so we don't block trying to trigger the fallback HTTPS listener.
 	// We can't move the channel processing loop here, because it depends on having a provider (and
 	// therefore potentially a network) properly configured.
@@ -753,18 +757,9 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Get the provider. Must be done after storage pools are loaded, since the operations-center
 	// provider depends on fetching the primary application's client certificate which may be
 	// stored in a local zfs dataset.
-	var provider string
+	defaultProvider := "images"
 
 	var providerConfig map[string]string
-
-	switch mode {
-	case "production":
-		provider = "images"
-	case "dev":
-		provider = "debug"
-	default:
-		return errors.New("currently unsupported operating mode")
-	}
 
 	if s.System.Provider.Config.Name == "" {
 		// Apply the provider seed config (if present).
@@ -776,7 +771,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		if providerSeed != nil {
 			s.System.Provider.Config = providerSeed.SystemProviderConfig
 		} else {
-			s.System.Provider.Config.Name = provider
+			s.System.Provider.Config.Name = defaultProvider
 			s.System.Provider.Config.Config = providerConfig
 		}
 
