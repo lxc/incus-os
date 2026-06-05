@@ -114,14 +114,23 @@ build-iso: build
 	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
 .PHONY: test
-test:
+test: publish-local-update
 	# Cleanup
 	incus delete -f test-incus-os || true
 	rm -f mkosi.output/${OSNAME}_boot_media.img
 
+	# Inject a custom provider seed to point the VM to our local images server
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+	cp test/seed.install.tar test/seed-test.install.tar
+	echo '{"name":"images","config":{"server_url":"http://${SERVER_IP}:8123/os"}}' > provider.json
+	echo '{"channel":"testing"}' > update.json
+	tar -rf test/seed-test.install.tar provider.json update.json
+	rm provider.json update.json
+
 	# Prepare the install media
 	cp $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.img
-	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.img seek=4196352 bs=512 conv=notrunc
+	dd if=test/seed-test.install.tar of=mkosi.output/${OSNAME}_boot_media.img seek=4196352 bs=512 conv=notrunc
+	rm test/seed-test.install.tar
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
@@ -151,16 +160,25 @@ test:
 	incus start test-incus-os --console
 
 .PHONY: test-iso
-test-iso:
+test-iso: publish-local-update
 	# Cleanup
 	incus delete -f test-incus-os || true
 	incus storage volume delete default ${OSNAME}_boot_media.iso || true
 	rm -f mkosi.output/${OSNAME}_boot_media.iso
 
+	# Inject a custom provider seed to point the VM to our local images server
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+	cp test/seed.install.tar test/seed-test.install.tar
+	echo '{"name":"images","config":{"server_url":"http://${SERVER_IP}:8123/os"}}' > provider.json
+	echo '{"channel":"testing"}' > update.json
+	tar -rf test/seed-test.install.tar provider.json update.json
+	rm provider.json update.json
+
 	# Prepare the install media
 	cp $(shell ls mkosi.output/${OSNAME}_*.iso | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.iso
-	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.iso seek=4196352 bs=512 conv=notrunc
+	dd if=test/seed-test.install.tar of=mkosi.output/${OSNAME}_boot_media.iso seek=4196352 bs=512 conv=notrunc
 	incus storage volume import default mkosi.output/${OSNAME}_boot_media.iso ${OSNAME}_boot_media.iso --type=iso
+	rm test/seed-test.install.tar
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
