@@ -55,6 +55,8 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
+        time.sleep(5)
+
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/incus/test-file", check=False)
         if result.returncode == 0:
@@ -64,6 +66,8 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         result = vm.APIRequest("/1.0/applications/incus/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        time.sleep(5)
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/incus/test-file")
@@ -114,6 +118,8 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
+        time.sleep(5)
+
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/migration-manager/test-file", check=False)
         if result.returncode == 0:
@@ -123,6 +129,8 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
         result = vm.APIRequest("/1.0/applications/migration-manager/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        time.sleep(5)
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/migration-manager/test-file")
@@ -173,6 +181,8 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
+        time.sleep(30)
+
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/operations-center/test-file", check=False)
         if result.returncode == 0:
@@ -182,6 +192,8 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         result = vm.APIRequest("/1.0/applications/operations-center/:restore", method="POST", body=backup_archive, content_type="application/x-tar")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        time.sleep(30)
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/operations-center/test-file")
