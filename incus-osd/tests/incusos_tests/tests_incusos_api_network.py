@@ -1,10 +1,13 @@
 import json
+import os
 import time
 
 from .incus_test_vm import IncusTestVM, IncusOSException, util
 
 def _checkNetworkConnectivity(vm):
-    vm.RunCommand("curl", "linuxcontainers.org")
+    IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
+
+    vm.RunCommand("curl", IMAGES_SERVER)
 
 def TestIncusOSAPISystemNetworkDefaults(install_image):
     test_name = "incusos-api-system-network-defaults"

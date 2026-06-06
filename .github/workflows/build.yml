@@ -78,27 +78,7 @@ jobs:
 
           make build-iso
 
-          mkdir upload
-
-          ./incus-osd/generate-manifests ./
-
-          mv incus-osd/flasher-tool upload/
-
-          mv mkosi.output/debug.raw upload/
-          mv mkosi.output/gpu-support.raw upload/
-          mv mkosi.output/incus.raw upload/
-          mv mkosi.output/incus-lts-7.0.raw upload/
-          mv mkosi.output/incus-ceph.raw upload/
-          mv mkosi.output/incus-linstor.raw upload/
-          mv mkosi.output/migration-manager.raw upload/
-          mv mkosi.output/operations-center.raw upload/
-
-          OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
-
-          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.raw upload/${OSNAME}_${{ github.ref_name }}.img
-          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.iso upload/${OSNAME}_${{ github.ref_name }}.iso
-          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.efi upload/
-          mv mkosi.output/${OSNAME}_${{ github.ref_name }}.usr-*.raw upload/
+          ./scripts/prepare-upload.sh ${{ github.ref_name }}
 
       - name: Compress the files
         run: |

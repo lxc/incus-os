@@ -14,11 +14,11 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
-// LocalPath defines a hard-coded path to where the local provider will look for updates.
-var LocalPath = "/root/updates/"
+// DebugPath defines a hard-coded path to where the debug provider will look for updates.
+var DebugPath = "/root/updates/"
 
-// The Local provider.
-type local struct {
+// The Debug provider.
+type debug struct {
 	state *state.State
 
 	path string
@@ -27,31 +27,31 @@ type local struct {
 	releaseVersion string
 }
 
-func (*local) ClearCache(_ context.Context) error {
-	// No cache for the local provider.
+func (*debug) ClearCache(_ context.Context) error {
+	// No cache for the debug provider.
 	return nil
 }
 
-func (*local) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCause) error {
-	// No registration with the local provider.
+func (*debug) RefreshRegister(_ context.Context, _ ocapi.ServerSelfUpdateCause) error {
+	// No registration with the debug provider.
 	return ErrRegistrationUnsupported
 }
 
-func (*local) Register(_ context.Context) error {
-	// No registration with the local provider.
+func (*debug) Register(_ context.Context) error {
+	// No registration with the debug provider.
 	return ErrRegistrationUnsupported
 }
 
-func (*local) Deregister(_ context.Context) error {
+func (*debug) Deregister(_ context.Context) error {
 	// Since we can't register, deregister is a no-op.
 	return nil
 }
 
-func (*local) Type() string {
-	return "local"
+func (*debug) Type() string {
+	return "debug"
 }
 
-func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
+func (p *debug) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -75,7 +75,7 @@ func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpda
 	}
 
 	// Prepare the OS update struct.
-	update := localSecureBootCertUpdate{
+	update := debugSecureBootCertUpdate{
 		provider: p,
 		assets:   p.releaseAssets,
 		version:  p.releaseVersion,
@@ -84,7 +84,7 @@ func (p *local) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpda
 	return &update, nil
 }
 
-func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *debug) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -108,7 +108,7 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	}
 
 	// Prepare the OS update struct.
-	update := localOSUpdate{
+	update := debugOSUpdate{
 		provider: p,
 		assets:   p.releaseAssets,
 		version:  p.releaseVersion,
@@ -117,7 +117,7 @@ func (p *local) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *local) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
+func (p *debug) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
 	// Get latest release.
 	err := p.checkRelease(ctx)
 	if err != nil {
@@ -141,7 +141,7 @@ func (p *local) GetApplicationUpdate(ctx context.Context, name string) (Applicat
 	}
 
 	// Prepare the application struct.
-	app := localApplication{
+	app := debugApplication{
 		provider: p,
 		name:     name,
 		assets:   p.releaseAssets,
@@ -151,14 +151,14 @@ func (p *local) GetApplicationUpdate(ctx context.Context, name string) (Applicat
 	return &app, nil
 }
 
-func (p *local) load(_ context.Context) error {
+func (p *debug) load(_ context.Context) error {
 	// Use a hardcoded path for now.
-	p.path = LocalPath
+	p.path = DebugPath
 
 	return nil
 }
 
-func (p *local) checkRelease(_ context.Context) error {
+func (p *debug) checkRelease(_ context.Context) error {
 	// Deal with missing path.
 	_, err := os.Lstat(p.path)
 	if err != nil {
@@ -194,7 +194,7 @@ func (p *local) checkRelease(_ context.Context) error {
 	return nil
 }
 
-func (p *local) copyAsset(_ context.Context, name string, targetPath string, progressFunc func(float64)) error {
+func (p *debug) copyAsset(_ context.Context, name string, targetPath string, progressFunc func(float64)) error {
 	// Remove the target file, if it exists. If we don't, truncating the existing file causes spurious
 	// kernel log messages about verity device-mapper corrupted data blocks for sysext images.
 	err := os.Remove(filepath.Join(targetPath, name))
@@ -252,28 +252,28 @@ func (p *local) copyAsset(_ context.Context, name string, targetPath string, pro
 	return nil
 }
 
-// An application from the Local provider.
-type localApplication struct {
-	provider *local
+// An application from the Debug provider.
+type debugApplication struct {
+	provider *debug
 
 	assets  []string
 	name    string
 	version string
 }
 
-func (a *localApplication) Name() string {
+func (a *debugApplication) Name() string {
 	return a.name
 }
 
-func (a *localApplication) Version() string {
+func (a *debugApplication) Version() string {
 	return a.version
 }
 
-func (a *localApplication) IsNewerThan(otherVersion string) bool {
+func (a *debugApplication) IsNewerThan(otherVersion string) bool {
 	return DatetimeComparison(a.version, otherVersion)
 }
 
-func (a *localApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (a *debugApplication) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Create the target path.
 	err := os.MkdirAll(targetPath, 0o700)
 	if err != nil {
@@ -304,23 +304,23 @@ func (a *localApplication) Download(ctx context.Context, targetPath string, prog
 	return nil
 }
 
-// An update from the Local provider.
-type localOSUpdate struct {
-	provider *local
+// An update from the Debug provider.
+type debugOSUpdate struct {
+	provider *debug
 
 	assets  []string
 	version string
 }
 
-func (o *localOSUpdate) Version() string {
+func (o *debugOSUpdate) Version() string {
 	return o.version
 }
 
-func (o *localOSUpdate) IsNewerThan(otherVersion string) bool {
+func (o *debugOSUpdate) IsNewerThan(otherVersion string) bool {
 	return DatetimeComparison(o.version, otherVersion)
 }
 
-func (o *localOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
+func (o *debugOSUpdate) Download(ctx context.Context, targetPath string, progressFunc func(float64)) error {
 	// Clear the path.
 	err := os.RemoveAll(targetPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -360,32 +360,32 @@ func (o *localOSUpdate) Download(ctx context.Context, targetPath string, progres
 	return nil
 }
 
-func (*localOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ func(float64)) (string, error) {
-	// No reason to support fetching a full install image from the local (development) provider.
-	return "", errors.New("downloading full image not supported by local provider")
+func (*debugOSUpdate) DownloadImage(_ context.Context, _ string, _ string, _ func(float64)) (string, error) {
+	// No reason to support fetching a full install image from the debug (development) provider.
+	return "", errors.New("downloading full image not supported by debug provider")
 }
 
-// Secure Boot key updates from the Local provider.
-type localSecureBootCertUpdate struct {
-	provider *local
+// Secure Boot key updates from the Debug provider.
+type debugSecureBootCertUpdate struct {
+	provider *debug
 
 	assets  []string
 	version string
 }
 
-func (o *localSecureBootCertUpdate) Version() string {
+func (o *debugSecureBootCertUpdate) Version() string {
 	return o.version
 }
 
-func (o *localSecureBootCertUpdate) GetFilename() string {
+func (o *debugSecureBootCertUpdate) GetFilename() string {
 	return "SecureBootKeys_" + o.version + ".tar"
 }
 
-func (o *localSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
+func (o *debugSecureBootCertUpdate) IsNewerThan(otherVersion string) bool {
 	return DatetimeComparison(o.version, otherVersion)
 }
 
-func (o *localSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
+func (o *debugSecureBootCertUpdate) Download(ctx context.Context, targetPath string, _ func(float64)) error {
 	for _, asset := range o.assets {
 		// Only select Secure Boot keys for the expected version.
 		if filepath.Base(asset) != o.GetFilename() {

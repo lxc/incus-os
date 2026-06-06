@@ -3,6 +3,7 @@ SPHINXENV=doc/.sphinx/venv/bin/activate
 SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
 OSNAME=$(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+RELEASE=$(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
 .PHONY: default
 default: build
@@ -26,6 +27,11 @@ flasher-tool:
 generate-manifests:
 	(cd incus-osd && go build ./cmd/generate-manifests)
 	strip incus-osd/generate-manifests
+
+.PHONY: image-publisher
+image-publisher:
+	(cd incus-osd && go build ./cmd/image-publisher)
+	strip incus-osd/image-publisher
 
 .PHONY: initrd-utils
 initrd-utils:
@@ -93,7 +99,7 @@ endif
 	cp incus-osd/certs/files/secureboot-DB-*.crt mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 
 .PHONY: build
-build: inject-system-certs incus-osd flasher-tool generate-manifests initrd-deb-package microcode-metapackage-deb-package
+build: inject-system-certs incus-osd flasher-tool generate-manifests image-publisher initrd-deb-package microcode-metapackage-deb-package
 	cd app-build/ && ./build-applications.py
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*
@@ -108,14 +114,23 @@ build-iso: build
 	sudo ./scripts/convert-img-to-iso.sh $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
 .PHONY: test
-test:
+test: publish-local-update start-local-image-server
 	# Cleanup
 	incus delete -f test-incus-os || true
 	rm -f mkosi.output/${OSNAME}_boot_media.img
 
+	# Inject a custom provider seed to point the VM to our local images server
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+	cp test/seed.install.tar test/seed-test.install.tar
+	echo '{"name":"images","config":{"server_url":"http://${SERVER_IP}:8123/os"}}' > provider.json
+	echo '{"channel":"testing"}' > update.json
+	tar -rf test/seed-test.install.tar provider.json update.json
+	rm provider.json update.json
+
 	# Prepare the install media
 	cp $(shell ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.img
-	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.img seek=4196352 bs=512 conv=notrunc
+	dd if=test/seed-test.install.tar of=mkosi.output/${OSNAME}_boot_media.img seek=4196352 bs=512 conv=notrunc
+	rm test/seed-test.install.tar
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
@@ -145,16 +160,25 @@ test:
 	incus start test-incus-os --console
 
 .PHONY: test-iso
-test-iso:
+test-iso: publish-local-update start-local-image-server
 	# Cleanup
 	incus delete -f test-incus-os || true
 	incus storage volume delete default ${OSNAME}_boot_media.iso || true
 	rm -f mkosi.output/${OSNAME}_boot_media.iso
 
+	# Inject a custom provider seed to point the VM to our local images server
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+	cp test/seed.install.tar test/seed-test.install.tar
+	echo '{"name":"images","config":{"server_url":"http://${SERVER_IP}:8123/os"}}' > provider.json
+	echo '{"channel":"testing"}' > update.json
+	tar -rf test/seed-test.install.tar provider.json update.json
+	rm provider.json update.json
+
 	# Prepare the install media
 	cp $(shell ls mkosi.output/${OSNAME}_*.iso | grep -v usr | grep -v esp | sort | tail -1) mkosi.output/${OSNAME}_boot_media.iso
-	dd if=test/seed.install.tar of=mkosi.output/${OSNAME}_boot_media.iso seek=4196352 bs=512 conv=notrunc
+	dd if=test/seed-test.install.tar of=mkosi.output/${OSNAME}_boot_media.iso seek=4196352 bs=512 conv=notrunc
 	incus storage volume import default mkosi.output/${OSNAME}_boot_media.iso ${OSNAME}_boot_media.iso --type=iso
+	rm test/seed-test.install.tar
 
 	# Create the VM
 	incus init --empty --vm test-incus-os \
@@ -183,45 +207,36 @@ test-iso:
 	# Start the installed system
 	incus start test-incus-os --console
 
-.PHONY: test-applications
-test-applications:
-	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
-	incus exec test-incus-os -- mkdir -p /root/updates
-	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
-
-	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
-	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
-	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
-	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
-
-	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
-
 .PHONY: test-update
-test-update:
-	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
-	incus exec test-incus-os -- mkdir -p /root/updates
-	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
-
-	incus file push mkosi.output/${OSNAME}_${RELEASE}.efi test-incus-os/root/updates/
-	incus file push mkosi.output/${OSNAME}_${RELEASE}.usr* test-incus-os/root/updates/
-	incus file push mkosi.output/debug.raw test-incus-os/root/updates/
-	incus file push mkosi.output/gpu-support.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-lts-7.0.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-ceph.raw test-incus-os/root/updates/
-	incus file push mkosi.output/incus-linstor.raw test-incus-os/root/updates/
-	incus file push mkosi.output/migration-manager.raw test-incus-os/root/updates/
-	incus file push mkosi.output/operations-center.raw test-incus-os/root/updates/
-
+test-update: publish-local-update start-local-image-server
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
+
+.PHONY: publish-local-update
+publish-local-update:
+	$(eval ARCH := $(shell if [ "$$(uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi))
+
+# Don't perform publish steps if already available locally
+ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
+	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
+	./scripts/prepare-upload.sh ${RELEASE}
+
+	(cd upload && for i in *; do gzip -1 "$${i}"; done)
+
+	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
+
+	SIG_KEY=./certs/cas/root-E1.key SIG_CERTIFICATE=./incus-osd/certs/files/root-E1.crt SIG_CHAIN=./mkosi.crt ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
+
+	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
+endif
+
+.PHONY: start-local-image-server
+start-local-image-server:
+	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+
+	./scripts/test/local-images-server.py ${SERVER_IP} &
 
 .PHONY: test-update-sb-keys
 test-update-sb-keys:
-	$(eval RELEASE := $(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1))
 	incus exec test-incus-os -- mkdir -p /root/updates
 	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
 

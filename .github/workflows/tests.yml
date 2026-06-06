@@ -124,8 +124,14 @@ jobs:
       - name: Start the VM
         run: |
           OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
+          RAW_IMAGE=$(ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1)
 
-          qemu-img convert -f raw -O qcow2 $(ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1) os-image.qcow2
+          echo '{"applications":[{"name":"incus"},{"name":"debug"}]}' > applications.json
+          echo '{"name":"debug"}' > provider.json
+          tar cf seed.tar applications.json provider.json
+          dd if=seed.tar of=${RAW_IMAGE} seek=4196352 bs=512 conv=notrunc
+
+          qemu-img convert -f raw -O qcow2 ${RAW_IMAGE} os-image.qcow2
           incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
 
           incus create --quiet --vm incus-os test-incus-os \
@@ -134,7 +140,7 @@ jobs:
             -c limits.memory=2GiB \
             -d root,size=50GiB
           incus config device add test-incus-os vtpm tpm
-          incus config set test-incus-os systemd.credential.fully-enable-incus-agent true
+          incus config set test-incus-os systemd.credential.fully-enable-incus-agent=true
           incus start test-incus-os
 
           incus wait test-incus-os agent --timeout 300
@@ -164,8 +170,8 @@ jobs:
       - name: Test Incus
         run: |
           incus exec test-incus-os -- incus admin init --auto
-          incus exec test-incus-os -- incus launch --quiet images:debian/12 c1
-          incus exec test-incus-os -- incus launch --quiet images:debian/12 v1 --vm
+          incus exec test-incus-os -- incus launch --quiet images:debian/13 c1
+          incus exec test-incus-os -- incus launch --quiet images:debian/13 v1 --vm
 
           incus exec test-incus-os -- sleep 30s
           incus exec test-incus-os -- incus list

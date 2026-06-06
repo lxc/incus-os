@@ -25,11 +25,6 @@ To test a locally built raw image in an Incus virtual machine, run:
 
     make test
 
-After IncusOS has completed its installation and is running in the virtual machine, to load
-applications run:
-
-    make test-applications
-
 To test the update process, build a new image and update to it with:
 
     make

@@ -95,6 +95,12 @@ func (s *Server) apiSystemProvider(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if newConfig.Config.Name == "" {
+			_ = response.BadRequest(errors.New("a provider name must be specified")).Render(w)
+
+			return
+		}
+
 		// If switching providers, unregister from the current one.
 		if newConfig.Config.Name != oldConfig.Name {
 			// Load the current provider and deregister it.

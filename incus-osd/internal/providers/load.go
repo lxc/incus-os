@@ -15,17 +15,17 @@ func Load(ctx context.Context, s *state.State, ignoreSignedJSON bool) (Provider,
 	var p Provider
 
 	switch s.System.Provider.Config.Name {
+	case "debug":
+		// Setup the debug provider.
+		p = &debug{
+			state: s,
+		}
+
 	case "images":
 		// Setup the images provider.
 		p = &images{
 			state:            s,
 			ignoreSignedJSON: ignoreSignedJSON,
-		}
-
-	case "local":
-		// Setup the local provider.
-		p = &local{
-			state: s,
 		}
 
 	case "operations-center":

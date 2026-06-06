@@ -12,6 +12,6 @@ Configuration fields are defined in the [`SystemProviderConfig` struct](https://
 
 The following configuration options can be set:
 
-* `name`: The name of the provider. One of `images`, `operations-center`, or `local`. `local` is intended for use by developers working on IncusOS.
+* `name`: The name of the provider. One of `images`, `operations-center`, or `debug`. `debug` is intended for use by developers working on IncusOS.
 
 * `config`: A map of provider-specific configuration key-value pairs.

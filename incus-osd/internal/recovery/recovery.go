@@ -185,14 +185,14 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 
 	slog.InfoContext(ctx, "Processing validated update metadata", "version", updateInfo.Version)
 
-	// Make sure the path used by the local provider exists.
-	err = os.MkdirAll(providers.LocalPath, 0o700)
+	// Make sure the path used by the debug provider exists.
+	err = os.MkdirAll(providers.DebugPath, 0o700)
 	if err != nil {
 		return err
 	}
 
 	// Ensure we cleanup after ourselves.
-	defer os.RemoveAll(providers.LocalPath)
+	defer os.RemoveAll(providers.DebugPath)
 
 	// Get local architecture.
 	archName, err := osarch.ArchitectureGetLocal()
@@ -208,7 +208,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 			continue
 		}
 
-		// Verify the SHA256 of each file that exists before making it available to the local provider.
+		// Verify the SHA256 of each file that exists before making it available to the debug provider.
 		err := verifyAndDecompressFile(updateDir, file)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -221,8 +221,8 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		}
 	}
 
-	// Set the RELEASE version for the local provider.
-	r, err := os.Create(filepath.Join(providers.LocalPath, "RELEASE"))
+	// Set the RELEASE version for the debug provider.
+	r, err := os.Create(filepath.Join(providers.DebugPath, "RELEASE"))
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 		return err
 	}
 
-	// Stash the current provider state and configuration. We'll be forcing the system to use the local provider,
+	// Stash the current provider state and configuration. We'll be forcing the system to use the debug provider,
 	// and once we're done we want to restore the actual provider configuration.
 	currentProvider := s.System.Provider
 
@@ -241,7 +241,7 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 
 	s.System.Provider = api.SystemProvider{
 		Config: api.SystemProviderConfig{
-			Name: "local",
+			Name: "debug",
 		},
 	}
 
@@ -291,7 +291,7 @@ func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error 
 
 	// Create the target path.
 	// #nosec G304
-	tfd, err := os.Create(filepath.Join(providers.LocalPath, filepath.Base(strings.TrimSuffix(file.Filename, ".gz"))))
+	tfd, err := os.Create(filepath.Join(providers.DebugPath, filepath.Base(strings.TrimSuffix(file.Filename, ".gz"))))
 	if err != nil {
 		return err
 	}
