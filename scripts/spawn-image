@@ -37,6 +37,7 @@ incus config device add "${1}" boot-media disk source="$(pwd)/${IMG_NAME}" boot.
 echo "=> Starting ${OSNAME} for installation"
 incus start "${1}" --console
 sleep 5
+incus config set "${1}" volatile.vm.needs_reset=true
 incus console "${1}"
 sleep 5
 clear
