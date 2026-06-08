@@ -6,6 +6,7 @@ import json
 import os
 import requests
 import shutil
+import subprocess
 import urllib.request
 
 from incusos_tests import IncusOSTests
@@ -15,6 +16,14 @@ os_name = ""
 current_release = None
 prior_stable_release = None
 urls = []
+
+# Check that expected commands are available before running any tests
+for cmd in ["curl", "gdisk", "go", "mkfs.vfat", "mcopy", "mdeltree", "mkisofs", "openssl", "truncate"]:
+    try:
+        subprocess.run(["which", cmd], env={"PATH": "/usr/bin:/usr/sbin"}, capture_output=True, check=True)
+    except:
+        print("Missing command: " + cmd)
+        exit(1)
 
 IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
 
