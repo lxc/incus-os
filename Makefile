@@ -233,6 +233,9 @@ endif
 start-local-image-server:
 	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
 
+	# Cleanup stale pid
+	if [ -f ./scripts/test/local-images-server.pid ] && [ ! -d /proc/$$(cat ./scripts/test/local-images-server.pid) ]; then rm ./scripts/test/local-images-server.pid; fi
+
 	./scripts/test/local-images-server.py ${SERVER_IP} &
 
 .PHONY: test-update-sb-keys
