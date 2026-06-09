@@ -3,7 +3,7 @@ SPHINXENV=doc/.sphinx/venv/bin/activate
 SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
 OSNAME=$(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
-RELEASE=$(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
+RELEASE=$(shell ls mkosi.output/*.efi 2>/dev/null | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
 .PHONY: default
 default: build
