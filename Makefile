@@ -3,7 +3,7 @@ SPHINXENV=doc/.sphinx/venv/bin/activate
 SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
 OSNAME=$(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
-RELEASE=$(shell ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
+RELEASE=$(shell ls mkosi.output/*.efi 2>/dev/null | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
 .PHONY: default
 default: build
@@ -232,6 +232,9 @@ endif
 .PHONY: start-local-image-server
 start-local-image-server:
 	$(eval SERVER_IP := $(shell incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1))
+
+	# Cleanup stale pid
+	if [ -f ./scripts/test/local-images-server.pid ] && [ ! -d /proc/$$(cat ./scripts/test/local-images-server.pid) ]; then rm ./scripts/test/local-images-server.pid; fi
 
 	./scripts/test/local-images-server.py ${SERVER_IP} &
 

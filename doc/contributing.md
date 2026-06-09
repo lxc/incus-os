@@ -6,21 +6,57 @@
 You can build IncusOS locally. Only users specifically interested in the
 development and testing of new IncusOS features should need to do this.
 
-We currently only support building IncusOS from a Debian 13 system
+We currently only support building IncusOS in a Debian 13 environment,
 though other Debian releases and Debian derivatives like Ubuntu may work
 as well.
 
-After cloning the repository from GitHub, simply run:
+Begin by ensuring that the required build dependencies are installed:
+
+    sudo apt install devscripts golang-any libnbd-dev mkosi
+
+When building locally, during the initial build various development Secure
+Boot certificates will be generated so the resulting build artifacts can be
+properly signed. This should be a transparent process, and only needs to be
+done once. If for some reason your development Secure Boot certificates get
+messed up, you can regenerate them by running:
+
+    rm -rf ./certs/ ./incus-osd/certs/files/
+    make generate-test-certs
+
+From the root of the IncusOS repository, a new build can be created by running:
 
     make
 
-By default the build will produce a raw image in the `mkosi.output/` directory,
+By default, the build will produce a raw image in the `mkosi.output/` directory,
 suitable for writing to a USB stick. It is also possible to build an ISO
 image if you need to boot from a (virtual) CD-ROM device:
 
     make build-iso
 
 ## Testing
+
+The recommended way to test IncusOS is running it within an Incus virtual machine.
+It is also possible to test IncusOS on a physical machine, but debugging and
+introspecting into the system state will be greatly restricted.
+
+```{note}
+When testing IncusOS in an Incus virtual machine, the following assumptions are made:
+
+* Incus is configured to run on the local machine; remote Incus servers aren't supported
+
+* The Incus client has full administrative access (most commonly, your user is part of
+the `incus-admin` group)
+
+* The default `incusbr0` network bridge exists, and will be used by the virtual machines
+for their network connectivity.
+```
+
+To support local development builds of IncusOS, a Python-based HTTP server will be
+started as needed to provide a very simple private images server. This local images
+server operates in the same way as the public Linux Containers images server; the virtual
+machine's `images` provider will be automatically configured to check locally for any
+available updates.
+
 To test a locally built raw image in an Incus virtual machine, run:
 
     make test
@@ -29,6 +65,10 @@ To test the update process, build a new image and update to it with:
 
     make
     make test-update
+
+A new build can also be published locally by running:
+
+    make publish-local-update
 
 ## Extending the `cli` package
 
@@ -41,7 +81,7 @@ the IncusOS repository cloned in your home directory, clone the Incus repository
     cd incus/
     ln -s ~/incus-os/incus-osd/cli/ .
 
-Then, update the import path of `cmd/incus/admin_os.go` from `github.com/lxc/incus-os/incus-osd/cli` to `github.com/lxc/incus/v6/cli`.
+Then, update the import path of `cmd/incus/admin_os.go` from `github.com/lxc/incus-os/incus-osd/cli` to `github.com/lxc/incus/v7/cli`.
 
 Finally, build the local Incus client:
 
