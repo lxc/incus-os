@@ -1216,7 +1216,7 @@ func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConf
 
 		segments := []string{}
 		if s.DisableGRO {
-			segments = append(segments, "GenericReceiveOffload=false")
+			segments = append(segments, "GenericReceiveOffload=false", "GenericReceiveOffloadHardware=false")
 		}
 
 		if s.DisableGSO {
