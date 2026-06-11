@@ -379,7 +379,7 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 
 	if err != nil {
 		if errors.Is(err, providers.ErrNoUpdateAvailable) {
-			slog.DebugContext(ctx, ut.String()+" update provider doesn't currently have any update")
+			slog.DebugContext(ctx, ut.String()+" update provider doesn't currently have any update", "channel", s.System.Update.Config.Channel)
 
 			return "", nil
 		}
@@ -430,9 +430,9 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 		return applyUpdate(ctx, s, t, update, appName, isStartupCheck)
 	} else if isStartupCheck {
 		if ut == TypeApplication {
-			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "version", update.Version())
+			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "channel", s.System.Update.Config.Channel, "version", update.Version())
 		} else {
-			slog.DebugContext(ctx, "System is already running latest "+ut.String()+" version", "version", update.Version())
+			slog.DebugContext(ctx, "System is already running latest "+ut.String()+" version", "channel", s.System.Update.Config.Channel, "version", update.Version())
 		}
 	}
 
@@ -452,18 +452,18 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 	case providers.SecureBootCertUpdate:
 		targetPath = "/tmp/"
 
-		slog.InfoContext(ctx, "Downloading SecureBoot update", "version", update.Version())
-		updateModal.Update("Downloading SecureBoot update " + update.Version())
+		slog.InfoContext(ctx, "Downloading SecureBoot update", "channel", s.System.Update.Config.Channel, "version", update.Version())
+		updateModal.Update("Downloading SecureBoot update " + update.Version() + " from channel " + s.System.Update.Config.Channel)
 	case providers.OSUpdate:
 		targetPath = systemd.SystemUpdatesPath
 
-		slog.InfoContext(ctx, "Downloading OS update", "version", update.Version())
-		updateModal.Update("Downloading OS update " + update.Version())
+		slog.InfoContext(ctx, "Downloading OS update", "channel", s.System.Update.Config.Channel, "version", update.Version())
+		updateModal.Update("Downloading OS update " + update.Version() + " from channel " + s.System.Update.Config.Channel)
 	case providers.ApplicationUpdate:
 		targetPath = filepath.Join(systemd.LocalExtensionsPath, update.Version())
 
-		slog.InfoContext(ctx, "Downloading application update", "application", appName, "version", update.Version())
-		updateModal.Update("Downloading application update " + appName + " version " + update.Version())
+		slog.InfoContext(ctx, "Downloading application update", "application", appName, "channel", s.System.Update.Config.Channel, "version", update.Version())
+		updateModal.Update("Downloading application update " + appName + " version " + update.Version() + " from channel " + s.System.Update.Config.Channel)
 	default:
 		// An invalid update type has been handled previously in checkDownloadUpdate().
 	}
