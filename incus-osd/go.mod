@@ -1,6 +1,6 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.25.11
+go 1.25.12
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.14
@@ -13,7 +13,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.19.0
+	github.com/klauspost/compress v1.19.1
 	github.com/lxc/incus/v7 v7.2.1-0.20260703161801-31ae84a88880
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.15.0
@@ -25,6 +25,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
+	gopkg.in/ini.v1 v1.67.3
 	software.sslmate.com/src/go-pkcs12 v0.7.3
 	tailscale.com v1.94.2
 )
@@ -50,7 +51,7 @@ require (
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-json-experiment/json v0.0.0-20250813024750-ebf49471dced // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
