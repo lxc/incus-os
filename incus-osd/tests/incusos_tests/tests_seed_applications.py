@@ -86,7 +86,7 @@ def TestSeedApplictionsIncusCeph(install_image):
         vm.WaitSystemReady(os_version, application="incus-ceph")
 
         # We should also see Incus pulled in as a dependency
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
 
 def TestSeedApplictionsIncusLinstor(install_image):
     test_name = "seed-applications-incus-linstor"
@@ -101,7 +101,7 @@ def TestSeedApplictionsIncusLinstor(install_image):
         vm.WaitSystemReady(os_version, application="incus-linstor")
 
         # We should also see Incus pulled in as a dependency
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
 
 def TestSeedApplictionsMigrationManager(install_image):
     test_name = "seed-applications-migration-manager"

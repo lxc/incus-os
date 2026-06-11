@@ -116,7 +116,7 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         if not secureboot_disabled:
             self.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" version="+os_version)
+        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" channel=stable version="+os_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     def WaitAgentRunning(self, timeout=420):

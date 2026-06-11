@@ -27,7 +27,7 @@ def TestIncusOSAPISystemReset(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -69,7 +69,7 @@ def TestIncusOSAPISystemResetSWTPM(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Should see a log message about swtpm
@@ -108,7 +108,7 @@ def TestIncusOSAPISystemResetSWTPMToTPM(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -140,7 +140,7 @@ def TestIncusOSAPISystemResetSecureBootDisabled(install_image):
         # Wait for the system to come back up.
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Should see a log message about SecureBoot being disabled
@@ -183,7 +183,7 @@ def TestIncusOSAPISystemResetSecureBootDisabledToSB(install_image):
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
             vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-            vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+            vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
             vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
             # Shouldn't see any mention of a TPM or SecureBoot degraded security state

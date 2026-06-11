@@ -94,7 +94,7 @@ def _recoveryChecks(vm, os_version):
     vm.WaitExpectedLog("incus-osd", "Processing validated update metadata version="+os_version)
     vm.WaitExpectedLog("incus-osd", "Decompressing and verifying each update file")
     vm.WaitExpectedLog("incus-osd", "Skipping missing file: 'x86_64/debug.raw.gz")
-    vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+    vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
     vm.WaitExpectedLog("incus-osd", "Recovery actions completed")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
