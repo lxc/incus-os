@@ -22,7 +22,7 @@ def TestIncusOSLive(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
@@ -67,7 +67,7 @@ def TestIncusOSLiveSWTPM(install_image):
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Check some PCR values: expect PCR0 to be empty with swtpm, while PCR7, PCR11, and PCR15 should have non-zero values
@@ -116,7 +116,7 @@ def TestIncusOSLiveNoSecureBoot(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Degraded security state: Secure Boot is disabled")
-        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus version="+os_version)
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=stable version="+os_version)
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Verify that LUKS encryption is bound to PCRs 4+7+11+15
