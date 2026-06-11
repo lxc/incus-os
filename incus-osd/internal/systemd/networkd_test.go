@@ -405,7 +405,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ=", cfg.Wireguard[0].Peers[1].PublicKey)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Dump(&cfg, yaml.V2)
+		content, err := yaml.Dump(&cfg, yaml.WithV2Defaults())
 		require.NoError(t, err)
 
 		err = yaml.Load(content, &cfgAgain)
@@ -439,7 +439,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Empty(t, cfg.Wireguard[0].PrivateKey)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Dump(&cfg, yaml.V2)
+		content, err := yaml.Dump(&cfg, yaml.WithV2Defaults())
 		require.NoError(t, err)
 
 		err = yaml.Load(content, &cfgAgain)
@@ -474,7 +474,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "anonymous", cfg.Proxy.Servers["example"].Auth)
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Dump(&cfg, yaml.V2)
+		content, err := yaml.Dump(&cfg, yaml.WithV2Defaults())
 		require.NoError(t, err)
 
 		err = yaml.Load(content, &cfgAgain)
@@ -517,7 +517,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "management", cfg.VLANs[0].Roles[0])
 
 		// Verify we can marshal and unmarshal the test config and don't loose any information.
-		content, err := yaml.Dump(&cfg, yaml.V2)
+		content, err := yaml.Dump(&cfg, yaml.WithV2Defaults())
 		require.NoError(t, err)
 
 		err = yaml.Load(content, &cfgAgain)

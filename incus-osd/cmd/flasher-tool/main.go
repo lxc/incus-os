@@ -409,7 +409,7 @@ func configureNetworkSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide network seed in yaml format")
 
 	if networkSeed != nil {
-		existingContents, err = yaml.Dump(networkSeed, yaml.V2)
+		existingContents, err = yaml.Dump(networkSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -458,7 +458,7 @@ func configureIncusSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Incus seed in yaml format")
 
 	if incusSeed != nil {
-		existingContents, err = yaml.Dump(incusSeed, yaml.V2)
+		existingContents, err = yaml.Dump(incusSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -493,7 +493,7 @@ func configureMigrationManagerSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Migration Manager seed in yaml format")
 
 	if migrationManagerSeed != nil {
-		existingContents, err = yaml.Dump(migrationManagerSeed, yaml.V2)
+		existingContents, err = yaml.Dump(migrationManagerSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -528,7 +528,7 @@ func configureOperationsCenterSeed(ctx context.Context) error {
 	existingContents := []byte("# Provide Operations Center seed in yaml format")
 
 	if operationsCenterSeed != nil {
-		existingContents, err = yaml.Dump(operationsCenterSeed, yaml.V2)
+		existingContents, err = yaml.Dump(operationsCenterSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -589,7 +589,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create applications yaml contents.
 	if applicationsSeed != nil {
-		yamlContents, err := yaml.Dump(applicationsSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(applicationsSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -599,7 +599,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create incus yaml contents.
 	if incusSeed != nil {
-		yamlContents, err := yaml.Dump(incusSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(incusSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -609,7 +609,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create migration-manager yaml contents.
 	if migrationManagerSeed != nil {
-		yamlContents, err := yaml.Dump(migrationManagerSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(migrationManagerSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -619,7 +619,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create operations-center yaml contents.
 	if operationsCenterSeed != nil {
-		yamlContents, err := yaml.Dump(operationsCenterSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(operationsCenterSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -629,7 +629,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create install yaml contents.
 	if installSeed != nil {
-		yamlContents, err := yaml.Dump(installSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(installSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
@@ -639,7 +639,7 @@ func writeImage(asker ask.Asker, sourceImage string) error {
 
 	// Create network yaml contents.
 	if networkSeed != nil {
-		yamlContents, err := yaml.Dump(networkSeed, yaml.V2)
+		yamlContents, err := yaml.Dump(networkSeed, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}

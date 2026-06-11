@@ -984,7 +984,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create applications yaml contents.
 	if seeds.Applications != nil {
-		yamlContents, err := yaml.Dump(seeds.Applications, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Applications, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -994,7 +994,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create incus yaml contents.
 	if seeds.Incus != nil {
-		yamlContents, err := yaml.Dump(seeds.Incus, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Incus, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1004,7 +1004,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create operations-center yaml contents.
 	if seeds.OperationsCenter != nil {
-		yamlContents, err := yaml.Dump(seeds.OperationsCenter, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.OperationsCenter, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1014,7 +1014,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create migration-manager yaml contents.
 	if seeds.MigrationManager != nil {
-		yamlContents, err := yaml.Dump(seeds.MigrationManager, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.MigrationManager, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1024,7 +1024,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create install yaml contents.
 	if seeds.Install != nil {
-		yamlContents, err := yaml.Dump(seeds.Install, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Install, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1034,7 +1034,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create network yaml contents.
 	if seeds.Network != nil {
-		yamlContents, err := yaml.Dump(seeds.Network, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Network, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1044,7 +1044,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create provider yaml contents.
 	if seeds.Provider != nil {
-		yamlContents, err := yaml.Dump(seeds.Provider, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Provider, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}
@@ -1054,7 +1054,7 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 
 	// Create update yaml contents.
 	if seeds.Update != nil {
-		yamlContents, err := yaml.Dump(seeds.Update, yaml.V2)
+		yamlContents, err := yaml.Dump(seeds.Update, yaml.WithV2Defaults())
 		if err != nil {
 			return -1, err
 		}

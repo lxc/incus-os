@@ -122,7 +122,7 @@ func (c *cmdGenericEdit) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	data, err := yaml.Dump(rawData, yaml.V2)
+	data, err := yaml.Dump(rawData, yaml.WithV2Defaults())
 	if err != nil {
 		return err
 	}
@@ -595,7 +595,7 @@ func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 		data = append(data, '\n')
 
 	case "yaml":
-		data, err = yaml.Dump(rawData, yaml.V2)
+		data, err = yaml.Dump(rawData, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}

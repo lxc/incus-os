@@ -1133,7 +1133,7 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 	// Restart incus-agent if necessary.
 	if restartAgent {
 		// Write the configuration file.
-		data, err := yaml.Dump(&cfg, yaml.V2)
+		data, err := yaml.Dump(&cfg, yaml.WithV2Defaults())
 		if err != nil {
 			return err
 		}
