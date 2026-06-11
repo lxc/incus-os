@@ -23,9 +23,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
-	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.45.0
-	software.sslmate.com/src/go-pkcs12 v0.7.1
+	golang.org/x/sync v0.21.0
+	golang.org/x/sys v0.46.0
+	software.sslmate.com/src/go-pkcs12 v0.7.2
 	tailscale.com v1.94.2
 )
 
@@ -101,12 +101,12 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/term v0.44.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
