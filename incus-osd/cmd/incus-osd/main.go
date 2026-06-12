@@ -797,27 +797,43 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
+	// Begin by starting the primary application before any other installed applications.
+	// When configured with the "debug" provider, allow this check to fail, as when the
+	// system initially boots no applications may yet be available to the system.
+	primaryApp, err := applications.GetPrimary(ctx, s, false)
+	if err != nil && (!errors.Is(err, applications.ErrNoPrimary) || s.System.Provider.Config.Name != "debug") {
+		return err
+	}
+
+	if primaryApp != nil {
+		err := applications.StartInitialize(ctx, s, primaryApp.Name())
+		if err != nil {
+			slog.ErrorContext(ctx, err.Error())
+
+			// If not running from the backup image, which automatically starts the fallback HTTPS listener,
+			// attempt to start it when the primary application has failed to start.
+			if !s.OS.RunningFromBackup() {
+				slog.WarnContext(ctx, "Primary application "+primaryApp.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
+
+				s.TriggerFallbackListener <- true
+			}
+		}
+	}
+
+	// Start any non-primary applications.
 	apps, err := applications.GetInstalled(ctx, s)
 	if err != nil {
 		return err
 	}
 
 	for _, app := range apps {
+		if app.IsPrimary() {
+			continue
+		}
+
 		err := applications.StartInitialize(ctx, s, app.Name())
 		if err != nil {
-			if !app.IsPrimary() {
-				return err
-			}
-
-			slog.ErrorContext(ctx, err.Error())
-
-			// If not running from the backup image, which automatically starts the fallback HTTPS listener,
-			// attempt to start it when the primary application has failed to start.
-			if !s.OS.RunningFromBackup() {
-				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
-
-				s.TriggerFallbackListener <- true
-			}
+			return err
 		}
 	}
 
