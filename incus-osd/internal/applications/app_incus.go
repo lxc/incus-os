@@ -18,6 +18,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/ceph"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -40,6 +41,16 @@ type incus struct {
 	common
 
 	incusVersion string
+}
+
+// Action runs an application-specific action/task.
+func (*incus) Action(ctx context.Context, data api.ApplicationAction) error {
+	switch data.Action {
+	case "initialize-ceph-cluster":
+		return ceph.InitializeCephCluster(ctx, data.Config)
+	default:
+		return errors.New("unsupported action '" + data.Action + "'")
+	}
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
