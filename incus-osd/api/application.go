@@ -23,3 +23,9 @@ type Application struct {
 
 	Config ApplicationConfig `json:"config" yaml:"config"`
 }
+
+// ApplicationAction defines a generic struct that can be used when triggering an application-specific action.
+type ApplicationAction struct {
+	Action string            `json:"action"           yaml:"action"`
+	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+}
