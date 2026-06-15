@@ -36,10 +36,6 @@ const (
 	incusVersionLTS70  = "incus-lts-7.0"
 )
 
-type incusDebug struct {
-	Action string `json:"action"`
-}
-
 type incus struct {
 	common
 
@@ -110,7 +106,7 @@ func (a *incus) CanBeReplaced(ctx context.Context, otherAppName string) error {
 
 // Debug runs a debug action.
 func (*incus) Debug(ctx context.Context, data any) response.Response {
-	req, ok := data.(*incusDebug)
+	req, ok := data.(*api.ApplicationAction)
 	if !ok {
 		return response.BadRequest(errors.New("invalid request data type"))
 	}
@@ -133,7 +129,7 @@ func (*incus) Debug(ctx context.Context, data any) response.Response {
 
 // DebugStruct returns the struct to fill with debug request data.
 func (*incus) DebugStruct() any {
-	data := &incusDebug{}
+	data := &api.ApplicationAction{}
 
 	return data
 }
