@@ -43,6 +43,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0", s.apiRoot10)
 	router.HandleFunc("/1.0/applications", s.apiApplications)
 	router.HandleFunc("/1.0/applications/{name}", s.apiApplicationsEndpoint)
+	router.HandleFunc("/1.0/applications/{name}/:action", s.apiApplicationsAction)
 	router.HandleFunc("/1.0/applications/{name}/:backup", s.apiApplicationsBackup)
 	router.HandleFunc("/1.0/applications/{name}/:check-update", s.apiApplicationsCheckUpdate)
 	router.HandleFunc("/1.0/applications/{name}/:debug", s.apiApplicationsDebug)
