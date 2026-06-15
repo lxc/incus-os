@@ -31,6 +31,7 @@ images = [
         "lego",
         "migration-manager"]
     ],
+    ["openfga", ["openfga"]],
     ["operations-center", [
         "lego",
         "opentofu",

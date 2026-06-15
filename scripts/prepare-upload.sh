@@ -22,6 +22,7 @@ cp mkosi.output/incus-lts-7.0.raw upload/
 cp mkosi.output/incus-ceph.raw upload/
 cp mkosi.output/incus-linstor.raw upload/
 cp mkosi.output/migration-manager.raw upload/
+cp mkosi.output/openfga.raw upload/
 cp mkosi.output/operations-center.raw upload/
 
 OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
