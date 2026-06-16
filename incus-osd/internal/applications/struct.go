@@ -36,6 +36,7 @@ type Application interface { //nolint:interfacebloat
 	SetVersions(version string, availableVersions []string)
 	Struct() any
 	Start(ctx context.Context) error
+	StartupWeight() int
 	Stop(ctx context.Context) error
 	SwitchVersion(newVersion string) error
 	Update(ctx context.Context) error
