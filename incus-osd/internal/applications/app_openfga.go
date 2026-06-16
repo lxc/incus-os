@@ -266,6 +266,10 @@ func (o *openfga) Start(ctx context.Context) error {
 	return systemd.StartUnit(ctx, "openfga.service")
 }
 
+func (*openfga) StartupWeight() int {
+	return 1
+}
+
 func writeCerts(tlsCert *tls.Certificate) error {
 	var buf bytes.Buffer
 
