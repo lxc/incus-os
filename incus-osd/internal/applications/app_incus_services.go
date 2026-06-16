@@ -8,10 +8,25 @@ import (
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/ceph"
 )
 
 type incusCeph struct {
 	common
+}
+
+// Action runs an application-specific action/task.
+func (*incusCeph) Action(ctx context.Context, data api.ApplicationAction) error {
+	switch data.Action {
+	case "add-drive":
+		return ceph.AddOSD(ctx, data.Config)
+	case "refresh-images":
+		return ceph.RefreshCephOCIImages(ctx, data.Config)
+	case "remove-drive":
+		return ceph.RemoveOSD(ctx)
+	default:
+		return errors.New("unsupported action '" + data.Action + "'")
+	}
 }
 
 func (i *incusCeph) Get(_ context.Context) (any, error) {
