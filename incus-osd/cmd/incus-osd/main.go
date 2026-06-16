@@ -4,6 +4,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -797,44 +798,9 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
-	// Begin by starting the primary application before any other installed applications.
-	// When configured with the "debug" provider, allow this check to fail, as when the
-	// system initially boots no applications may yet be available to the system.
-	primaryApp, err := applications.GetPrimary(ctx, s, false)
-	if err != nil && (!errors.Is(err, applications.ErrNoPrimary) || s.System.Provider.Config.Name != "debug") {
-		return err
-	}
-
-	if primaryApp != nil {
-		err := applications.StartInitialize(ctx, s, primaryApp.Name())
-		if err != nil {
-			slog.ErrorContext(ctx, err.Error())
-
-			// If not running from the backup image, which automatically starts the fallback HTTPS listener,
-			// attempt to start it when the primary application has failed to start.
-			if !s.OS.RunningFromBackup() {
-				slog.WarnContext(ctx, "Primary application "+primaryApp.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
-
-				s.TriggerFallbackListener <- true
-			}
-		}
-	}
-
-	// Start any non-primary applications.
-	apps, err := applications.GetInstalled(ctx, s)
+	err = startApplications(ctx, s)
 	if err != nil {
 		return err
-	}
-
-	for _, app := range apps {
-		if app.IsPrimary() {
-			continue
-		}
-
-		err := applications.StartInitialize(ctx, s, app.Name())
-		if err != nil {
-			return err
-		}
 	}
 
 	// Run periodic update checks if we have a working provider.
@@ -1233,6 +1199,66 @@ func configureConsoleDevices(ctx context.Context, s *state.State) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	return nil
+}
+
+func startApplications(ctx context.Context, s *state.State) error {
+	apps, err := applications.GetInstalled(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Sort applications by their startup weights.
+	slices.SortStableFunc(apps, func(a, b applications.Application) int {
+		return cmp.Compare(a.StartupWeight(), b.StartupWeight())
+	})
+
+	// Start non-primary applications that should be started before the primary application.
+	for _, app := range apps {
+		if app.IsPrimary() || app.StartupWeight() > 0 {
+			continue
+		}
+
+		err := applications.StartInitialize(ctx, s, app.Name())
+		if err != nil {
+			// Don't kill the startup sequence if a non-primary application fails to start.
+			slog.ErrorContext(ctx, err.Error())
+		}
+	}
+
+	// Start the primary application.
+	for _, app := range apps {
+		if !app.IsPrimary() {
+			continue
+		}
+
+		err := applications.StartInitialize(ctx, s, app.Name())
+		if err != nil {
+			slog.ErrorContext(ctx, err.Error())
+
+			// If not running from the backup image, which automatically starts the fallback HTTPS listener,
+			// attempt to start it when the primary application has failed to start.
+			if !s.OS.RunningFromBackup() {
+				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
+
+				s.TriggerFallbackListener <- true
+			}
+		}
+	}
+
+	// Start non-primary applications that should be started after the primary application.
+	for _, app := range apps {
+		if app.IsPrimary() || app.StartupWeight() < 0 {
+			continue
+		}
+
+		err := applications.StartInitialize(ctx, s, app.Name())
+		if err != nil {
+			// Don't kill the startup sequence if a non-primary application fails to start.
+			slog.ErrorContext(ctx, err.Error())
 		}
 	}
 
