@@ -10,6 +10,7 @@ CAs
 CDN
 CDROM
 Ceph
+Ceph's
 CIDR
 Cisco
 CPUs
@@ -91,6 +92,8 @@ oddlama
 OEM
 OpenFGA
 OpenStack
+OSD
+OSDs
 OVMF
 OVN
 OVS
