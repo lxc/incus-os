@@ -166,7 +166,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.72.3",
+        "version": "v0.73.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -186,7 +186,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.17.1",
+        "version": "v1.18.0",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -206,7 +206,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.12.1",
+        "version": "v1.12.3",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -289,7 +289,7 @@
         ]
     },
     "terraform-provider-incus": {
-        "version": "v1.1.0",
+        "version": "v1.1.1",
         "repo": "https://github.com/lxc/terraform-provider-incus.git",
         "build_targets": [
             [
