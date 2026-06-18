@@ -157,7 +157,7 @@ function download() {
         hasOIDC = true;
     }
 
-    if (app == "incus") {
+    if (app == "incus" || app == "incus-lts-7.0") {
         var certificate = {
             "name": "admin",
             "type": "client",
