@@ -133,9 +133,8 @@ func (p *images) Register(ctx context.Context) error {
 				return err
 			}
 
-			q := u.Query()
-			q.Set("registration", base64.RawURLEncoding.EncodeToString(reqBody))
-			u.RawQuery = q.Encode()
+			token := base64.RawURLEncoding.EncodeToString(reqBody)
+			u.Path = filepath.Join(u.Path, token)
 
 			r, err = http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 			if err != nil {
