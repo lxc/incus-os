@@ -20,7 +20,7 @@ urls = []
 # Check that expected commands are available before running any tests
 for cmd in ["curl", "gdisk", "go", "mkfs.vfat", "mcopy", "mdeltree", "mkisofs", "openssl", "truncate"]:
     try:
-        subprocess.run(["which", cmd], env={"PATH": "/usr/bin:/usr/sbin"}, capture_output=True, check=True)
+        subprocess.run(["which", cmd], capture_output=True, check=True)
     except:
         print("Missing command: " + cmd)
         exit(1)
