@@ -78,11 +78,8 @@ jobs:
     timeout-minutes: 120
     runs-on:
       - self-hosted
-      - cpu-8
-      - mem-16G
-      - disk-100G
       - arch-amd64
-      - image-debian-13
+      - lxc-incusos-test
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -118,7 +115,7 @@ jobs:
 
       - name: Build initial image
         run: |
-          export PATH=${PATH}:/root/.local/bin
+          export PATH=${PATH}:${HOME}/.local/bin
           make
 
       - name: Start the VM
@@ -188,7 +185,7 @@ jobs:
 
       - name: Build a newer version of the image
         run: |
-          export PATH=${PATH}:/root/.local/bin
+          export PATH=${PATH}:${HOME}/.local/bin
           ./scripts/test/switch-secure-boot-signing-key.sh 2
           make
 

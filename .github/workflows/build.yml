@@ -19,11 +19,8 @@ jobs:
     timeout-minutes: 90
     runs-on:
       - self-hosted
-      - cpu-4
-      - mem-4G
-      - disk-100G
+      - lxc-incusos-build
       - arch-${{ matrix.arch }}
-      - image-debian-13
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,7 +64,7 @@ jobs:
 
       - name: Build the images
         run: |
-          export PATH="${PATH}:/root/.local/bin"
+          export PATH="${PATH}:/${HOME}/.local/bin"
 
           (
             cat << EOF

@@ -15,11 +15,8 @@ jobs:
     timeout-minutes: 600
     runs-on:
       - self-hosted
-      - cpu-24
-      - mem-48G
-      - disk-250G
       - arch-amd64
-      - image-debian-13
+      - lxc-incusos-daily
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -48,10 +45,12 @@ jobs:
         run: |
           curl https://pkgs.zabbly.com/get/incus-daily | sudo sh
           sudo chmod 666 /var/lib/incus/unix.socket
+
           echo "initializing incus with zfs backend and 200MB loop device"
           incus admin init --auto --storage-backend=zfs --storage-create-loop=200
+
           echo "setting zfs sync to disabled for better performance in CI environment"
-          zfs set sync=disabled default
+          sudo zfs set sync=disabled default
 
       - name: Run API tests
         run: |
