@@ -126,7 +126,7 @@ jobs:
           echo '{"applications":[{"name":"incus"},{"name":"debug"}]}' > applications.json
           echo '{"name":"debug"}' > provider.json
           tar cf seed.tar applications.json provider.json
-          dd if=seed.tar of=${RAW_IMAGE} seek=4196352 bs=512 conv=notrunc
+          sudo dd if=seed.tar of=${RAW_IMAGE} seek=4196352 bs=512 conv=notrunc
 
           qemu-img convert -f raw -O qcow2 ${RAW_IMAGE} os-image.qcow2
           incus image import --alias incus-os test/metadata.tar.xz os-image.qcow2
