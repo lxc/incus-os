@@ -122,6 +122,7 @@ syslog
 systemd
 systemd's
 Tailscale
+Tailnet
 TCP
 TDB
 TiB
