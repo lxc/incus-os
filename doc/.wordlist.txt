@@ -149,3 +149,5 @@ Xeon
 YAML
 Zabbly
 ZFS
+Tailnet
+tailnet
