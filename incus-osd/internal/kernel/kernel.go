@@ -42,6 +42,14 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		}
 	}
 
+	// Enable zram swap, if configured.
+	if config.Memory != nil {
+		err := EnableZramSwap(ctx, config.Memory.ZramSwapSize)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
