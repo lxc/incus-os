@@ -19,6 +19,7 @@ type SystemSecurityState struct {
 	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
 	SystemStateIsTrusted            bool                                  `incusos:"-"                               json:"system_state_is_trusted"            yaml:"system_state_is_trusted"`
+	SystemStateStatus               string                                `incusos:"-"                               json:"system_state_status"                yaml:"system_state_status"`
 	TPMStatus                       TPMStatus                             `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
 	TPMPublicKey                    string                                `incusos:"-"                               json:"tpm_public_key,omitempty"           yaml:"tpm_public_key,omitempty"`
 }
