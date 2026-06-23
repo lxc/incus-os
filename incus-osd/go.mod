@@ -4,7 +4,7 @@ go 1.25.10
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.12
-	github.com/FuturFusion/operations-center v0.7.0
+	github.com/FuturFusion/operations-center v0.7.1
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.10
