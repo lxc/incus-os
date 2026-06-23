@@ -17,7 +17,8 @@ type SystemKernelConfigConsole struct {
 
 // SystemKernelConfigMemory holds memory-specific kernel configuration.
 type SystemKernelConfigMemory struct {
-	PersistentHugepages int `json:"persistent_hugepages" yaml:"persistent_hugepages"`
+	PersistentHugepages int    `json:"persistent_hugepages" yaml:"persistent_hugepages"`
+	ZramSwapSize        string `json:"zram_swap_size"       yaml:"zram_swap_size"`
 }
 
 // SystemKernelConfigNetwork holds network-specific kernel configuration.
