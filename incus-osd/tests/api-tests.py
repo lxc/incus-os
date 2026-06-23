@@ -17,6 +17,9 @@ current_release = None
 prior_stable_release = None
 urls = []
 
+# Expand PATH to include /usr/sbin/
+os.environ["PATH"] = os.environ["PATH"] + ":/usr/sbin"
+
 # Check that expected commands are available before running any tests
 for cmd in ["curl", "gdisk", "go", "mkfs.vfat", "mcopy", "mdeltree", "mkisofs", "openssl", "truncate"]:
     try:

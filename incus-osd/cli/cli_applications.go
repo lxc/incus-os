@@ -61,6 +61,10 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	}
 	cmd.AddCommand(debugCmd.command())
 
+	// Edit.
+	editCmd := cmdGenericEdit{os: c.os, entity: "application", entityShort: "application", endpoint: "applications"}
+	cmd.AddCommand(editCmd.command())
+
 	// Factory reset.
 	factoryResetCmd := cmdGenericRun{
 		os:          c.os,
