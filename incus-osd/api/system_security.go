@@ -1,5 +1,15 @@
 package api
 
+// TPMStatus defines a custom type for reporting the system's TPM status.
+type TPMStatus string
+
+// Define constants used to report the state of the system's TPM.
+const (
+	TPMStatusOK          TPMStatus = "ok"
+	TPMStatusPCRMismatch TPMStatus = "pcr mismatch"
+	TPMStatusSWTPM       TPMStatus = "swtpm"
+)
+
 // SystemSecurityState holds information about the current security state.
 type SystemSecurityState struct {
 	EncryptedVolumes                []SystemSecurityEncryptedVolume       `incusos:"-"                               json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
@@ -9,7 +19,8 @@ type SystemSecurityState struct {
 	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
 	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
 	SystemStateIsTrusted            bool                                  `incusos:"-"                               json:"system_state_is_trusted"            yaml:"system_state_is_trusted"`
-	TPMStatus                       string                                `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
+	SystemStateStatus               string                                `incusos:"-"                               json:"system_state_status"                yaml:"system_state_status"`
+	TPMStatus                       TPMStatus                             `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
 	TPMPublicKey                    string                                `incusos:"-"                               json:"tpm_public_key,omitempty"           yaml:"tpm_public_key,omitempty"`
 }
 
