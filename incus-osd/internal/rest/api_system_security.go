@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
@@ -137,6 +138,31 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.state.System.Security.State.SystemStateIsTrusted = !secureboot.IsTrustedFuseBlown()
+
+		// If the system state is untrusted, report details about why.
+		if !s.state.System.Security.State.SystemStateIsTrusted {
+			issues := []string{}
+
+			if s.state.UsingSWTPM {
+				issues = append(issues, "using swtpm")
+			}
+
+			if s.state.SecureBootDisabled {
+				issues = append(issues, "Secure Boot is disabled")
+			}
+
+			if s.state.FullAgentEnabled {
+				issues = append(issues, "incus-agent is/was fully enabled")
+			}
+
+			s.state.System.Security.State.SystemStateStatus = strings.Join(issues, ", ")
+
+			if s.state.System.Security.State.SystemStateStatus == "" {
+				s.state.System.Security.State.SystemStateStatus = "no current issues, but system was previously in an untrusted state"
+			}
+		} else {
+			s.state.System.Security.State.SystemStateStatus = "system state is fully trusted"
+		}
 
 		// Get TPM public key, if it exists.
 		contents, err := os.ReadFile(auth.PEMPath)
