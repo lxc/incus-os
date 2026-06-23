@@ -113,7 +113,12 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
 
 		// Get TPM status.
-		s.state.System.Security.State.TPMStatus = secureboot.TPMStatus()
+		s.state.System.Security.State.TPMStatus, err = secureboot.TPMStatus()
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
 
 		// Get drive encryption keys.
 		s.state.System.Security.State.DriveRecoveryKeys, err = storage.GetDriveKeys()

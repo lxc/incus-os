@@ -9,36 +9,39 @@ import (
 
 	"github.com/google/go-eventlog/register"
 	"github.com/google/go-eventlog/tcg"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // TPMStatus returns basic information about the status of the TPM.
-func TPMStatus() string {
+func TPMStatus() (api.TPMStatus, error) {
 	eventLog, err := GetValidatedTPMEventLog()
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
 
 	computedPCR, err := computeNewPCR7Value(eventLog)
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
 
 	actualPCR, err := ReadPCR("7")
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
 
 	if !bytes.Equal(computedPCR, actualPCR) {
-		return TPMPCRMismatch
+		// TPM reports a PCR7 mismatch.
+		return api.TPMStatusPCRMismatch, nil
 	}
 
 	if GetSWTPMInUse() {
 		// We have a swtpm TPM in a good state.
-		return "swtpm"
+		return api.TPMStatusSWTPM, nil
 	}
 
 	// We have a physical TPM in a good state.
-	return "ok"
+	return api.TPMStatusOK, nil
 }
 
 // GetSWTPMInUse returns a boolean indicating if a swtpm-backed TPM is running.

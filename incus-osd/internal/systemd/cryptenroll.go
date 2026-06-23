@@ -231,8 +231,13 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 
 		// Second, test if we can auto-unlock with the current TPM state.
 		if !tpmStateIsGood {
+			tpmStatus, err := secureboot.TPMStatus()
+			if err != nil {
+				return ret, err
+			}
+
 			// Do we have a PCR mismatch on the TPM? If so, assume we can unlock with the TPM upon reboot.
-			if secureboot.TPMStatus() == secureboot.TPMPCRMismatch {
+			if tpmStatus == api.TPMStatusPCRMismatch {
 				ret = append(ret, api.SystemSecurityEncryptedVolume{
 					Volume: volumeName,
 					State:  "unlocked (TPM; PCR update pending)",
