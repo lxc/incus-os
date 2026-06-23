@@ -10,8 +10,9 @@ The following configuration options can be set:
 
 * `blacklist_modules`: A list of one or more kernel modules to blacklist. Typically useful when passing through PCI devices to virtual machines.
 
-* `memory`: Change `sysctl` values that impact the system's memory configuration
+* `memory`: Change `sysctl` values or other settings that impact the system's memory configuration
    * `persistent_hugepages`: Optional; number of persistent hugepages to allocate.
+   * `zram_swap_size`: Optional; a human-readable string such as "4GiB" that defines the size of the zram-backed swap device to create. A value of "0" will disable any existing zram-backed swap that may exist. IncusOS will attempt to immediately apply this change without requiring a reboot.
 
 * `network`: Change `sysctl` values that impact the system's network configuration.
    * `buffer_size`: Optional; configure the maximum buffer size used when setting the `net.ipv4.tcp_rmem`, `net.ipv4.tcp_wmem`, `net.core.rmem_max`, and `net.core.wmem_max` `sysctl` fields.

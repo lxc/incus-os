@@ -149,3 +149,4 @@ Xeon
 YAML
 Zabbly
 ZFS
+zram
