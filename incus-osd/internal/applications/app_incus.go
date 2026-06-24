@@ -18,6 +18,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/ceph"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -36,14 +37,20 @@ const (
 	incusVersionLTS70  = "incus-lts-7.0"
 )
 
-type incusDebug struct {
-	Action string `json:"action"`
-}
-
 type incus struct {
 	common
 
 	incusVersion string
+}
+
+// Action runs an application-specific action/task.
+func (*incus) Action(ctx context.Context, data api.ApplicationAction) error {
+	switch data.Action {
+	case "initialize-ceph-cluster":
+		return ceph.InitializeCephCluster(ctx, data.Config)
+	default:
+		return errors.New("unsupported action '" + data.Action + "'")
+	}
 }
 
 // AddTrustedCertificate adds a new trusted certificate to the application.
@@ -110,7 +117,7 @@ func (a *incus) CanBeReplaced(ctx context.Context, otherAppName string) error {
 
 // Debug runs a debug action.
 func (*incus) Debug(ctx context.Context, data any) response.Response {
-	req, ok := data.(*incusDebug)
+	req, ok := data.(*api.ApplicationAction)
 	if !ok {
 		return response.BadRequest(errors.New("invalid request data type"))
 	}
@@ -133,7 +140,7 @@ func (*incus) Debug(ctx context.Context, data any) response.Response {
 
 // DebugStruct returns the struct to fill with debug request data.
 func (*incus) DebugStruct() any {
-	data := &incusDebug{}
+	data := &api.ApplicationAction{}
 
 	return data
 }

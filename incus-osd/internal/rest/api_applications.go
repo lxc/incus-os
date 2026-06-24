@@ -363,6 +363,68 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// swagger:operation POST /1.0/applications/{name}/:action applications applications_post_action
+//
+//	Perform an application-specific action
+//
+//	Triggers the given application to perform a specific task.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsAction(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Trigger the specific action.
+	data := api.ApplicationAction{}
+	decoder := json.NewDecoder(r.Body)
+
+	err = decoder.Decode(&data)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	err = app.Action(r.Context(), data)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
 // swagger:operation POST /1.0/applications/{name}/:debug applications applications_post_debug
 //
 //	Perform debug actions or retrieve debug data for an application

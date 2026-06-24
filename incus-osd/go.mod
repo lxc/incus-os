@@ -25,6 +25,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
+	gopkg.in/ini.v1 v1.67.0
 	software.sslmate.com/src/go-pkcs12 v0.7.2
 	tailscale.com v1.94.2
 )
