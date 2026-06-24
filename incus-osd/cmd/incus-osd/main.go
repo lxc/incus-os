@@ -27,6 +27,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
+	"github.com/lxc/incus-os/incus-osd/internal/kernel"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
@@ -546,6 +547,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 					slog.WarnContext(ctx, "Unable to activate encrypted swap partition")
 				}
 			}
+		}
+	}
+
+	// Enable zram-backed swap, if configured.
+	if s.System.Kernel.Config.Memory != nil {
+		err = kernel.EnableZramSwap(ctx, s.System.Kernel.Config.Memory.ZramSwapSize)
+		if err != nil {
+			slog.WarnContext(ctx, "Unable to activate zram-backed sawp: "+err.Error())
 		}
 	}
 
