@@ -149,11 +149,6 @@ func (o *openfga) IsInstalled() bool {
 	return sysextImageExists(o.Name(), o.appState.Version)
 }
 
-// IsPrimary reports if the application is a primary application.
-func (*openfga) IsPrimary() bool {
-	return false
-}
-
 // IsRunning reports if the application is currently running.
 func (*openfga) IsRunning(ctx context.Context) bool {
 	return systemd.IsActive(ctx, "openfga.service")
