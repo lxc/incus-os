@@ -321,12 +321,6 @@ func (*incus) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Make sure br_netfilter is loaded (for proxy and forwards).
-	_, err = subprocess.RunCommandContext(ctx, "modprobe", "br_netfilter")
-	if err != nil {
-		return err
-	}
-
 	// Start the units.
 	return systemd.StartUnit(ctx, "incus.socket", "incus-lxcfs.service", "incus-startup.service", "incus.service")
 }
