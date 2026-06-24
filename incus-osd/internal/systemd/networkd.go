@@ -44,6 +44,16 @@ type expPhysDev struct {
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
 func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State, ocapi.ServerSelfUpdateCause) error, delayRefreshCheck bool) error {
+	if s.System.Network.State.ConfigurationInProcess {
+		return errors.New("a network configuration is already in progress")
+	}
+
+	// Indicate when network configuration has begun and concluded.
+	s.System.Network.State.ConfigurationInProcess = true
+	defer func() {
+		s.System.Network.State.ConfigurationInProcess = false
+	}()
+
 	// If a timezone is specified, apply it before doing any network configuration.
 	err := SetTimezone(ctx, networkCfg.Time)
 	if err != nil {
