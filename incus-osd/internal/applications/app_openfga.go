@@ -90,6 +90,10 @@ func (o *openfga) FactoryReset(ctx context.Context) error {
 		return err
 	}
 
+	// Clear any existing application state.
+	o.state.Applications.OpenFGA.State.Initialized = false
+	o.state.Applications.OpenFGA.Config = api.ApplicationOpenFGAConfig{}
+
 	// Start the application.
 	err = o.Start(ctx)
 	if err != nil {
@@ -442,6 +446,5 @@ func (*openfga) WipeLocalData(ctx context.Context) error {
 		return err
 	}
 
-	// Create a fresh dataset for the application.
-	return zfs.CreateApplicationDataset(ctx, "openfga")
+	return nil
 }
