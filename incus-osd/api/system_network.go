@@ -176,7 +176,8 @@ type SystemNetworkProxyRule struct {
 
 // SystemNetworkState holds information about the current network state.
 type SystemNetworkState struct {
-	Interfaces map[string]SystemNetworkInterfaceState `json:"interfaces" yaml:"interfaces"`
+	Interfaces             map[string]SystemNetworkInterfaceState `json:"interfaces"               yaml:"interfaces"`
+	ConfigurationInProcess bool                                   `json:"configuration_in_process" yaml:"configuration_in_process"`
 }
 
 // GetInterfaceNamesByRole returns a slice of interface names that have the given role applied to them.

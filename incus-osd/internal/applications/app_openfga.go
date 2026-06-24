@@ -90,6 +90,10 @@ func (o *openfga) FactoryReset(ctx context.Context) error {
 		return err
 	}
 
+	// Clear any existing application state.
+	o.state.Applications.OpenFGA.State.Initialized = false
+	o.state.Applications.OpenFGA.Config = api.ApplicationOpenFGAConfig{}
+
 	// Start the application.
 	err = o.Start(ctx)
 	if err != nil {
@@ -143,11 +147,6 @@ func (o *openfga) IsInstalled() bool {
 	}
 
 	return sysextImageExists(o.Name(), o.appState.Version)
-}
-
-// IsPrimary reports if the application is a primary application.
-func (*openfga) IsPrimary() bool {
-	return false
 }
 
 // IsRunning reports if the application is currently running.
@@ -442,6 +441,5 @@ func (*openfga) WipeLocalData(ctx context.Context) error {
 		return err
 	}
 
-	// Create a fresh dataset for the application.
-	return zfs.CreateApplicationDataset(ctx, "openfga")
+	return nil
 }
