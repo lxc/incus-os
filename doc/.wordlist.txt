@@ -39,6 +39,7 @@ Furo
 FuturFusion
 GiB
 Github
+GPG
 GPUs
 Headscale
 Hetzner
