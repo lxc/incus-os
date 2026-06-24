@@ -48,6 +48,8 @@ func UninstallApplication(ctx context.Context, s *state.State, name string) erro
 		return errors.New("cannot remove a primary application")
 	}
 
+	slog.InfoContext(ctx, "Removing application", "name", name)
+
 	// Stop the application.
 	err = app.Stop(ctx)
 	if err != nil {
