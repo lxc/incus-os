@@ -9,6 +9,7 @@ type ApplicationConfig struct{}
 
 // ApplicationState represents the state of a generic application.
 type ApplicationState struct {
+	IsPrimary         bool       `incusos:"-"                    json:"is_primary"              yaml:"is_primary"`
 	Initialized       bool       `json:"initialized"             yaml:"initialized"`
 	FriendlyVersion   string     `json:"friendly_version"        yaml:"friendly_version"`
 	Version           string     `json:"version"                 yaml:"version"`

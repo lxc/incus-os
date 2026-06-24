@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -273,7 +274,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	        metadata:
 //	          type: json
 //	          description: State and configuration for the application
-//	          example: {"state":{"initialized":true,"friendly_version":"7.0.0 [202511041800]","version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
+//	          example: {"state":{"is_primary":true,"initialized":true,"friendly_version":"7.0.0 [202511041800]","version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
 //	    $ref: "#/responses/NotFound"
 //	  "500":
@@ -337,6 +338,25 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 		resp, err := app.Get(r.Context())
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		// This is a bit ugly, but is the cleanest way to generically report
+		// if an application is primary or not via the REST API without
+		// resorting to reflection hacks.
+		switch r := resp.(type) {
+		case api.Application:
+			r.State.IsPrimary = app.IsPrimary()
+			resp = r
+		case api.ApplicationIncus:
+			r.State.IsPrimary = app.IsPrimary()
+			resp = r
+		case api.ApplicationOpenFGA:
+			r.State.IsPrimary = app.IsPrimary()
+			resp = r
+		default:
+			_ = response.InternalError(fmt.Errorf("unrecognized application type %T", resp)).Render(w)
 
 			return
 		}
