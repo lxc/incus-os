@@ -325,6 +325,12 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if !app.IsInstalled() {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
 	// Handle the request.
 	switch r.Method {
 	case http.MethodGet:
@@ -406,6 +412,12 @@ func (s *Server) apiApplicationsDebug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !app.IsInstalled() {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
 	// Trigger the debug call.
 	dest := app.DebugStruct()
 	decoder := json.NewDecoder(r.Body)
@@ -458,6 +470,12 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -516,6 +534,12 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -590,6 +614,12 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 	// Load the application.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -688,6 +718,12 @@ func (s *Server) apiApplicationsRestore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if !app.IsInstalled() {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
 	// Restore the application's backup.
 	err = app.RestoreBackup(r.Body)
 	if err != nil {
@@ -733,8 +769,14 @@ func (s *Server) apiApplicationsRemove(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, err := applications.Load(r.Context(), s.state, name)
+	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -787,8 +829,14 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 	name := r.PathValue("name")
 
 	// Check if the application is valid.
-	_, err := applications.Load(r.Context(), s.state, name)
+	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
@@ -854,6 +902,12 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 	// Check if the application is valid.
 	app, err := applications.Load(r.Context(), s.state, name)
 	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
 		_ = response.NotFound(nil).Render(w)
 
 		return
