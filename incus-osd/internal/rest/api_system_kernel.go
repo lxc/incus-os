@@ -40,7 +40,7 @@ import (
 //	        metadata:
 //	          type: json
 //	          description: State and configuration for the system kernel
-//	          example: {"config":{"blacklist_modules":["bad-module"],"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}}}
+//	          example: {"config":{"blacklist_modules":["bad-module"],"memory":{"persistent_hugepages":0,"zram_swap_size":"1GiB"},"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}},"state":{"memory":{"zram_swap":{"disk_size":1073741824,"incompressed_size":4096,"compressed_size":59,"compression_ratio":0.2,"total_memory_use":20480}}}}
 
 // swagger:operation PUT /1.0/system/kernel system system_put_kernel
 //
@@ -64,7 +64,7 @@ import (
 //	        config:
 //	          type: object
 //	          description: The kernel configuration
-//	          example: {"blacklist_modules":["bad-module"],"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}}
+//	          example: {"blacklist_modules":["bad-module"],"memory":{"zram_swap_size":"1GiB"},"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}}
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -77,6 +77,14 @@ func (s *Server) apiSystemKernel(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// Get zram-backed swap statistics.
+		err := kernel.GetZramSwapStats(r.Context(), &s.state.System.Kernel.State)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
 		// Return the current kernel state.
 		_ = response.SyncResponse(true, s.state.System.Kernel).Render(w)
 	case http.MethodPut:

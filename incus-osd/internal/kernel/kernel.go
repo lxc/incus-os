@@ -94,7 +94,7 @@ func EnableZramSwap(ctx context.Context, swapSize string) error {
 			}
 		}
 
-		err = runZramCmd(ctx, "--reset", "/dev/zram0")
+		_, err = runZramCmd(ctx, "--reset", "/dev/zram0")
 		if err != nil {
 			return err
 		}
@@ -106,13 +106,13 @@ func EnableZramSwap(ctx context.Context, swapSize string) error {
 	}
 
 	// Create the zram device.
-	err = runZramCmd(ctx, "--find")
+	_, err = runZramCmd(ctx, "--find")
 	if err != nil {
 		return err
 	}
 
 	// Configure the zram device.
-	err = runZramCmd(ctx, "/dev/zram0", "--algorithm", "zstd", "--size", strconv.FormatInt(capacity, 10))
+	_, err = runZramCmd(ctx, "/dev/zram0", "--algorithm", "zstd", "--size", strconv.FormatInt(capacity, 10))
 	if err != nil {
 		return err
 	}
@@ -132,14 +132,74 @@ func EnableZramSwap(ctx context.Context, swapSize string) error {
 	return nil
 }
 
+// GetZramSwapStats updates the kernel state struct with current zram statistics.
+func GetZramSwapStats(ctx context.Context, kernelState *api.SystemKernelState) error {
+	// Check if the zram device exists.
+	_, err := os.Stat("/dev/zram0")
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+
+		return nil
+	}
+
+	// Get current zram swap stats.
+	output, err := runZramCmd(ctx, "--bytes", "--noheadings", "--raw", "--output", "DISKSIZE,DATA,COMPR,TOTAL", "/dev/zram0")
+	if err != nil {
+		return err
+	}
+
+	values := strings.Split(strings.TrimSpace(output), " ")
+
+	diskSize, err := strconv.Atoi(values[0])
+	if err != nil {
+		return err
+	}
+
+	uncompressedSize, err := strconv.Atoi(values[1])
+	if err != nil {
+		return err
+	}
+
+	compressedSize, err := strconv.Atoi(values[2])
+	if err != nil {
+		return err
+	}
+
+	totalMemoryUse, err := strconv.Atoi(values[3])
+	if err != nil {
+		return err
+	}
+
+	compressionRatio := float64(uncompressedSize) / float64(totalMemoryUse)
+
+	if kernelState.Memory == nil {
+		kernelState.Memory = new(api.SystemKernelStateMemory)
+	}
+
+	// Record the state.
+	kernelState.Memory.ZramSwap = &api.SystemKernelStateMemoryZramSwap{
+		Disksize:         diskSize,
+		UncompressedSize: uncompressedSize,
+		CompressedSize:   compressedSize,
+		CompressionRatio: compressionRatio,
+		TotalMemoryUse:   totalMemoryUse,
+	}
+
+	return nil
+}
+
 // The zramctl command is a bit too flaky and frequently returns "Device or resource busy"
 // errors. To handle this, try each command up to ten times with brief sleeps in between
 // before fully failing.
-func runZramCmd(ctx context.Context, args ...string) error {
+func runZramCmd(ctx context.Context, args ...string) (string, error) {
+	var output string
+
 	var err error
 
 	for range 10 {
-		_, err = subprocess.RunCommandContext(ctx, "zramctl", args...)
+		output, err = subprocess.RunCommandContext(ctx, "zramctl", args...)
 		if err == nil {
 			break
 		}
@@ -147,7 +207,7 @@ func runZramCmd(ctx context.Context, args ...string) error {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	return err
+	return output, err
 }
 
 func updateBlacklistModules(modules []string) error {
