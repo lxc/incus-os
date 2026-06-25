@@ -29,7 +29,7 @@ def TestBaselineUpgrade(install_image):
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Downloading application update")
-        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update version=(\\d+)", regex=True)
+        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update channel=stable version=(\\d+)", regex=True)
         new_version = match.group(1)
         vm.WaitExpectedLog("incus-osd", "Applying OS update version="+new_version)
 
@@ -81,7 +81,7 @@ def TestBaselineUpgradeOSOnly(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update version=(\\d+)", regex=True)
+        match = vm.WaitExpectedLog("incus-osd", "Downloading OS update channel=stable version=(\\d+)", regex=True)
         new_version = match.group(1)
         vm.WaitExpectedLog("incus-osd", "Applying OS update version="+new_version)
 
