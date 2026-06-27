@@ -14,7 +14,7 @@ require (
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.18.6
-	github.com/lxc/incus/v7 v7.1.1-0.20260617015319-d74f65dd1bbb
+	github.com/lxc/incus/v7 v7.2.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.12.0
 	github.com/rivo/tview v0.42.0
@@ -25,7 +25,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
-	software.sslmate.com/src/go-pkcs12 v0.7.2
+	software.sslmate.com/src/go-pkcs12 v0.7.3
 	tailscale.com v1.94.2
 )
 
@@ -67,7 +67,7 @@ require (
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
-	github.com/moby/sys/user v0.4.0 // indirect
+	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
