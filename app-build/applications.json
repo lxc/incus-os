@@ -23,7 +23,7 @@
         ]
     },
     "kpx": {
-        "version": "v1.12.3",
+        "version": "v1.13.0",
         "repo": "https://github.com/momiji/kpx.git",
         "patches": [
             "../../patches/kpx-0001-Enable-IPv6-support.patch"
