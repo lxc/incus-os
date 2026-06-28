@@ -28,4 +28,5 @@ Installing on Proxmox </getting-started/installation/virtual-proxmox>
 Installing on UTM </getting-started/installation/virtual-utm>
 Installing on VirtualBox </getting-started/installation/virtual-virtualbox>
 Installing on VMware </getting-started/installation/virtual-vmware>
+Installing on VMware Fusion </getting-started/installation/virtual-fusion>
 ```
