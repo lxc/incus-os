@@ -84,6 +84,7 @@ networkctl
 NICs
 NTP
 NVMe
+NVRAM
 OCI
 oddlama
 OEM
