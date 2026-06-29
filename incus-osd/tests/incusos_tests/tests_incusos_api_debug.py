@@ -16,10 +16,10 @@ def TestIncusOSAPIDebug(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]) != 3:
-            raise IncusOSException("expected three debug endpoints")
+        if len(result["metadata"]) != 4:
+            raise IncusOSException("expected four debug endpoints")
 
-        for endpoint in ["/1.0/debug/log", "/1.0/debug/processes", "/1.0/debug/secureboot"]:
+        for endpoint in ["/1.0/debug/log", "/1.0/debug/processes", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
 
