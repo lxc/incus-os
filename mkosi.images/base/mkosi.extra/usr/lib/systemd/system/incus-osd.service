@@ -13,7 +13,7 @@ Environment=TERM=xterm-256color
 KillMode=process
 TimeoutStartSec=30s
 TimeoutStopSec=30s
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

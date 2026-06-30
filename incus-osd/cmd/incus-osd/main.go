@@ -94,15 +94,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Ensure custom CA certificates are set, if any.
-	if len(s.System.Security.Config.CustomCACerts) > 0 {
-		err := util.UpdateSystemCustomCACerts(s.System.Security.Config.CustomCACerts)
-		if err != nil {
-			tui.EarlyError("unable to configure custom CA certificates: "+err.Error(), osName)
-			os.Exit(1)
-		}
-	}
-
 	// Record the OS name and version in the state.
 	s.OS.Name = osName
 	s.OS.RunningRelease = osRelease
@@ -157,7 +148,7 @@ func main() {
 
 	// Perform first-boot actions, if needed.
 	if !s.OS.SuccessfulBoot && !s.ShouldPerformInstall && s.System.Network.Config == nil {
-		err := firstBootActions(ctx)
+		err := firstBootActions(ctx, s)
 		if err != nil {
 			tui.EarlyError("unable to perform first boot actions: "+err.Error(), s.OS.Name)
 			os.Exit(1)
@@ -204,11 +195,45 @@ func main() {
 	}
 }
 
-func firstBootActions(ctx context.Context) error {
+func firstBootActions(ctx context.Context, s *state.State) error {
 	// Clear the "IncusOSInstallComplete" UEFI variable, if it exists.
 	err := secureboot.ClearIncusOSInstallComplete(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Apply any custom CA certificates from the security seed. Because it's not
+	// possible to reload cached CA root certificates, if custom CAs are set we
+	// will write them and the updated state to disk, then cleanly exit and allow
+	// the systemd service to restart the incus-osd daemon. On the second "first
+	// boot" the custom CAs will exist in the state, so we'll skip the logic to
+	// extract them from the security seed again.
+	if len(s.System.Security.Config.CustomCACerts) == 0 {
+		// Get any custom CAs from the security seed.
+		securitySeed, err := seed.GetSecurity(ctx)
+		if err != nil && !seed.IsMissing(err) {
+			return errors.New("unable to parse security seed: " + err.Error())
+		}
+
+		if securitySeed != nil && len(securitySeed.CustomCACerts) > 0 {
+			s.System.Security.Config.CustomCACerts = securitySeed.CustomCACerts
+
+			err := s.Save()
+			if err != nil {
+				return err
+			}
+
+			err = util.UpdateSystemCustomCACerts(s.System.Security.Config.CustomCACerts)
+			if err != nil {
+				return errors.New("unable to configure custom CA certificates: " + err.Error())
+			}
+
+			// Use a fmt.Print() here, since at this point the logger isn't configured, but we
+			// still would like a journal entry to appear explaining why the process restarted.
+			_, _ = fmt.Print("Custom CAs configured from security seed, restarting incus-osd daemon") //nolint:forbidigo
+
+			os.Exit(0) //nolint:revive
+		}
 	}
 
 	// Ensure the system timezone is set properly.
