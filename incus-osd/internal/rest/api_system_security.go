@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"slices"
@@ -224,6 +225,8 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
+
+		slog.InfoContext(r.Context(), "Custom CA certificates updated, but may not fully take effect until the system is rebooted")
 
 		_ = response.EmptySyncResponse.Render(w)
 	default:
