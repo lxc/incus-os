@@ -59,6 +59,12 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 		return errors.New("cannot run if Secure Boot is disabled and no physical TPM is present")
 	}
 
+	// Ensure the security seed, if present, isn't attempting to set any encryption recovery keys.
+	_, err = seed.GetSecurity(ctx)
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
 	// Get the install seed, if it exists.
 	installSeed, err := seed.GetInstall()
 	if err != nil && !seed.IsMissing(err) && !errors.Is(err, io.EOF) {
