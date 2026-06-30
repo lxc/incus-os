@@ -107,6 +107,20 @@ to fetch IncusOS updates and applications.
 
 The structure used is the [provider API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_provider.go).
 
+### `security.{json,yml,yaml}`
+This file provides security configuration for the system.
+
+The structure used is the [security API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_security.go):
+
+- `custom_ca_certs`: An array of PEM-encoded CA certificates that should be
+  added to the IncusOS trust store.
+
+```{note}
+It is not possible to set encryption recovery key(s) via the security seed. This is
+because the seed must be stored in plain text, which would allow trivial access to
+anyone trying to compromise the encrypted IncusOS root partition.
+```
+
 ### `update.{json,yml,yaml}`
 This file provides update configuration for the system.
 
