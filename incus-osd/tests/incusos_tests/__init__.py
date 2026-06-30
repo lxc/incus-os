@@ -6,7 +6,10 @@ from . import tests_flasher_tool, tests_incusos_api, tests_incusos_api_applicati
     tests_incusos_api_system_resources, tests_incusos_api_system_security, tests_incusos_api_system_storage, \
     tests_incusos_api_system_storage_local_pool, tests_incusos_live, tests_install_secureboot_disabled, \
     tests_install_multipath, tests_install_smoke, tests_install_swtpm, tests_install_system_checks, tests_recovery, \
-    tests_seed_applications, tests_seed_install, tests_upgrade
+    tests_upgrade
+
+from .seed import test_external_seed, test_applications, test_install, test_kernel, test_network, test_provider, \
+    test_security, test_update
 
 class IncusOSTests:
     def __init__(self, prior_image_img, current_image_img, current_image_iso):
@@ -38,12 +41,6 @@ class IncusOSTests:
             # Test installing on multipath
             tests_install_multipath,
 
-            # Basic application seed tests
-            tests_seed_applications,
-
-            # Basic install seed tests
-            tests_seed_install,
-
             # Test running IncusOS live from a large enough drive
             tests_incusos_live,
 
@@ -70,9 +67,24 @@ class IncusOSTests:
         # Test the flasher-tool utility
         flasher_tool_tests = [tests_flasher_tool]
 
+        # Tests exercising the various seeds supported by IncusOS; application-specific seeds
+        # are pretty well tested when the trusted client TLS certificate is injected into each
+        # VM, so they aren't specifically tested here.
+        seed_tests = [
+            test_external_seed,
+            test_applications,
+            test_install,
+            test_kernel,
+            test_network,
+            test_provider,
+            test_security,
+            test_update,
+        ]
+
         ret = []
 
         ret.extend(self._get_tests(core_tests, self.current_image_img))
+        ret.extend(self._get_tests(seed_tests, self.current_image_img))
         ret.extend(self._get_tests(upgrade_tests, self.prior_image_img))
         ret.extend(self._get_tests(iso_install_tests, self.current_image_iso))
         ret.extend(self._get_tests(flasher_tool_tests, ""))

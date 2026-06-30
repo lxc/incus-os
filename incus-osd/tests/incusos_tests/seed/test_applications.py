@@ -1,7 +1,4 @@
-import os
-import tempfile
-
-from .incus_test_vm import IncusTestVM, util
+from ..incus_test_vm import IncusTestVM, util
 
 def TestSeedApplictionsEmpty(install_image):
     test_name = "seed-applications-empty"
@@ -49,6 +46,18 @@ def TestSeedApplictionsInvalid(install_image):
         # We shouldn't see anything about loading an invalid application.
         vm.LogDoesntContain("incus-osd", "Downloading application update application=foobarbiz")
 
+def TestSeedApplictionsDebug(install_image):
+    test_name = "seed-applications-debug"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"debug"}]}"""
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version, application="debug")
+
 def TestSeedApplictionsGPUSupport(install_image):
     test_name = "seed-applications-gpu-support"
     test_seed = {
@@ -72,6 +81,18 @@ def TestSeedApplictionsIncus(install_image):
 
     with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="incus")
+
+def TestSeedApplictionsIncusLTS70(install_image):
+    test_name = "seed-applications-incus-lts-70"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"incus-lts-7.0"}]}"""
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version, application="incus-lts-7.0")
 
 def TestSeedApplictionsIncusCeph(install_image):
     test_name = "seed-applications-incus-ceph"
@@ -115,6 +136,18 @@ def TestSeedApplictionsMigrationManager(install_image):
     with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="migration-manager")
 
+def TestSeedApplictionsOpenFGA(install_image):
+    test_name = "seed-applications-openfga"
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"openfga"}]}"""
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version, application="openfga")
+
 def TestSeedApplictionsOperationsCenter(install_image):
     test_name = "seed-applications-operations-center"
     test_seed = {
@@ -126,25 +159,3 @@ def TestSeedApplictionsOperationsCenter(install_image):
 
     with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="operations-center")
-
-def TestExternalSeedApplictionsMigrationManager(install_image):
-    test_name = "external-seed-applications-migration-manager"
-    test_seed = None
-
-    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
-
-    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
-        # Create and populate a user-provided ISO with seed files on it
-        with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            with open(os.path.join(tmp_dir, "install.json"), "w") as seed:
-                seed.write("{}")
-
-            with open(os.path.join(tmp_dir, "applications.json"), "w") as seed:
-                seed.write("""{"applications":[{"name":"migration-manager"}]}""")
-
-            util._create_user_media(seed_img, tmp_dir, "iso", 0, "SEED_DATA")
-
-        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
-            vm.AttachISO(seed_img.name, "seed")
-
-            vm.WaitSystemReady(os_version, application="migration-manager", remove_devices=["seed"])
