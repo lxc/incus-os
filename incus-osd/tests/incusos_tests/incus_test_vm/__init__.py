@@ -154,7 +154,7 @@ class IncusTestVM:
         if log in str(result.stdout):
             raise IncusOSException(f"wasn't expecting log entry '{log}' to appear")
 
-    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False):
+    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False, use_os_proxy=True):
         """Perform a HTTP REST API call, and return the result."""
         args = []
         cmd_input = None
@@ -170,7 +170,10 @@ class IncusTestVM:
 
                 self.vm_ip = match.group(1)
 
-            args = ["curl", "-k", "https://" + self.vm_ip + ":8443/os" + path, "-H", "X-IncusOS-Proxy: /"]
+            if use_os_proxy:
+                args = ["curl", "-k", "https://" + self.vm_ip + ":8443/os" + path, "-H", "X-IncusOS-Proxy: /"]
+            else:
+                args = ["curl", "-k", "https://" + self.vm_ip + ":8443" + path]
 
             if self.client_cert_file != "":
                 args.append("--cert")
