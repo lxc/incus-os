@@ -225,12 +225,12 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 				return err
 			}
 
-			configmationValue := string(machineID[:6])
+			confirmationValue := string(machineID[:6])
 
 			switch installSeed.ForceInstallConfirmation {
 			case "":
-				return fmt.Errorf("%s is already installed on this system; to confirm overwriting, add `ForceInstallConfirmation=%s` to the install seed and reboot", osName, configmationValue)
-			case configmationValue:
+				return fmt.Errorf("%s is already installed on this system; to confirm overwriting, add `ForceInstallConfirmation=%s` to the install seed and reboot", osName, confirmationValue)
+			case confirmationValue:
 				// Get the device that IncusOS is currently installed on.
 				output, err := subprocess.RunCommandContext(ctx, "dmsetup", "deps", "-o", "blkdevname", "/dev/mapper/root")
 				if err != nil {
@@ -261,7 +261,7 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 				// Sleep until the system reboots so we don't attempt to proceed with the install.
 				time.Sleep(10 * time.Second)
 			default:
-				return fmt.Errorf("%s is already installed on this system; the value of `ForceInstallConfirmation` '%s' != '%s', refusing to continue", osName, installSeed.ForceInstallConfirmation, configmationValue)
+				return fmt.Errorf("%s is already installed on this system; the value of `ForceInstallConfirmation` '%s' != '%s', refusing to continue", osName, installSeed.ForceInstallConfirmation, confirmationValue)
 			}
 		}
 
