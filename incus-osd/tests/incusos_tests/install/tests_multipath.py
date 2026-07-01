@@ -2,7 +2,7 @@ import os
 import re
 import tempfile
 
-from .incus_test_vm import IncusTestVM, IncusOSException, util
+from ..incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestInstallMultipath(install_image):
     test_name = "multipath"

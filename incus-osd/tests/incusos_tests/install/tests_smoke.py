@@ -1,4 +1,4 @@
-from .incus_test_vm import IncusTestVM, util
+from ..incus_test_vm import IncusTestVM, util
 
 def TestInstallDontRemoveInstallMedia(install_image):
     test_name = "dont-remove-install-media"

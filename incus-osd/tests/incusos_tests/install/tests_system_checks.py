@@ -2,7 +2,7 @@ import os
 import subprocess
 import tempfile
 
-from .incus_test_vm import IncusTestVM, util
+from ..incus_test_vm import IncusTestVM, util
 
 def TestInstallNoSeed(install_image):
     test_name = "no-seed"
