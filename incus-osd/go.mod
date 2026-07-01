@@ -4,7 +4,7 @@ go 1.25.10
 
 require (
 	github.com/FuturFusion/migration-manager v0.6.12
-	github.com/FuturFusion/operations-center v0.7.2
+	github.com/FuturFusion/operations-center v0.7.3
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -13,7 +13,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.18.7
+	github.com/klauspost/compress v1.19.0
 	github.com/lxc/incus/v7 v7.2.1-0.20260630223516-faff1e16043c
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.13.0
