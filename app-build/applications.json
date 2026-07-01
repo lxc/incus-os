@@ -186,7 +186,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.18.0",
+        "version": "v1.18.1",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -224,7 +224,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.7.1",
+        "version": "v0.7.2",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
