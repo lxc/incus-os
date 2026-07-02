@@ -1,6 +1,6 @@
 import json
 
-from .incus_test_vm import IncusTestVM, IncusOSException, util
+from ..incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestInstallSecureBootDisabled(install_image):
     test_name = "secureboot-disabled"
