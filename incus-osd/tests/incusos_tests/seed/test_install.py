@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 import time
 
-from .incus_test_vm import IncusTestVM, util
+from ..incus_test_vm import IncusTestVM, util
 
 def TestSeedInstallReboot(install_image):
     test_name = "seed-install-reboot"
@@ -69,6 +69,60 @@ def TestSeedInstallForce(install_image):
             vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
             vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
+def TestSeedInstallForceConfirmation(install_image):
+    test_name = "seed-install-force-confirmation"
+    test_seed = {
+        "install.yaml": "",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        # Wait for a normal install to complete
+        vm.WaitSystemReady(os_version)
+
+        # Get the machine ID
+        output = vm.RunCommand("cat", "/etc/machine-id")
+        confirmationValue = output.stdout.decode("utf-8")[:6]
+
+        # Re-attach the install media and update the install seed
+        vm.AddDevice("boot-media", "disk", "source="+test_image, "io.bus=usb", "boot.priority=10", "readonly=false")
+
+        # Allow time for the device to appear
+        time.sleep(5)
+
+        vm.RunCommand("mkdir", "/tmp/seed/")
+        vm.RunCommand("tar", "xf", "/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0-part2", "-C", "/tmp/seed/")
+        vm.RunCommand("sh", "-c", "echo 'force_install: true' >> /tmp/seed/install.yaml")
+        vm.RunCommand("tar", "cf", "/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0-part2", "-C", "/tmp/seed/", ".")
+
+        # Restart the VM and check that we get an error about ForceInstallConfirmation.
+        vm.StopVM()
+        vm.StartVM()
+        time.sleep(5)
+        vm.WaitAgentRunning()
+
+        vm.WaitExpectedLog("incus-osd", os_name + " is already installed on this system; to confirm overwriting, add `ForceInstallConfirmation=" + confirmationValue + "` to the install seed and reboot")
+
+        vm.RunCommand("mkdir", "/tmp/seed/")
+        vm.RunCommand("tar", "xf", "/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0-part2", "-C", "/tmp/seed/")
+        vm.RunCommand("sh", "-c", "echo 'force_install_confirmation: " + confirmationValue + "' >> /tmp/seed/install.yaml")
+        vm.RunCommand("tar", "cf", "/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0-part2", "-C", "/tmp/seed/", ".")
+
+        # Restart the VM and check that we then properly wipe the existing install.
+        vm.StopVM()
+        vm.StartVM()
+        time.sleep(5)
+        vm.WaitAgentRunning()
+
+        vm.WaitExpectedLog("incus-osd", "Wiping existing version of " + os_name + ", then rebooting in five seconds to run actual installation")
+
+        # Wait for the VM to auto-reboot and begin the installation once again
+        time.sleep(10)
+        vm.WaitAgentRunning()
+
+        vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=")
+
 def TestSeedInstallEmpty(install_image):
     test_name = "seed-install-empty"
     test_seed = {
@@ -83,51 +137,3 @@ def TestSeedInstallEmpty(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
         vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
-
-def TestExternalSeedInstallEmpty(install_image):
-    test_name = "external-seed-install-empty"
-    test_seed = None
-
-    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
-
-    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
-        # Create and populate a user-provided ISO image with an empty install seed file on it
-        with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            with open(os.path.join(tmp_dir, "install.yaml"), "w") as seed:
-                seed.write("")
-
-            util._create_user_media(seed_img, tmp_dir, "iso", 0, "SEED_DATA")
-
-        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
-            vm.AttachISO(seed_img.name, "seed")
-
-            # Perform IncusOS install.
-            vm.StartVM()
-            vm.WaitAgentRunning()
-            vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-            vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
-
-def TestExternalSeedInstallTarget(install_image):
-    test_name = "external-seed-install-target"
-    test_seed = None
-
-    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
-
-    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
-        with tempfile.NamedTemporaryFile(dir=os.getcwd()) as seed_img:
-            # Create and populate a user-provided USB stick with a seed file on it
-            with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-                with open(os.path.join(tmp_dir, "install.json"), "w") as seed:
-                    seed.write("""{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""")
-
-                util._create_user_media(seed_img, tmp_dir, "img", 1024*1024*1024, "SEED_DATA")
-
-            with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
-                vm.AddDevice("disk1", "disk", "source="+disk_img.name)
-                vm.AddDevice("recovery", "disk", "source="+seed_img.name, "io.bus=usb")
-
-                # Perform IncusOS install.
-                vm.StartVM()
-                vm.WaitAgentRunning()
-                vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
-                vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")

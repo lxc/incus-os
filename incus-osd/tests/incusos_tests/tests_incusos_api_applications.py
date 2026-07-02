@@ -57,6 +57,8 @@ def TestIncusOSAPIApplicationsIncus(install_image):
 
         time.sleep(5)
 
+        vm.LogDoesntContain("incus-osd", "Failed to perform factory reset of application 'incus'")
+
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/incus/test-file", check=False)
         if result.returncode == 0:
@@ -120,6 +122,8 @@ def TestIncusOSAPIApplicationsMigrationManager(install_image):
 
         time.sleep(5)
 
+        vm.LogDoesntContain("incus-osd", "Failed to perform factory reset of application 'migration-manager'")
+
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/migration-manager/test-file", check=False)
         if result.returncode == 0:
@@ -181,7 +185,11 @@ def TestIncusOSAPIApplicationsOperationsCenter(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        time.sleep(30)
+        # We need a really long sleep here. Operations Center takes a while to shutdown, although the factory reset
+        # API call returns immediately. In local testing it took about 70 seconds for the reset process to complete.
+        time.sleep(120)
+
+        vm.LogDoesntContain("incus-osd", "Failed to perform factory reset of application 'operations-center'")
 
         # Verify our test file is no longer present
         result = vm.RunCommand("stat", "/var/lib/operations-center/test-file", check=False)

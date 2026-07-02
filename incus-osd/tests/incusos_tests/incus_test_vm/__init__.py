@@ -94,7 +94,7 @@ class IncusTestVM:
         else:
             subprocess.run(["incus", "stop", self.vm_name], capture_output=True, check=True, timeout=timeout)
 
-    def WaitSystemReady(self, os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[], agent_timeout=300, secureboot_disabled=False):
+    def WaitSystemReady(self, os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root", application="incus", remove_devices=[], agent_timeout=300, secureboot_disabled=False, channel="stable"):
         """Wait for the system install to complete, the given application to be configured and the system become ready for use."""
 
         # Perform IncusOS install.
@@ -116,7 +116,7 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         if not secureboot_disabled:
             self.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
-        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" channel=stable version="+os_version)
+        self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" channel="+channel+" version="+os_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
     def WaitAgentRunning(self, timeout=420):
@@ -154,7 +154,7 @@ class IncusTestVM:
         if log in str(result.stdout):
             raise IncusOSException(f"wasn't expecting log entry '{log}' to appear")
 
-    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False):
+    def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False, use_os_proxy=True):
         """Perform a HTTP REST API call, and return the result."""
         args = []
         cmd_input = None
@@ -170,7 +170,10 @@ class IncusTestVM:
 
                 self.vm_ip = match.group(1)
 
-            args = ["curl", "-k", "https://" + self.vm_ip + ":8443/os" + path, "-H", "X-IncusOS-Proxy: /"]
+            if use_os_proxy:
+                args = ["curl", "-k", "https://" + self.vm_ip + ":8443/os" + path, "-H", "X-IncusOS-Proxy: /"]
+            else:
+                args = ["curl", "-k", "https://" + self.vm_ip + ":8443" + path]
 
             if self.client_cert_file != "":
                 args.append("--cert")
