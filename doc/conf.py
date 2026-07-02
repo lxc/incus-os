@@ -102,6 +102,6 @@ ogp_image = "https://linuxcontainers.org/static/img/containers.png"
 
 # Links to ignore when checking links
 
-linkcheck_ignore = ["https://web.libera.chat/#lxc", r"https://uefi.org/.*", r"https://ceph.io/", r"https://usbip.sourceforge.net/", r"https://www.freedesktop.org/"]
+linkcheck_ignore = ["https://web.libera.chat/#lxc", r"https://uefi.org/.*", r"https://ceph.io/", r"https://usbip.sourceforge.net/", r"https://www.freedesktop.org/", r"https://techcommunity.microsoft.com/blog/windows-itpro-blog/updating-microsoft-secure-boot-keys/4055324"]
 
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*"]
