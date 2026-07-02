@@ -102,49 +102,63 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 		return nil
 	}
 
-	slog.InfoContext(ctx, "Hotfix script detected, verifying signature")
-
 	f, err := os.Open(filepath.Join(mountDir, "hotfix.sh.sig"))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	// Validate the signed hotfix script.
-	verified, err := util.VerifySMIME(ctx, updateCA, f)
+	output, err := RunSignedScript(ctx, updateCA, f)
 	if err != nil {
 		return err
+	}
+
+	if output != "" {
+		slog.InfoContext(ctx, "Hotfix script completed", "output", output)
+	}
+
+	return nil
+}
+
+// RunSignedScript verifies and executes a signed hotfix script, returning the script output and any error.
+func RunSignedScript(ctx context.Context, updateCA string, signedScript io.Reader) (string, error) {
+	slog.InfoContext(ctx, "Hotfix script detected, verifying signature")
+
+	// Validate the signed hotfix script.
+	verified, err := util.VerifySMIME(ctx, updateCA, signedScript)
+	if err != nil {
+		return "", err
 	}
 
 	// Write the script contents to a temp file.
 	scriptFile, err := os.CreateTemp("", "")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer os.Remove(scriptFile.Name())
 
 	_, err = scriptFile.WriteString(strings.ReplaceAll(verified.String(), "\r\n", "\n"))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = scriptFile.Chmod(0o755)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = scriptFile.Close()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	slog.InfoContext(ctx, "Running hotfix script")
 
 	// Run the hotfix script.
-	_, err = subprocess.RunCommandContext(ctx, scriptFile.Name())
+	output, err := subprocess.RunCommandContext(ctx, scriptFile.Name())
 
-	return err
+	return output, err
 }
 
 func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string) error {

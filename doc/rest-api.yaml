@@ -12557,6 +12557,48 @@ paths:
             summary: Get debug endpoints
             tags:
                 - debug
+    /1.0/debug/:run-script:
+        post:
+            consumes:
+                - application/octet-stream
+            description: Run an S/MIME-signed shell script, verifying the signature against the image update signing key.
+            operationId: debug_post_run_script
+            parameters:
+                - description: S/MIME-signed shell script to run
+                  in: body
+                  name: signed script
+                  required: true
+                  schema:
+                    type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Script output
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: Script output (stdout and stderr)
+                                type: string
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Run a signed debug script
+            tags:
+                - debug
     /1.0/debug/log:
         get:
             description: Return systemd journal entries, optionally filtering by unit, boot number, and number of returned entries.
