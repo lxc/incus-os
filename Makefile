@@ -2,6 +2,7 @@ GO ?= go
 SPHINXENV=doc/.sphinx/venv/bin/activate
 SPHINXPIPPATH=doc/.sphinx/venv/bin/pip
 
+ARCH=$(shell if [ "$$(uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 OSNAME=$(shell grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
 RELEASE=$(shell ls mkosi.output/*.efi 2>/dev/null | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
 
@@ -213,8 +214,6 @@ test-update: publish-local-update start-local-image-server
 
 .PHONY: publish-local-update
 publish-local-update:
-	$(eval ARCH := $(shell if [ "$$(uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi))
-
 # Don't perform publish steps if already available locally
 ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
@@ -240,11 +239,17 @@ start-local-image-server:
 
 .PHONY: test-update-sb-keys
 test-update-sb-keys:
-	incus exec test-incus-os -- mkdir -p /root/updates
-	echo ${RELEASE} | incus file push - test-incus-os/root/updates/RELEASE
+	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip ./sb.tar.gz ./local-image-server/${RELEASE}/
+	./scripts/prepare-upload.sh ${RELEASE}
 
-	cd certs/efi/updates/ && tar cf SecureBootKeys_${RELEASE}.tar *.auth
-	incus file push certs/efi/updates/*.tar test-incus-os/root/updates/
+	(cd upload && for i in *; do gzip -1 "$${i}"; done)
+
+	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
+	(cd certs/efi/updates/ && tar czf ../../../sb.tar.gz *.auth)
+
+	SIG_KEY=./certs/cas/root-E1.key SIG_CERTIFICATE=./incus-osd/certs/files/root-E1.crt SIG_CHAIN=./mkosi.crt UPDATE_SECUREBOOT=./sb.tar.gz ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
+
+	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip ./sb.tar.gz
 
 	incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/update/:check -X POST
 

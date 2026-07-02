@@ -66,8 +66,8 @@ openssl genrsa -out "certs/secureboot-DB-3-R1.key" 2048
 openssl req -new -SHA256 -key "certs/secureboot-DB-3-R1.key" -nodes -out "certs/secureboot-DB-3-R1.csr" -subj "/CN=${OS_NAME} - Secure Boot 3 R1/O=${OS_NAME}"
 openssl x509 -req -extensions v3_ca -extfile certs/cas/ssl.conf -SHA256 -days 3650 -in "certs/secureboot-DB-3-R1.csr" -CA "incus-osd/certs/files/secureboot-E1.crt" -CAkey "certs/cas/secureboot-E1.key" -out "incus-osd/certs/files/secureboot-DB-3-R1.crt"
 
-openssl genrsa -out "certs/secureboot-DBX-4-R1.key" 2048
-openssl req -new -SHA256 -key "certs/secureboot-DBX-4-R1.key" -nodes -out "certs/secureboot-DBX-4-R1.csr" -subj "/CN=${OS_NAME} - Secure Boot 4 R1/O=${OS_NAME}"
-openssl x509 -req -extensions v3_ca -extfile certs/cas/ssl.conf -SHA256 -days 3650 -in "certs/secureboot-DBX-4-R1.csr" -CA "incus-osd/certs/files/secureboot-E1.crt" -CAkey "certs/cas/secureboot-E1.key" -out "incus-osd/certs/files/secureboot-DBX-4-R1.crt"
+openssl genrsa -out "certs/secureboot-DBX-1-R1.key" 2048
+openssl req -new -SHA256 -key "certs/secureboot-DBX-1-R1.key" -nodes -out "certs/secureboot-DBX-1-R1.csr" -subj "/CN=${OS_NAME} - Secure Boot 4 R1/O=${OS_NAME}"
+openssl x509 -req -extensions v3_ca -extfile certs/cas/ssl.conf -SHA256 -days 3650 -in "certs/secureboot-DBX-1-R1.csr" -CA "incus-osd/certs/files/secureboot-E1.crt" -CAkey "certs/cas/secureboot-E1.key" -out "incus-osd/certs/files/secureboot-DBX-1-R1.crt"
 
 find certs/ -name '*.csr' -delete
