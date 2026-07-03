@@ -53,6 +53,7 @@ iKVM
 IMG
 Incus
 IncusOS
+Infomaniak
 initrd
 IPs
 IPv
