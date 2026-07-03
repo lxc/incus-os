@@ -4,7 +4,14 @@ It is possible to install **IncusOS** with full security on OpenStack-based
 cloud platforms. This guide was tested on the **Infomaniak Public Cloud**,
 but the steps are applicable to most OpenStack-compatible providers worldwide.
 
----
+```{warning}
+Most operations on OpenStack instances - such as **adding/modifying
+volumes, RAM, or CPUs** - will trigger the **TPM (Trusted Platform Module)**.
+
+- **Download the TPM unlock password** as soon as possible.
+- **Keep it secure and accessible**, as after instance changes you will
+  need to enter it during boot via the OpenStack Console.
+```
 
 ## 1. Order and Prepare a Cloud Project
 
@@ -16,8 +23,6 @@ but the steps are applicable to most OpenStack-compatible providers worldwide.
    - Configure networks
    - Manage other cloud resources
 
----
-
 ## 2. Obtain a Suitable IncusOS Image
 
 1. Follow the instructions to **[download an IncusOS image](../download.md)**.
@@ -27,8 +32,6 @@ but the steps are applicable to most OpenStack-compatible providers worldwide.
    - **Add the required TLS client certificate** (mandatory).
    - Fill in the remaining fields as needed (optional).
 1. Download the generated image.
-
----
 
 ## 3. Process the Image
 
@@ -58,8 +61,6 @@ openstack image create "IncusOS-Hypervisor" \
 > **Note:** Explicitly configuring **UEFI** and **TPM 2.0**
 > is required for IncusOS compatibility.
 
----
-
 ## 4. Create an OpenStack Instance
 
 1. **Select an instance type** with a minimum of **50GB storage** (IncusOS will run on most instance types meeting this requirement).
@@ -72,21 +73,8 @@ openstack image create "IncusOS-Hypervisor" \
 Modify the default OpenStack **security group** to allow inbound traffic on
 **port 8443**, where IncusOS listens for connections.
 
----
-
 ## 5. Access IncusOS
 
 1. The system will **boot automatically** into IncusOS.
 1. Access the **OpenStack Console** in your browser to monitor the boot process.
 1. Once the system is ready, follow the **[access instructions](../access.md)** to log in.
-
----
-
-## ⚠️ Important Notice
-
-Most operations on OpenStack instances - such as **adding/modifying
-volumes, RAM, or CPUs** - will trigger the **TPM (Trusted Platform Module)**.
-
-- **Download the TPM unlock password** as soon as possible.
-- **Keep it secure and accessible**, as after instance changes you will
-  need to enter it during boot via the OpenStack Console.
