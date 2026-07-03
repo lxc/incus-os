@@ -89,6 +89,7 @@ OCI
 oddlama
 OEM
 OpenFGA
+OpenStack
 OVMF
 OVN
 OVS
