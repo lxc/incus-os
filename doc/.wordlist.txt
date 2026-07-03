@@ -53,6 +53,7 @@ iKVM
 IMG
 Incus
 IncusOS
+Infomaniak
 initrd
 IPs
 IPv
@@ -89,6 +90,7 @@ OCI
 oddlama
 OEM
 OpenFGA
+OpenStack
 OVMF
 OVN
 OVS
