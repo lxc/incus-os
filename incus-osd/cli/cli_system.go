@@ -10,6 +10,7 @@ type cmdAdminOSSystem struct {
 	os *cmdAdminOS
 }
 
+//nolint:revive
 func (c *cmdAdminOSSystem) command() *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Use = cli.Usage("system")
@@ -94,6 +95,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		description   string
 		isWritable    bool
 		extraCommands func() []*cobra.Command
+		info          func(os *cmdAdminOS, endpoint string, description string) *cobra.Command
 	}
 
 	subCommands := []subCommand{
@@ -106,6 +108,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "kernel",
 			description: "System kernel configuration",
 			isWritable:  true,
+			info:        systemInfoKernelCommand,
 		},
 		{
 			name:        "logging",
@@ -116,6 +119,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "network",
 			description: "Network configuration",
 			isWritable:  true,
+			info:        systemInfoNetworkCommand,
 			extraCommands: func() []*cobra.Command {
 				// Confirm new network configuration.
 				networkConfirmCmd := cmdGenericRun{
@@ -145,6 +149,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "resources",
 			description: "System resources",
 			isWritable:  false,
+			info:        systemInfoResourcesCommand,
 		},
 		{
 			name:        "security",
@@ -167,6 +172,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "storage",
 			description: "Storage configuration",
 			isWritable:  true,
+			info:        systemInfoStorageCommand,
 			extraCommands: func() []*cobra.Command {
 				// Create storage volume.
 				createVolumeCmd := cmdGenericRun{
@@ -288,6 +294,11 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		// Show.
 		showCmd := cmdGenericShow{os: c.os, endpoint: "system/" + sub.name}
 		subCmd.AddCommand(showCmd.command())
+
+		// Info.
+		if sub.info != nil {
+			subCmd.AddCommand(sub.info(c.os, "system/"+sub.name, "Show "+sub.description))
+		}
 
 		cmd.AddCommand(subCmd)
 

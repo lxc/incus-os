@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	incusapi "github.com/lxc/incus/v7/shared/api"
 	"github.com/lxc/incus/v7/shared/ask"
 	cli "github.com/lxc/incus/v7/shared/cmd"
 	"github.com/lxc/incus/v7/shared/termios"
@@ -469,6 +470,62 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// Info.
+type cmdGenericInfo struct {
+	os *cmdAdminOS
+
+	name        string
+	description string
+	endpoint    string
+
+	handler func(resp *incusapi.Response) error
+}
+
+func (c *cmdGenericInfo) command() *cobra.Command {
+	description := "Show details"
+	name := "info"
+
+	if c.description != "" {
+		description = c.description
+	}
+
+	if c.name != "" {
+		name = c.name
+	}
+
+	cmd := &cobra.Command{}
+	cmd.Use = cli.Usage(name)
+	cmd.Short = description
+	cmd.Long = cli.FormatSection("Description", description)
+
+	if c.os.args.SupportsTarget {
+		cmd.Flags().StringVar(&c.os.flagTarget, "target", "", "Cluster member name``")
+	}
+
+	cmd.RunE = c.run
+
+	return cmd
+}
+
+func (c *cmdGenericInfo) run(cmd *cobra.Command, args []string) error {
+	exit, err := cli.CheckArgs(cmd, args, 0, 0)
+	if exit {
+		return err
+	}
+
+	apiURL := "/os/1.0/" + c.endpoint
+	if c.os.flagTarget != "" {
+		apiURL += "?target=" + c.os.flagTarget
+	}
+
+	resp, _, err := doQuery(c.os.args.DoHTTP, "", "GET", apiURL, nil, nil, "")
+	if err != nil {
+		return err
+	}
+
+	return c.handler(resp)
 }
 
 // Show.
