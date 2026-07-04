@@ -108,6 +108,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			name:        "kernel",
 			description: "System kernel configuration",
 			isWritable:  true,
+			info:        systemInfoKernelCommand,
 		},
 		{
 			name:        "logging",
