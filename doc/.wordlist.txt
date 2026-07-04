@@ -125,8 +125,8 @@ symlink
 syslog
 systemd
 systemd's
-Tailscale
 Tailnet
+Tailscale
 TCP
 TDB
 TiB
