@@ -3,10 +3,10 @@ filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/FuturFusion/migration-manager v0.6.12 h1:eOXq7l3xeM7VTwO1uXplknj2cL9I5NurYxs+tFkLTYo=
-github.com/FuturFusion/migration-manager v0.6.12/go.mod h1:Si7dBSilhF7FIbaYMG+V804C0ESIm7t6pF2x8es3IOk=
-github.com/FuturFusion/operations-center v0.7.3 h1:rLcN3JkzUhpQLBM+eS7GfH17wSpMRr9qAQFnyFSnVjo=
-github.com/FuturFusion/operations-center v0.7.3/go.mod h1:HZK1l3U1gKhsBOg3oPu0EXKB8IE7ghvjQ+oBS2Rsfh8=
+github.com/FuturFusion/migration-manager v0.6.13 h1:pEl44IVi5ouZJwcI2kNiv5yRqah1vuuzBvkCnrccSxc=
+github.com/FuturFusion/migration-manager v0.6.13/go.mod h1:zg+vwReVEUWJd4lScQIfKqfOPyyzJT4Y/XJ5ITPXY14=
+github.com/FuturFusion/operations-center v0.7.4 h1:G/mbTkfOxLL0ORvmbAHCB/6eLaecgo3oDNdDEDiVgyM=
+github.com/FuturFusion/operations-center v0.7.4/go.mod h1:fw/zh+ezkI7Hdozqjku9VOLT3VdIHsiahiRKosCTv/0=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
 github.com/apex/log v1.9.0/go.mod h1:m82fZlWIuiWzWP04XCTXmnX0xRkYYbCdYn8jbJeLBEA=
 github.com/apex/logs v1.0.0/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
@@ -173,8 +173,8 @@ github.com/opencontainers/runtime-spec v1.3.0 h1:YZupQUdctfhpZy3TM39nN9Ika5CBWT5
 github.com/opencontainers/runtime-spec v1.3.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/umoci v0.6.1-0.20251213054154-70fc5ee1f4df h1:9hvwN64VeuL1L0Jgp8bxTPmd5IZQoHmeXGWrVqsEhN0=
 github.com/opencontainers/umoci v0.6.1-0.20251213054154-70fc5ee1f4df/go.mod h1:s6d/s4QJAZTF92hEU6ozuHjE0+VRc6kVe1QIWfvL7KY=
-github.com/pires/go-proxyproto v0.13.0 h1:kMrnyu6w92odDfOVzjYV6s5GqYGnIEKoxxsP38VrPSs=
-github.com/pires/go-proxyproto v0.13.0/go.mod h1:qUvfqUMEoX7T8g0q7TQLDnhMjdTrxnG0hvpMn+7ePNI=
+github.com/pires/go-proxyproto v0.14.0 h1:2vIGIfVG8eVRsKF0xukEoeT5RWhDXxBU0uv6smLOKdI=
+github.com/pires/go-proxyproto v0.14.0/go.mod h1:OXsCrKwrK2tXS9YrI5tkHx5xaQlO8FH3lFW76orFh24=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
