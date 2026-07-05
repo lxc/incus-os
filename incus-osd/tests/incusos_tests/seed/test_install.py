@@ -27,8 +27,8 @@ def TestSeedInstallReboot(install_image):
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "System check error: install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
 
-def TestSeedInstallTarget(install_image):
-    test_name = "seed-install-target"
+def TestSeedInstallTargetID(install_image):
+    test_name = "seed-install-target-id"
     test_seed = {
         "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}"""
     }
@@ -43,6 +43,26 @@ def TestSeedInstallTarget(install_image):
             vm.StartVM()
             vm.WaitAgentRunning()
             vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root")
+            vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
+
+def TestSeedInstallTargetBus(install_image):
+    test_name = "seed-install-target-bus"
+    test_seed = {
+        "install.json": """{"target":{"bus":"nvme","sort_order":"smallest"}}"""
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
+        disk_img.truncate(55*1024*1024*1024)
+
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+            vm.AddDevice("disk1", "disk", "source="+disk_img.name, "io.bus=nvme")
+
+            # Perform IncusOS install.
+            vm.StartVM()
+            vm.WaitAgentRunning()
+            vm.WaitExpectedLog("incus-osd", "Installing " + os_name + " source=/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0 target=/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_disk1")
             vm.WaitExpectedLog("incus-osd", os_name + " was successfully installed")
 
 def TestSeedInstallForce(install_image):
