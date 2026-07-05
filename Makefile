@@ -258,7 +258,7 @@ update-gomod:
 	cd incus-osd && go get -t -v -u ./...
 	cd incus-osd && go get tailscale.com@v1.94.2
 	sed -i "/go-json-experiment/d" incus-osd/go.mod
-	cd incus-osd && go mod tidy --go=1.25.10
+	cd incus-osd && go mod tidy --go=1.25.11
 	cd incus-osd && go get toolchain@none
 
 .PHONY: update-app-versions
