@@ -286,6 +286,18 @@ wireguard:
       - 192.168.0.100/24
 `
 
+var badNetworkdConfig7 = `
+interfaces:
+  - name: nic1
+    addresses:
+    - dhcp4
+    hwaddr: 10:66:6a:b0:5f:02
+  - name: nic2
+    addresses:
+    - dhcp4
+    hwaddr: 10:66:6a:b0:5f:02
+`
+
 func TestBadNetworkConfig(t *testing.T) {
 	t.Parallel()
 
@@ -347,6 +359,16 @@ func TestBadNetworkConfig(t *testing.T) {
 
 		err = ValidateNetworkConfiguration(&cfg, false)
 		require.EqualError(t, err, "wireguard 0 port '65536' out of range")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig7), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(&cfg, false)
+		require.EqualError(t, err, "duplicate MAC address: 10:66:6a:b0:5f:02")
 	}
 }
 

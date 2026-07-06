@@ -203,14 +203,21 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 		return errors.New("no network configuration provided")
 	}
 
-	// Check that all interface/bond/vlan names are unique.
+	// Check that all interface/bond/vlan names and MACs are unique.
 	names := []string{}
+	macs := []string{}
+
 	for _, iface := range networkCfg.Interfaces {
 		if slices.Contains(names, iface.Name) {
 			return errors.New("duplicate interface/bond/vlan/wireguard name: " + iface.Name)
 		}
 
+		if slices.Contains(macs, iface.Hwaddr) {
+			return errors.New("duplicate MAC address: " + iface.Hwaddr)
+		}
+
 		names = append(names, iface.Name)
+		macs = append(macs, iface.Hwaddr)
 	}
 
 	for _, bond := range networkCfg.Bonds {
@@ -218,7 +225,12 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 			return errors.New("duplicate interface/bond/vlan/wireguard name: " + bond.Name)
 		}
 
+		if slices.Contains(macs, bond.Hwaddr) {
+			return errors.New("duplicate MAC address: " + bond.Hwaddr)
+		}
+
 		names = append(names, bond.Name)
+		macs = append(macs, bond.Hwaddr)
 	}
 
 	for _, vlan := range networkCfg.VLANs {
