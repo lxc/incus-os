@@ -456,7 +456,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	// Get NVME drives first.
 	nvmeTargets := storage.LsblkOutput{}
 
-	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
+	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-N", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS")
 	if err != nil {
 		return []storage.BlockDevices{}, err
 	}
@@ -471,7 +471,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	// Get SCSI drives second.
 	scsiTargets := storage.LsblkOutput{}
 
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-S", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS")
 	if err != nil {
 		return []storage.BlockDevices{}, err
 	}
@@ -487,7 +487,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	mmcTargets := storage.LsblkOutput{}
 
 	// MMC block devices have major number 179 (https://www.kernel.org/doc/Documentation/admin-guide/devices.txt)
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-I", "179", "-iJnpb", "-o", "KNAME,ID_LINK,SIZE")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-I", "179", "-iJnpb", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS")
 	if err != nil {
 		return []storage.BlockDevices{}, err
 	}
@@ -502,7 +502,7 @@ func getAllTargets(ctx context.Context, sourceDevice string) ([]storage.BlockDev
 	// Get virtual drives last.
 	virtualTargets := storage.LsblkOutput{}
 
-	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE")
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-v", "-iJnpb", "-e", "1,2", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS")
 	if err != nil {
 		return []storage.BlockDevices{}, err
 	}
