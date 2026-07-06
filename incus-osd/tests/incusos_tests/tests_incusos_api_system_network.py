@@ -2,7 +2,7 @@ import json
 import os
 import time
 
-from .incus_test_vm import IncusTestVM, IncusOSException, util
+from .incus_test_vm import IncusTestNetwork, IncusTestVM, IncusOSException, util
 
 def _checkNetworkConnectivity(vm):
     IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
@@ -273,3 +273,57 @@ def TestIncusOSAPISystemNetworkRollback(install_image):
 
         if result["error"] != "no network configuration is pending a confirmation":
             raise IncusOSException("unexpected error message: " + result["error"])
+
+def TestIncusOSAPISystemNetworkConfigInterfaces(install_image):
+    test_name = "incusos-api-system-network-config-interfaces"
+    test_seed = {
+        "install.json": "{}"
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestNetwork() as network:
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+            vm.AddDevice("eth1", "nic", "network="+network.name)
+
+            vm.WaitSystemReady(os_version)
+
+            # Get current network configuration.
+            result = vm.APIRequest("/1.0/system/network")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            interfaces = result["metadata"]["state"]["interfaces"]
+
+            if "enp5s0" not in interfaces or "enp6s0" not in interfaces:
+                raise IncusOSException("expected interfaces enp5s0 and enp6s0 to exist")
+
+            enp5MAC = '"' + interfaces["enp5s0"]["hwaddr"] + '"'
+            enp6MAC = '"' + interfaces["enp6s0"]["hwaddr"] + '"'
+
+            # Apply a new network configuration that changes names and roles.
+            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"management","required_for_online":"both","roles":["management","cluster","storage"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"]}]}}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            # Get the updated network configuration.
+            result = vm.APIRequest("/1.0/system/network")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            interfaces = result["metadata"]["state"]["interfaces"]
+
+            if "management" not in interfaces or "vm" not in interfaces:
+                raise IncusOSException("expected interfaces management and vm to exist")
+
+            if len(interfaces["management"]["addresses"]) != 2:
+                raise IncusOSException("expected management interface to have two addresses")
+
+            if "management" not in interfaces["management"]["roles"] or "cluster" not in interfaces["management"]["roles"] or "storage" not in interfaces["management"]["roles"] or len(interfaces["management"]["roles"]) != 3:
+                raise IncusOSException("missing expected roles for management interface: " + str(interfaces["management"]["roles"]))
+
+            if "addresses" in interfaces["vm"]:
+                raise IncusOSException("expected vm interface not to have any addresses")
+
+            if "instances" not in interfaces["vm"]["roles"] or len(interfaces["vm"]["roles"]) != 1:
+                raise IncusOSException("missing expected roles for vm interface: " + str(interfaces["vm"]["roles"]))

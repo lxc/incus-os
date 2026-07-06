@@ -208,3 +208,23 @@ class IncusTestVM:
     def RunCommand(self, *cmd, capture_output=True, check=True):
         """Run a given command within the VM."""
         return subprocess.run(["incus", "exec", self.vm_name, "--", *cmd], capture_output=capture_output, check=check)
+
+class IncusTestNetwork:
+    def __init__(self):
+        self.name = util._get_random_string()
+
+    def __enter__(self):
+        """Create a temporary Incus bridge network for testing purposes."""
+
+        subprocess.run(["incus", "network", "create", self.name, "--type=bridge"], capture_output=True, check=True)
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Delete the test network."""
+
+        # Sleep a few seconds to allow sufficient time for the VM to have been deleted and
+        # Incus state updated to show nothing is using this network before we delete it.
+        time.sleep(5)
+
+        subprocess.run(["incus", "network", "delete", self.name], capture_output=True, check=True)
