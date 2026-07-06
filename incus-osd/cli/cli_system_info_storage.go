@@ -23,7 +23,7 @@ func renderStorageInfo(resp *incusapi.Response) error {
 	}
 
 	// Drives table.
-	fmt.Println("Drives:") //nolint:forbidigo
+	_, _ = fmt.Println("Drives:") //nolint:forbidigo
 
 	driveRows := make([][]string, 0, len(storage.State.Drives))
 	for _, drive := range storage.State.Drives {
@@ -58,7 +58,7 @@ func renderStorageInfo(resp *incusapi.Response) error {
 
 	// Pools table.
 	if len(storage.State.Pools) > 0 {
-		fmt.Println("\nPools:") //nolint:forbidigo
+		_, _ = fmt.Println("\nPools:") //nolint:forbidigo
 
 		poolRows := make([][]string, 0, len(storage.State.Pools))
 		for _, pool := range storage.State.Pools {
