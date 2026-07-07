@@ -1,8 +1,10 @@
 package rest
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"net/http"
@@ -14,7 +16,7 @@ import (
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v7/shared/subprocess"
 
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -541,7 +543,19 @@ func (*Server) apiDebugRunScript(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the expected CA certificate to validate the signed script.
-	updateCA, err := providers.GetUpdateCACert()
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	var b bytes.Buffer
+
+	err = pem.Encode(&b, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: embeddedCerts.RootCACertificate.Raw,
+	})
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -549,7 +563,7 @@ func (*Server) apiDebugRunScript(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify the signature and run the script.
-	output, err := recovery.RunSignedScript(r.Context(), updateCA, r.Body)
+	output, err := recovery.RunSignedScript(r.Context(), b.String(), r.Body)
 	if err != nil {
 		_ = response.InternalError(errors.New(err.Error() + "\n\n" + output)).Render(w)
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +23,7 @@ import (
 	"github.com/lxc/incus/v7/shared/osarch"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
@@ -304,12 +306,22 @@ func (p *images) load(ctx context.Context) error {
 
 	// Set default update CA if not configured.
 	if p.updateCA == "" && !p.ignoreSignedJSON {
-		var err error
-
-		p.updateCA, err = GetUpdateCACert()
+		embeddedCerts, err := certs.GetEmbeddedCertificates()
 		if err != nil {
 			return err
 		}
+
+		var b bytes.Buffer
+
+		err = pem.Encode(&b, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: embeddedCerts.RootCACertificate.Raw,
+		})
+		if err != nil {
+			return err
+		}
+
+		p.updateCA = b.String()
 	}
 
 	// Authenticated clients.

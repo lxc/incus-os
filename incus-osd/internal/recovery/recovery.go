@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"log/slog"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
@@ -73,19 +75,29 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 
 	// Get the expected CA certificate to validate the update metadata.
-	updateCA, err := providers.GetUpdateCACert()
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		return err
+	}
+
+	var b bytes.Buffer
+
+	err = pem.Encode(&b, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: embeddedCerts.RootCACertificate.Raw,
+	})
 	if err != nil {
 		return err
 	}
 
 	// Run the hotfix script, if any.
-	err = runHotfix(ctx, updateCA, mountDir)
+	err = runHotfix(ctx, b.String(), mountDir)
 	if err != nil {
 		return err
 	}
 
 	// Apply the update(s), if any.
-	err = applyUpdate(ctx, s, updateCA, mountDir)
+	err = applyUpdate(ctx, s, b.String(), mountDir)
 	if err != nil {
 		return err
 	}
