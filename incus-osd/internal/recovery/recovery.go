@@ -5,9 +5,9 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"io"
 	"log/slog"
@@ -74,30 +74,14 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 		defer func() { s.System.Provider.Config.Name = "" }()
 	}
 
-	// Get the expected CA certificate to validate the update metadata.
-	embeddedCerts, err := certs.GetEmbeddedCertificates()
-	if err != nil {
-		return err
-	}
-
-	var b bytes.Buffer
-
-	err = pem.Encode(&b, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: embeddedCerts.RootCACertificate.Raw,
-	})
-	if err != nil {
-		return err
-	}
-
 	// Run the hotfix script, if any.
-	err = runHotfix(ctx, b.String(), mountDir)
+	err = runHotfix(ctx, mountDir)
 	if err != nil {
 		return err
 	}
 
 	// Apply the update(s), if any.
-	err = applyUpdate(ctx, s, b.String(), mountDir)
+	err = applyUpdate(ctx, s, mountDir)
 	if err != nil {
 		return err
 	}
@@ -107,20 +91,20 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	return nil
 }
 
-func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
+func runHotfix(ctx context.Context, mountDir string) error {
 	// Check if hotfix.sh.sig exists.
 	_, err := os.Stat(filepath.Join(mountDir, "hotfix.sh.sig"))
 	if err != nil {
-		return nil
+		// If a signed script isn't present, nothing to do.
+		return nil //nolint:nilerr
 	}
 
-	f, err := os.Open(filepath.Join(mountDir, "hotfix.sh.sig"))
+	scriptContents, err := os.ReadFile(filepath.Join(mountDir, "hotfix.sh.sig"))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	output, err := RunSignedScript(ctx, updateCA, f)
+	output, err := RunSignedScript(ctx, scriptContents)
 	if err != nil {
 		return err
 	}
@@ -133,11 +117,17 @@ func runHotfix(ctx context.Context, updateCA string, mountDir string) error {
 }
 
 // RunSignedScript verifies and executes a signed hotfix script, returning the script output and any error.
-func RunSignedScript(ctx context.Context, updateCA string, signedScript io.Reader) (string, error) {
+func RunSignedScript(ctx context.Context, signedScript []byte) (string, error) {
 	slog.InfoContext(ctx, "Hotfix script detected, verifying signature")
 
-	// Validate the signed hotfix script.
-	verified, err := util.VerifySMIME(ctx, updateCA, signedScript)
+	// Load the embedded certificates.
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		return "", err
+	}
+
+	// Validate the signed hotfix script using the Support intermediate CA.
+	verified, err := util.VerifySMIME(ctx, []*x509.Certificate{embeddedCerts.SupportCACertificate}, signedScript)
 	if err != nil {
 		return "", err
 	}
@@ -173,7 +163,7 @@ func RunSignedScript(ctx context.Context, updateCA string, signedScript io.Reade
 	return output, err
 }
 
-func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir string) error {
+func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 	updateDir := filepath.Join(mountDir, "update")
 
 	// Check if update.sjson exists.
@@ -184,14 +174,19 @@ func applyUpdate(ctx context.Context, s *state.State, updateCA string, mountDir 
 
 	slog.InfoContext(ctx, "Update metadata detected, verifying signature")
 
-	f, err := os.Open(filepath.Join(updateDir, "update.sjson"))
+	updateContents, err := os.ReadFile(filepath.Join(updateDir, "update.sjson"))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	// Validate the signed update.
-	verified, err := util.VerifySMIME(ctx, updateCA, f)
+	// Load the embedded certificates.
+	embeddedCerts, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		return err
+	}
+
+	// Validate the signed update json using either the Update intermediate CA.
+	verified, err := util.VerifySMIME(ctx, []*x509.Certificate{embeddedCerts.UpdateCACertificate}, updateContents)
 	if err != nil {
 		return err
 	}
