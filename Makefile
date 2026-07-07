@@ -223,7 +223,7 @@ ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
 
 	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 
-	SIG_KEY=./certs/cas/root-E1.key SIG_CERTIFICATE=./incus-osd/certs/files/root-E1.crt SIG_CHAIN=./mkosi.crt ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
+	SIG_KEY=./certs/update-E1.key SIG_CERTIFICATE=./certs/update-E1.crt SIG_CHAIN=./incus-osd/certs/files/update-E1.crt ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
 
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
 endif
