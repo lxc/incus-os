@@ -118,6 +118,11 @@ func runHotfix(ctx context.Context, mountDir string) error {
 
 // RunSignedScript verifies and executes a signed hotfix script, returning the script output and any error.
 func RunSignedScript(ctx context.Context, signedScript []byte) (string, error) {
+	// Do a quick check that the input looks like it's been properly S/MIME-signed.
+	if !bytes.Contains(signedScript, []byte("Content-Type: multipart/signed; protocol=\"application/x-pkcs7-signature\";")) {
+		return "", errors.New("doesn't look like S/MIME-signed input")
+	}
+
 	slog.InfoContext(ctx, "Hotfix script detected, verifying signature")
 
 	// Load the embedded certificates.
