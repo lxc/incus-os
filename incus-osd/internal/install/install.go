@@ -1157,6 +1157,13 @@ func configureSWTPM(ctx context.Context, isInstall bool) error {
 	displayDegradedSecurityWarning("A software-backed TPM")
 
 	if isInstall {
+		// Ensure any temporary existing swtpm state is cleared. Normally this shouldn't
+		// happen, but can occur if the installer encounters some sort of error and restarts.
+		err := os.RemoveAll("/tmp/swtpm/")
+		if err != nil {
+			return err
+		}
+
 		// At the conclusion of the install, the swtpm state will be copied to the new ESP partition.
 		return initializeSWTPM(ctx, "/tmp/swtpm/")
 	}
