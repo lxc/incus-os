@@ -225,12 +225,36 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 			return errors.New("duplicate interface/bond/vlan/wireguard name: " + bond.Name)
 		}
 
-		if slices.Contains(macs, bond.Hwaddr) {
-			return errors.New("duplicate MAC address: " + bond.Hwaddr)
+		names = append(names, bond.Name)
+
+		// A bond configuration may not explicitly define a MAC, so only check if one is present.
+		if bond.Hwaddr != "" {
+			if slices.Contains(macs, bond.Hwaddr) {
+				return errors.New("duplicate MAC address: " + bond.Hwaddr)
+			}
+
+			macs = append(macs, bond.Hwaddr)
 		}
 
-		names = append(names, bond.Name)
-		macs = append(macs, bond.Hwaddr)
+		// Check that each bond member has a unique MAC, with the exception that the
+		// bond may be configured with the same MAC as one of its members.
+		numMembersWithBondMac := 0
+
+		for _, memberMAC := range bond.Members {
+			if memberMAC == bond.Hwaddr {
+				numMembersWithBondMac++
+
+				if numMembersWithBondMac > 1 {
+					return errors.New("duplicate MAC address: " + memberMAC)
+				}
+			} else {
+				if slices.Contains(macs, memberMAC) {
+					return errors.New("duplicate MAC address: " + memberMAC)
+				}
+
+				macs = append(macs, memberMAC)
+			}
+		}
 	}
 
 	for _, vlan := range networkCfg.VLANs {
