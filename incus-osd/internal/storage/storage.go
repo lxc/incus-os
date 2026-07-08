@@ -1042,6 +1042,11 @@ func IsBMC(entry BlockDevices) bool {
 		return true
 	}
 
+	if strings.HasPrefix(entry.ID, "usb-iDRAC_Virtual_") {
+		// Virtual BMC devices on Dell servers.
+		return true
+	}
+
 	return false
 }
 
