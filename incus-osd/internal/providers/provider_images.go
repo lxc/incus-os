@@ -3,8 +3,10 @@ package providers
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +24,7 @@ import (
 	"github.com/lxc/incus/v7/shared/osarch"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
@@ -61,7 +64,7 @@ type images struct {
 	state *state.State
 
 	serverURL string
-	updateCA  string
+	updateCA  *x509.Certificate
 	authParam bool
 	token     string
 	client    *http.Client
@@ -292,7 +295,6 @@ func (p *images) GetApplicationUpdate(ctx context.Context, name string) (Applica
 func (p *images) load(ctx context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
-	p.updateCA = p.state.System.Provider.Config.Config["update_ca"]
 	p.authParam = strings.ToLower(p.state.System.Provider.Config.Config["authentication_by_query_param"]) == "true"
 	p.token = p.state.System.Provider.Config.Config["token"]
 	p.client = &http.Client{}
@@ -302,14 +304,31 @@ func (p *images) load(ctx context.Context) error {
 		p.serverURL = "https://images.linuxcontainers.org/os"
 	}
 
-	// Set default update CA if not configured.
-	if p.updateCA == "" && !p.ignoreSignedJSON {
+	if p.state.System.Provider.Config.Config["update_ca"] != "" {
+		// Set a custom update CA, if provided.
+		pemBlock, _ := pem.Decode([]byte(p.state.System.Provider.Config.Config["update_ca"]))
+		if pemBlock == nil {
+			return errors.New("unable to decode provided update CA certificate")
+		}
+
+		if pemBlock.Type != "CERTIFICATE" {
+			return errors.New("provided update CA certificate isn't PEM-encoded")
+		}
+
 		var err error
 
-		p.updateCA, err = GetUpdateCACert()
+		p.updateCA, err = x509.ParseCertificate(pemBlock.Bytes)
 		if err != nil {
 			return err
 		}
+	} else {
+		// Set the default update CA if one was not provided..
+		embeddedCerts, err := certs.GetEmbeddedCertificates()
+		if err != nil {
+			return err
+		}
+
+		p.updateCA = embeddedCerts.UpdateCACertificate
 	}
 
 	// Authenticated clients.
@@ -374,8 +393,13 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 			return nil, errors.New("server failed to return expected file")
 		}
 
+		bodyContents, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
 		// Validate signed index.
-		verified, err := util.VerifySMIME(ctx, p.updateCA, resp.Body)
+		verified, err := util.VerifySMIME(ctx, []*x509.Certificate{p.updateCA}, bodyContents)
 		if err != nil {
 			return nil, err
 		}

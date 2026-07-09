@@ -1,14 +1,10 @@
 package providers
 
 import (
-	"bytes"
 	"context"
-	"encoding/pem"
 	"strconv"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
-
-	"github.com/lxc/incus-os/incus-osd/certs"
 )
 
 // CommonUpdate defines functions common to all update types.
@@ -71,24 +67,4 @@ func DatetimeComparison(a string, b string) bool {
 	}
 
 	return aInt > bInt
-}
-
-// GetUpdateCACert returns the certificate used to verify update metadata from the configured provider.
-func GetUpdateCACert() (string, error) {
-	embeddedCerts, err := certs.GetEmbeddedCertificates()
-	if err != nil {
-		return "", err
-	}
-
-	var b bytes.Buffer
-
-	err = pem.Encode(&b, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: embeddedCerts.RootCACertificate.Raw,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return b.String(), nil
 }

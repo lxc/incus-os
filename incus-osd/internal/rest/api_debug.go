@@ -14,7 +14,6 @@ import (
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v7/shared/subprocess"
 
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -540,8 +539,7 @@ func (*Server) apiDebugRunScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the expected CA certificate to validate the signed script.
-	updateCA, err := providers.GetUpdateCACert()
+	bodyContents, err := io.ReadAll(r.Body)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -549,7 +547,7 @@ func (*Server) apiDebugRunScript(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify the signature and run the script.
-	output, err := recovery.RunSignedScript(r.Context(), updateCA, r.Body)
+	output, err := recovery.RunSignedScript(r.Context(), bodyContents)
 	if err != nil {
 		_ = response.InternalError(errors.New(err.Error() + "\n\n" + output)).Render(w)
 
