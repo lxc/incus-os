@@ -1,4 +1,4 @@
-name: Tests
+name: Certificate tests
 on:
   schedule:
   - cron: "0 0 * * 0"
