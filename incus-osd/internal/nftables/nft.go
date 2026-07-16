@@ -217,7 +217,7 @@ func ApplyInputFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig)
 			continue
 		}
 
-		err := applyFirewall(iface.Name, iface.FirewallRules)
+		err := applyFirewall("_v"+iface.Name, iface.FirewallRules)
 		if err != nil {
 			return err
 		}
