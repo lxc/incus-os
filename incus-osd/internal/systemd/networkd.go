@@ -134,6 +134,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
+	// Apply the forwarding firewall rules.
+	err = nftables.ApplyForwardFilters(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
 	// Restart networking after new config files have been generated.
 	err = RestartUnit(ctx, "systemd-networkd")
 	if err != nil {

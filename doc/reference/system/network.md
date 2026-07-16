@@ -67,6 +67,11 @@ This is done by setting the `firewall_rules` option to a list of rules (action, 
 
 On top of the user provided rules, IncusOS will always allow a subset of basic rules (`icmp`, `icmpv6` and established connections).
 
+### Routing
+
+IncusOS never routes traffic between its own interfaces (interfaces, bonds, VLANs and WireGuard).
+Routing to and from other interfaces remains possible, allowing IncusOS to act as a gateway for Incus managed networks as well as run VPN services like Tailscale or NetBird as an exit node or subnet router.
+
 ### Examples
 
 #### Addressing

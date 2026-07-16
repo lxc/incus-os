@@ -26,6 +26,12 @@ func SetupChains(ctx context.Context) error {
 		return err
 	}
 
+	// Ensure we have a forward filtering chain.
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "chain", "inet", "incus-osd", "forward", "{ type filter hook forward priority 0 ; policy accept ; }")
+	if err != nil {
+		return err
+	}
+
 	// Ensure we have a bridge table.
 	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "table", "bridge", "incus-osd")
 	if err != nil {
@@ -67,6 +73,55 @@ func ApplyHwaddrFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// ApplyForwardFilters blocks routing between IncusOS-managed interfaces.
+// Forwarding involving other interfaces (Incus managed networks, Tailscale, Netbird, ...) is unaffected.
+func ApplyForwardFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
+	// Make sure we have the expected chains.
+	err := SetupChains(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Empty the chain.
+	_, err = subprocess.RunCommandContext(ctx, "nft", "flush", "chain", "inet", "incus-osd", "forward")
+	if err != nil {
+		return err
+	}
+
+	// Get the list of layer 3 interfaces managed by IncusOS.
+	ifaces := []string{}
+
+	for _, iface := range networkCfg.Interfaces {
+		ifaces = append(ifaces, "_v"+iface.Name)
+	}
+
+	for _, iface := range networkCfg.Bonds {
+		ifaces = append(ifaces, "_v"+iface.Name)
+	}
+
+	for _, iface := range networkCfg.VLANs {
+		ifaces = append(ifaces, iface.Name)
+	}
+
+	for _, iface := range networkCfg.Wireguard {
+		ifaces = append(ifaces, iface.Name)
+	}
+
+	if len(ifaces) == 0 {
+		return nil
+	}
+
+	// Drop any traffic being routed from one IncusOS-managed interface to another.
+	set := "{" + strings.Join(ifaces, ",") + "}"
+
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "rule", "inet", "incus-osd", "forward", "iifname", set, "oifname", set, "drop")
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -162,7 +217,7 @@ func ApplyInputFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig)
 			continue
 		}
 
-		err := applyFirewall(iface.Name, iface.FirewallRules)
+		err := applyFirewall("_v"+iface.Name, iface.FirewallRules)
 		if err != nil {
 			return err
 		}
