@@ -3,28 +3,28 @@ module github.com/lxc/incus-os/incus-osd
 go 1.25.11
 
 require (
-	github.com/FuturFusion/migration-manager v0.6.13
-	github.com/FuturFusion/operations-center v0.7.5
+	github.com/FuturFusion/migration-manager v0.6.14
+	github.com/FuturFusion/operations-center v0.7.6
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.10
-	github.com/go-co-op/gocron/v2 v2.21.2
+	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
 	github.com/klauspost/compress v1.19.0
-	github.com/lxc/incus/v7 v7.2.1-0.20260630223516-faff1e16043c
+	github.com/lxc/incus/v7 v7.2.1-0.20260703161801-31ae84a88880
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
-	github.com/pires/go-proxyproto v0.14.0
+	github.com/pires/go-proxyproto v0.15.0
 	github.com/rivo/tview v0.42.0
-	github.com/smallstep/pkcs7 v0.2.1
+	github.com/smallstep/pkcs7 v0.2.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
-	golang.org/x/sync v0.21.0
-	golang.org/x/sys v0.46.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
 	software.sslmate.com/src/go-pkcs12 v0.7.3
 	tailscale.com v1.94.2
 )
@@ -65,7 +65,7 @@ require (
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/mattn/go-isatty v0.0.23 // indirect
 	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
 	github.com/opencontainers/umoci v0.6.1-0.20251213054154-70fc5ee1f4df // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.10 // indirect
+	github.com/pkg/sftp v1.13.11 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -93,19 +93,19 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zitadel/logging v0.7.0 // indirect
-	github.com/zitadel/oidc/v3 v3.47.5 // indirect
+	github.com/zitadel/oidc/v3 v3.47.9 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/exp v0.0.0-20260611194520-c48552f49976 // indirect
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/exp v0.0.0-20260718201538-764159d718ef // indirect
+	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
