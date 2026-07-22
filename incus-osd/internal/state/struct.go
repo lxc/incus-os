@@ -110,6 +110,20 @@ func (*State) MachineID() (string, error) {
 	return strings.TrimSpace(string(machineID)), nil
 }
 
+// SystemUUID returns the system's persistent UUID.
+func (*State) SystemUUID() (string, error) {
+	productUUID, err := os.ReadFile("/sys/class/dmi/id/product_uuid")
+	if err != nil {
+		return "", err
+	}
+
+	if len(productUUID) != 37 {
+		return "", errors.New("invalid length for a UUID")
+	}
+
+	return strings.TrimSpace(string(productUUID)), nil
+}
+
 // Hostname returns the preferred hostname for the system.
 func (s *State) Hostname() string {
 	// Use the configured hostname if set by the user.
@@ -123,10 +137,10 @@ func (s *State) Hostname() string {
 	}
 
 	// Use product UUID if valid.
-	productUUID, err := os.ReadFile("/sys/class/dmi/id/product_uuid")
-	if err == nil && len(productUUID) == 37 {
+	systemUUID, err := s.SystemUUID()
+	if err == nil {
 		// Got what should be a valid UUID, use that.
-		return strings.TrimSpace(string(productUUID))
+		return systemUUID
 	}
 
 	// Use machine ID if valid.
