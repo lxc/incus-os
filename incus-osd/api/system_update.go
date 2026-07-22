@@ -111,14 +111,14 @@ func (w *SystemUpdateMaintenanceWindow) TimeUntilActiveReference(t time.Time) ti
 		}
 	} else if w.StartDayOfWeek == w.EndDayOfWeek {
 		// Just a single day.
-		startOffset += (int(w.StartDayOfWeek.ToWeekday())) * 24 * 60
-		endOffset += (int(w.StartDayOfWeek.ToWeekday())) * 24 * 60
+		startOffset += int(w.StartDayOfWeek.ToWeekday()) * 24 * 60
+		endOffset += int(w.StartDayOfWeek.ToWeekday()) * 24 * 60
 	} else {
 		if w.StartDayOfWeek.ToWeekday() < w.EndDayOfWeek.ToWeekday() {
-			startOffset += (int(w.StartDayOfWeek.ToWeekday())) * 24 * 60
-			endOffset += (int(w.EndDayOfWeek.ToWeekday())) * 24 * 60
+			startOffset += int(w.StartDayOfWeek.ToWeekday()) * 24 * 60
+			endOffset += int(w.EndDayOfWeek.ToWeekday()) * 24 * 60
 		} else {
-			startOffset += (int(w.StartDayOfWeek.ToWeekday())) * 24 * 60
+			startOffset += int(w.StartDayOfWeek.ToWeekday()) * 24 * 60
 			endOffset += (int(w.EndDayOfWeek.ToWeekday()) + 7) * 24 * 60
 		}
 	}
