@@ -21,6 +21,7 @@ import (
 	"time"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
+	"github.com/google/uuid"
 	"github.com/lxc/incus/v7/shared/osarch"
 
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
@@ -38,17 +39,22 @@ type imagesAuthenticatedTransport struct {
 }
 
 func (t *imagesAuthenticatedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	authToken, err := auth.GenerateToken(context.Background(), t.machineID)
-	if err != nil {
-		return nil, err
-	}
+	urlPath := req.URL.Path
 
-	if t.authParam {
-		q := req.URL.Query()
-		q.Set("token", authToken)
-		req.URL.RawQuery = q.Encode()
-	} else {
-		req.Header.Set("X-IncusOS-Authentication", authToken)
+	// Don't mangle the request on the registration endpoint.
+	if !strings.HasSuffix(urlPath, "/register") && !strings.HasSuffix(filepath.Dir(urlPath), "/register") {
+		authToken, err := auth.GenerateToken(context.Background(), t.machineID)
+		if err != nil {
+			return nil, err
+		}
+
+		if t.authParam {
+			q := req.URL.Query()
+			q.Set("token", authToken)
+			req.URL.RawQuery = q.Encode()
+		} else {
+			req.Header.Set("X-IncusOS-Authentication", authToken)
+		}
 	}
 
 	transport, ok := http.DefaultTransport.(*http.Transport)
@@ -136,8 +142,17 @@ func (p *images) Register(ctx context.Context) error {
 				return err
 			}
 
+			randomID, err := uuid.NewRandom()
+			if err != nil {
+				return err
+			}
+
 			token := base64.RawURLEncoding.EncodeToString(reqBody)
-			u.Path = filepath.Join(u.Path, token)
+			u.Path = filepath.Join(u.Path, randomID.String())
+
+			q := u.Query()
+			q.Set("token", token)
+			u.RawQuery = q.Encode()
 
 			r, err = http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 			if err != nil {
