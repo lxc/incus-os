@@ -47,6 +47,8 @@ type cmdAdminOSDebugLog struct {
 	flagUnit    string
 	flagBoot    string
 	flagEntries string
+	flagSince   string
+	flagUntil   string
 }
 
 func (c *cmdAdminOSDebugLog) command() *cobra.Command {
@@ -62,6 +64,8 @@ func (c *cmdAdminOSDebugLog) command() *cobra.Command {
 	cmd.Flags().StringVarP(&c.flagUnit, "unit", "u", "", "Unit name``")
 	cmd.Flags().StringVarP(&c.flagBoot, "boot", "b", "", "Boot number``")
 	cmd.Flags().StringVarP(&c.flagEntries, "entries", "n", "", "Number of entries``")
+	cmd.Flags().StringVarP(&c.flagSince, "since", "S", "", "Since date/time``")
+	cmd.Flags().StringVarP(&c.flagUntil, "until", "U", "", "Until date/time``")
 
 	cmd.RunE = c.run
 
@@ -102,6 +106,14 @@ func (c *cmdAdminOSDebugLog) run(cmd *cobra.Command, args []string) error {
 
 	if c.flagEntries != "" {
 		values.Set("entries", c.flagEntries)
+	}
+
+	if c.flagSince != "" {
+		values.Set("since", c.flagSince)
+	}
+
+	if c.flagUntil != "" {
+		values.Set("until", c.flagUntil)
 	}
 
 	u.RawQuery = values.Encode()

@@ -1605,8 +1605,9 @@ definitions:
         type: object
         x-go-package: github.com/lxc/incus/v7/shared/api
     Distro:
+        title: Distro represents an OS distribution.
         type: string
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/osinfo
     Duration:
         title: Duration is a wrapper around time.Duration for easy json parsing.
         type: object
@@ -5976,8 +5977,9 @@ definitions:
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     OSType:
+        title: OSType represents an OS type (windows, linux, macos, bsd).
         type: string
-        x-go-package: github.com/FuturFusion/migration-manager/shared/api
+        x-go-package: github.com/lxc/incus/v7/shared/osinfo
     OSVersionData:
         properties:
             available_version:
@@ -12210,8 +12212,6 @@ paths:
                     $ref: '#/responses/BadRequest'
                 "404":
                     $ref: '#/responses/NotFound'
-                "409":
-                    $ref: '#/responses/Conflict'
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Add an application
@@ -12601,7 +12601,7 @@ paths:
                 - debug
     /1.0/debug/log:
         get:
-            description: Return systemd journal entries, optionally filtering by unit, boot number, and number of returned entries.
+            description: Return systemd journal entries, optionally filtering by unit, boot number, number of returned entries, since and until date/time.
             operationId: debug_get_log
             parameters:
                 - description: Limit journal entries to the specified unit
@@ -12616,6 +12616,14 @@ paths:
                   in: query
                   name: entries
                   type: integer
+                - description: Limit journal entries to be no earlier than the specified date/time
+                  in: query
+                  name: since
+                  type: string
+                - description: Limit journal entries to be no later than the specified date/time
+                  in: query
+                  name: until
+                  type: string
             produces:
                 - application/json
             responses:
@@ -14065,8 +14073,6 @@ paths:
                     $ref: '#/responses/EmptySyncResponse'
                 "400":
                     $ref: '#/responses/BadRequest'
-                "409":
-                    $ref: '#/responses/Conflict'
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Scrub local pool

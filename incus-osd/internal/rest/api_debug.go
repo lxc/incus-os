@@ -80,7 +80,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 //
 //	Get systemd journal entries
 //
-//	Return systemd journal entries, optionally filtering by unit, boot number, and number of returned entries.
+//	Return systemd journal entries, optionally filtering by unit, boot number, number of returned entries, since and until date/time.
 //
 //	---
 //	produces:
@@ -101,6 +101,16 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 //	    description: Limit journal entries to the specified number of entries
 //	    required: false
 //	    type: integer
+//	  - in: query
+//	    name: since
+//	    description: Limit journal entries to be no earlier than the specified date/time
+//	    required: false
+//	    type: string
+//	  - in: query
+//	    name: until
+//	    description: Limit journal entries to be no later than the specified date/time
+//	    required: false
+//	    type: string
 //	responses:
 //	  "200":
 //	    description: systemd journal entries
@@ -149,6 +159,8 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 	unitName := r.Form.Get("unit")
 	bootNumber := r.Form.Get("boot")
 	numEntries := r.Form.Get("entries")
+	since := r.Form.Get("since")
+	until := r.Form.Get("until")
 
 	journalCmdArgs := []string{"-o", "json"}
 
@@ -164,6 +176,14 @@ func (*Server) apiDebugLog(w http.ResponseWriter, r *http.Request) {
 
 	if numEntries != "" {
 		journalCmdArgs = append(journalCmdArgs, "-n", numEntries)
+	}
+
+	if since != "" {
+		journalCmdArgs = append(journalCmdArgs, "--since", since)
+	}
+
+	if until != "" {
+		journalCmdArgs = append(journalCmdArgs, "--until", until)
 	}
 
 	jsonOutput, err := subprocess.RunCommandContext(r.Context(), "journalctl", journalCmdArgs...)
