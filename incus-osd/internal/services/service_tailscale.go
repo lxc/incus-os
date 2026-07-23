@@ -227,16 +227,18 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 // mapTailscalePeerToStatePeer maps the given Tailscale PeerStatus to a ServiceTailscaleStatePeer.
 func mapTailscalePeerToStatePeer(peer *ipnstate.PeerStatus) api.ServiceTailscaleStatePeer {
 	return api.ServiceTailscaleStatePeer{
-		ID:           string(peer.ID),
-		PublicKey:    peer.PublicKey.String(),
-		HostName:     peer.HostName,
-		DNSName:      peer.DNSName,
-		OS:           peer.OS,
-		TailscaleIPs: peer.TailscaleIPs,
-		RxBytes:      peer.RxBytes,
-		TxBytes:      peer.TxBytes,
-		Online:       peer.Online,
-		Expired:      peer.Expired,
+		ID:              string(peer.ID),
+		PublicKey:       peer.PublicKey.String(),
+		HostName:        peer.HostName,
+		DNSName:         peer.DNSName,
+		OS:              peer.OS,
+		TailscaleIPs:    peer.TailscaleIPs,
+		RxBytes:         peer.RxBytes,
+		TxBytes:         peer.TxBytes,
+		UsedAsExitNode:  peer.ExitNode,
+		ExitNodeOffered: peer.ExitNodeOption,
+		Online:          peer.Online,
+		Expired:         peer.Expired,
 	}
 }
 
