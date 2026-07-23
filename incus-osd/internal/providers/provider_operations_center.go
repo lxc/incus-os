@@ -182,6 +182,11 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		// Also trust the certificate on the fallback listener.
+		if !slices.Contains(p.state.System.FallbackListener.Config.TrustedClientCertificates, registrationResp.ClientCertificate) {
+			p.state.System.FallbackListener.Config.TrustedClientCertificates = append(p.state.System.FallbackListener.Config.TrustedClientCertificates, registrationResp.ClientCertificate)
+		}
 	}
 
 	// Log our successful registration and save state.
