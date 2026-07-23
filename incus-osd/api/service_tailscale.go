@@ -41,16 +41,18 @@ const (
 
 // ServiceTailscaleStatePeer represents the state of a single peer in the Tailscale network.
 type ServiceTailscaleStatePeer struct {
-	ID           string       `json:"id"`
-	PublicKey    string       `json:"public_key"`
-	HostName     string       `json:"host_name"`
-	DNSName      string       `json:"dns_name"`
-	OS           string       `json:"os"`
-	TailscaleIPs []netip.Addr `json:"tailscale_ips"`
-	RxBytes      int64        `json:"rx_bytes"`
-	TxBytes      int64        `json:"tx_bytes"`
-	Online       bool         `json:"online"`
-	Expired      bool         `json:"expired"`
+	ID              string       `json:"id"`
+	PublicKey       string       `json:"public_key"`
+	HostName        string       `json:"host_name"`
+	DNSName         string       `json:"dns_name"`
+	OS              string       `json:"os"`
+	TailscaleIPs    []netip.Addr `json:"tailscale_ips"`
+	RxBytes         int64        `json:"rx_bytes"`
+	TxBytes         int64        `json:"tx_bytes"`
+	UsedAsExitNode  bool         `json:"used_as_exit_node"`
+	ExitNodeOffered bool         `json:"exit_node_offered"`
+	Online          bool         `json:"online"`
+	Expired         bool         `json:"expired"`
 }
 
 // ServiceTailscaleState represents the current state of the Tailscale service.
