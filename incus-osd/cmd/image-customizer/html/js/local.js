@@ -92,6 +92,11 @@ function download() {
         req.channel = document.getElementById("imageChannel").value;
     }
 
+    // Check for offline installation.
+    if (document.getElementById("imageOffline").checked) {
+        req.offline = true;
+    }
+
     // Validate client certificate.
     if (document.getElementById("applicationClientCertificate").value == "") {
         alert("Missing client certificate");
@@ -235,7 +240,17 @@ function download() {
             return;
         }
 
-        window.location.href = document.location.origin+response.metadata.image;
+        const aImage = document.createElement("a");
+        aImage.href = document.location.origin+response.metadata.image;
+        aImage.download = "";
+        aImage.click();
+
+        if (response.metadata.resources) {
+            const aResources = document.createElement("a");
+            aResources.href = document.location.origin+response.metadata.resources;
+            aResources.download = "";
+            aResources.click();
+        }
     });
 }
 
