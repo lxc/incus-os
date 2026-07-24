@@ -92,8 +92,13 @@ func do(ctx context.Context) error {
 		return err
 	}
 
-	// Support proxy protocol.
-	proxyListener := &proxyproto.Listener{Listener: listener}
+	// Support proxy protocol (optional, plain connections remain allowed).
+	proxyListener := &proxyproto.Listener{
+		Listener: listener,
+		ConnPolicy: func(_ proxyproto.ConnPolicyOptions) (proxyproto.Policy, error) {
+			return proxyproto.USE, nil
+		},
+	}
 	defer proxyListener.Close()
 
 	listener = proxyListener
