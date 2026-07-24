@@ -125,16 +125,22 @@ func (p *operationsCenter) RefreshRegister(_ context.Context, cause ocapi.Server
 }
 
 func (p *operationsCenter) Register(ctx context.Context) error {
-	// Get the management address.
+	// Get required information.
 	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
 	if mgmtAddr == nil {
 		return ErrRegistrationUnsupported
 	}
 
+	// Get optional information (not all systems have valid UUIDs).
+	machineID, _ := p.state.MachineID()
+	systemUUID, _ := p.state.SystemUUID()
+
 	// Prepare the registration request.
 	req := ocapi.ServerPost{
 		Name:          p.state.Hostname(),
 		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+		MachineID:     machineID,
+		SystemUUID:    systemUUID,
 	}
 
 	data, err := json.Marshal(req)
@@ -175,6 +181,11 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 		err = app.AddTrustedCertificate(ctx, p.serverURL, registrationResp.ClientCertificate)
 		if err != nil {
 			return err
+		}
+
+		// Also trust the certificate on the fallback listener.
+		if !slices.Contains(p.state.System.FallbackListener.Config.TrustedClientCertificates, registrationResp.ClientCertificate) {
+			p.state.System.FallbackListener.Config.TrustedClientCertificates = append(p.state.System.FallbackListener.Config.TrustedClientCertificates, registrationResp.ClientCertificate)
 		}
 	}
 

@@ -52,7 +52,8 @@ func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) e
 
 	id, ok := s.jobs[name]
 	if ok {
-		_, err := s.scheduler.Update(id,
+		_, err := s.scheduler.Update(
+			id,
 			gocron.CronJob(crontab, false),
 			gocron.NewTask(wrapJob(name, jobFunc)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
