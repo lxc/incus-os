@@ -5,11 +5,13 @@ import (
 	"crypto/tls"
 	"io"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
 
 // Application represents an installed application.
 type Application interface { //nolint:interfacebloat
+	Action(ctx context.Context, data api.ApplicationAction) error
 	AddTrustedCertificate(ctx context.Context, name string, cert string) error
 	AvailableVersions() []string
 	CanBeReplaced(ctx context.Context, otherAppName string) error

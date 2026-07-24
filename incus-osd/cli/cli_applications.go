@@ -16,6 +16,18 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS applications"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS applications")
 
+	// Action.
+	actionCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "action",
+		description: "Perform application-specific action",
+		endpoint:    "applications",
+		entity:      "application",
+		hasData:     true,
+		defaultData: "{}",
+	}
+	cmd.AddCommand(actionCmd.command())
+
 	// Add.
 	addCmd := cmdGenericRun{
 		os:          c.os,

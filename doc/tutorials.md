@@ -3,6 +3,7 @@ The following tutorials demonstrate various ways to configure and use IncusOS.
 
 ```{toctree}
 :maxdepth: 1
+Creating a Ceph cluster </tutorials/storage-create-ceph-cluster>
 Expanding the "local" storage pool </tutorials/storage-expand-local-pool>
 Preparing a storage volume for Incus </tutorials/storage-preparing-volume-incus>
 Import existing Incus instances from an unencrypted pool </tutorials/storage-import-unencrypted-incus-pool>

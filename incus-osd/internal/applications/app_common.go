@@ -18,6 +18,11 @@ type common struct {
 	appState *api.ApplicationState
 }
 
+// Action runs an application-specific action/task.
+func (*common) Action(_ context.Context, _ api.ApplicationAction) error {
+	return errors.New("not supported")
+}
+
 // AddTrustedCertificate adds a new trusted certificate to the application.
 func (*common) AddTrustedCertificate(_ context.Context, _ string, _ string) error {
 	return errors.New("not supported")
