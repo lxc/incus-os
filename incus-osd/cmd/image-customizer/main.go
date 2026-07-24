@@ -578,11 +578,11 @@ func sendRescueImage(w http.ResponseWriter, r *http.Request, imageUUID string, b
 		return
 	}
 
-	var applications []apiupdate.UpdateFileComponent
+	var applications []string
 
 	if req.Seeds.Applications != nil {
 		for _, seed := range req.Seeds.Applications.Applications {
-			applications = append(applications, apiupdate.UpdateFileComponent(seed.Name))
+			applications = append(applications, seed.Name)
 		}
 	}
 
@@ -591,15 +591,30 @@ func sendRescueImage(w http.ResponseWriter, r *http.Request, imageUUID string, b
 		slog.Warn("image retrieve: no application seed data found", "client", clientAddress(r))
 
 		_ = response.InternalError(errors.New("couldn't find matching update")).Render(w)
+
+		return
 	}
 
-	version, assets, err := filterAssets(*metaIndex, apicustomizer.UpdateFilter{
+	version, allAssets, err := filterAssets(*metaIndex, apicustomizer.UpdateFilter{
 		Channel:       req.Channel,
 		Version:       req.Version,
 		Architectures: []apiupdate.UpdateFileArchitecture{req.Architecture},
 		Types:         []apiupdate.UpdateFileType{apiupdate.UpdateFileTypeApplication},
-		Components:    applications,
 	})
+
+	// Applications are matched by file name, not component name.
+	assets := []string{}
+
+	for _, name := range applications {
+		for _, asset := range allAssets {
+			if filepath.Base(asset) == name+".raw.gz" {
+				assets = append(assets, asset)
+
+				break
+			}
+		}
+	}
+
 	if err != nil || len(assets) != len(applications) {
 		log := slog.Default()
 		if err != nil {
