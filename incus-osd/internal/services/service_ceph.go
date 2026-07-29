@@ -2,11 +2,15 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
@@ -20,10 +24,27 @@ type Ceph struct {
 }
 
 // Get returns the current service state.
-func (n *Ceph) Get(_ context.Context) (any, error) {
+func (n *Ceph) Get(ctx context.Context) (any, error) {
 	// Initialize target list if missing.
 	if n.state.Services.Ceph.Config.Clusters == nil {
 		n.state.Services.Ceph.Config.Clusters = map[string]api.ServiceCephCluster{}
+	}
+
+	// Get current Ceph cluster status, if the service is enabled.
+	if n.state.Services.Ceph.Config.Enabled {
+		n.state.Services.Ceph.State = api.ServiceCephState{}
+
+		// Setup a timeout context, as `ceph status` hangs if the Ceph cluster is unavailable.
+		cancelCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		output, err := subprocess.RunCommandContext(cancelCtx, "ceph", "status", "--format=json")
+		if err == nil {
+			err = json.Unmarshal([]byte(output), &n.state.Services.Ceph.State)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return n.state.Services.Ceph, nil

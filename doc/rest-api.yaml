@@ -12303,6 +12303,28 @@ paths:
             summary: Update application configuration
             tags:
                 - applications
+    /1.0/applications/{name}/:action:
+        post:
+            description: Triggers the given application to perform a specific task.
+            operationId: applications_post_action
+            parameters:
+                - description: Application name
+                  in: path
+                  name: name
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Perform an application-specific action
+            tags:
+                - applications
     /1.0/applications/{name}/:backup:
         post:
             consumes:
