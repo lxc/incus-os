@@ -112,6 +112,14 @@ func (n *Tailscale) Update(ctx context.Context, req any) error {
 		return err
 	}
 
+	// Also rejoin if an earlier login attempt with this key never completed.
+	if !needsRejoin && newState.Config.AuthKey != "" {
+		backendState, err := n.backendState(ctx)
+		if err == nil && backendState == api.ServiceTailscaleBackendStateNeedsLogin {
+			needsRejoin = true
+		}
+	}
+
 	// Apply the configuration.
 	err = n.configure(ctx, &newState.Config, needsRejoin)
 	if err != nil {
@@ -162,6 +170,25 @@ func (n *Tailscale) ShouldStart() bool {
 // Struct returns the API struct for the Tailscale service.
 func (*Tailscale) Struct() any {
 	return &api.ServiceTailscale{}
+}
+
+// backendState returns the current state of the Tailscale backend.
+func (*Tailscale) backendState(ctx context.Context) (api.ServiceTailscaleBackendStateEnum, error) {
+	// Set timeout in case tailscale status is unresponsive.
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	output, err := subprocess.RunCommandContext(ctx, "tailscale", "status", "--json")
+	if err != nil {
+		return "", fmt.Errorf("failed to run tailscale status: %w", err)
+	}
+
+	parsedState, err := parseTailscaleStatusJSON([]byte(output))
+	if err != nil {
+		return "", err
+	}
+
+	return parsedState.BackendState, nil
 }
 
 // configure applies the Tailscale configuration.
