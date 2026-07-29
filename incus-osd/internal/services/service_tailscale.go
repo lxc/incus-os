@@ -159,18 +159,24 @@ func (*Tailscale) Struct() any {
 func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 	if needsRejoin {
 		// Logout of any existing environment to clear the login state.
-		_, err := subprocess.RunCommandContext(ctx, "tailscale", "logout")
+		logoutCtx, logoutCancel := context.WithTimeout(ctx, 30*time.Second)
+		defer logoutCancel()
+
+		_, err := subprocess.RunCommandContext(logoutCtx, "tailscale", "logout")
 		if err != nil {
 			return err
 		}
 
 		// Join with the provided key and login server.
-		args := []string{"up", "--reset", "--auth-key", n.state.Services.Tailscale.Config.AuthKey}
+		args := []string{"up", "--reset", "--timeout", "30s", "--auth-key", n.state.Services.Tailscale.Config.AuthKey}
 		if n.state.Services.Tailscale.Config.LoginServer != "" {
 			args = append(args, "--login-server", n.state.Services.Tailscale.Config.LoginServer)
 		}
 
-		_, err = subprocess.RunCommandContext(ctx, "tailscale", args...)
+		upCtx, upCancel := context.WithTimeout(ctx, time.Minute)
+		defer upCancel()
+
+		_, err = subprocess.RunCommandContext(upCtx, "tailscale", args...)
 		if err != nil {
 			return err
 		}
