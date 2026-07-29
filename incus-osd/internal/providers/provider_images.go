@@ -336,8 +336,8 @@ func (p *images) load(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-	} else {
-		// Set the default update CA if one was not provided..
+	} else if !p.ignoreSignedJSON {
+		// Set the default update CA if one was not provided.
 		embeddedCerts, err := certs.GetEmbeddedCertificates()
 		if err != nil {
 			return err
