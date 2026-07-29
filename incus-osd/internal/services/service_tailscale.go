@@ -78,39 +78,48 @@ func (n *Tailscale) Update(ctx context.Context, req any) error {
 
 		// Apply the new configuration.
 		n.state.Services.Tailscale.Config = newState.Config
-	} else {
-		// Check for config changes.
-		needsRejoin := func(oldConfig api.ServiceTailscaleConfig, newConfig api.ServiceTailscaleConfig) bool {
-			if oldConfig.Enabled != newConfig.Enabled {
-				return true
-			}
 
-			if oldConfig.LoginServer != newConfig.LoginServer {
-				return true
-			}
+		return nil
+	}
 
-			if oldConfig.AuthKey != newConfig.AuthKey {
-				return true
-			}
-
-			return false
-		}(n.state.Services.Tailscale.Config, newState.Config)
-
-		// Apply the new configuration.
+	// If the service is to remain disabled, just record the new configuration.
+	if !newState.Config.Enabled {
 		n.state.Services.Tailscale.Config = newState.Config
 
-		// Ensure the service is running.
-		err := n.Start(ctx)
-		if err != nil {
-			return err
+		return nil
+	}
+
+	// Check for config changes.
+	needsRejoin := func(oldConfig api.ServiceTailscaleConfig, newConfig api.ServiceTailscaleConfig) bool {
+		if oldConfig.Enabled != newConfig.Enabled {
+			return true
 		}
 
-		// Apply the configuration.
-		err = n.configure(ctx, needsRejoin)
-		if err != nil {
-			return err
+		if oldConfig.LoginServer != newConfig.LoginServer {
+			return true
 		}
+
+		if oldConfig.AuthKey != newConfig.AuthKey {
+			return true
+		}
+
+		return false
+	}(n.state.Services.Tailscale.Config, newState.Config)
+
+	// Ensure the service is running.
+	err := systemd.StartUnit(ctx, "tailscale.service")
+	if err != nil {
+		return err
 	}
+
+	// Apply the configuration.
+	err = n.configure(ctx, &newState.Config, needsRejoin)
+	if err != nil {
+		return err
+	}
+
+	// Only record the new configuration once successfully applied.
+	n.state.Services.Tailscale.Config = newState.Config
 
 	return nil
 }
@@ -156,7 +165,7 @@ func (*Tailscale) Struct() any {
 }
 
 // configure applies the Tailscale configuration.
-func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
+func (*Tailscale) configure(ctx context.Context, config *api.ServiceTailscaleConfig, needsRejoin bool) error {
 	if needsRejoin {
 		// Logout of any existing environment to clear the login state.
 		logoutCtx, logoutCancel := context.WithTimeout(ctx, 30*time.Second)
@@ -168,9 +177,9 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		}
 
 		// Join with the provided key and login server.
-		args := []string{"up", "--reset", "--timeout", "30s", "--auth-key", n.state.Services.Tailscale.Config.AuthKey}
-		if n.state.Services.Tailscale.Config.LoginServer != "" {
-			args = append(args, "--login-server", n.state.Services.Tailscale.Config.LoginServer)
+		args := []string{"up", "--reset", "--timeout", "30s", "--auth-key", config.AuthKey}
+		if config.LoginServer != "" {
+			args = append(args, "--login-server", config.LoginServer)
 		}
 
 		upCtx, upCancel := context.WithTimeout(ctx, time.Minute)
@@ -184,12 +193,12 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 
 	args := []string{
 		"set",
-		"--advertise-routes=" + strings.Join(n.state.Services.Tailscale.Config.AdvertisedRoutes, ","),
-		"--accept-routes=" + strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptRoutes),
-		"--accept-dns=" + strconv.FormatBool(n.state.Services.Tailscale.Config.AcceptDNS),
-		"--advertise-exit-node=" + strconv.FormatBool(n.state.Services.Tailscale.Config.AdvertiseExitNode),
-		"--exit-node=" + n.state.Services.Tailscale.Config.ExitNode,
-		"--exit-node-allow-lan-access=" + strconv.FormatBool(n.state.Services.Tailscale.Config.ExitNodeAllowLanAccess),
+		"--advertise-routes=" + strings.Join(config.AdvertisedRoutes, ","),
+		"--accept-routes=" + strconv.FormatBool(config.AcceptRoutes),
+		"--accept-dns=" + strconv.FormatBool(config.AcceptDNS),
+		"--advertise-exit-node=" + strconv.FormatBool(config.AdvertiseExitNode),
+		"--exit-node=" + config.ExitNode,
+		"--exit-node-allow-lan-access=" + strconv.FormatBool(config.ExitNodeAllowLanAccess),
 	}
 
 	_, err := subprocess.RunCommandContext(ctx, "tailscale", args...)
@@ -202,7 +211,7 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		return err
 	}
 
-	if n.state.Services.Tailscale.Config.ServeEnabled {
+	if config.ServeEnabled {
 		// Timeout since there this command is interactive when the tailnet admin has not provisioned HTTPS
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
@@ -211,11 +220,11 @@ func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 		args := []string{
 			"serve",
 			"--bg",
-			"--https=" + strconv.Itoa(n.state.Services.Tailscale.Config.ServePort),
+			"--https=" + strconv.Itoa(config.ServePort),
 		}
 
-		if n.state.Services.Tailscale.Config.ServeService != "" {
-			args = append(args, "--service="+n.state.Services.Tailscale.Config.ServeService)
+		if config.ServeService != "" {
+			args = append(args, "--service="+config.ServeService)
 		}
 
 		// tailscale serve is sensitive to argument order, so append the url last.
