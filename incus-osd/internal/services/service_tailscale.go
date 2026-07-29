@@ -158,8 +158,8 @@ func (*Tailscale) Struct() any {
 // configure applies the Tailscale configuration.
 func (n *Tailscale) configure(ctx context.Context, needsRejoin bool) error {
 	if needsRejoin {
-		// Logout of any existing environment.
-		_, err := subprocess.RunCommandContext(ctx, "tailscale", "down")
+		// Logout of any existing environment to clear the login state.
+		_, err := subprocess.RunCommandContext(ctx, "tailscale", "logout")
 		if err != nil {
 			return err
 		}
