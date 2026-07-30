@@ -29,6 +29,7 @@ import (
 
 	apicustomizer "github.com/lxc/incus-os/incus-osd/api/customizer"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
@@ -427,6 +428,15 @@ func sendOSImage(w http.ResponseWriter, r *http.Request, b []byte) {
 	// Set default values.
 	if req.Channel == "" {
 		req.Channel = "stable"
+	}
+
+	// Offline systems shouldn't be checking for updates.
+	if req.Offline {
+		if req.Seeds.Update == nil {
+			req.Seeds.Update = &apiseed.Update{Version: "1"}
+		}
+
+		req.Seeds.Update.CheckFrequency = "never"
 	}
 
 	metaIndex, err := parseIndex()
