@@ -228,6 +228,8 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 
 	slog.InfoContext(ctx, "Decompressing and verifying each update file")
 
+	atLeastOneValidFile := false
+
 	for _, file := range updateInfo.Files {
 		// Skip files not for our architecture.
 		if file.Architecture != "" && string(file.Architecture) != archName {
@@ -245,6 +247,12 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 
 			return err
 		}
+
+		atLeastOneValidFile = true
+	}
+
+	if !atLeastOneValidFile {
+		return errors.New("failed to find any valid update files from recovery partition")
 	}
 
 	// Set the RELEASE version for the debug provider.
