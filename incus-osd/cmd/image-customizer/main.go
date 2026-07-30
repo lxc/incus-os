@@ -29,6 +29,7 @@ import (
 
 	apicustomizer "github.com/lxc/incus-os/incus-osd/api/customizer"
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
+	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
@@ -427,6 +428,15 @@ func sendOSImage(w http.ResponseWriter, r *http.Request, b []byte) {
 	// Set default values.
 	if req.Channel == "" {
 		req.Channel = "stable"
+	}
+
+	// Offline systems shouldn't be checking for updates.
+	if req.Offline {
+		if req.Seeds.Update == nil {
+			req.Seeds.Update = &apiseed.Update{Version: "1"}
+		}
+
+		req.Seeds.Update.CheckFrequency = "never"
 	}
 
 	metaIndex, err := parseIndex()
@@ -917,7 +927,7 @@ func buildImage(imageUUID string, fileType string, tempFile string, version stri
 		}
 
 		updateFilePath := filepath.Join(os.Args[1], version, asset)
-		targetFile := filepath.Join(updateDir, strings.TrimSuffix(asset, ".gz"))
+		targetFile := filepath.Join(updateDir, asset)
 
 		o, err := os.Create(targetFile)
 		if err != nil {
@@ -933,28 +943,12 @@ func buildImage(imageUUID string, fileType string, tempFile string, version stri
 
 		defer f.Close() //nolint:revive
 
-		if strings.HasSuffix(updateFilePath, ".gz") {
-			gz, err := gzip.NewReader(f)
-			if err != nil {
-				return fmt.Errorf("failed to open compressed file %q: %w", updateFilePath, err)
-			}
-
-			defer gz.Close() //nolint:revive
-
-			n, err := io.Copy(o, gz) //nolint:gosec // This file is local to us.
-			if err != nil {
-				return fmt.Errorf("failed to copy files %q -> %q: %w", updateFilePath, targetFile, err)
-			}
-
-			totalSize += n
-		} else {
-			n, err := io.Copy(o, f)
-			if err != nil {
-				return fmt.Errorf("failed to copy files %q -> %q: %w", updateFilePath, targetFile, err)
-			}
-
-			totalSize += n
+		n, err := io.Copy(o, f)
+		if err != nil {
+			return fmt.Errorf("failed to copy files %q -> %q: %w", updateFilePath, targetFile, err)
 		}
+
+		totalSize += n
 	}
 
 	if fileType == imageTypeISO {
