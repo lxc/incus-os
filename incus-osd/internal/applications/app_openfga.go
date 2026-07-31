@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"time"
 
+	syncconfig "github.com/FuturFusion/openfga-sync/shared/config"
 	"github.com/lxc/incus/v7/shared/subprocess"
 	"go.yaml.in/yaml/v4"
 	"golang.org/x/sys/unix"
@@ -105,7 +106,26 @@ func (o *openfga) FactoryReset(ctx context.Context) error {
 }
 
 func (o *openfga) Get(_ context.Context) (any, error) {
-	return o.state.Applications.OpenFGA, nil
+	ret := o.state.Applications.OpenFGA
+
+	// The sync configuration is only kept on disk.
+	contents, err := os.ReadFile("/var/lib/openfga/sync.yaml")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	if err == nil {
+		syncCfg := syncconfig.Config{}
+
+		err = yaml.Load(contents, &syncCfg)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.Config.Sync = &syncCfg
+	}
+
+	return ret, nil
 }
 
 // GetBackup returns a tar archive backup of the application's configuration and/or state.
@@ -163,14 +183,14 @@ func (*openfga) NeedsLateUpdateCheck() bool {
 	return false
 }
 
-// Restart restarts the main systemd unit.
+// Restart restarts the systemd units.
 func (*openfga) Restart(ctx context.Context) error {
-	return systemd.RestartUnit(ctx, "openfga.service")
+	return systemd.RestartUnit(ctx, "openfga.service", "openfga-sync.service")
 }
 
 // RestoreBackup restores a tar archive backup of the application's configuration and/or state.
 func (o *openfga) RestoreBackup(archive io.Reader) error {
-	err := extractTarArchive("/var/lib/openfga/", []string{"openfga.service"}, archive)
+	err := extractTarArchive("/var/lib/openfga/", []string{"openfga.service", "openfga-sync.service"}, archive)
 	if err != nil {
 		return err
 	}
@@ -261,8 +281,8 @@ func (o *openfga) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Start the unit.
-	return systemd.StartUnit(ctx, "openfga.service")
+	// Start the units (openfga-sync only runs when its configuration exists).
+	return systemd.StartUnit(ctx, "openfga.service", "openfga-sync.service")
 }
 
 func (*openfga) StartupWeight() int {
@@ -314,10 +334,9 @@ func writeCerts(tlsCert *tls.Certificate) error {
 	return nil
 }
 
-// Stop stops the systemd unit.
+// Stop stops the systemd units.
 func (*openfga) Stop(ctx context.Context) error {
-	// Stop the unit.
-	return systemd.StopUnit(ctx, "openfga.service")
+	return systemd.StopUnit(ctx, "openfga-sync.service", "openfga.service")
 }
 
 func (*openfga) Struct() any {
@@ -332,8 +351,8 @@ func (*openfga) Update(ctx context.Context) error {
 		return err
 	}
 
-	// Restart the unit.
-	return systemd.RestartUnit(ctx, "openfga.service")
+	// Restart the units.
+	return systemd.RestartUnit(ctx, "openfga.service", "openfga-sync.service")
 }
 
 func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
@@ -344,6 +363,33 @@ func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
 
 	if len(newState.Config.APITokens) == 0 {
 		return errors.New("at least one API token must be specified")
+	}
+
+	// Prepare the openfga-sync configuration.
+	var syncContents []byte
+
+	if newState.Config.Sync != nil {
+		sync := *newState.Config.Sync
+
+		// Always point at the local OpenFGA instance.
+		sync.OpenFGA = syncconfig.OpenFGA{
+			URL:                "https://127.0.0.1:8444",
+			APIToken:           newState.Config.APITokens[0],
+			InsecureSkipVerify: true,
+		}
+
+		// Keep the synchronization state on the application dataset.
+		sync.Daemon.StateDir = "/var/lib/openfga/sync-state"
+
+		err := sync.Validate()
+		if err != nil {
+			return err
+		}
+
+		syncContents, err = yaml.Dump(&sync, yaml.WithV2Defaults())
+		if err != nil {
+			return err
+		}
 	}
 
 	// Update the configuration.
@@ -390,6 +436,19 @@ func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
 	err = os.WriteFile("/var/lib/openfga/config.yaml", contents, 0o600)
 	if err != nil {
 		return err
+	}
+
+	// Write or remove the openfga-sync configuration file.
+	if syncContents != nil {
+		err = os.WriteFile("/var/lib/openfga/sync.yaml", syncContents, 0o600)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = os.Remove("/var/lib/openfga/sync.yaml")
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 
 	// Ensure a symlinked configuration file exists where openfga will look for it.
