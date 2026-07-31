@@ -205,6 +205,24 @@
             "usr/local/bin/openfga"
         ]
     },
+    "openfga-sync": {
+        "version": "c17052a247953e7c83807d5b8110a6d89e1772c8",
+        "repo": "https://github.com/FuturFusion/openfga-sync.git",
+        "build_targets": [
+            [
+                "./cmd/openfga-sync"
+            ]
+        ],
+        "install_targets": [
+            [
+                "openfga-sync",
+                "usr/local/bin/"
+            ]
+        ],
+        "clean_targets": [
+            "usr/local/bin/openfga-sync"
+        ]
+    },
     "opentofu": {
         "version": "v1.12.5",
         "repo": "https://github.com/opentofu/opentofu.git",
