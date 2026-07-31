@@ -166,7 +166,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.75.0",
+        "version": "v0.76.1",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -224,7 +224,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.7.6",
+        "version": "v0.8.0",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
@@ -256,7 +256,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.0",
+        "version": "v1.102.1",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
