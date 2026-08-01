@@ -1128,6 +1128,7 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 			restartAgent = true
 			cfg.Features["exec"] = true
 			cfg.Features["files"] = true
+			cfg.Features["port-forward"] = true
 
 			// This flag will always remain true once set to indicate
 			// that incus-agent was fully enabled at some point.
@@ -1139,10 +1140,11 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 			}
 		}
 	} else {
-		if cfg.Features["exec"] || cfg.Features["files"] {
+		if cfg.Features["exec"] || cfg.Features["files"] || cfg.Features["port-forward"] {
 			restartAgent = true
 			cfg.Features["exec"] = false
 			cfg.Features["files"] = false
+			cfg.Features["port-forward"] = false
 		}
 	}
 
