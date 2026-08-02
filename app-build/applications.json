@@ -186,7 +186,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.18.1",
+        "version": "v1.18.2",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
