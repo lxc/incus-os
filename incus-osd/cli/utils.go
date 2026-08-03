@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -91,26 +91,24 @@ func doQuery(do func(remoteName string, req *http.Request) (*http.Response, erro
 		return nil, "", err
 	}
 
-	// Handle direct download.
-	if outData != nil {
-		for {
-			_, err = io.CopyN(outData, resp.Body, 4*1024*1024)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
+	defer func() { _ = resp.Body.Close() }()
 
-				return nil, "", err
-			}
+	// Handle raw responses.
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "application/octet-stream" || contentType == "application/gzip" {
+		if outData == nil {
+			outData = os.Stdout
+		}
+
+		_, err = io.Copy(outData, resp.Body)
+		if err != nil {
+			return nil, "", err
 		}
 
 		return nil, "", nil
 	}
 
-	// Handle JSON responses.
-	defer func() { _ = resp.Body.Close() }()
-
-	// Decode the response
+	// Decode the JSON response.
 	decoder := json.NewDecoder(resp.Body)
 	response := api.Response{}
 
