@@ -5,6 +5,7 @@ import json
 import os
 import os.path
 import platform
+import re
 import requests
 import subprocess
 import tarfile
@@ -31,7 +32,10 @@ images = [
         "lego",
         "migration-manager"]
     ],
-    ["openfga", ["openfga"]],
+    ["openfga", [
+        "openfga",
+        "openfga-sync"]
+    ],
     ["operations-center", [
         "lego",
         "opentofu",
@@ -69,16 +73,22 @@ def build(artifact):
     targets = applications[artifact]["build_targets"]
 
     # Clone/update the git repo
+    is_commit = re.fullmatch("[0-9a-f]{40}", version) is not None
     if os.path.isdir(directory):
         subprocess.run(["git", "reset", "--hard"], cwd=directory, check=True)
         if version == "main":
             subprocess.run(["git", "pull"], cwd=directory, check=True)
+        elif is_commit:
+            subprocess.run(["git", "fetch", "--depth", "1", "origin", version], cwd=directory, check=True)
+            subprocess.run(["git", "checkout", version], cwd=directory, check=True)
         else:
             subprocess.run(["git", "fetch", "--depth", "1", "origin", version+":refs/tags/"+version], cwd=directory, check=True)
             subprocess.run(["git", "checkout", version], cwd=directory, check=True)
     else:
-        if version == "main":
-            subprocess.run(["git", "clone", repo, directory, "--depth", "1", "-b", version], check=True)
+        if is_commit:
+            subprocess.run(["git", "clone", repo, directory, "--depth", "1"], check=True)
+            subprocess.run(["git", "fetch", "--depth", "1", "origin", version], cwd=directory, check=True)
+            subprocess.run(["git", "checkout", version], cwd=directory, check=True)
         else:
             subprocess.run(["git", "clone", repo, directory, "--depth", "1", "-b", version], check=True)
 

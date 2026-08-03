@@ -1,0 +1,10 @@
+[Unit]
+Description=OpenFGA sync
+Documentation=https://github.com/FuturFusion/openfga-sync
+Requires=openfga.service
+After=openfga.service
+ConditionPathExists=/var/lib/openfga/sync.yaml
+
+[Service]
+ExecStart=/usr/local/bin/openfga-sync --config /var/lib/openfga/sync.yaml
+Restart=on-failure
