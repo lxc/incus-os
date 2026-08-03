@@ -21,7 +21,7 @@ Every vendor uses a different firmware configuration layout, but in general, the
 - Turn on and configure Secure Boot
    - Use the "custom" security policy
    - If available, ensure the system is in "user" mode
-   - Load the IncusOS keys:
+   - Load the IncusOS keys from the installation media (`keys/` folder in EFI ESP partition):
       - Wipe everything from KEK and load the IncusOS KEK key
       - Wipe as much as possible from DB and load the IncusOS DB key(s)
 - Change the boot order to boot from the install media
