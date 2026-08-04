@@ -471,6 +471,8 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 	// Download the update.
 	err := update.Download(ctx, targetPath, updateModal.UpdateProgress)
 	if err != nil {
+		updateModal.Done()
+
 		return "", err
 	}
 
