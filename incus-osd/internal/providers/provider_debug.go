@@ -12,6 +12,7 @@ import (
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // DebugPath defines a hard-coded path to where the debug provider will look for updates.
@@ -288,10 +289,22 @@ func (a *debugApplication) Download(ctx context.Context, targetPath string, prog
 			continue
 		}
 
-		// If the application sysext image already exists on disk, don't re-copy it.
-		_, err := os.Stat(filepath.Join(targetPath, filepath.Base(asset)))
+		sysextFile := filepath.Join(targetPath, filepath.Base(asset))
+
+		// Check if the application sysext image exists on disk and is valid.
+		_, err := os.Stat(sysextFile)
 		if err == nil {
-			continue
+			err := systemd.VerifyExtension(ctx, sysextFile)
+			if err == nil {
+				// If the sysext is valid, no point in re-downloading it.
+				continue
+			}
+
+			// Remove the corrupt sysext image and re-download it.
+			err = os.Remove(sysextFile)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Copy the application.
