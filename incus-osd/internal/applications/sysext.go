@@ -37,7 +37,15 @@ func RefreshExtensions(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
-	// Begin by collecting information about the expected version(s) that exist
+	// Remove any corrupt sysext images that exist on disk.
+	for _, app := range apps {
+		err := removeCorruptSysextImages(ctx, app.Name(), app.Version())
+		if err != nil {
+			return err
+		}
+	}
+
+	// Gather information about the expected version(s) that exist
 	// on-disk for each installed application.
 	appVersions, err := getApplicationsVersions(apps)
 	if err != nil {
@@ -301,6 +309,52 @@ func removeStaleSysextImages(appName string, skipVersions []string) error {
 		_, err := os.Stat(filepath.Join(systemd.LocalExtensionsPath, entry.Name(), appName+".raw"))
 		if err == nil {
 			err := os.Remove(filepath.Join(systemd.LocalExtensionsPath, entry.Name(), appName+".raw"))
+			if err != nil {
+				return err
+			}
+
+			// Opportunistically attempt to remove the directory. This will fail
+			// if it is non-empty, which is OK.
+			_ = os.Remove(filepath.Join(systemd.LocalExtensionsPath, entry.Name()))
+		}
+	}
+
+	return nil
+}
+
+func removeCorruptSysextImages(ctx context.Context, appName string, currentVersion string) error {
+	dirEntries, err := os.ReadDir(systemd.LocalExtensionsPath)
+	if err != nil {
+		return err
+	}
+
+	// Iterate through each directory under /var/lib/incus-os-extensions/, which
+	// corresponds to the version of one or more installed applications.
+	for _, entry := range dirEntries {
+		sysextFile := filepath.Join(systemd.LocalExtensionsPath, entry.Name(), appName+".raw")
+
+		// Check if the application sysext image exists.
+		_, err := os.Stat(sysextFile)
+		if err != nil {
+			continue
+		}
+
+		// Check if the sysext image is valid.
+		err = systemd.VerifyExtension(ctx, sysextFile)
+		if err == nil {
+			continue
+		}
+
+		// Remove the corrupt sysext image.
+		if currentVersion == entry.Name() {
+			// We cannot easily remove the sysext image for the current application version. Doing so
+			// would require updates to state and somehow picking an appropriate other version. It's
+			// better to just log an error and let the application fail to load.
+			slog.ErrorContext(ctx, "Current application sysext image is corrupt", "application", appName, "version", entry.Name())
+		} else {
+			slog.WarnContext(ctx, "Removing corrupt application sysext image", "application", appName, "version", entry.Name())
+
+			err := os.Remove(sysextFile)
 			if err != nil {
 				return err
 			}
