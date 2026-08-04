@@ -248,8 +248,8 @@ func GetUnderlyingDevice() (string, error) {
 	return "", errors.New("unable to determine underlying device")
 }
 
-// GetFreeSpaceInGiB returns the amount of free space in GiB for the underlying filesystem of the given path.
-func GetFreeSpaceInGiB(path string) (float64, error) {
+// getFreeSpaceInGiB returns the amount of free space in GiB for the underlying filesystem of the given path.
+func getFreeSpaceInGiB(path string) (float64, error) {
 	var s unix.Statfs_t
 
 	err := unix.Statfs(path, &s)
@@ -258,6 +258,42 @@ func GetFreeSpaceInGiB(path string) (float64, error) {
 	}
 
 	return float64(s.Bsize*int64(s.Bfree)) / 1024.0 / 1024.0 / 1024.0, nil // #nosec G115
+}
+
+// CheckMinimumDiskSpace checks if a minimum amount of disk space exists. If less than 1 GiB,
+// make some attempt to cleanup old logs and cached files.
+func CheckMinimumDiskSpace(ctx context.Context, path string) error {
+	freeSpace, err := getFreeSpaceInGiB(path)
+	if err != nil {
+		return err
+	}
+
+	if freeSpace < 1.0 {
+		slog.ErrorContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in "+path+", attempting emergency disk cleanup", freeSpace))
+
+		// Clear old journal entries.
+		_, err = subprocess.RunCommandContext(ctx, "journalctl", "--vacuum-files=1")
+		if err != nil {
+			return err
+		}
+
+		// Clear anything in /var/cache/.
+		cacheEntries, err := os.ReadDir("/var/cache/")
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range cacheEntries {
+			err := os.RemoveAll(filepath.Join("/var/cache", entry.Name()))
+			if err != nil {
+				return err
+			}
+		}
+	} else if freeSpace < 5.0 {
+		slog.WarnContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in "+path, freeSpace))
+	}
+
+	return nil
 }
 
 // DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.
