@@ -661,11 +661,26 @@ func partitionLocalPoolDevice(ctx context.Context, device string) (string, error
 		return "", err
 	}
 
-	// Sleep for a bit, otherwise there's a race between udev updating symlinks and
-	// ZFS trying to add the device to the pool.
-	time.Sleep(500 * time.Millisecond)
+	// Wait for udev events to settle, otherwise there's a race between udev
+	// updating symlinks and ZFS trying to add the device to the pool.
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "settle")
+	if err != nil {
+		return "", err
+	}
 
-	return device + "-part11", nil
+	partitionName := device + "-part11"
+
+	// Wait for the new symlink to appear.
+	for range 20 {
+		_, err := os.Stat(partitionName)
+		if err == nil {
+			return partitionName, nil
+		}
+
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	return "", errors.New("timed out waiting for new partition '" + partitionName + "' to appear")
 }
 
 func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, degradedDevices []string, newDevices []string) error {
