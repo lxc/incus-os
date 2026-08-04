@@ -30,6 +30,7 @@ import (
 	apiupdate "github.com/lxc/incus-os/incus-osd/api/images"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // API structs.
@@ -635,10 +636,22 @@ func (a *operationsCenterApplication) Download(ctx context.Context, targetPath s
 
 		targetName := strings.TrimSuffix(filepath.Base(file.Filename), ".gz")
 
-		// If the application sysext image already exists on disk, don't re-download it.
-		_, err := os.Stat(filepath.Join(targetPath, targetName))
+		sysextFile := filepath.Join(targetPath, targetName)
+
+		// Check if the application sysext image exists on disk and is valid.
+		_, err := os.Stat(sysextFile)
 		if err == nil {
-			continue
+			err := systemd.VerifyExtension(ctx, sysextFile)
+			if err == nil {
+				// If the sysext is valid, no point in re-downloading it.
+				continue
+			}
+
+			// Remove the corrupt sysext image and re-download it.
+			err = os.Remove(sysextFile)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Download the application.

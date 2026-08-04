@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/lxc/incus/v7/shared/revert"
 )
 
 func downloadAsset(ctx context.Context, osName string, osVersion string, client *http.Client, assetURL string, expectedSHA256 string, target string, progressFunc func(float64)) error {
@@ -65,6 +67,14 @@ func downloadAsset(ctx context.Context, osName string, osVersion string, client 
 
 	defer fd.Close()
 
+	// Setup a reverter to cleanup any failed downloads.
+	reverter := revert.New()
+	defer reverter.Fail()
+
+	reverter.Add(func() {
+		_ = os.Remove(target)
+	})
+
 	// Read from the decompressor in chunks to avoid excessive memory consumption.
 	count := int64(0)
 
@@ -90,6 +100,8 @@ func downloadAsset(ctx context.Context, osName string, osVersion string, client 
 	if expectedSHA256 != "" && expectedSHA256 != hex.EncodeToString(h.Sum(nil)) {
 		return errors.New("sha256 mismatch for file " + target)
 	}
+
+	reverter.Success()
 
 	return nil
 }
