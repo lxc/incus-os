@@ -14,6 +14,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
@@ -427,6 +428,12 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 
 	// Apply the update.
 	if updateNeeded {
+		// Before applying the update, check current disk space.
+		err := storage.CheckMinimumDiskSpace(ctx, "/")
+		if err != nil {
+			return "", err
+		}
+
 		return applyUpdate(ctx, s, t, update, appName, isStartupCheck)
 	} else if isStartupCheck {
 		if ut == TypeApplication {
