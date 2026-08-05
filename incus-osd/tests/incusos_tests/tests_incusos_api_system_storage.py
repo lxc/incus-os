@@ -21,18 +21,18 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             vm.WaitSystemReady(os_version)
 
-            # Can't import an unencrypted pool
+            # Test importing an unencrypted pool
             vm.RunCommand("zpool", "create", "mypool", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
             vm.RunCommand("zpool", "export", "mypool")
 
-            result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":"NONE"}""")
-            if result["status_code"] == 200:
-                raise IncusOSException("unexpected success importing unencrypted pool")
+            result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs"}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if result["error"] != "refusing to import unencrypted ZFS pool":
-                raise IncusOSException("unexpected error message: " + result["error"])
+            vm.WaitExpectedLog("incus-osd", "Unencrypted storage pool 'mypool' has been imported")
 
             # Can't import an encrypted pool that doesn't use a raw key
+            vm.RunCommand("zpool", "export", "mypool")
             vm.RunCommand("sgdisk", "-Z", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
             vm.RunCommand("zpool", "create", "-O", "encryption=aes-256-gcm", "-O", "keyformat=passphrase", "-O", "keylocation=file:///var/lib/incus-os/state.txt", "mypool", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
             vm.RunCommand("zpool", "export", "mypool")
@@ -41,7 +41,7 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
             if result["status_code"] == 200:
                 raise IncusOSException("unexpected success importing encrypted pool with passphrase")
 
-            if result["error"] != "refusing to import pool that doesn't use a raw encryption key":
+            if result["error"] != "refusing to import encrypted pool 'mypool' that doesn't use a raw encryption key":
                 raise IncusOSException("unexpected error message: " + result["error"])
 
             # Can't import an encrypted pool with an incorrect key

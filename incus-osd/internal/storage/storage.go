@@ -394,6 +394,12 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		return api.SystemStoragePool{}, errors.New("bad type for keystatus field")
 	}
 
+	// When no encryption key is available, a single dash is reported. This can be
+	// unclear, so override the value to NONE in this case.
+	if zpoolKeyStatus == "-" {
+		zpoolKeyStatus = "NONE"
+	}
+
 	zpoolType := ""
 	zpoolAllocSpace := 0
 	zpoolTotalSpace := 0
@@ -621,8 +627,15 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		specialVdevInfo.SpecialSmallBlocksSizeInKB = smallBlockSizeInt
 	}
 
+	// Determine if this zpool is manged by IncusOS.
+	_, isManaged := os.Stat("/var/lib/incus-os/zpool." + zpoolName + ".key")
+	if isManaged != nil && !errors.Is(isManaged, os.ErrNotExist) {
+		return api.SystemStoragePool{}, isManaged
+	}
+
 	return api.SystemStoragePool{
 		Name:                      zpoolName,
+		Managed:                   isManaged == nil,
 		State:                     zpoolJSON.Pools[zpoolName].State,
 		LastScrub:                 scrubStatus,
 		EncryptionKeyStatus:       zpoolKeyStatus,

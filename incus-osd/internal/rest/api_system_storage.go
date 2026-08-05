@@ -321,9 +321,11 @@ func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Reques
 
 // swagger:operation POST /1.0/system/storage/:import-pool system system_post_storage_import_pool
 //
-//	Import an existing encrypted storage pool
+//	Import an existing storage pool
 //
-//	Imports an existing encrypted ZFS storage pool and save its encryption key.
+//	Imports an existing ZFS storage pool. For encrypted pools, this will save its encryption key,
+//	making the pool automatically available on each boot. The use of unencrypted pools is strongly
+//	discouraged, and each unencrypted pool must be manually imported after each boot.
 //
 //	---
 //	consumes:
@@ -366,8 +368,8 @@ func (s *Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if poolStruct.Name == "" || poolStruct.Type == "" || poolStruct.EncryptionKey == "" {
-		_ = response.BadRequest(errors.New("missing pool name, type, and/or encryption key")).Render(w)
+	if poolStruct.Name == "" || poolStruct.Type == "" {
+		_ = response.BadRequest(errors.New("missing pool name and type")).Render(w)
 
 		return
 	}

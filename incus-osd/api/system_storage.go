@@ -37,6 +37,7 @@ type SystemStoragePool struct {
 	Special *SystemStoragePoolSpecial `json:"special,omitempty" yaml:"special"`
 
 	// Read-only fields returned from the server with additional pool information.
+	Managed                   bool                          `json:"managed"                       yaml:"managed"`
 	State                     string                        `json:"state"                         yaml:"state"`
 	LastScrub                 *SystemStoragePoolScrubStatus `json:"last_scrub,omitempty"          yaml:"last_scrub,omitempty,omitempty"`
 	EncryptionKeyStatus       string                        `json:"encryption_key_status"         yaml:"encryption_key_status"`

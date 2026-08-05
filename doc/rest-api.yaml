@@ -266,6 +266,178 @@ definitions:
     ArtifactType:
         type: string
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
+    BMCAPIType:
+        type: string
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
+    BMCConfig:
+        properties:
+            api_type:
+                $ref: '#/definitions/BMCAPIType'
+            auto_pin_certificate:
+                description: |-
+                    AutoPinCertificate defines, if the certificate presented by the BMC should be
+                    accepted on the first connection test. If set to true and Certificate is
+                    empty, the certificate presented by the BMC during the connection test is
+                    persisted in the Certificate property. If a certificate is provided in the
+                    Certificate property or if AutoPinCertificate is set to false, any not trusted
+                    Certificate presented by the BMC will cause an error during the connection
+                    test.
+                type: boolean
+                x-go-name: AutoPinCertificate
+            certificate:
+                description: |-
+                    Certificate holds the PEM encoded certificate of the BMC used to establish
+                    trust for the TLS connection.
+                type: string
+                x-go-name: Certificate
+            endpoint:
+                description: Endpoint holds the base URL of the bmc of the server.
+                type: string
+                x-go-name: Endpoint
+            password:
+                description: Password holds the password used to authenticate with the bmc of the server.
+                type: string
+                x-go-name: Password
+            username:
+                description: Username holds the username used to authenticate with the bmc of the server.
+                type: string
+                x-go-name: Username
+        type: object
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
+    BMCData:
+        properties:
+            bmc_firmware_version:
+                description: BMCFirmwareVersion holds the firmware version of the BMC manager.
+                example: 1.30.20.10
+                type: string
+                x-go-name: BMCFirmwareVersion
+            bmc_model:
+                description: BMCModel holds the model name reported by the BMC manager.
+                example: 17G Monolithic
+                type: string
+                x-go-name: BMCModel
+            bmc_protocol:
+                description: BMCProtocol holds the protocol name, that is used to interact with the BMC.
+                example: Redfish
+                type: string
+                x-go-name: BMCProtocol
+            bmc_protocol_version:
+                description: BMCProtocolVersion holds the protocol version reported by the BMC.
+                example: 1.16.0
+                type: string
+                x-go-name: BMCProtocolVersion
+            bmc_service_identification:
+                description: BMCServiceIdentification holds the service identification of the BMC manager.
+                example: XXXXXXX
+                type: string
+                x-go-name: BMCServiceIdentification
+            bmc_vendor:
+                description: BMCVendor holds the vendor name reported by the BMC.
+                example: Dell
+                type: string
+                x-go-name: BMCVendor
+            last_updated:
+                description: LastUpdated is the time, when this information has been updated for the last time in RFC3339 format.
+                example: "2024-11-12T16:15:00Z"
+                format: date-time
+                type: string
+                x-go-name: LastUpdated
+            server_asset_tag:
+                description: ServerAssetTag holds the asset tag of the system.
+                example: XXXXXXX
+                type: string
+                x-go-name: ServerAssetTag
+            server_bios_version:
+                description: ServerBIOSVersion holds the version of the BIOS.
+                example: 1.7.5
+                type: string
+                x-go-name: ServerBIOSVersion
+            server_health_status:
+                description: ServerHealthStatus holds the reported overall health status for the server.
+                example: Warning
+                type: string
+                x-go-name: ServerHealthStatus
+            server_host_name:
+                description: ServerHostName hold the host name as reported by the BMC for the server.
+                type: string
+                x-go-name: ServerHostName
+            server_location_indicator_active:
+                description: ServerLocationIndicatorActive reports, if the location indicator LED is active.
+                example: false
+                type: boolean
+                x-go-name: ServerLocationIndicatorActive
+            server_manufacturer:
+                description: ServerManufacturer holds the manufacturer reported for the system.
+                example: Dell Inc
+                type: string
+                x-go-name: ServerManufacturer
+            server_model:
+                description: ServerModel holds the model of the system.
+                example: PowerEdge R770
+                type: string
+                x-go-name: ServerModel
+            server_power_state:
+                description: ServerPowerState holds the power state reported for the server.
+                example: "On"
+                type: string
+                x-go-name: ServerPowerState
+            server_processor_architecture:
+                description: ServerProcessorArchitecture holds the architecture reported for the first CPU.
+                example: x86
+                type: string
+                x-go-name: ServerProcessorArchitecture
+            server_processor_instruction_set:
+                description: ServerProcessorInstructionSet holds the instruction set reported for the first CPU.
+                example: x86-64
+                type: string
+                x-go-name: ServerProcessorInstructionSet
+            server_serial_number:
+                description: ServerSerialNumber holds the serial number of the server.
+                type: string
+                x-go-name: ServerSerialNumber
+            server_sku:
+                description: ServerSKU holds the Stock Keeping Unit (SKU) for the server.
+                type: string
+                x-go-name: ServerSKU
+            server_sub_model:
+                description: ServerSubModel holds information about the sub-model or configuration of the system.
+                type: string
+                x-go-name: ServerSubModel
+            system_uuid:
+                description: ServerUUID is the unique system UUID typically derived from hardware, e.g. mainboard.
+                example: e9de436e-b94e-4aef-8563-883aec84096e
+                type: string
+                x-go-name: ServerUUID
+        title: BMCData defines the data, that have been collected from the BMC.
+        type: object
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
+    BMCLogEvent:
+        properties:
+            EntryCode:
+                description: EntryCode holds the entry code for the log entry if the entry type is `SEL`.
+                example: Informational
+                type: string
+            EntryType:
+                description: |-
+                    EntryType holds the type of the entry. Possible values include (but not
+                    limited to): SEL, Event, CXL, Oem.
+                example: SEL
+                type: string
+            Message:
+                description: Message holds the actual message of the log event.
+                example: This is a test log event
+                type: string
+            Severity:
+                description: 'Severity of the log event. Possible values: OK, Warning, Critical'
+                example: OK
+                type: string
+            Timestamp:
+                description: Timestamp of the log event in RFC3339 format.
+                example: "2026-07-30T08:04:00Z"
+                type: string
+        title: BMCLogEvent defines a log event from the BMC.
+        type: object
+        x-go-package: github.com/FuturFusion/operations-center/shared/api
     BackupTarget:
         properties:
             access_key:
@@ -3121,6 +3293,51 @@ definitions:
         title: InstanceFull is a combination of Instance, InstanceBackup, InstanceState and InstanceSnapshot.
         type: object
         x-go-package: github.com/lxc/incus/v7/shared/api
+    InstanceNVRAMVariable:
+        properties:
+            attributes:
+                description: Variable attributes.
+                items:
+                    type: string
+                type: array
+                x-go-name: Attributes
+            binary:
+                description: Binary data.
+                items:
+                    format: uint8
+                    type: integer
+                type: array
+                x-go-name: Binary
+            data:
+                description: Dissected data.
+                x-go-name: Data
+            timestamp:
+                description: Authenticated variable timestamp.
+                format: date-time
+                type: string
+                x-go-name: Timestamp
+        title: InstanceNVRAMVariable represents a UEFI variable.
+        type: object
+        x-go-package: github.com/lxc/incus/v7/shared/api
+    InstanceNVRAMVariablePut:
+        properties:
+            attributes:
+                description: Variable attributes.
+                items:
+                    type: string
+                type: array
+                x-go-name: Attributes
+            data:
+                description: Dissected data.
+                x-go-name: Data
+            timestamp:
+                description: Authenticated variable timestamp.
+                format: date-time
+                type: string
+                x-go-name: Timestamp
+        title: InstanceNVRAMVariablePut represents the modifiable fields of a UEFI variable.
+        type: object
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstanceOverride:
         properties:
             architecture:
@@ -3194,6 +3411,22 @@ definitions:
         title: InstanceOverride defines a limited set of instance values that can be overridden as part of the migration process.
         type: object
         x-go-package: github.com/FuturFusion/migration-manager/shared/api
+    InstancePortForwardPost:
+        properties:
+            address:
+                description: Address to connect to inside of the instance
+                example: 127.0.0.1
+                type: string
+                x-go-name: Address
+            port:
+                description: TCP port to connect to inside of the instance
+                example: 80
+                format: int64
+                type: integer
+                x-go-name: Port
+        title: InstancePortForwardPost represents an instance port forwarding request.
+        type: object
+        x-go-package: github.com/lxc/incus/v7/shared/api
     InstancePost:
         properties:
             Config:
@@ -4998,6 +5231,13 @@ definitions:
                 description: Whether the entity comes from a network that performs egress source NAT
                 type: boolean
                 x-go-name: NAT
+            network:
+                description: |-
+                    Name of the network
+
+                    API extension: network_allocations_network
+                type: string
+                x-go-name: Network
             type:
                 description: Type of the entity consuming the network address
                 type: string
@@ -6290,6 +6530,10 @@ definitions:
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     OperationsCenterSharedAPIServer:
         properties:
+            bmc_config:
+                $ref: '#/definitions/BMCConfig'
+            bmc_data:
+                $ref: '#/definitions/BMCData'
             certificate:
                 description: Certificate of the server endpoint in PEM encoded format.
                 example: |-
@@ -6342,6 +6586,14 @@ definitions:
                 format: date-time
                 type: string
                 x-go-name: LastUpdated
+            machine_id:
+                description: |-
+                    MachineID is the unique machine ID of the server, this might be the same as
+                    the SystemUUID, but it can also be a distinct value. It is defined as
+                    a 128-bit value encoded as hex characters without any delimiters.
+                example: e9de436eb94e4aef8563883aec84096e
+                type: string
+                x-go-name: MachineID
             name:
                 description: Name of the server.
                 example: incus.local
@@ -6388,6 +6640,11 @@ definitions:
                     trusted.
                 type: boolean
                 x-go-name: SystemStateIsTrusted
+            system_uuid:
+                description: SystemUUID is the unique system UUID typically derived from hardware, e.g. mainboard.
+                example: e9de436e-b94e-4aef-8563-883aec84096e
+                type: string
+                x-go-name: SystemUUID
             version_data:
                 $ref: '#/definitions/ServerVersionData'
         title: Server defines a server running Hypervisor OS.
@@ -6395,6 +6652,8 @@ definitions:
         x-go-package: github.com/FuturFusion/operations-center/shared/api
     OperationsCenterSharedAPIServerPut:
         properties:
+            bmc_config:
+                $ref: '#/definitions/BMCConfig'
             channel:
                 description: Channel the server is following for updates.
                 example: stable
@@ -6896,6 +7155,15 @@ definitions:
     ResourcesCPUCore:
         description: ResourcesCPUCore represents a CPU core on the system
         properties:
+            cluster:
+                description: |-
+                    What cluster the core is a part of (core identifiers may only be unique within a cluster)
+
+                    API extension: resources_cpu_cluster
+                example: 0
+                format: uint64
+                type: integer
+                x-go-name: Cluster
             core:
                 description: Core identifier within the socket
                 example: 0
@@ -8554,6 +8822,8 @@ definitions:
         x-go-package: github.com/lxc/incus/v7/shared/api
     ServerPost:
         properties:
+            bmc_config:
+                $ref: '#/definitions/BMCConfig'
             channel:
                 description: Channel the server is following for updates.
                 example: stable
@@ -8571,6 +8841,14 @@ definitions:
                 example: Lab server with limited resources
                 type: string
                 x-go-name: Description
+            machine_id:
+                description: |-
+                    MachineID is the unique machine ID of the server, this might be the same as
+                    the SystemUUID, but it can also be a distinct value. It is defined as
+                    a 128-bit value encoded as hex characters without any delimiters.
+                example: e9de436eb94e4aef8563883aec84096e
+                type: string
+                x-go-name: MachineID
             name:
                 description: Name of the server.
                 example: incus.local
@@ -8586,6 +8864,11 @@ definitions:
                 example: https://incus.local:6443
                 type: string
                 x-go-name: PublicConnectionURL
+            system_uuid:
+                description: SystemUUID is the unique system UUID typically derived from hardware, e.g. mainboard.
+                example: e9de436e-b94e-4aef-8563-883aec84096e
+                type: string
+                x-go-name: SystemUUID
         title: ServerPost defines a new server running Hypervisor OS.
         type: object
         x-go-package: github.com/FuturFusion/operations-center/shared/api
@@ -10922,6 +11205,10 @@ definitions:
                     type: string
                 type: array
                 x-go-name: LogDegraded
+            managed_by_incusos:
+                description: Read-only fields returned from the server with additional pool information.
+                type: boolean
+                x-go-name: ManagedByIncusOS
             name:
                 description: Name and Type cannot be changed after pool creation.
                 type: string
@@ -10942,7 +11229,6 @@ definitions:
                 type: array
                 x-go-name: SpecialDegraded
             state:
-                description: Read-only fields returned from the server with additional pool information.
                 type: string
                 x-go-name: State
             type:
@@ -14048,7 +14334,10 @@ paths:
         post:
             consumes:
                 - application/json
-            description: Imports an existing encrypted ZFS storage pool and save its encryption key.
+            description: |-
+                Imports an existing ZFS storage pool. For encrypted pools, this will save its encryption key,
+                making the pool automatically available on each boot. The use of unencrypted pools is strongly
+                discouraged, and each unencrypted pool must be manually imported after each boot.
             operationId: system_post_storage_import_pool
             parameters:
                 - description: Existing pool information
@@ -14070,7 +14359,7 @@ paths:
                     $ref: '#/responses/BadRequest'
                 "500":
                     $ref: '#/responses/InternalServerError'
-            summary: Import an existing encrypted storage pool
+            summary: Import an existing storage pool
             tags:
                 - system
     /1.0/system/storage/:scrub-pool:
