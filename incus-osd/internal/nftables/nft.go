@@ -44,6 +44,68 @@ func SetupChains(ctx context.Context) error {
 		return err
 	}
 
+	// Ensure we have a conntrack bypass chain (hooked ahead of nf_conntrack_bridge at -200).
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "chain", "bridge", "incus-osd", "conntrack-bypass", "{ type filter hook prerouting priority -300 ; policy accept ; }")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApplyNotrackFilters excludes host uplink traffic entering the managed bridges from bridge conntrack.
+// When nf_conntrack_bridge is active (loaded by Incus for bridge NIC ACLs), traffic already tracked and
+// NATed at the IP layer would otherwise be re-tracked with its post-NAT tuple on entering the bridge
+// through the host-side veth, then dropped on conntrack insertion clash at bridge postrouting.
+func ApplyNotrackFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
+	// Make sure we have the expected chains.
+	err := SetupChains(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Empty the chain.
+	_, err = subprocess.RunCommandContext(ctx, "nft", "flush", "chain", "bridge", "incus-osd", "conntrack-bypass")
+	if err != nil {
+		return err
+	}
+
+	// Get the list of bridge-side veth devices for the managed bridges.
+	ifaces := []string{}
+
+	for _, iface := range networkCfg.Interfaces {
+		if iface.Hwaddr == "" {
+			continue
+		}
+
+		ifaces = append(ifaces, "_i"+strings.ToLower(strings.ReplaceAll(iface.Hwaddr, ":", "")))
+	}
+
+	for _, iface := range networkCfg.Bonds {
+		hwaddr := iface.Hwaddr
+		if hwaddr == "" && len(iface.Members) > 0 {
+			hwaddr = iface.Members[0]
+		}
+
+		if hwaddr == "" {
+			continue
+		}
+
+		ifaces = append(ifaces, "_i"+strings.ToLower(strings.ReplaceAll(hwaddr, ":", "")))
+	}
+
+	if len(ifaces) == 0 {
+		return nil
+	}
+
+	// Disable connection tracking for host traffic entering the bridge.
+	set := "{" + strings.Join(ifaces, ",") + "}"
+
+	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "rule", "bridge", "incus-osd", "conntrack-bypass", "iifname", set, "notrack")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
