@@ -372,11 +372,9 @@ func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
 		sync := *newState.Config.Sync
 
 		// Always point at the local OpenFGA instance.
-		sync.OpenFGA = syncconfig.OpenFGA{
-			URL:                "https://127.0.0.1:8444",
-			APIToken:           newState.Config.APITokens[0],
-			InsecureSkipVerify: true,
-		}
+		sync.OpenFGA.URL = "https://127.0.0.1:8444"
+		sync.OpenFGA.APIToken = newState.Config.APITokens[0]
+		sync.OpenFGA.InsecureSkipVerify = true
 
 		// Keep the synchronization state on the application dataset.
 		sync.Daemon.StateDir = "/var/lib/openfga/sync-state"
