@@ -394,6 +394,12 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		return api.SystemStoragePool{}, errors.New("bad type for keystatus field")
 	}
 
+	// When no encryption key is available, a single dash is reported. This can be
+	// unclear, so override the value to NONE in this case.
+	if zpoolKeyStatus == "-" {
+		zpoolKeyStatus = "NONE"
+	}
+
 	zpoolType := ""
 	zpoolAllocSpace := 0
 	zpoolTotalSpace := 0
