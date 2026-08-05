@@ -138,7 +138,7 @@ func (n *Tailscale) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	// Stop the multipath service.
+	// Stop the Tailscale service.
 	err := systemd.StopUnit(ctx, "tailscale.service")
 	if err != nil {
 		return err
