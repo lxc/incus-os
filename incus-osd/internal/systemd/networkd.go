@@ -140,6 +140,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
+	// Apply the conntrack bypass rules.
+	err = nftables.ApplyNotrackFilters(ctx, networkCfg)
+	if err != nil {
+		return err
+	}
+
 	// Restart networking after new config files have been generated.
 	err = RestartUnit(ctx, "systemd-networkd")
 	if err != nil {
