@@ -69,7 +69,7 @@ func (n *Netbird) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	// Stop the multipath service.
+	// Stop the Netbird service.
 	err := systemd.StopUnit(ctx, "netbird.service")
 	if err != nil {
 		return err
