@@ -892,7 +892,9 @@ func GetZpoolEncryptionKeys() (map[string]string, error) {
 }
 
 // ImportExistingPool will import an existing but currently unmanaged ZFS pool.
-// After importing, it will save and then load the encryption key.
+// After importing an encrypted pool, it will write the key to disk and then use it
+// to unlock the pool. Unencrypted pools are imported, but are not managed by IncusOS
+// and must be manually imported after each system boot.
 func ImportExistingPool(ctx context.Context, pool string, key string) error {
 	reverter := revert.New()
 	defer reverter.Fail()
@@ -907,14 +909,23 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 		_, _ = subprocess.RunCommandContext(ctx, "zpool", "export", "-f", pool)
 	})
 
-	// Make sure the pool is encrypted.
+	// Check if the pool is encrypted.
 	encryptionStatus, err := subprocess.RunCommandContext(ctx, "zfs", "get", "encryption", "-H", "-o", "value", pool)
 	if err != nil {
 		return err
 	}
 
+	// If the pool is unencrypted, we're either done or should return an error if an
+	// encryption key was provided.
 	if strings.TrimSpace(encryptionStatus) == "off" {
-		return errors.New("refusing to import unencrypted ZFS pool")
+		if key == "" {
+			slog.WarnContext(ctx, "Unencrypted storage pool '"+pool+"' has been imported")
+			reverter.Success()
+
+			return nil
+		}
+
+		return errors.New("attempted to import unencrypted pool '" + pool + "', but an encryption key was provided")
 	}
 
 	// Make sure the pool is uses a raw key.
@@ -924,7 +935,7 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 	}
 
 	if strings.TrimSpace(keyFormat) != "raw" {
-		return errors.New("refusing to import pool that doesn't use a raw encryption key")
+		return errors.New("refusing to import encrypted pool '" + pool + "' that doesn't use a raw encryption key")
 	}
 
 	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
@@ -936,7 +947,7 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 	}
 
 	if len(rawKey) != 32 {
-		return fmt.Errorf("expected a 32 byte raw encryption key, got %d bytes", len(rawKey))
+		return fmt.Errorf("expected a 32 byte raw encryption key for pool '"+pool+"', got %d bytes", len(rawKey))
 	}
 
 	// Write the key file.

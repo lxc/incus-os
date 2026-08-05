@@ -8,12 +8,6 @@ To maintain data integrity, IncusOS automatically performs a weekly scrub of all
 
 It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
-```{note}
-Unencrypted ZFS storage pools are not supported. IncusOS will only create encrypted pools, and will refuse to import any existing unencrypted pool.
-
-This prevents the accidental leakage of sensitive data from an encrypted pool to an unencrypted one.
-```
-
 ## Configuration options
 
 Configuration fields are defined in the [`SystemStorageConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go).
@@ -171,12 +165,22 @@ Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its
 ./incus admin os system storage wipe-drive -d '{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk"}'
 ```
 
-## Importing an existing encrypted pool
+## Importing an existing pool
 
-If importing an existing storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Because there is no way to prompt for an encryption passphrase, only ZFS pools using a raw encryption key can be imported. Specify the raw base64 encoded encryption key when importing storage pool `mypool` by running
+When importing an existing encrypted storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Because there is no way to prompt for an encryption passphrase, only ZFS pools using a raw encryption key can be imported. Specify the raw base64 encoded encryption key when importing storage pool `mypool` by running
 
 ```
 incus admin os system storage import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
+```
+
+```{warning}
+IncusOS can import an unencrypted ZFS storage pool, but this is **strongly** discouraged. Use of unencrypted storage risks accidental leakage of sensitive data from an encrypted pool to an unencrypted one.
+
+An unencrypted storage pool should only be imported to facilitate migration of data into an encrypted storage pool.
+
+IncusOS will not manage an unencrypted storage pool, and the unencrypted storage pool must be manually imported after each boot via the storage API.
+
+To import an unencrypted ZFS storage pool, simply omit the `encryption_key` parameter from the API call.
 ```
 
 ## Managing volumes
