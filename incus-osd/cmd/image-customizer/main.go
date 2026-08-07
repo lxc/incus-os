@@ -3,6 +3,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"embed"
@@ -296,12 +297,15 @@ func recordFileRequest(w http.ResponseWriter, r *http.Request, fileType string) 
 	case osFile:
 		var req apicustomizer.ImagesPost
 
-		err := json.Unmarshal(b, &req)
+		decoder := json.NewDecoder(bytes.NewReader(b))
+		decoder.DisallowUnknownFields()
+
+		err := decoder.Decode(&req)
 		if err != nil {
 			slog.Warn("image request: request data", "client", clientAddress(r), "err", err)
 
 			w.Header().Set("Content-Type", "application/json")
-			_ = response.InternalError(err).Render(w)
+			_ = response.BadRequest(err).Render(w)
 
 			return
 		}
