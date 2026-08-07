@@ -86,6 +86,7 @@ NetBird's
 networkctl
 NICs
 NTP
+Nvidia
 NVMe
 NVRAM
 OCI
