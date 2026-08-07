@@ -3,9 +3,9 @@ module github.com/lxc/incus-os/incus-osd
 go 1.25.12
 
 require (
-	github.com/FuturFusion/migration-manager v0.6.14
+	github.com/FuturFusion/migration-manager v0.6.15
 	github.com/FuturFusion/openfga-sync v0.0.0-20260802043841-c17052a24795
-	github.com/FuturFusion/operations-center v0.8.0
+	github.com/FuturFusion/operations-center v0.8.1
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -14,7 +14,7 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.19.2
 	github.com/lxc/incus/v7 v7.3.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.15.0
@@ -96,7 +96,7 @@ require (
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	github.com/zitadel/oidc/v3 v3.48.1 // indirect
+	github.com/zitadel/oidc/v3 v3.49.2 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.45.0 // indirect
