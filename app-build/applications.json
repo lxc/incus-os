@@ -127,7 +127,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.6.14",
+        "version": "v0.6.15",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -166,7 +166,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.76.1",
+        "version": "v0.76.2",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -186,7 +186,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.18.2",
+        "version": "v1.18.3",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -242,7 +242,7 @@
         ]
     },
     "operations-center": {
-        "version": "v0.8.0",
+        "version": "v0.8.1",
         "repo": "https://github.com/FuturFusion/operations-center.git",
         "build_targets": [
             [
@@ -274,7 +274,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.1",
+        "version": "v1.102.2",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
