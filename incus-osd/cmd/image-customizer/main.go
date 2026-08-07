@@ -4,7 +4,6 @@ package main
 import (
 	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"embed"
 	"encoding/base64"
@@ -23,6 +22,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/klauspost/pgzip"
 	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/pires/go-proxyproto"
 	"github.com/timpalpant/gzran"
@@ -500,7 +500,7 @@ func sendOSImage(w http.ResponseWriter, r *http.Request, b []byte) {
 	setFileHeaders(w, r, fileName)
 
 	// Setup compressor.
-	writer := gzip.NewWriter(w)
+	writer := pgzip.NewWriter(w)
 	defer writer.Close()
 
 	// Write leading part.
@@ -660,7 +660,7 @@ func sendRescueImage(w http.ResponseWriter, r *http.Request, imageUUID string, b
 	setFileHeaders(w, r, fileName)
 
 	// Setup compressor.
-	writer := gzip.NewWriter(w)
+	writer := pgzip.NewWriter(w)
 	defer writer.Close()
 
 	rc, err := os.Open(tempFile)
@@ -800,7 +800,7 @@ func sendUpdateTarball(w http.ResponseWriter, r *http.Request, b []byte) {
 		return nil
 	}
 
-	gz := gzip.NewWriter(w)
+	gz := pgzip.NewWriter(w)
 	defer gz.Close()
 
 	tw := tar.NewWriter(gz)
