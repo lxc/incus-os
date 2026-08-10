@@ -4,7 +4,7 @@ import tempfile
 from ..incus_test_vm import IncusTestVM, util
 
 def TestExternalSeedApplictionsMigrationManager(install_image):
-    test_name = "external-seed-applications-migration-manager"
+    test_name = "external-seed-applications-mm" # Use an abbreviation so the resulting device name when adding the iso below is less than 64 characters.
     test_seed = None
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)

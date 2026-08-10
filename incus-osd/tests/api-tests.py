@@ -6,6 +6,7 @@ import json
 import os
 import requests
 import shutil
+import subprocess
 import urllib.request
 
 from common import _check_deps
@@ -99,6 +100,11 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                 for line in e.args[1]:
                     if line != "":
                         print("          %s" % line, flush=True)
+        except subprocess.CalledProcessError as e:
+            num_fail += 1
+            print("FAIL: %s: %s" % (name, e), flush=True)
+            if e.stderr is not None:
+                print("          %s" % e.stderr.decode("utf-8"), flush=True)
         except Exception as e:
             num_fail += 1
             print("FAIL: %s: %s" % (name, e), flush=True)
