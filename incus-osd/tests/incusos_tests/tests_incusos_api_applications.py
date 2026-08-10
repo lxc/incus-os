@@ -55,7 +55,7 @@ def TestIncusOSAPIApplicationsIncus(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        time.sleep(5)
+        time.sleep(10)
 
         vm.LogDoesntContain("incus-osd", "Failed to perform factory reset of application 'incus'")
 
