@@ -81,12 +81,17 @@
                 "usr/lib/firmware/"
             ],
             [
+                "ql2*_fw.bin",
+                "usr/lib/firmware/"
+            ],
+            [
                 "rtl_nic",
                 "usr/lib/firmware/"
             ]
         ],
         "clean_targets": [
             "usr/lib/firmware/qed",
+            "usr/lib/firmware/ql2*_fw.bin",
             "usr/lib/firmware/rtl_nic"
         ]
     },
