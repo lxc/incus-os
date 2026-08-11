@@ -10,4 +10,12 @@ The following configuration options can be set:
 
 * `enabled`: If `true`, enable the NVMe service.
 
-* `targets`: An array of NVMe targets, each of which consists of an address, port, and transport type.
+* `targets`: An array of NVMe targets, each of which consists of:
+
+   * `transport`: The transport type, either `tcp` or `fc`.
+
+   * `address`: With `tcp`, the IP address of the target. With `fc`, the World Wide Names of the remote Fibre Channel port in the `nn-0x<WWNN>:pn-0x<WWPN>` format.
+
+   * `port`: With `tcp`, the port number of the target. Unused with `fc`.
+
+   * `host_address`: With `fc`, the World Wide Names of the local Fibre Channel port to connect from, using the same format as `address`. If unset, all local Fibre Channel ports are used.
