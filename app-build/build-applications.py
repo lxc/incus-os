@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import glob
 import gzip
 import json
 import os
@@ -148,7 +149,11 @@ def create_application_manifest(artifact, version):
     }
 
     for target in applications[artifact]["install_targets"]:
-        manifest["installed_artifacts"].append(os.path.join("/", target[1], os.path.basename(target[0])))
+        # Expand any glob pattern (fall back to the literal name for targets only created after this point)
+        matches = sorted(glob.glob(os.path.join(directory, target[0]))) or [target[0]]
+
+        for match in matches:
+            manifest["installed_artifacts"].append(os.path.join("/", target[1], os.path.basename(match)))
 
     if os.path.exists("go.mod"):
         manifest["go_compiler"] = subprocess.run(["go", "version"], capture_output=True, check=True).stdout.strip().decode("utf-8")
@@ -183,18 +188,25 @@ def install(image, artifact):
 
     for target in applications[artifact]["clean_targets"]:
         # Clean any previously installed files
-        subprocess.run(["rm", "-rf", os.path.join(base_path, target)], check=True)
+        for path in sorted(glob.glob(os.path.join(base_path, target))):
+            subprocess.run(["rm", "-rf", path], check=True)
 
     for target in applications[artifact]["install_targets"]:
-        if os.path.isfile(os.path.join(directory, target[0])):
-            # Strip the binary (skip non-ELF files like firmware blobs)
-            with open(os.path.join(directory, target[0]), "rb") as fd:
-                if fd.read(4) == b"\x7fELF":
-                    subprocess.run(["strip", target[0]], cwd=directory, check=True)
+        # Expand any glob pattern in the source path
+        sources = sorted(glob.glob(os.path.join(directory, target[0])))
+        if len(sources) == 0:
+            raise Exception("No match for install target " + target[0])
 
-        # Copy the target into the mkosi image filesystem
+        for source in sources:
+            if os.path.isfile(source):
+                # Strip the binary (skip non-ELF files like firmware blobs)
+                with open(source, "rb") as fd:
+                    if fd.read(4) == b"\x7fELF":
+                        subprocess.run(["strip", source], check=True)
+
+        # Copy the targets into the mkosi image filesystem
         subprocess.run(["mkdir", "-p", os.path.join(base_path, target[1])], check=True)
-        subprocess.run(["cp", "-r", os.path.join(directory, target[0]), os.path.join(base_path, target[1])], check=True)
+        subprocess.run(["cp", "-r", *sources, os.path.join(base_path, target[1])], check=True)
 
     # Conditionally install the Migration Manager worker image if performing an x86_64 build
     if artifact == "migration-manager" and ARCH == "amd64":
