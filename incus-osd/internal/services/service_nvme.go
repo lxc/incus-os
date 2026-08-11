@@ -195,29 +195,34 @@ func (n *NVME) Start(ctx context.Context) error {
 	defer cancel()
 
 	for _, target := range n.state.Services.NVME.Config.Targets {
-		// Build the argument list for each connection to the target.
-		connections := [][]string{}
+		connections, err := n.targetConnections(target)
+		if err != nil {
+			return err
+		}
 
-		if target.Transport == "fc" {
-			// Fibre Channel requires a host address and doesn't use ports.
-			hostAddresses := []string{target.HostAddress}
+		// Directly connect to the named subsystem when one is provided.
+		if target.NQN != "" {
+			connected := false
 
-			if target.HostAddress == "" {
-				hostAddresses, err = n.fcHostAddresses()
-				if err != nil {
-					return err
-				}
+			for _, connection := range connections {
+				// Attempt to connect to the subsystem (wait up to 5s).
+				for range 10 {
+					_, err = subprocess.RunCommandContext(ctxTimeout, "nvme", append([]string{"connect", "--nqn=" + target.NQN}, connection...)...)
+					if err == nil {
+						connected = true
 
-				if len(hostAddresses) == 0 {
-					return fmt.Errorf("no local Fibre Channel port found for NVME target %q", target.Address)
+						break
+					}
+
+					time.Sleep(500 * time.Millisecond)
 				}
 			}
 
-			for _, hostAddress := range hostAddresses {
-				connections = append(connections, []string{"--transport=" + target.Transport, "--traddr=" + target.Address, "--host-traddr=" + hostAddress})
+			if !connected {
+				return fmt.Errorf("couldn't connect to NVME subsystem %q on %q", target.NQN, target.Address)
 			}
-		} else {
-			connections = append(connections, []string{"--transport=" + target.Transport, "--traddr=" + target.Address, "--trsvcid=" + strconv.Itoa(target.Port)})
+
+			continue
 		}
 
 		for _, connection := range connections {
@@ -263,6 +268,24 @@ func (n *NVME) Reset(ctx context.Context) error {
 	ctxTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	// Re-establish connections to named subsystems.
+	//
+	// Errors are ignored as the subsystems may already be connected.
+	for _, target := range n.state.Services.NVME.Config.Targets {
+		if target.NQN == "" {
+			continue
+		}
+
+		connections, err := n.targetConnections(target)
+		if err != nil {
+			return err
+		}
+
+		for _, connection := range connections {
+			_, _ = subprocess.RunCommandContext(ctxTimeout, "nvme", append([]string{"connect", "--nqn=" + target.NQN}, connection...)...)
+		}
+	}
+
 	// Connect all NVME devices.
 	_, err := subprocess.RunCommandContext(ctxTimeout, "nvme", "connect-all")
 	if err != nil {
@@ -280,6 +303,37 @@ func (n *NVME) ShouldStart() bool {
 // Struct returns the API struct for the NVME service.
 func (*NVME) Struct() any {
 	return &api.ServiceNVME{}
+}
+
+// targetConnections returns the argument list for each connection to the target.
+func (n *NVME) targetConnections(target api.ServiceNVMETarget) ([][]string, error) {
+	connections := [][]string{}
+
+	if target.Transport == "fc" {
+		// Fibre Channel requires a host address and doesn't use ports.
+		hostAddresses := []string{target.HostAddress}
+
+		if target.HostAddress == "" {
+			var err error
+
+			hostAddresses, err = n.fcHostAddresses()
+			if err != nil {
+				return nil, err
+			}
+
+			if len(hostAddresses) == 0 {
+				return nil, fmt.Errorf("no local Fibre Channel port found for NVME target %q", target.Address)
+			}
+		}
+
+		for _, hostAddress := range hostAddresses {
+			connections = append(connections, []string{"--transport=" + target.Transport, "--traddr=" + target.Address, "--host-traddr=" + hostAddress})
+		}
+	} else {
+		connections = append(connections, []string{"--transport=" + target.Transport, "--traddr=" + target.Address, "--trsvcid=" + strconv.Itoa(target.Port)})
+	}
+
+	return connections, nil
 }
 
 // fcHostAddresses returns the NVME addresses of the local Fibre Channel ports.

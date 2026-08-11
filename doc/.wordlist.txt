@@ -85,6 +85,7 @@ NetBird
 NetBird's
 networkctl
 NICs
+NQN
 NTP
 Nvidia
 NVMe

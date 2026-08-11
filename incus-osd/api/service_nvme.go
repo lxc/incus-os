@@ -6,6 +6,7 @@ type ServiceNVMETarget struct {
 	Address     string `json:"address"      yaml:"address"`
 	HostAddress string `json:"host_address" yaml:"host_address"`
 	Port        int    `json:"port"         yaml:"port"`
+	NQN         string `json:"nqn"          yaml:"nqn"`
 }
 
 // ServiceNVMEConfig represents additional configuration for the NVME service.

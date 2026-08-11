@@ -19,3 +19,5 @@ The following configuration options can be set:
    * `port`: With `tcp`, the port number of the target. Unused with `fc`.
 
    * `host_address`: With `fc`, the World Wide Names of the local Fibre Channel port to connect from, using the same format as `address`. If unset, all local Fibre Channel ports are used.
+
+   * `nqn`: If set, directly connect to this subsystem NQN instead of relying on the target's discovery controller. This is needed for storage arrays that address volumes by name and don't expose them through their discovery log.
