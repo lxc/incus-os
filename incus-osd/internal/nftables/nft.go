@@ -53,10 +53,12 @@ func SetupChains(ctx context.Context) error {
 	return nil
 }
 
-// ApplyNotrackFilters excludes host uplink traffic entering the managed bridges from bridge conntrack.
+// ApplyNotrackFilters excludes traffic entering the managed bridges from bridge conntrack.
 // When nf_conntrack_bridge is active (loaded by Incus for bridge NIC ACLs), traffic already tracked and
 // NATed at the IP layer would otherwise be re-tracked with its post-NAT tuple on entering the bridge
 // through the host-side veth, then dropped on conntrack insertion clash at bridge postrouting.
+// Similarly, inbound traffic entering through the physical port would get confirmed at bridge
+// postrouting with its pre-NAT tuple, preventing the IP layer from ever applying DNAT (forwards).
 func ApplyNotrackFilters(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
 	// Make sure we have the expected chains.
 	err := SetupChains(ctx)
@@ -70,7 +72,7 @@ func ApplyNotrackFilters(ctx context.Context, networkCfg *api.SystemNetworkConfi
 		return err
 	}
 
-	// Get the list of bridge-side veth devices for the managed bridges.
+	// Get the list of bridge ports (bridge-side veth and outside-facing device) for the managed bridges.
 	ifaces := []string{}
 
 	for _, iface := range networkCfg.Interfaces {
@@ -78,7 +80,8 @@ func ApplyNotrackFilters(ctx context.Context, networkCfg *api.SystemNetworkConfi
 			continue
 		}
 
-		ifaces = append(ifaces, "_i"+strings.ToLower(strings.ReplaceAll(iface.Hwaddr, ":", "")))
+		strippedHwaddr := strings.ToLower(strings.ReplaceAll(iface.Hwaddr, ":", ""))
+		ifaces = append(ifaces, "_i"+strippedHwaddr, "_p"+strippedHwaddr)
 	}
 
 	for _, iface := range networkCfg.Bonds {
@@ -91,14 +94,14 @@ func ApplyNotrackFilters(ctx context.Context, networkCfg *api.SystemNetworkConfi
 			continue
 		}
 
-		ifaces = append(ifaces, "_i"+strings.ToLower(strings.ReplaceAll(hwaddr, ":", "")))
+		ifaces = append(ifaces, "_i"+strings.ToLower(strings.ReplaceAll(hwaddr, ":", "")), "_b"+iface.Name)
 	}
 
 	if len(ifaces) == 0 {
 		return nil
 	}
 
-	// Disable connection tracking for host traffic entering the bridge.
+	// Disable connection tracking for traffic entering the bridge.
 	set := "{" + strings.Join(ifaces, ",") + "}"
 
 	_, err = subprocess.RunCommandContext(ctx, "nft", "add", "rule", "bridge", "incus-osd", "conntrack-bypass", "iifname", set, "notrack")
