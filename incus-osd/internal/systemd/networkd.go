@@ -986,7 +986,7 @@ ff02::2 ip6-allrouters
 
 // generateNetworkConfiguration clears any existing configuration from /run/systemd/network/ and generates
 // new config files from the supplied NetworkConfig struct.
-func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetworkConfig) error {
+func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
 	// Remove any existing configuration.
 	err := os.RemoveAll(SystemdNetworkConfigPath)
 	if err != nil {
@@ -999,7 +999,12 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 	}
 
 	// Generate .link files.
-	for _, cfg := range generateLinkFileContents(*networkCfg) {
+	cfgs, err := generateLinkFileContents(ctx, *networkCfg)
+	if err != nil {
+		return err
+	}
+
+	for _, cfg := range cfgs {
 		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
@@ -1015,7 +1020,12 @@ func generateNetworkConfiguration(_ context.Context, networkCfg *api.SystemNetwo
 	}
 
 	// Generate .network files.
-	for _, cfg := range generateNetworkFileContents(*networkCfg) {
+	cfgs, err = generateNetworkFileContents(ctx, *networkCfg)
+	if err != nil {
+		return err
+	}
+
+	for _, cfg := range cfgs {
 		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
@@ -1260,7 +1270,7 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 
 // generateLinkFileContents generates the contents of systemd.link files. Returns an array of ConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html
-func generateLinkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
+func generateLinkFileContents(ctx context.Context, networkCfg api.SystemNetworkConfig) ([]networkdConfigFile, error) {
 	ret := []networkdConfigFile{}
 
 	generateEthernet := func(s *api.SystemNetworkEthernet) string {
@@ -1315,6 +1325,11 @@ Enable=false`
 	}
 
 	for _, i := range networkCfg.Interfaces {
+		maxMTU, err := getMaxMTUForMAC(ctx, i.Hwaddr)
+		if err != nil {
+			return nil, err
+		}
+
 		strippedHwaddr := strings.ToLower(strings.ReplaceAll(i.Hwaddr, ":", ""))
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("00-_p%s.link", strippedHwaddr),
@@ -1325,12 +1340,18 @@ PermanentMACAddress=%s
 MACAddressPolicy=random
 NamePolicy=
 Name=_p%s
-%s`, i.Hwaddr, strippedHwaddr, generateEthernet(i.Ethernet)),
+MTUBytes=%d
+%s`, i.Hwaddr, strippedHwaddr, maxMTU, generateEthernet(i.Ethernet)),
 		})
 	}
 
 	for _, b := range networkCfg.Bonds {
 		for _, member := range b.Members {
+			maxMTU, err := getMaxMTUForMAC(ctx, member)
+			if err != nil {
+				return nil, err
+			}
+
 			strippedHwaddr := strings.ToLower(strings.ReplaceAll(member, ":", ""))
 			ret = append(ret, networkdConfigFile{
 				Name: fmt.Sprintf("01-_p%s.link", strippedHwaddr),
@@ -1340,12 +1361,13 @@ PermanentMACAddress=%s
 [Link]
 NamePolicy=
 Name=_p%s
-%s`, member, strippedHwaddr, generateEthernet(b.Ethernet)),
+MTUBytes=%d
+%s`, member, strippedHwaddr, maxMTU, generateEthernet(b.Ethernet)),
 			})
 		}
 	}
 
-	return ret
+	return ret, nil
 }
 
 // generateNetdevFileContents generates the contents of systemd.netdev files. Returns an array of networkdConfigFile structs.
@@ -1355,22 +1377,16 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) []networkdCo
 
 	// Create bridge and veth devices for each interface.
 	for _, i := range networkCfg.Interfaces {
-		mtuString := ""
-		if i.MTU != 0 {
-			mtuString = fmt.Sprintf("MTUBytes=%d", i.MTU)
-		}
-
 		// Bridge.
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("10-%s.netdev", i.Name),
 			Contents: fmt.Sprintf(`[NetDev]
 Name=%s
 Kind=bridge
-%s
 
 [Bridge]
 VLANFiltering=true
-`, i.Name, mtuString),
+`, i.Name),
 		})
 
 		// veth.
@@ -1381,21 +1397,15 @@ VLANFiltering=true
 Name=_v%s
 Kind=veth
 MACAddress=%s
-%s
 
 [Peer]
 Name=_i%s
-`, i.Name, i.Hwaddr, mtuString, strippedHwaddr),
+`, i.Name, i.Hwaddr, strippedHwaddr),
 		})
 	}
 
 	// Create bond, bridge, and veth devices for each bond.
 	for _, b := range networkCfg.Bonds {
-		mtuString := ""
-		if b.MTU != 0 {
-			mtuString = fmt.Sprintf("MTUBytes=%d", b.MTU)
-		}
-
 		// Bond.
 		var sbMode strings.Builder
 		if b.Mode != "" {
@@ -1412,11 +1422,10 @@ Name=_i%s
 			Contents: fmt.Sprintf(`[NetDev]
 Name=_b%s
 Kind=bond
-%s
 
 [Bond]
 %s
-`, b.Name, mtuString, sbMode.String()),
+`, b.Name, sbMode.String()),
 		})
 
 		// Bridge.
@@ -1425,11 +1434,10 @@ Kind=bond
 			Contents: fmt.Sprintf(`[NetDev]
 Name=%s
 Kind=bridge
-%s
 
 [Bridge]
 VLANFiltering=true
-`, b.Name, mtuString),
+`, b.Name),
 		})
 
 		// veth.
@@ -1445,41 +1453,29 @@ VLANFiltering=true
 Name=_v%s
 Kind=veth
 MACAddress=%s
-%s
 
 [Peer]
 Name=_i%s
-`, b.Name, bondMacAddr, mtuString, strippedHwaddr),
+`, b.Name, bondMacAddr, strippedHwaddr),
 		})
 	}
 
 	// Create vlans.
 	for _, v := range networkCfg.VLANs {
-		mtuString := ""
-		if v.MTU != 0 {
-			mtuString = fmt.Sprintf("MTUBytes=%d", v.MTU)
-		}
-
 		ret = append(ret, networkdConfigFile{
 			Name: fmt.Sprintf("12-%s.netdev", v.Name),
 			Contents: fmt.Sprintf(`[NetDev]
 Name=%s
 Kind=vlan
-%s
 
 [VLAN]
 Id=%d
-`, v.Name, mtuString, v.ID),
+`, v.Name, v.ID),
 		})
 	}
 
 	// Create wireguard.
 	for _, w := range networkCfg.Wireguard {
-		mtuString := ""
-		if w.MTU != 0 {
-			mtuString = fmt.Sprintf("MTUBytes=%d", w.MTU)
-		}
-
 		listenPort := ""
 		if w.Port != 0 {
 			listenPort = fmt.Sprintf("ListenPort=%d", w.Port)
@@ -1490,13 +1486,12 @@ Id=%d
 		_, _ = fmt.Fprintf(&cfgBuffer, `[NetDev]
 Name=%s
 Kind=wireguard
-%s
 
 [WireGuard]
 PrivateKey=%s
 %s
 
-`, w.Name, mtuString, w.PrivateKey, listenPort)
+`, w.Name, w.PrivateKey, listenPort)
 
 		for _, peer := range w.Peers {
 			var options strings.Builder
@@ -1534,17 +1529,30 @@ PublicKey=%s
 
 // generateNetworkFileContents generates the contents of systemd.network files. Returns an array of networkdConfigFile structs.
 // https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html
-func generateNetworkFileContents(networkCfg api.SystemNetworkConfig) []networkdConfigFile {
+func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetworkConfig) ([]networkdConfigFile, error) { //nolint:revive
 	ret := []networkdConfigFile{}
 
 	// Create networks for each interface and its bridge.
 	for _, i := range networkCfg.Interfaces {
+		maxMTU, err := getMaxMTUForMAC(ctx, i.Hwaddr)
+		if err != nil {
+			return nil, err
+		}
+
+		configuredMTU := i.MTU
+		if configuredMTU == 0 {
+			configuredMTU = 1500
+		} else if configuredMTU > maxMTU {
+			configuredMTU = maxMTU
+		}
+
 		// User side of veth device.
 		cfgString := fmt.Sprintf(`[Match]
 Name=_v%s
 
 [Link]
 %s
+MTUBytes=%d
 
 [DHCP]
 ClientIdentifier=mac
@@ -1555,7 +1563,7 @@ UseMTU=true
 WithoutRA=solicit
 
 [Network]
-%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
+%s`, i.Name, generateLinkSectionContents(i.Addresses, i.RequiredForOnline), configuredMTU, generateNetworkSectionContents(i.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(i.Addresses)
 
@@ -1573,9 +1581,12 @@ WithoutRA=solicit
 		cfgString = fmt.Sprintf(`[Match]
 Name=_i%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 Bridge=%s
-`, strippedHwaddr, i.Name)
+`, strippedHwaddr, maxMTU, i.Name)
 
 		cfgString += generateVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
 
@@ -1588,17 +1599,16 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=_p%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 LLDP=%s
 EmitLLDP=%s
 Bridge=%s
-`, strippedHwaddr, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP), i.Name)
+`, strippedHwaddr, maxMTU, strconv.FormatBool(i.LLDP), strconv.FormatBool(i.LLDP), i.Name)
 
 		cfgString += generateVLANContents(i.Name, i.VLANTags, networkCfg.VLANs)
-
-		if i.MTU != 0 {
-			cfgString += fmt.Sprintf("[Link]\nMTUBytes=%d\n", i.MTU)
-		}
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-_p%s.network", strippedHwaddr),
@@ -1609,14 +1619,13 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
-`, i.Name)
-
-		if i.MTU != 0 {
-			cfgString += fmt.Sprintf("[Link]\nMTUBytes=%d\n", i.MTU)
-		}
+`, i.Name, maxMTU)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("20-%s.network", i.Name),
@@ -1626,12 +1635,53 @@ ConfigureWithoutCarrier=yes
 
 	// Create networks for each bond, its member(s), and its bridge.
 	for _, b := range networkCfg.Bonds {
+		maxMTU := 9000
+
+		// Bond members.
+		for index, member := range b.Members {
+			mtu, err := getMaxMTUForMAC(ctx, member)
+			if err != nil {
+				return nil, err
+			}
+
+			// Set the maximum MTU for the bond to be the smallest of the member's
+			// maximum MTU.
+			if maxMTU > mtu {
+				maxMTU = mtu
+			}
+
+			memberStrippedHwaddr := strings.ToLower(strings.ReplaceAll(member, ":", ""))
+
+			ret = append(ret, networkdConfigFile{
+				Name: fmt.Sprintf("21-_b%s-dev%d.network", b.Name, index),
+				Contents: fmt.Sprintf(`[Match]
+Name=_p%s
+
+[Link]
+MTUBytes=%d
+
+[Network]
+LLDP=%s
+EmitLLDP=%s
+Bond=_b%s
+`, memberStrippedHwaddr, mtu, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP), b.Name),
+			})
+		}
+
+		configuredMTU := b.MTU
+		if configuredMTU == 0 {
+			configuredMTU = 1500
+		} else if configuredMTU > maxMTU {
+			configuredMTU = maxMTU
+		}
+
 		// User side of veth device.
 		cfgString := fmt.Sprintf(`[Match]
 Name=_v%s
 
 [Link]
 %s
+MTUBytes=%d
 
 [DHCP]
 ClientIdentifier=mac
@@ -1642,7 +1692,7 @@ UseMTU=true
 WithoutRA=solicit
 
 [Network]
-%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
+%s`, b.Name, generateLinkSectionContents(b.Addresses, b.RequiredForOnline), configuredMTU, generateNetworkSectionContents(b.Name, networkCfg.VLANs, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(b.Addresses)
 
@@ -1666,9 +1716,12 @@ WithoutRA=solicit
 		cfgString = fmt.Sprintf(`[Match]
 Name=_i%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 Bridge=%s
-`, strippedHwaddr, b.Name)
+`, strippedHwaddr, maxMTU, b.Name)
 
 		cfgString += generateVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
 
@@ -1681,11 +1734,14 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=_b%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 Bridge=%s
-`, b.Name, b.Name)
+`, b.Name, maxMTU, b.Name)
 
 		cfgString += generateVLANContents(b.Name, b.VLANTags, networkCfg.VLANs)
 
@@ -1698,41 +1754,35 @@ Bridge=%s
 		cfgString = fmt.Sprintf(`[Match]
 Name=%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
-`, b.Name)
+`, b.Name, maxMTU)
 
 		ret = append(ret, networkdConfigFile{
 			Name:     fmt.Sprintf("21-%s.network", b.Name),
 			Contents: cfgString,
 		})
-
-		// Bond members.
-		for index, member := range b.Members {
-			memberStrippedHwaddr := strings.ToLower(strings.ReplaceAll(member, ":", ""))
-
-			ret = append(ret, networkdConfigFile{
-				Name: fmt.Sprintf("21-_b%s-dev%d.network", b.Name, index),
-				Contents: fmt.Sprintf(`[Match]
-Name=_p%s
-
-[Network]
-LLDP=%s
-EmitLLDP=%s
-Bond=_b%s
-`, memberStrippedHwaddr, strconv.FormatBool(b.LLDP), strconv.FormatBool(b.LLDP), b.Name),
-			})
-		}
 	}
 
 	// Create network for each VLAN.
 	for _, v := range networkCfg.VLANs {
+		configuredMTU := v.MTU
+		if configuredMTU == 0 {
+			configuredMTU = 1500
+		} else if configuredMTU > 9000 {
+			configuredMTU = 9000
+		}
+
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
 [Link]
 %s
+MTUBytes=%d
 
 [DHCP]
 ClientIdentifier=mac
@@ -1743,7 +1793,7 @@ UseMTU=true
 WithoutRA=solicit
 
 [Network]
-%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.Time))
+%s`, v.Name, generateLinkSectionContents(v.Addresses, v.RequiredForOnline), configuredMTU, generateNetworkSectionContents(v.Name, nil, networkCfg.DNS, networkCfg.Time))
 
 		cfgString += processAddresses(v.Addresses)
 
@@ -1759,11 +1809,21 @@ WithoutRA=solicit
 
 	// Create network for each Wireguard.
 	for _, wg := range networkCfg.Wireguard {
+		configuredMTU := wg.MTU
+		if configuredMTU == 0 {
+			configuredMTU = 1500
+		} else if configuredMTU > 9000 {
+			configuredMTU = 9000
+		}
+
 		cfgString := fmt.Sprintf(`[Match]
 Name=%s
 
+[Link]
+MTUBytes=%d
+
 [Network]
-`, wg.Name)
+`, wg.Name, configuredMTU)
 
 		cfgString += processAddresses(wg.Addresses)
 
@@ -1777,7 +1837,7 @@ Name=%s
 		})
 	}
 
-	return ret
+	return ret, nil
 }
 
 func processAddresses(addresses []string) string {
@@ -2172,6 +2232,45 @@ func getMacForInterface(ctx context.Context, iface string) (string, error) {
 	}
 
 	return match[0][1], nil
+}
+
+// Determine the maximum MTU supported by a given device. Because device names can change,
+// we use the underlying MAC when getting the maximum MTU.
+func getMaxMTUForMAC(ctx context.Context, mac string) (int, error) {
+	// To support testing, if an empty context is provided, return a
+	// default unique maximum MTU.
+	if ctx == context.TODO() {
+		return 9009, nil
+	}
+
+	mtuRegex := regexp.MustCompile(mac + ` .+? minmtu \d+ maxmtu (\d+)`)
+
+	output, err := subprocess.RunCommandContext(ctx, "ip", "-d", "link")
+	if err != nil {
+		return -1, err
+	}
+
+	match := mtuRegex.FindAllStringSubmatch(output, -1)
+	if len(match) == 0 {
+		return -1, errors.New("unable to determine maximum MTU for " + mac)
+	}
+
+	mtu, err := strconv.Atoi(match[0][1])
+	if err != nil {
+		return -1, err
+	}
+
+	// Cap maximum MTU to 9000.
+	if mtu > 9000 {
+		mtu = 9000
+	}
+
+	// Make sure the MTU isn't too small for IPv6.
+	if mtu < 1280 {
+		return -1, fmt.Errorf("maximum MTU of %d for %s is too small to support IPv6", mtu, mac)
+	}
+
+	return mtu, nil
 }
 
 func getExpectedNewPhysicalDevices(ctx context.Context, config *api.SystemNetworkConfig) []expPhysDev {
