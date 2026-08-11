@@ -187,8 +187,10 @@ def install(image, artifact):
 
     for target in applications[artifact]["install_targets"]:
         if os.path.isfile(os.path.join(directory, target[0])):
-            # Strip the binary
-            subprocess.run(["strip", target[0]], cwd=directory, check=True)
+            # Strip the binary (skip non-ELF files like firmware blobs)
+            with open(os.path.join(directory, target[0]), "rb") as fd:
+                if fd.read(4) == b"\x7fELF":
+                    subprocess.run(["strip", target[0]], cwd=directory, check=True)
 
         # Copy the target into the mkosi image filesystem
         subprocess.run(["mkdir", "-p", os.path.join(base_path, target[1])], check=True)
