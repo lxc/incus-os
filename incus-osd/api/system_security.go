@@ -31,6 +31,8 @@ type SystemSecurityConfig struct {
 }
 
 // SystemSecurity defines a struct to hold information about the system's security state.
+//
+// swagger:model
 type SystemSecurity struct {
 	Config SystemSecurityConfig `json:"config" yaml:"config"`
 

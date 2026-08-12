@@ -6,6 +6,8 @@ import (
 )
 
 // SystemUpdate defines a struct to hold information about the system's update policy.
+//
+// swagger:model
 type SystemUpdate struct {
 	Config SystemUpdateConfig `json:"config" yaml:"config"`
 

@@ -14,6 +14,8 @@ type SystemFallbackListenerConfig struct {
 // SystemFallbackListener defines a struct to configure the fallback HTTPS listener that will
 // activate if the primary application fails to start, ensuring that basic API connectivity
 // to the system isn't lost.
+//
+// swagger:model
 type SystemFallbackListener struct {
 	Config SystemFallbackListenerConfig `json:"config" yaml:"config"`
 
