@@ -131,6 +131,23 @@ func (oc *operationsCenter) GetClientCertificate() (*tls.Certificate, error) {
 	return oc.GetServerCertificate()
 }
 
+// GetListenAddress gets the address on which the application's API is listening.
+func (*operationsCenter) GetListenAddress(ctx context.Context) (string, error) {
+	resp, err := doOCRequest(ctx, "http://localhost/1.0/system/network", http.MethodGet, nil)
+	if err != nil {
+		return "", err
+	}
+
+	network := ocapi.Network{}
+
+	err = json.Unmarshal(resp, &network)
+	if err != nil {
+		return "", err
+	}
+
+	return network.RestServerAddress, nil
+}
+
 // GetServerCertificate returns the keypair for the server certificate.
 func (*operationsCenter) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.
