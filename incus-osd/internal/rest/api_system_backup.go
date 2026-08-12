@@ -78,7 +78,8 @@ func (s *Server) apiSystemBackup(w http.ResponseWriter, r *http.Request) {
 //	    description: Application backup to restore
 //	    required: true
 //	    schema:
-//	      type: file
+//	      type: string
+//	      format: binary
 //	  - in: query
 //	    name: skip
 //	    description: A comma-separated list of items to ignore when restoring the backup

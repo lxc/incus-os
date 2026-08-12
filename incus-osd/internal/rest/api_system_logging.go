@@ -38,7 +38,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the system logging
 //	          example: {"config":{"syslog":{"address":"localhost","protocol":"TCP","log_format":""}},"state":{}}
 

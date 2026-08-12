@@ -41,7 +41,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the system provider
 //	          example: {"config":{"name":"images","config":null},"state":{"registered":false}}
 

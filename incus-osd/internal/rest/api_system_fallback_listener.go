@@ -43,7 +43,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the fallback listener
 //	          example: {"config":{"listen_address":"192.168.100.100:8443","trusted_client_certificates":["-----BEGIN CERTIFICATE-----\n[cert]\n-----END CERTIFICATE-----"]},"state":{"active":false}}
 //	  "500":

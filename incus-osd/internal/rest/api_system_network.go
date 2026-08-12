@@ -46,7 +46,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the system network
 //	          example: {"config":{"interfaces":[{"name":"enp5s0","addresses":["dhcp4","slaac"],"required_for_online":"no","hwaddr":"10:66:6a:1a:20:0f","lldp":false}],"time":{"timezone":"UTC"}},"state":{"interfaces":{"enp5s0":{"type":"interface","addresses":["10.234.136.149","fd42:3cfb:8972:3990:1266:6aff:fe1a:200f"],"hwaddr":"10:66:6a:1a:20:0f","routes":[{"to":"default","via":"10.234.136.1"}],"mtu":1500,"speed":"-1","state":"routable","stats":{"rx_bytes":82290,"tx_bytes":43500,"rx_errors":0,"tx_errors":0},"roles":["management","cluster"]}}}}
 //	  "500":

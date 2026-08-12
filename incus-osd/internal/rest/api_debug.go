@@ -360,7 +360,9 @@ func (*Server) apiDebugSecureBoot(w http.ResponseWriter, r *http.Request) {
 //	          properties:
 //	            event_log:
 //	              description: Filtered TPM event log
-//	              type: list
+//	              type: array
+//	              items:
+//	                type: object
 //	              example: [{"Index":7,"Type":2147483649,"Data":"Yd/ki8qT0hGqDQDgmAMrjAoAAAAAAAAAAQAAAAAAAABTAGUAYwB1AHIAZQBCAG8AbwB0AAE=","Digest":"zPxLsyiIo0W8iuraulUrYn2ZNIx2doGrMUH1sB5ApA4="}]
 //	            pcr4:
 //	              description: Final PCR4 value
@@ -441,7 +443,8 @@ func (*Server) apiDebugSecureBootEventLog(w http.ResponseWriter, r *http.Request
 //	    description: Secure Boot updates to apply
 //	    required: true
 //	    schema:
-//	      type: file
+//	      type: string
+//	      format: binary
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

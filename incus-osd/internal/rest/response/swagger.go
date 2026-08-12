@@ -55,6 +55,24 @@ type swaggerNotFound struct {
 	}
 }
 
+// Conflict
+//
+// swagger:response Conflict
+type swaggerConflict struct {
+	// Conflict
+	// in: body
+	Body struct {
+		// Example: error
+		Type string `json:"type"`
+
+		// Example: conflict
+		Error string `json:"error"`
+
+		// Example: 409
+		ErrorCode int `json:"error_code"`
+	}
+}
+
 // Internal Server Error
 //
 // swagger:response InternalServerError

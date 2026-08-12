@@ -47,7 +47,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the system storage
 //	          example: {"config":{},"state":{"drives":[{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root","model_family":"QEMU","model_name":"QEMU HARDDISK","serial_number":"incus_root","bus":"scsi","capacity_in_bytes":53687091200,"boot":true,"removable":false,"remote":false}],"pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"],"state":"ONLINE","encryption_key_status":"available","raw_pool_size_in_bytes":17716740096,"usable_pool_size_in_bytes":17716740096,"pool_allocated_space_in_bytes":4313088}]}}
 //	  "500":

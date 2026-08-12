@@ -40,7 +40,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the system update
 //	          example: {"config":{"auto_reboot":false,"channel":"stable","check_frequency":"6h"},"state":{"last_check":"2025-11-04T16:21:34.929524792Z","status":"Update check completed","needs_reboot":false}}
 

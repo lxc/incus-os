@@ -109,7 +109,7 @@ func (*Server) apiRoot(w http.ResponseWriter, r *http.Request) {
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: Basic server information
 //	          example: {"environment":{"hostname":"af94e64e-1993-41b6-8f10-a8eebb828fce","machine_id":"af94e64e199341b68f10a8eebb828fce","os_name":"IncusOS","os_version":"202511041601","os_version_alternate":"202511162345","os_version_next":"202511152230","system_is_ready":true,"uptime":"3237039"}}
 func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
