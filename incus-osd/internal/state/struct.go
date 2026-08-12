@@ -48,10 +48,11 @@ type State struct {
 	TriggerUpdate           chan bool `json:"-"`
 	TriggerFallbackListener chan bool `json:"-"`
 
-	SecureBoot         SecureBoot `json:"secure_boot"`
-	UsingSWTPM         bool       `json:"using_swtpm"`
-	SecureBootDisabled bool       `json:"secure_boot_disabled"`
-	FullAgentEnabled   bool       `json:"full_agent_enabled"`
+	SecureBoot          SecureBoot `json:"secure_boot"`
+	UsingSWTPM          bool       `json:"using_swtpm"`
+	SecureBootDisabled  bool       `json:"secure_boot_disabled"`
+	FullAgentEnabled    bool       `json:"full_agent_enabled"`
+	ServicesSeedApplied bool       `json:"services_seed_applied"`
 
 	Applications struct {
 		Debug            api.Application        `json:"debug"`
