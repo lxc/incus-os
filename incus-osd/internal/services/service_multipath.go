@@ -33,6 +33,9 @@ func (n *Multipath) Get(ctx context.Context) (any, error) {
 		n.state.Services.Multipath.Config.WWNs = []string{}
 	}
 
+	// Retrieve the Fibre Channel controller details.
+	n.state.Services.Multipath.State.Controllers = n.fcControllers()
+
 	// Get runtime details if enabled.
 	if !n.state.Services.Multipath.Config.Enabled {
 		return n.state.Services.Multipath, nil
@@ -267,4 +270,39 @@ func (n *Multipath) ShouldStart() bool {
 // Struct returns the API struct for the Multipath service.
 func (*Multipath) Struct() any {
 	return &api.ServiceMultipath{}
+}
+
+// fcControllers returns the details of the local Fibre Channel controllers.
+func (*Multipath) fcControllers() []api.ServiceMultipathController {
+	controllers := []api.ServiceMultipathController{}
+
+	entries, err := os.ReadDir("/sys/class/fc_host")
+	if err != nil {
+		return controllers
+	}
+
+	for _, entry := range entries {
+		path := filepath.Join("/sys/class/fc_host", entry.Name())
+
+		readValue := func(name string) string {
+			value, err := os.ReadFile(filepath.Join(path, name))
+			if err != nil {
+				return ""
+			}
+
+			return strings.TrimSpace(string(value))
+		}
+
+		controllers = append(controllers, api.ServiceMultipathController{
+			FabricName:      readValue("fabric_name"),
+			NodeName:        readValue("node_name"),
+			PortName:        readValue("port_name"),
+			PortState:       readValue("port_state"),
+			PortType:        readValue("port_type"),
+			Speed:           readValue("speed"),
+			SupportedSpeeds: readValue("supported_speeds"),
+		})
+	}
+
+	return controllers
 }
