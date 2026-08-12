@@ -1,0 +1,97 @@
+[Match]
+{{- if eq .Type "veth-user"}}
+Name=_v{{.Name}}
+{{- else}}
+Name={{.Name}}
+{{- end}}
+
+[Link]
+{{- if ne .Type "wireguard"}}
+  {{- if or (eq (len .Addresses) 0) (eq .RequiredForOnline "no") }}
+RequiredForOnline=no
+  {{- else}}
+    {{- $req := .RequiredForOnline}}
+    {{- if eq .RequiredForOnline ""}}
+      {{- $req = "any"}}
+    {{- end}}
+RequiredForOnline=yes
+RequiredFamilyForOnline={{$req}}
+  {{- end}}
+{{- end}}
+MTUBytes={{.MTU}}
+{{if ne .Type "wireguard"}}
+[DHCP]
+ClientIdentifier=mac
+RouteMetric=100
+UseMTU=true
+
+[DHCPv6]
+WithoutRA=solicit
+{{end}}
+[Network]
+{{- range .VLANs}}
+  {{- if eq .Parent $.Name}}
+VLAN={{.Name}}
+  {{- end}}
+{{- end}}
+{{- if .DNS}}
+  {{- if .DNS.SearchDomains}}
+Domains={{range .DNS.SearchDomains}}{{.}} {{end}}
+  {{- end}}
+  {{- range .DNS.Nameservers}}
+DNS={{.}}
+  {{- end}}
+  {{- if .DNS.DNSOverTLS}}
+DNSOverTLS=yes
+  {{- end}}
+{{- end}}
+{{- if .TimeConfig}}
+  {{- range .TimeConfig.NTPServers}}
+NTP={{.}}
+  {{- end}}
+{{- end}}
+{{- if eq (len .Addresses) 0}}
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+{{- else}}
+LinkLocalAddressing=ipv6
+{{- end}}
+{{- $hasDHCP4 := false}}
+{{- $hasDHCP6 := false}}
+{{- $acceptIPv6RA := false}}
+{{- range .Addresses}}
+  {{- if eq . "dhcp4"}}
+    {{- $hasDHCP4 = true}}
+  {{- else if eq . "dhcp6"}}
+    {{- $hasDHCP6 = true}}
+    {{- $acceptIPv6RA = true}}
+  {{- else if eq . "slaac"}}
+    {{- $acceptIPv6RA = true}}
+  {{- else}}
+Address={{.}}
+  {{- end}}
+{{- end}}
+{{- if $acceptIPv6RA}}
+IPv6AcceptRA=true
+{{- else}}
+IPv6AcceptRA=false
+{{- end}}
+{{- if and $hasDHCP4 $hasDHCP6}}
+DHCP=yes
+{{- else if $hasDHCP4}}
+DHCP=ipv4
+{{- else if $hasDHCP6}}
+DHCP=ipv6
+{{- end}}
+
+{{- range .Routes}}
+[Route]
+{{- if eq .Via "dhcp4"}}
+Gateway=_dhcp4
+{{- else if eq .Via "slaac"}}
+Gateway=_ipv6ra
+{{- else}}
+Gateway={{.Via}}
+{{- end}}
+Destination={{.To}}
+{{end}}
