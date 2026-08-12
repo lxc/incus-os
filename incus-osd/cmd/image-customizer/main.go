@@ -1070,6 +1070,16 @@ func writeSeed(writer io.Writer, seeds apicustomizer.ImagesPostSeeds) (int, erro
 		archiveContents = append(archiveContents, []string{"provider.yaml", string(yamlContents)})
 	}
 
+	// Create services yaml contents.
+	if seeds.Services != nil {
+		yamlContents, err := yaml.Dump(seeds.Services, yaml.WithV2Defaults())
+		if err != nil {
+			return -1, err
+		}
+
+		archiveContents = append(archiveContents, []string{"services.yaml", string(yamlContents)})
+	}
+
 	// Create update yaml contents.
 	if seeds.Update != nil {
 		yamlContents, err := yaml.Dump(seeds.Update, yaml.WithV2Defaults())
