@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 )
@@ -104,6 +105,31 @@ func (s *Server) apiInternalRegistration(w http.ResponseWriter, r *http.Request)
 	}
 
 	_ = response.SyncResponse(true, reg).Render(w)
+}
+
+func (*Server) apiInternalSecureBoot(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	certificates, err := certs.GetEmbeddedCertificates()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, certificates.SecureBootCertificates.ToAPI()).Render(w)
 }
 
 func (s *Server) apiInternalToken(w http.ResponseWriter, r *http.Request) {
