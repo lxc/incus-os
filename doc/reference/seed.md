@@ -152,6 +152,30 @@ The "debug" provider is not intended for general use, and should only be used to
 support work developing IncusOS.
 ```
 
+### `services.{json,yml,yaml}`
+This file provides preseed information to configure [services](services.md) at
+install time. Each service is optional and uses the `config` section of its
+[API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/), for example:
+
+```yaml
+version: "1"
+tailscale:
+  enabled: true
+  auth_key: tskey-auth-XXXXXXXXXXXX
+lvm:
+  enabled: true
+```
+
+The seed configuration is applied on first boot, before any of the services are
+started. Services requiring an application that isn't installed yet (`ceph` and
+`linstor`) can't be configured through the services seed.
+
+```{warning}
+Seed data is kept unencrypted on the system, so be careful when embedding
+sensitive information such as authentication keys and prefer setting
+those up after the fact.
+```
+
 ### `security.{json,yml,yaml}`
 This file provides security configuration for the system.
 
