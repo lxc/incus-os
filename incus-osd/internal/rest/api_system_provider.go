@@ -41,9 +41,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: object
-//	          description: State and configuration for the system provider
-//	          example: {"config":{"name":"images","config":null},"state":{"registered":false}}
+//	          $ref: "#/definitions/SystemProvider"
 
 // swagger:operation PUT /1.0/system/provider system system_put_provider
 //
@@ -62,12 +60,7 @@ import (
 //	    description: Provider configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The provider configuration
-//	          example: {"name":"images","config":null}
+//	      $ref: "#/definitions/SystemProvider"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

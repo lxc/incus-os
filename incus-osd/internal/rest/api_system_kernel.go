@@ -38,9 +38,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: object
-//	          description: State and configuration for the system kernel
-//	          example: {"config":{"blacklist_modules":["bad-module"],"memory":{"persistent_hugepages":0,"zram_swap_size":"1GiB"},"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}},"state":{"memory":{"zram_swap":{"disk_size":1073741824,"incompressed_size":4096,"compressed_size":59,"compression_ratio":0.2,"total_memory_use":20480}}}}
+//	          $ref: "#/definitions/SystemKernel"
 
 // swagger:operation PUT /1.0/system/kernel system system_put_kernel
 //
@@ -59,12 +57,7 @@ import (
 //	    description: Kernel configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The kernel configuration
-//	          example: {"blacklist_modules":["bad-module"],"memory":{"zram_swap_size":"1GiB"},"network":{"buffer_size":33554432,"queuing_discipline":"fq","tcp_congestion_algorithm":"bbr"},"pci":{"passthrough":[{"vendor_id":"1af4","product_id":"1050","pci_address":"0000:04:00.0"}]}}
+//	      $ref: "#/definitions/SystemKernel"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

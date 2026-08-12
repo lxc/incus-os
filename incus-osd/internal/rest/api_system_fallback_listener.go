@@ -43,9 +43,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: object
-//	          description: State and configuration for the fallback listener
-//	          example: {"config":{"listen_address":"192.168.100.100:8443","trusted_client_certificates":["-----BEGIN CERTIFICATE-----\n[cert]\n-----END CERTIFICATE-----"]},"state":{"active":false}}
+//	          $ref: "#/definitions/SystemFallbackListener"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 
@@ -68,12 +66,7 @@ import (
 //	    description: Fallback listener configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The fallback listener configuration
-//	          example: {"listen_address":"192.168.100.100:8443","trusted_client_certificates":["-----BEGIN CERTIFICATE-----\n[cert]\n-----END CERTIFICATE-----"]}
+//	      $ref: "#/definitions/SystemFallbackListener"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

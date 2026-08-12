@@ -396,6 +396,8 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 //	Triggers the given application to perform a specific task.
 //
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
 //	parameters:
@@ -404,6 +406,12 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 //	    description: Application name
 //	    required: true
 //	    type: string
+//	  - in: body
+//	    name: action
+//	    description: Action to perform
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/ApplicationAction"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
