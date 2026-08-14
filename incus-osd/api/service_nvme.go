@@ -2,11 +2,11 @@ package api
 
 // ServiceNVMETarget represents a single NVME target.
 type ServiceNVMETarget struct {
-	Transport   string `json:"transport"    yaml:"transport"`
-	Address     string `json:"address"      yaml:"address"`
-	HostAddress string `json:"host_address" yaml:"host_address"`
-	Port        int    `json:"port"         yaml:"port"`
-	NQN         string `json:"nqn"          yaml:"nqn"`
+	Transport   string `json:"transport"              yaml:"transport"`
+	Address     string `json:"address"                yaml:"address"`
+	HostAddress string `json:"host_address,omitempty" yaml:"host_address,omitempty"`
+	Port        int    `json:"port"                   yaml:"port"`
+	NQN         string `json:"nqn,omitempty"          yaml:"nqn,omitempty"`
 }
 
 // ServiceNVMEController represents a single NVME controller.
