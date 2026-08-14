@@ -7,6 +7,8 @@ import (
 	"errors"
 	"os"
 	"strings"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 //go:embed files/*
@@ -35,6 +37,38 @@ type SecureBootCertificates struct {
 	KEK []*x509.Certificate
 	DB  []*x509.Certificate
 	DBX []*x509.Certificate
+}
+
+// ToAPI returns the PEM encoded API representation of the certificates.
+func (c *SecureBootCertificates) ToAPI() api.InternalSecureBootCertificates {
+	encode := func(cert *x509.Certificate) string {
+		if cert == nil {
+			return ""
+		}
+
+		return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}))
+	}
+
+	ret := api.InternalSecureBootCertificates{
+		PK:  encode(c.PK),
+		KEK: []string{},
+		DB:  []string{},
+		DBX: []string{},
+	}
+
+	for _, cert := range c.KEK {
+		ret.KEK = append(ret.KEK, encode(cert))
+	}
+
+	for _, cert := range c.DB {
+		ret.DB = append(ret.DB, encode(cert))
+	}
+
+	for _, cert := range c.DBX {
+		ret.DBX = append(ret.DBX, encode(cert))
+	}
+
+	return ret
 }
 
 // GetEmbeddedCertificates returns certificates and associated metadata that have been embedded
