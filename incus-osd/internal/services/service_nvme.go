@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -31,6 +32,9 @@ func (n *NVME) Get(_ context.Context) (any, error) {
 	if n.state.Services.NVME.Config.Targets == nil {
 		n.state.Services.NVME.Config.Targets = []api.ServiceNVMETarget{}
 	}
+
+	// Retrieve the NVME subsystem topology.
+	n.state.Services.NVME.State.Subsystems = n.subsystems()
 
 	// Get runtime details if enabled.
 	if n.state.Services.NVME.Config.Enabled {
@@ -366,4 +370,76 @@ func (*NVME) fcHostAddresses() ([]string, error) {
 	}
 
 	return addresses, nil
+}
+
+// subsystems returns the details of the local NVME subsystems and their controllers.
+func (*NVME) subsystems() []api.ServiceNVMESubsystem {
+	subsystems := []api.ServiceNVMESubsystem{}
+
+	controllerRegexp := regexp.MustCompile(`^nvme\d+$`)
+	namespaceRegexp := regexp.MustCompile(`^(nvme\d+)c\d+(n\d+)$`)
+
+	readValue := func(dir string, name string) string {
+		value, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			return ""
+		}
+
+		return strings.TrimSpace(string(value))
+	}
+
+	entries, err := os.ReadDir("/sys/class/nvme-subsystem")
+	if err != nil {
+		return subsystems
+	}
+
+	for _, entry := range entries {
+		path := filepath.Join("/sys/class/nvme-subsystem", entry.Name())
+
+		subsystem := api.ServiceNVMESubsystem{
+			Name:        entry.Name(),
+			NQN:         readValue(path, "subsysnqn"),
+			Controllers: []api.ServiceNVMEController{},
+		}
+
+		subEntries, err := os.ReadDir(path)
+		if err != nil {
+			continue
+		}
+
+		for _, subEntry := range subEntries {
+			if !controllerRegexp.MatchString(subEntry.Name()) {
+				continue
+			}
+
+			controllerPath := filepath.Join(path, subEntry.Name())
+
+			controller := api.ServiceNVMEController{
+				Name:       subEntry.Name(),
+				Transport:  readValue(controllerPath, "transport"),
+				Address:    readValue(controllerPath, "address"),
+				State:      readValue(controllerPath, "state"),
+				Namespaces: []string{},
+			}
+
+			// List the namespaces visible through this controller.
+			controllerEntries, err := os.ReadDir(controllerPath)
+			if err == nil {
+				for _, controllerEntry := range controllerEntries {
+					fields := namespaceRegexp.FindStringSubmatch(controllerEntry.Name())
+					if fields == nil {
+						continue
+					}
+
+					controller.Namespaces = append(controller.Namespaces, fields[1]+fields[2])
+				}
+			}
+
+			subsystem.Controllers = append(subsystem.Controllers, controller)
+		}
+
+		subsystems = append(subsystems, subsystem)
+	}
+
+	return subsystems
 }

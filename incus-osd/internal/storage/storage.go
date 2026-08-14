@@ -1005,9 +1005,45 @@ func IsRemoteDevice(deviceName string) (bool, error) {
 
 // IsMultipathDevice determines if a given device is a member of a multipath device.
 func IsMultipathDevice(ctx context.Context, deviceName string) bool {
+	// Check for NVME native multipathing.
+	if strings.HasPrefix(filepath.Base(deviceName), "nvme") && nvmePathCount(deviceName) > 1 {
+		return true
+	}
+
+	// Check for device mapper multipathing.
 	_, err := subprocess.RunCommandContext(ctx, "multipath", "-c", deviceName)
 
 	return err == nil
+}
+
+// nvmePathCount returns the number of controllers (paths) backing an NVME namespace device.
+func nvmePathCount(deviceName string) int {
+	device := filepath.Base(deviceName)
+
+	// Resolve the device to its sysfs entry.
+	sysPath, err := filepath.EvalSymlinks("/sys/class/block/" + device)
+	if err != nil {
+		return 0
+	}
+
+	// Devices not backed by an NVME subsystem only ever have a single path.
+	if !strings.Contains(sysPath, "/nvme-subsystem/") {
+		return 1
+	}
+
+	// Extract the controller prefix and namespace suffix from the device name.
+	fields := regexp.MustCompile(`^(nvme\d+)(n\d+)$`).FindStringSubmatch(device)
+	if fields == nil {
+		return 0
+	}
+
+	// Count the per-controller namespace entries within the subsystem.
+	paths, err := filepath.Glob(filepath.Join(filepath.Dir(sysPath), "nvme*", fields[1]+"c*"+fields[2]))
+	if err != nil {
+		return 0
+	}
+
+	return len(paths)
 }
 
 func isBootDevice(ctx context.Context, deviceName string, bootDevice string) bool {

@@ -21,6 +21,17 @@ type ServiceMultipathPath struct {
 	Status string `json:"status" yaml:"status"`
 }
 
+// ServiceMultipathController represents a single Fibre Channel controller.
+type ServiceMultipathController struct {
+	FabricName      string `json:"fabric_name"      yaml:"fabric_name"`
+	NodeName        string `json:"node_name"        yaml:"node_name"`
+	PortName        string `json:"port_name"        yaml:"port_name"`
+	PortState       string `json:"port_state"       yaml:"port_state"`
+	PortType        string `json:"port_type"        yaml:"port_type"`
+	Speed           string `json:"speed"            yaml:"speed"`
+	SupportedSpeeds string `json:"supported_speeds" yaml:"supported_speeds"`
+}
+
 // ServiceMultipathConfig represents additional configuration for the Multipath service.
 type ServiceMultipathConfig struct {
 	Enabled bool     `json:"enabled" yaml:"enabled"`
@@ -36,5 +47,6 @@ type ServiceMultipath struct {
 
 // ServiceMultipathState represents the state for the Multipath service.
 type ServiceMultipathState struct {
-	Devices map[string]ServiceMultipathDevice `json:"devices" yaml:"devices"`
+	Controllers []ServiceMultipathController      `json:"controllers" yaml:"controllers"`
+	Devices     map[string]ServiceMultipathDevice `json:"devices"     yaml:"devices"`
 }
