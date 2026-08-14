@@ -1,4 +1,4 @@
-package systemd
+package network
 
 import (
 	"bytes"
@@ -25,6 +25,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/proxy"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 var muNetworkState sync.Mutex
@@ -55,7 +56,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	}()
 
 	// If a timezone is specified, apply it before doing any network configuration.
-	err := SetTimezone(ctx, networkCfg.Time)
+	err := systemd.SetTimezone(ctx, networkCfg.Time)
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	s.System.Network.Config = networkCfg
 
 	// Apply the configured hostname, or reset back to default if not set.
-	err = SetHostname(ctx, s.Hostname())
+	err = systemd.SetHostname(ctx, s.Hostname())
 	if err != nil {
 		return err
 	}
@@ -147,7 +148,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	}
 
 	// Restart networking after new config files have been generated.
-	err = RestartUnit(ctx, "systemd-networkd")
+	err = systemd.RestartUnit(ctx, "systemd-networkd")
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 
 	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
 	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = RestartUnit(ctx, "systemd-timesyncd")
+	err = systemd.RestartUnit(ctx, "systemd-timesyncd")
 	if err != nil {
 		return err
 	}
@@ -988,12 +989,12 @@ ff02::2 ip6-allrouters
 // new config files from the supplied NetworkConfig struct.
 func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig) error {
 	// Remove any existing configuration.
-	err := os.RemoveAll(SystemdNetworkConfigPath)
+	err := os.RemoveAll(systemd.SystemdNetworkConfigPath)
 	if err != nil {
 		return err
 	}
 
-	err = os.Mkdir(SystemdNetworkConfigPath, 0o755)
+	err = os.Mkdir(systemd.SystemdNetworkConfigPath, 0o755)
 	if err != nil {
 		return err
 	}
@@ -1005,7 +1006,7 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 	}
 
 	for _, cfg := range cfgs {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
+		err := os.WriteFile(filepath.Join(systemd.SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -1013,7 +1014,7 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	// Generate .netdev files.
 	for _, cfg := range generateNetdevFileContents(*networkCfg) {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
+		err := os.WriteFile(filepath.Join(systemd.SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -1026,7 +1027,7 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 	}
 
 	for _, cfg := range cfgs {
-		err := os.WriteFile(filepath.Join(SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
+		err := os.WriteFile(filepath.Join(systemd.SystemdNetworkConfigPath, cfg.Name), []byte(cfg.Contents), 0o644)
 		if err != nil {
 			return err
 		}
@@ -1038,7 +1039,7 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		ntpCfg = generateTimesyncContents(*networkCfg.Time)
 
 		if ntpCfg != "" {
-			err := os.WriteFile(SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
+			err := os.WriteFile(systemd.SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
 			if err != nil {
 				return err
 			}
@@ -1047,7 +1048,7 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	// If there's no NTP configuration, remove the old config file that might exist.
 	if networkCfg.Time == nil || ntpCfg == "" {
-		_ = os.Remove(SystemdTimesyncConfigFile)
+		_ = os.Remove(systemd.SystemdTimesyncConfigFile)
 	}
 
 	return nil
@@ -1258,7 +1259,7 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 		if count == 5 {
 			count = 0
 
-			err = RestartUnit(ctx, "systemd-timesyncd")
+			err = systemd.RestartUnit(ctx, "systemd-timesyncd")
 			if err != nil {
 				return err
 			}

@@ -22,10 +22,10 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
+	"github.com/lxc/incus-os/incus-osd/internal/network"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 var version = "dev"
@@ -439,7 +439,7 @@ func configureNetworkSeed(ctx context.Context) error {
 		return nil
 	}
 
-	err = systemd.ValidateNetworkConfiguration(&newSeed.SystemNetworkConfig, false)
+	err = network.ValidateNetworkConfiguration(&newSeed.SystemNetworkConfig, false)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 

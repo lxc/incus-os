@@ -28,6 +28,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/kernel"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
+	"github.com/lxc/incus-os/incus-osd/internal/network"
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
@@ -719,7 +720,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Notify, delayInitialUpdateCheck)
+	err = network.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Notify, delayInitialUpdateCheck)
 	if err != nil {
 		return err
 	}
@@ -883,7 +884,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		case <-s.TriggerSuspend:
 			action = "suspend"
 
-			systemd.RestoreWOLMACAddresses(ctx, s)
+			network.RestoreWOLMACAddresses(ctx, s)
 			_ = systemd.SystemSuspend(ctx)
 
 			goto waitSignal
@@ -907,7 +908,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 		switch action {
 		case "shutdown":
-			systemd.RestoreWOLMACAddresses(ctx, s)
+			network.RestoreWOLMACAddresses(ctx, s)
 			_ = systemd.SystemPowerOff(ctx)
 		case "reboot":
 			_ = systemd.SystemReboot(ctx)
