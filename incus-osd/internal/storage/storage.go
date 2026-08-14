@@ -783,6 +783,15 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		if strings.HasPrefix(drive.WWN, "0x") {
 			wwn = drive.WWN
 			wwnID = "/dev/disk/by-id/wwn-" + drive.WWN
+		} else if drive.WWN != "" && strings.HasPrefix(filepath.Base(drive.KName), "nvme") {
+			// NVME devices expose their unique identifier (eui, uuid or nvme) through a by-id symlink.
+			path := "/dev/disk/by-id/nvme-" + drive.WWN
+
+			_, err := os.Stat(path)
+			if err == nil {
+				wwn = drive.WWN
+				wwnID = path
+			}
 		}
 
 		// Resolve the device name to a more stable by-id symlink.
