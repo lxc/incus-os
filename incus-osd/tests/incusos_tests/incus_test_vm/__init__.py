@@ -210,13 +210,15 @@ class IncusTestVM:
         return subprocess.run(["incus", "exec", self.vm_name, "--", *cmd], capture_output=capture_output, check=check)
 
 class IncusTestNetwork:
-    def __init__(self):
+    def __init__(self, dns_mode="managed", mtu=1500):
         self.name = util._get_random_string()
+        self.dns_mode = dns_mode
+        self.mtu = mtu
 
     def __enter__(self):
         """Create a temporary Incus bridge network for testing purposes."""
 
-        subprocess.run(["incus", "network", "create", self.name, "--type=bridge"], capture_output=True, check=True)
+        subprocess.run(["incus", "network", "create", self.name, "--type=bridge", "dns.mode="+self.dns_mode, "bridge.mtu="+str(self.mtu)], capture_output=True, check=True)
 
         return self
 
