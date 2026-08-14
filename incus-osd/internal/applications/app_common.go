@@ -82,6 +82,11 @@ func (*common) GetDependencies() []string {
 	return nil
 }
 
+// GetListenAddress gets the address on which the application's API is listening.
+func (*common) GetListenAddress(_ context.Context) (string, error) {
+	return "", errors.New("not supported")
+}
+
 // GetServerCertificate gets the server certificate for the application.
 // That is, the certificate which will be used when a user connects to
 // the public port for the application.

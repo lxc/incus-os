@@ -183,6 +183,23 @@ func (a *incus) GetClientCertificate() (*tls.Certificate, error) {
 	return a.getCertificate("server")
 }
 
+// GetListenAddress gets the address on which the application's API is listening.
+func (*incus) GetListenAddress(ctx context.Context) (string, error) {
+	// Connect to Incus.
+	c, err := incusclient.ConnectIncusUnixWithContext(ctx, "", nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Get the current configuration.
+	conf, _, err := c.GetServer()
+	if err != nil {
+		return "", err
+	}
+
+	return conf.Config["core.https_address"], nil
+}
+
 // GetServerCertificate returns the keypair for the server certificate.
 func (a *incus) GetServerCertificate() (*tls.Certificate, error) {
 	cert, err := a.getCertificate("cluster")

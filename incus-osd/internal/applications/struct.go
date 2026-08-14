@@ -24,6 +24,7 @@ type Application interface { //nolint:interfacebloat
 	GetBackup(archive io.Writer, complete bool) error
 	GetClientCertificate() (*tls.Certificate, error)
 	GetDependencies() []string
+	GetListenAddress(ctx context.Context) (string, error)
 	GetServerCertificate() (*tls.Certificate, error)
 	Initialize(ctx context.Context) error
 	IsInitialized() bool

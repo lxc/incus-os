@@ -125,6 +125,23 @@ func (mm *migrationManager) GetClientCertificate() (*tls.Certificate, error) {
 	return mm.GetServerCertificate()
 }
 
+// GetListenAddress gets the address on which the application's API is listening.
+func (*migrationManager) GetListenAddress(ctx context.Context) (string, error) {
+	resp, err := doMMRequest(ctx, "http://localhost/1.0/system/network", http.MethodGet, nil)
+	if err != nil {
+		return "", err
+	}
+
+	network := mmapi.SystemNetwork{}
+
+	err = json.Unmarshal(resp, &network)
+	if err != nil {
+		return "", err
+	}
+
+	return network.Address, nil
+}
+
 // GetServerCertificate returns the keypair for the server certificate.
 func (*migrationManager) GetServerCertificate() (*tls.Certificate, error) {
 	// Load the certificate.

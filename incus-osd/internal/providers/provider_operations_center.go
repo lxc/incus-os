@@ -75,21 +75,21 @@ func (p *operationsCenter) ClearCache(_ context.Context) error {
 	return nil
 }
 
-func (p *operationsCenter) RefreshRegister(_ context.Context, cause ocapi.ServerSelfUpdateCause) error {
+func (p *operationsCenter) RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error {
 	// Check if registered.
 	if !p.state.System.Provider.State.Registered {
 		return nil
 	}
 
-	// Get the management address.
-	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
-	if mgmtAddr == nil {
-		return ErrRegistrationUnsupported
+	// Get the management URL.
+	connectionURL, err := p.connectionURL(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Prepare the registration request.
 	req := ocapi.ServerSelfUpdate{
-		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+		ConnectionURL: connectionURL,
 		Cause:         cause,
 	}
 
@@ -126,10 +126,10 @@ func (p *operationsCenter) RefreshRegister(_ context.Context, cause ocapi.Server
 }
 
 func (p *operationsCenter) Register(ctx context.Context) error {
-	// Get required information.
-	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
-	if mgmtAddr == nil {
-		return ErrRegistrationUnsupported
+	// Get the management URL.
+	connectionURL, err := p.connectionURL(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Get optional information (not all systems have valid UUIDs).
@@ -139,7 +139,7 @@ func (p *operationsCenter) Register(ctx context.Context) error {
 	// Prepare the registration request.
 	req := ocapi.ServerPost{
 		Name:          p.state.Hostname(),
-		ConnectionURL: "https://" + net.JoinHostPort(mgmtAddr.String(), "8443"),
+		ConnectionURL: connectionURL,
 		MachineID:     machineID,
 		SystemUUID:    systemUUID,
 	}
@@ -298,6 +298,42 @@ func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string
 	}
 
 	return &app, nil
+}
+
+// connectionURL builds the URL that Operations Center should use to reach the system,
+// taking the primary application's configuration into account whenever possible.
+func (p *operationsCenter) connectionURL(ctx context.Context) (string, error) {
+	// Get the management address.
+	mgmtAddr := p.state.System.Network.State.GetInterfaceAddressByRole(api.SystemNetworkInterfaceRoleManagement)
+	if mgmtAddr == nil {
+		return "", ErrRegistrationUnsupported
+	}
+
+	host := mgmtAddr.String()
+	port := "8443"
+
+	// Check the primary application for its listen address.
+	app, err := applications.GetPrimary(ctx, p.state, true)
+	if err == nil {
+		listenAddress, err := app.GetListenAddress(ctx)
+		if err == nil && listenAddress != "" {
+			listenHost, listenPort, err := net.SplitHostPort(listenAddress)
+			if err != nil {
+				// Possibly a bare address using the default port.
+				listenHost = listenAddress
+			} else if listenPort != "" {
+				port = listenPort
+			}
+
+			// Use the configured host if it's a specific address.
+			listenIP := net.ParseIP(listenHost)
+			if listenIP != nil && !listenIP.IsUnspecified() {
+				host = listenIP.String()
+			}
+		}
+	}
+
+	return "https://" + net.JoinHostPort(host, port), nil
 }
 
 func (p *operationsCenter) load(ctx context.Context) error {
