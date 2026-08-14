@@ -20,6 +20,8 @@ const (
 )
 
 // SystemNetwork defines a struct to hold the three types of supported network configuration.
+//
+// swagger:model
 type SystemNetwork struct {
 	Config *SystemNetworkConfig `json:"config" yaml:"config"`
 

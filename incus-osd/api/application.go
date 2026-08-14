@@ -25,6 +25,8 @@ type Application struct {
 }
 
 // ApplicationAction defines a generic struct that can be used when triggering an application-specific action.
+//
+// swagger:model
 type ApplicationAction struct {
 	Action string            `json:"action"           yaml:"action"`
 	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`

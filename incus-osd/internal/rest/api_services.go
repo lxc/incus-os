@@ -104,7 +104,7 @@ func (s *Server) apiServices(w http.ResponseWriter, r *http.Request) {
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the service
 //	          example: {"state":{},"config":{"enabled":false,"system_id":0}}
 //	  "404":

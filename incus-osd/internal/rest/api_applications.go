@@ -272,7 +272,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: State and configuration for the application
 //	          example: {"state":{"is_primary":true,"initialized":true,"friendly_version":"7.0.0 [202511041800]","version":"202511041800","available_versions":["202511041601","202511041800"]},"config":{}}
 //	  "404":
@@ -396,6 +396,8 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 //	Triggers the given application to perform a specific task.
 //
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
 //	parameters:
@@ -404,6 +406,12 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 //	    description: Application name
 //	    required: true
 //	    type: string
+//	  - in: body
+//	    name: action
+//	    description: Action to perform
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/ApplicationAction"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -779,7 +787,8 @@ func (s *Server) apiApplicationsBackup(w http.ResponseWriter, r *http.Request) {
 //	    description: Application backup to restore
 //	    required: true
 //	    schema:
-//	      type: file
+//	      type: string
+//	      format: binary
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -960,6 +969,11 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 //	produces:
 //	  - application/json
 //	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
 //	  - in: body
 //	    name: application
 //	    description: Optional exact version to switch to

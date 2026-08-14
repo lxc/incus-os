@@ -15,6 +15,8 @@ type SystemStorageState struct {
 }
 
 // SystemStorage defines a struct to hold information about the system's local storage.
+//
+// swagger:model
 type SystemStorage struct {
 	Config SystemStorageConfig `json:"config" yaml:"config"`
 
@@ -127,18 +129,24 @@ type SystemStorageDriveSMART struct {
 }
 
 // SystemStorageWipe defines a struct with information about what drive to wipe.
+//
+// swagger:model
 type SystemStorageWipe struct {
 	ID         string `json:"id"          yaml:"id"`
 	SecureWipe bool   `json:"secure_wipe" yaml:"secure_wipe"` // If true, require a complete secure wiping of the drive, which might take a long time.
 }
 
 // SystemStorageImportEncryptedDrive defines a struct with information about what drive to decrypt.
+//
+// swagger:model
 type SystemStorageImportEncryptedDrive struct {
 	ID  string `json:"id"  yaml:"id"`
 	Key string `json:"key" yaml:"key"`
 }
 
 // SystemStorageEncrypt defines a struct with information about what drive to encrypt.
+//
+// swagger:model
 type SystemStorageEncrypt struct {
 	ID         string `json:"id"          yaml:"id"`
 	SecureWipe bool   `json:"secure_wipe" yaml:"secure_wipe"` // If true, require a complete secure wiping of the drive, which might take a long time.
@@ -146,6 +154,8 @@ type SystemStorageEncrypt struct {
 
 // SystemStoragePoolKey defines a struct used to provide an encryption key when importing an existing pool.
 // Currently the only supported type is "zfs".
+//
+// swagger:model
 type SystemStoragePoolKey struct {
 	Name          string `json:"name"           yaml:"name"`
 	Type          string `json:"type"           yaml:"type"`

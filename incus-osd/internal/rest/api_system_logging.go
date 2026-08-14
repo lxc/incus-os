@@ -38,9 +38,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
-//	          description: State and configuration for the system logging
-//	          example: {"config":{"syslog":{"address":"localhost","protocol":"TCP","log_format":""}},"state":{}}
+//	          $ref: "#/definitions/SystemLogging"
 
 // swagger:operation PUT /1.0/system/logging system system_put_logging
 //
@@ -59,12 +57,7 @@ import (
 //	    description: Logging configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The logging configuration
-//	          example: {"syslog":{"address":"127.0.0.1","protocol":"TCP","log_format":""}}
+//	      $ref: "#/definitions/SystemLogging"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

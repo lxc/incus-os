@@ -47,9 +47,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
-//	          description: State and configuration for the system storage
-//	          example: {"config":{},"state":{"drives":[{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root","model_family":"QEMU","model_name":"QEMU HARDDISK","serial_number":"incus_root","bus":"scsi","capacity_in_bytes":53687091200,"boot":true,"removable":false,"remote":false}],"pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"],"state":"ONLINE","encryption_key_status":"available","raw_pool_size_in_bytes":17716740096,"usable_pool_size_in_bytes":17716740096,"pool_allocated_space_in_bytes":4313088}]}}
+//	          $ref: "#/definitions/SystemStorage"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
 
@@ -70,12 +68,7 @@ import (
 //	    description: Storage configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The storage configuration
-//	          example: {"pools":[{"name":"mypool","type":"zfs-raidz3","devices":["/dev/sdb","/dev/sdc","/dev/sdd","/dev/sde"]}]}
+//	      $ref: "#/definitions/SystemStorage"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -265,8 +258,7 @@ func (s *Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Reque
 //	    description: The drive to be wiped
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk","secure_wipe":true}
+//	      $ref: "#/definitions/SystemStorageWipe"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -338,8 +330,7 @@ func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Reques
 //	    description: Existing pool information
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}
+//	      $ref: "#/definitions/SystemStoragePoolKey"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -706,8 +697,7 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 //	    description: The drive to be encrypted
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk","secure_wipe":false}
+//	      $ref: "#/definitions/SystemStorageEncrypt"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -778,8 +768,7 @@ func (s *Server) apiSystemStorageEncryptDrive(w http.ResponseWriter, r *http.Req
 //	    description: The drive to be decrypted
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk", "key": "KEY-VALUE"}
+//	      $ref: "#/definitions/SystemStorageImportEncryptedDrive"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

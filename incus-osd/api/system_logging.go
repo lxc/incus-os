@@ -16,6 +16,8 @@ type SystemLoggingConfig struct {
 type SystemLoggingState struct{}
 
 // SystemLogging defines a struct to hold information about the system's logging configuration.
+//
+// swagger:model
 type SystemLogging struct {
 	Config SystemLoggingConfig `json:"config" yaml:"config"`
 	State  SystemLoggingState  `incusos:"-"   json:"state"  yaml:"state"`

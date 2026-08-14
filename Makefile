@@ -268,7 +268,7 @@ update-app-versions:
 .PHONY: update-api
 update-api:
 	$(GO) install -v -x github.com/go-swagger/go-swagger/cmd/swagger@master
-	swagger generate spec -o doc/rest-api.yaml -w ./incus-osd/cmd/incus-osd -m
+	swagger generate spec -o doc/rest-api.yaml -w ./incus-osd/cmd/incus-osd -m -x github.com/lxc/incus/v7 -x github.com/FuturFusion/migration-manager -x github.com/FuturFusion/operations-center
 
 .PHONY: doc-setup
 doc-setup:

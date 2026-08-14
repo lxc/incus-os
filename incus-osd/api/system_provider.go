@@ -12,6 +12,8 @@ type SystemProviderState struct {
 }
 
 // SystemProvider defines a struct to hold information about the system's update and configuration provider.
+//
+// swagger:model
 type SystemProvider struct {
 	Config SystemProviderConfig `json:"config" yaml:"config"`
 	State  SystemProviderState  `json:"state"  yaml:"state"`

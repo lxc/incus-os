@@ -40,9 +40,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
-//	          description: State and configuration for the system update
-//	          example: {"config":{"auto_reboot":false,"channel":"stable","check_frequency":"6h"},"state":{"last_check":"2025-11-04T16:21:34.929524792Z","status":"Update check completed","needs_reboot":false}}
+//	          $ref: "#/definitions/SystemUpdate"
 
 // swagger:operation PUT /1.0/system/update system system_put_update
 //
@@ -61,12 +59,7 @@ import (
 //	    description: Update configuration
 //	    required: true
 //	    schema:
-//	      type: object
-//	      properties:
-//	        config:
-//	          type: object
-//	          description: The update configuration
-//	          example: {"auto_reboot":false,"channel":"testing","check_frequency":"1d"}
+//	      $ref: "#/definitions/SystemUpdate"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"

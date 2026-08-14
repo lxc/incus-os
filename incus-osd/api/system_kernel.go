@@ -61,6 +61,8 @@ type SystemKernelStateMemoryZramSwap struct {
 }
 
 // SystemKernel defines a struct to hold information about the system's kernel-level configuration.
+//
+// swagger:model
 type SystemKernel struct {
 	Config SystemKernelConfig `json:"config" yaml:"config"`
 	State  SystemKernelState  `incusos:"-"   json:"state"  yaml:"state"`

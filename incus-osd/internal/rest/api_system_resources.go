@@ -37,7 +37,7 @@ import (
 //	          description: Status code
 //	          example: 200
 //	        metadata:
-//	          type: json
+//	          type: object
 //	          description: Low-level details about system resources
 //	          example: {"cpu":{"architecture":"x86_64","sockets":[{"name":"AMD Ryzen Threadripper PRO 7965WX 24-Cores","vendor":"AuthenticAMD","socket":0,"cache":[{"level":1,"type":"Data","size":65536},{"level":1,"type":"Instruction","size":65536},{"level":2,"type":"Unified","size":524288},{"level":3,"type":"Unified","size":16777216}],"cores":[{"core":0,"die":0,"threads":[{"id":0,"numa_node":0,"thread":0,"online":true,"isolated":false}]}]}]}}
 //	  "500":
