@@ -35,6 +35,15 @@ You can get the relevant values either from the Hetzner portal or by
 querying them from the rescue environment with `ip link`, `ip -4 a` and
 `ip -4 r` (add `ip -6 a` and `ip -6 r` if setting up IPv6 too).
 
+```{note}
+Hetzner commonly performs MAC address filtering on its network, flagging
+any traffic coming from a MAC address that isn't registered to the server.
+
+You should therefore set `strict_hwaddr: true` on the network interface,
+causing IncusOS to filter outgoing traffic and ensure that only the
+server's registered MAC address is ever visible on Hetzner's network.
+```
+
 ![IncusOS image](../../images/hetzner-image.jpg)
 
 ## Write the image to disk
