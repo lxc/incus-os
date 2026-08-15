@@ -246,6 +246,7 @@ func (s *Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Reque
 //	Wipes all data from the specified drive. Existing data on the drive will be opportunistically wiped
 //	via `blkdiscard` unless "secure_wipe" is true, which will guarantee all data is erased. On large
 //	spinning drives that don't support `blkdiscard`, securely wiping the drive may take a very long time.
+//	The request remains pending until the wipe has completed.
 //
 //	---
 //	consumes:
@@ -266,7 +267,7 @@ func (s *Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Reque
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request) { //nolint:dupl
+func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -291,6 +292,16 @@ func (s *Server) apiSystemStorageWipeDrive(w http.ResponseWriter, r *http.Reques
 		_ = response.BadRequest(errors.New("no drive specified")).Render(w)
 
 		return
+	}
+
+	// Send the response headers right away to avoid client timeouts during long wipes.
+	// Errors are then reported through the error code in the response body.
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if ok {
+		flusher.Flush()
 	}
 
 	err = storage.WipeDrive(r.Context(), wipeStruct.ID, wipeStruct.SecureWipe)

@@ -19,6 +19,7 @@ Description=Open Virtual Network host control daemon
 
 [Service]
 ExecStart=/usr/bin/ovn-controller --private-key=/run/ovn/client.key --certificate=/run/ovn/client.crt --ca-cert=/run/ovn/ca.crt unix:/run/openvswitch/db.sock
+ExecStop=-/usr/bin/ovn-appctl -t ovn-controller exit --restart
 Restart=on-failure
 `
 
@@ -28,6 +29,7 @@ Description=Open Virtual Network host control daemon
 
 [Service]
 ExecStart=/usr/bin/ovn-controller unix:/run/openvswitch/db.sock
+ExecStop=-/usr/bin/ovn-appctl -t ovn-controller exit --restart
 Restart=on-failure
 `
 
