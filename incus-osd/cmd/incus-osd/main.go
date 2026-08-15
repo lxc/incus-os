@@ -738,6 +738,25 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
+	// Apply the services seed configuration (if present) on first boot.
+	if !s.ServicesSeedApplied {
+		servicesSeed, err := seed.GetServices(ctx)
+		if err != nil && !seed.IsMissing(err) {
+			return errors.New("unable to parse services seed: " + err.Error())
+		}
+
+		if servicesSeed != nil {
+			services.ApplySeed(ctx, s, servicesSeed)
+		}
+
+		s.ServicesSeedApplied = true
+
+		err = s.Save()
+		if err != nil {
+			return err
+		}
+	}
+
 	// Run services startup actions. This must be done before bringing up any storage pools.
 	for _, srvName := range services.Supported(s) {
 		srv, err := services.Load(ctx, s, srvName)

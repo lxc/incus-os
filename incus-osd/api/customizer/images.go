@@ -25,6 +25,7 @@ type ImagesPostSeeds struct {
 	Network          *apiseed.Network          `json:"network"           yaml:"network"`
 	OperationsCenter *apiseed.OperationsCenter `json:"operations-center" yaml:"operations-center"` //nolint:tagliatelle
 	Provider         *apiseed.Provider         `json:"provider"          yaml:"provider"`
+	Services         *apiseed.Services         `json:"services"          yaml:"services"`
 	Update           *apiseed.Update           `json:"update"            yaml:"update"`
 }
 
