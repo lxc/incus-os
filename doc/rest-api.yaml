@@ -3148,6 +3148,7 @@ paths:
                 Wipes all data from the specified drive. Existing data on the drive will be opportunistically wiped
                 via `blkdiscard` unless "secure_wipe" is true, which will guarantee all data is erased. On large
                 spinning drives that don't support `blkdiscard`, securely wiping the drive may take a very long time.
+                The request remains pending until the wipe has completed.
             operationId: system_post_storage_wipe_drive
             parameters:
                 - description: The drive to be wiped
