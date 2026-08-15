@@ -1126,6 +1126,11 @@ func IsBMC(entry BlockDevices) bool {
 		return true
 	}
 
+	if strings.HasPrefix(entry.ID, "usb-Generic-_SD_MMC_CRW") {
+		// Virtual BMC devices on HP servers.
+		return true
+	}
+
 	if strings.HasPrefix(entry.ID, "usb-Cisco_") {
 		// Virtual BMC devices on Cisco servers.
 		return true
