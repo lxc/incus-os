@@ -97,6 +97,10 @@ type SystemNetworkEthernet struct {
 	DisableGSO             bool     `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
 	DisableIPv4TSO         bool     `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
 	DisableIPv6TSO         bool     `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
+	RxBufferSize           string   `json:"rx_buffer_size,omitempty"           yaml:"rx_buffer_size,omitempty"`
+	RxJumboBufferSize      string   `json:"rx_jumbo_buffer_size,omitempty"     yaml:"rx_jumbo_buffer_size,omitempty"`
+	RxMiniBufferSize       string   `json:"rx_mini_buffer_size,omitempty"      yaml:"rx_mini_buffer_size,omitempty"`
+	TxBufferSize           string   `json:"tx_buffer_size,omitempty"           yaml:"tx_buffer_size,omitempty"`
 	WakeOnLAN              bool     `json:"wakeonlan,omitempty"                yaml:"wakeonlan,omitempty"`
 	WakeOnLANModes         []string `json:"wakeonlan_modes,omitempty"          yaml:"wakeonlan_modes,omitempty"`
 	WakeOnLANPassword      string   `json:"wakeonlan_password,omitempty"       yaml:"wakeonlan_password,omitempty"`
