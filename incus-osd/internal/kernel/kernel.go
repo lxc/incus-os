@@ -41,6 +41,11 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		if err != nil {
 			return err
 		}
+
+		err = ApplySRIOV(config.PCI.SRIOV)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Enable zram swap, if configured.
@@ -54,6 +59,62 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 	// Apply the CPU scaling governor, if configured.
 	if config.CPU != nil {
 		err := ApplyCPUScalingGovernor(config.CPU.ScalingGovernor)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplySRIOV creates the requested number of SR-IOV virtual functions on each configured PCI device.
+func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
+	for _, c := range config {
+		if c.VFCount < 0 {
+			return errors.New("SR-IOV virtual function count cannot be negative")
+		}
+
+		devicePath := filepath.Join("/sys/bus/pci/devices", c.PCIAddress)
+
+		_, err := os.Stat(devicePath)
+		if err != nil {
+			return fmt.Errorf("PCI device %q not found", c.PCIAddress)
+		}
+
+		// Check SR-IOV support and the maximum number of virtual functions.
+		totalVFs, err := os.ReadFile(filepath.Join(devicePath, "sriov_totalvfs"))
+		if err != nil {
+			return fmt.Errorf("PCI device %q doesn't support SR-IOV", c.PCIAddress)
+		}
+
+		maxVFs, err := strconv.Atoi(strings.TrimSpace(string(totalVFs)))
+		if err != nil {
+			return err
+		}
+
+		if c.VFCount > maxVFs {
+			return fmt.Errorf("PCI device %q supports at most %d SR-IOV virtual functions", c.PCIAddress, maxVFs)
+		}
+
+		// Check the current number of virtual functions.
+		currentVFs, err := os.ReadFile(filepath.Join(devicePath, "sriov_numvfs"))
+		if err != nil {
+			return err
+		}
+
+		if strings.TrimSpace(string(currentVFs)) == strconv.Itoa(c.VFCount) {
+			continue
+		}
+
+		// The number of virtual functions can only be changed from zero.
+		if strings.TrimSpace(string(currentVFs)) != "0" {
+			err := os.WriteFile(filepath.Join(devicePath, "sriov_numvfs"), []byte("0\n"), 0o644)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = os.WriteFile(filepath.Join(devicePath, "sriov_numvfs"), []byte(strconv.Itoa(c.VFCount)+"\n"), 0o644)
 		if err != nil {
 			return err
 		}
