@@ -37,6 +37,13 @@ type SystemKernelConfigNetwork struct {
 // SystemKernelConfigPCI holds PCI-specific kernel configuration.
 type SystemKernelConfigPCI struct {
 	Passthrough []SystemKernelConfigPCIPassthrough `json:"passthrough,omitempty" yaml:"passthrough,omitempty"`
+	SRIOV       []SystemKernelConfigPCISRIOV       `json:"sriov,omitempty"       yaml:"sriov,omitempty"`
+}
+
+// SystemKernelConfigPCISRIOV defines the number of SR-IOV virtual functions to create on a PCI device.
+type SystemKernelConfigPCISRIOV struct {
+	PCIAddress string `json:"pci_address" yaml:"pci_address"`
+	VFCount    int    `json:"vf_count"    yaml:"vf_count"`
 }
 
 // SystemKernelConfigPCIPassthrough defines a specific PCI device that should be made available for passthrough to a VM.
