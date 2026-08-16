@@ -47,6 +47,7 @@ type SystemNetworkConfig struct {
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Bridge            *SystemNetworkBridge        `json:"bridge,omitempty"              yaml:"bridge,omitempty"`
 	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr"                        yaml:"hwaddr"`
@@ -63,6 +64,7 @@ type SystemNetworkInterface struct {
 // SystemNetworkBond contains information about a network bond.
 type SystemNetworkBond struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Bridge            *SystemNetworkBridge        `json:"bridge,omitempty"              yaml:"bridge,omitempty"`
 	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
@@ -100,6 +102,12 @@ type SystemNetworkVLAN struct {
 	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
+}
+
+// SystemNetworkBridge contains configuration for the bridge that is automatically created on top of an interface or bond.
+type SystemNetworkBridge struct {
+	DisableMulticastSnooping bool `json:"disable_multicast_snooping,omitempty" yaml:"disable_multicast_snooping,omitempty"`
+	STP                      bool `json:"stp,omitempty"                        yaml:"stp,omitempty"`
 }
 
 // SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
