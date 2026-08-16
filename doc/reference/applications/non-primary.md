@@ -5,7 +5,7 @@ IncusOS uses non-primary applications to enhance the functionality of a primary 
 ```{tip}
 You can install any of the non-primary applications on an IncusOS system by running
 
-    incus admin os application add -d '{"name":"<application name>"}'
+    incus admin os application add <application name>
 ```
 
 ```{toctree}

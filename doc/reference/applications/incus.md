@@ -21,7 +21,7 @@ It is possible to switch between the stable and LTS Incus release tracks under c
 
 These limitations are due to how Incus tracks internal database schema changes. It's always possible to move forward, but rolling back to a prior schema version is not supported.
 
-IncusOS can switch the installed release of Incus, if supported, by running `incus admin os application add -d '{"name":"<desired incus application>"}'`.
+IncusOS can switch the installed release of Incus, if supported, by running `incus admin os application add <desired incus application>`.
 ```
 
 ## Default configuration
