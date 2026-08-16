@@ -1363,8 +1363,9 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) ([]networkdC
 		buf.Reset()
 
 		err := t.Execute(&buf, netdevFileVariables{
-			Type: "bridge",
-			Name: i.Name,
+			Type:   "bridge",
+			Name:   i.Name,
+			Bridge: i.Bridge,
 		})
 		if err != nil {
 			return nil, err
@@ -1439,8 +1440,9 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) ([]networkdC
 		buf.Reset()
 
 		err = t.Execute(&buf, netdevFileVariables{
-			Type: "bridge",
-			Name: b.Name,
+			Type:   "bridge",
+			Name:   b.Name,
+			Bridge: b.Bridge,
 		})
 		if err != nil {
 			return nil, err

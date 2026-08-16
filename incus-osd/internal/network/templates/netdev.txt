@@ -6,6 +6,14 @@ MACAddress={{.Hwaddr}}{{end}}
 
 {{if eq .Type "bridge"}}[Bridge]
 VLANFiltering=true
+  {{- if .Bridge}}
+    {{- if .Bridge.DisableMulticastSnooping}}
+MulticastSnooping=false
+    {{- end}}
+    {{- if .Bridge.STP}}
+STP=true
+    {{- end}}
+  {{- end}}
 {{- else if eq .Type "veth"}}[Peer]
 Name=_i{{.StrippedHwaddr}}
 {{- else if eq .Type "bond"}}[Bond]
