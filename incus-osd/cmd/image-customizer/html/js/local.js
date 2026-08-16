@@ -113,6 +113,10 @@ function download() {
             install.force_install = true;
         }
 
+        if (document.getElementById("imageForceInstallConfirmation").value != "") {
+            install.force_install_confirmation = document.getElementById("imageForceInstallConfirmation").value;
+        }
+
         if (document.getElementById("imageForceReboot").checked) {
             install.force_reboot = true;
         }

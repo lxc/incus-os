@@ -155,13 +155,22 @@
                     <div id="panelTarget" class="accordion-collapse collapse show">
                         <div class="accordion-body">
                             <div class="mb-3">
+                                <input class="form-check-input" type="checkbox" value="" id="imageForceReboot">
+                                <label class="form-check-label" for="imageForceReboot">Automatically reboot after installation</label>
+                            </div>
+
+                            <div class="mb-3">
                                 <input class="form-check-input" type="checkbox" value="" id="imageForceInstall">
                                 <label class="form-check-label" for="imageForceInstall">Wipe the target drive</label>
                             </div>
 
                             <div class="mb-3">
-                                <input class="form-check-input" type="checkbox" value="" id="imageForceReboot">
-                                <label class="form-check-label" for="imageForceReboot">Automatically reboot after installation</label>
+                                <label class="form-label" for="imageForceInstallConfirmation">
+                                    <b>Wipe confirmation code</b>
+                                    <br>
+                                    Required when wiping a drive containing an existing IncusOS installation. Must match the first six characters of the installed system's machine ID; attempting an install without it will report the expected value.
+                                </label>
+                                <input type="text" class="form-control" id="imageForceInstallConfirmation" placeholder="abc123">
                             </div>
 
                             <div>
