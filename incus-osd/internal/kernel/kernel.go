@@ -378,6 +378,10 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		return errors.New("buffer size cannot be negative")
 	}
 
+	if netConfig.NetdevMaxBacklog < 0 {
+		return errors.New("netdev max backlog cannot be negative")
+	}
+
 	if netConfig.TCPCongestionAlgorithm != "" {
 		output, err := subprocess.RunCommand("sysctl", "-n", "net.ipv4.tcp_available_congestion_control")
 		if err != nil {
@@ -428,6 +432,27 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		if err != nil {
 			return err
 		}
+	}
+
+	// Always write values so clearing the config resets to the kernel defaults.
+	backlog := netConfig.NetdevMaxBacklog
+	if backlog == 0 {
+		backlog = 1000
+	}
+
+	_, err = fmt.Fprintf(fd, "net.core.netdev_max_backlog = %d\n", backlog)
+	if err != nil {
+		return err
+	}
+
+	mtuProbing := 0
+	if netConfig.TCPMTUProbing {
+		mtuProbing = 1
+	}
+
+	_, err = fmt.Fprintf(fd, "net.ipv4.tcp_mtu_probing = %d\n", mtuProbing)
+	if err != nil {
+		return err
 	}
 
 	if netConfig.QueuingDiscipline != "" {
