@@ -11,12 +11,28 @@ Name=_i{{.StrippedHwaddr}}
 {{- else if eq .Type "bond"}}[Bond]
   {{- if .BondMode}}
 Mode={{.BondMode}}
-  {{- if eq .BondMode "802.3ad"}}
-TransmitHashPolicy=layer3+4
-LACPTransmitRate=fast
-  {{- else if eq .BondMode "active-backup"}}
-MIIMonitorSec=100ms
   {{- end}}
+  {{- with .BondOptions}}
+    {{- if .TransmitHashPolicy}}
+TransmitHashPolicy={{.TransmitHashPolicy}}
+    {{- end}}
+    {{- if .LACPRate}}
+LACPTransmitRate={{.LACPRate}}
+    {{- end}}
+    {{- if .ARPInterval}}
+ARPIntervalSec={{.ARPInterval}}ms
+      {{- if .ARPIPTargets}}
+ARPIPTargets={{range $i, $t := .ARPIPTargets}}{{if $i}} {{end}}{{$t}}{{end}}
+      {{- end}}
+    {{- else}}
+MIIMonitorSec={{.MIIMonitorInterval}}ms
+      {{- if .UpDelay}}
+UpDelaySec={{.UpDelay}}ms
+      {{- end}}
+      {{- if .DownDelay}}
+DownDelaySec={{.DownDelay}}ms
+      {{- end}}
+    {{- end}}
   {{- end}}
 {{- else if eq .Type "vlan"}}[VLAN]
 Id={{.VLANID}}

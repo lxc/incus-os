@@ -146,6 +146,36 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 		if err != nil {
 			return fmt.Errorf("bond %d %s", index, err.Error())
 		}
+
+		if bond.Options != nil {
+			err := validateBondOptions(bond.Options)
+			if err != nil {
+				return fmt.Errorf("bond %d %s", index, err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateBondOptions(options *api.SystemNetworkBondOptions) error {
+	if options.TransmitHashPolicy != "" && !slices.Contains([]string{"layer2", "layer2+3", "layer3+4", "encap2+3", "encap3+4", "vlan+srcmac"}, options.TransmitHashPolicy) {
+		return fmt.Errorf("has invalid transmit hash policy '%s'", options.TransmitHashPolicy)
+	}
+
+	if options.LACPRate != "" && !slices.Contains([]string{"slow", "fast"}, options.LACPRate) {
+		return fmt.Errorf("has invalid LACP rate '%s'", options.LACPRate)
+	}
+
+	if options.MIIMonitorInterval < 0 || options.ARPInterval < 0 || options.UpDelay < 0 || options.DownDelay < 0 {
+		return errors.New("monitoring intervals cannot be negative")
+	}
+
+	for targetIndex, target := range options.ARPIPTargets {
+		err := validateAddress(target)
+		if err != nil {
+			return fmt.Errorf("arp target %d %s", targetIndex, err.Error())
+		}
 	}
 
 	return nil

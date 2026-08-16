@@ -18,6 +18,7 @@ type netdevFileVariables struct {
 	Hwaddr         string
 	StrippedHwaddr string
 	BondMode       string
+	BondOptions    *api.SystemNetworkBondOptions
 	VLANID         int
 	WGPrivateKey   string
 	WGPort         int

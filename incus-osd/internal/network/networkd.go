@@ -1399,10 +1399,32 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) ([]networkdC
 		// Bond.
 		buf.Reset()
 
+		// Work on a copy of the options so defaults don't leak into the config.
+		options := api.SystemNetworkBondOptions{}
+		if b.Options != nil {
+			options = *b.Options
+		}
+
+		if b.Mode == "802.3ad" {
+			if options.TransmitHashPolicy == "" {
+				options.TransmitHashPolicy = "layer3+4"
+			}
+
+			if options.LACPRate == "" {
+				options.LACPRate = "fast"
+			}
+		}
+
+		// Link monitoring, defaulting to MII monitoring at 100ms unless ARP monitoring is configured.
+		if options.ARPInterval == 0 && options.MIIMonitorInterval == 0 {
+			options.MIIMonitorInterval = 100
+		}
+
 		err := t.Execute(&buf, netdevFileVariables{
-			Type:     "bond",
-			Name:     "_b" + b.Name,
-			BondMode: b.Mode,
+			Type:        "bond",
+			Name:        "_b" + b.Name,
+			BondMode:    b.Mode,
+			BondOptions: &options,
 		})
 		if err != nil {
 			return nil, err
