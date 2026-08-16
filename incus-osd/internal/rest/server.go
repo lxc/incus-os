@@ -80,6 +80,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/system/provider", s.apiSystemProvider)
 	router.HandleFunc("/1.0/system/resources", s.apiSystemResources)
 	router.HandleFunc("/1.0/system/security", s.apiSystemSecurity)
+	router.HandleFunc("/1.0/system/security/:retrieved", s.apiSystemSecurityRetrieved)
 	router.HandleFunc("/1.0/system/security/:tpm-rebind", s.apiSystemSecurityTPMRebind)
 	router.HandleFunc("/1.0/system/storage", s.apiSystemStorage)
 	router.HandleFunc("/1.0/system/storage/:cleanup-root", s.apiSystemStorageCleanupRoot)

@@ -90,9 +90,6 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		var err error
 
-		// Mark that the keys have been retrieved via the API.
-		s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
-
 		// s.state.System.Security.State.EncryptedVolumes is pre-cached, because
 		// getting the state of the LUKS volumes can be slow.
 
@@ -228,6 +225,41 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = s.state.Save()
+}
+
+// swagger:operation POST /1.0/system/security/:retrieved system system_post_security_retrieved
+//
+//	Mark encryption recovery keys as retrieved
+//
+//	Marks the encryption recovery keys as having been retrieved, clearing the warning shown on the console.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiSystemSecurityRetrieved(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	s.state.System.Security.State.EncryptionRecoveryKeysRetrieved = true
+
+	err := s.state.Save()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
 }
 
 // swagger:operation POST /1.0/system/security/:tpm-rebind system system_post_security_tpm_rebind
