@@ -918,6 +918,21 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		return strings.Compare(a.ID, b.ID)
 	})
 
+	// Get usage information for the root ("/") partition.
+	fs := unix.Statfs_t{}
+
+	err = unix.Statfs("/", &fs)
+	if err != nil {
+		return ret, err
+	}
+
+	blockSize := int(fs.Bsize)
+
+	ret.RootPartition = api.SystemStorageRootPartition{
+		SizeInBytes:      int(fs.Blocks) * blockSize, //nolint:gosec
+		AvailableInBytes: int(fs.Bavail) * blockSize, //nolint:gosec
+	}
+
 	return ret, nil
 }
 
