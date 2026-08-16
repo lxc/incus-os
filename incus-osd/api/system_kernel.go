@@ -4,9 +4,15 @@ package api
 type SystemKernelConfig struct {
 	Console          []SystemKernelConfigConsole `json:"console,omitempty"           yaml:"console,omitempty"`
 	BlacklistModules []string                    `json:"blacklist_modules,omitempty" yaml:"blacklist_modules,omitempty"`
+	CPU              *SystemKernelConfigCPU      `json:"cpu,omitempty"               yaml:"cpu,omitempty"`
 	Memory           *SystemKernelConfigMemory   `json:"memory,omitempty"            yaml:"memory,omitempty"`
 	Network          *SystemKernelConfigNetwork  `json:"network,omitempty"           yaml:"network,omitempty"`
 	PCI              *SystemKernelConfigPCI      `json:"pci,omitempty"               yaml:"pci,omitempty"`
+}
+
+// SystemKernelConfigCPU holds CPU-specific kernel configuration.
+type SystemKernelConfigCPU struct {
+	ScalingGovernor string `json:"scaling_governor,omitempty" yaml:"scaling_governor,omitempty"`
 }
 
 // SystemKernelConfigConsole holds console-specific kernel configuration.
