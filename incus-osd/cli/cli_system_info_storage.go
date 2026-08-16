@@ -22,6 +22,14 @@ func renderStorageInfo(resp *incusapi.Response) error {
 		return err
 	}
 
+	// Root partition.
+	part := storage.State.RootPartition
+
+	_, _ = fmt.Println("Root partition:")                                                               //nolint:forbidigo
+	_, _ = fmt.Printf("  Size: %s\n", units.GetByteSizeStringIEC(int64(part.SizeInBytes), 2))           //nolint:forbidigo,gosec
+	_, _ = fmt.Printf("  Available: %s\n", units.GetByteSizeStringIEC(int64(part.AvailableInBytes), 2)) //nolint:forbidigo,gosec
+	_, _ = fmt.Println("")                                                                              //nolint:forbidigo
+
 	// Drives table.
 	_, _ = fmt.Println("Drives:") //nolint:forbidigo
 
