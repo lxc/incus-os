@@ -266,6 +266,8 @@ type cmdGenericRun struct {
 	hasFileInput  bool
 	hasFileOutput bool
 	extraArgs     []cmdGenericRunArgs
+	dataArgs      []string
+	dataFunc      func(args []string) (any, error)
 
 	flagData  string
 	flagForce bool
@@ -292,6 +294,16 @@ func (c *cmdGenericRun) command() *cobra.Command {
 
 	if c.entity != "" {
 		usage += "<" + c.entity + ">"
+	}
+
+	if len(c.dataArgs) > 0 {
+		dataUsage := "<" + strings.Join(c.dataArgs, "> <") + ">"
+
+		if c.entity == "" {
+			usage += dataUsage
+		} else {
+			usage += " " + dataUsage
+		}
 	}
 
 	if c.hasFileOutput || c.hasFileInput {
@@ -338,6 +350,16 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 
 	if c.entity != "" || c.os.args.SupportsRemote {
 		maxArgs++
+	}
+
+	if len(c.dataArgs) > 0 {
+		minArgs += len(c.dataArgs)
+		maxArgs += len(c.dataArgs)
+
+		// Any remote is part of the first data argument.
+		if c.entity == "" && c.os.args.SupportsRemote {
+			maxArgs--
+		}
 	}
 
 	if c.hasFileOutput || c.hasFileInput {
@@ -414,6 +436,26 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 		if c.flagData != "" {
 			inData = c.flagData
 		}
+	}
+
+	// Build the data from the positional arguments.
+	if c.dataFunc != nil {
+		dataValues := slices.Clone(args)
+		if c.entity == "" && len(dataValues) > 0 {
+			dataValues[0] = resource
+		}
+
+		data, err := c.dataFunc(dataValues)
+		if err != nil {
+			return err
+		}
+
+		body, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		inData = string(body)
 	}
 
 	// Set source file.
