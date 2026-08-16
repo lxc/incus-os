@@ -116,6 +116,40 @@ order to boot.
 ![HP - Secure Boot](../../images/hp-secureboot.png)
 ```
 
+```{group-tab} Huawei
+Huawei and xFusion servers (tested on the xFusion V7 generation) use a
+BYOSOFT based firmware with a full Secure Boot configuration.
+
+Those servers don't appear to rely on additional Secure Boot keys in
+order to boot and the preexisting PK can be kept in place, so only the
+IncusOS KEK and DB keys need to be enrolled.
+
+In the firmware front page, select "Administer Secure Boot", then set
+"Secure Boot Mode" to "Custom Mode" and enter "Custom Secure Boot
+Options".
+
+![Huawei - Secure Boot](../../images/huawei-secureboot.png)
+![Huawei - Key overview](../../images/huawei-key-overview.png)
+
+In "KEK Options", select "Enroll KEK" then "Enroll KEK using File",
+navigate to the install media ESP partition and select
+`secureboot-KEK-R1.der` from the `keys` folder, then select "Commit
+Changes and Exit".
+
+![Huawei - Enroll KEK](../../images/huawei-key-kek.png)
+![Huawei - KEK file](../../images/huawei-key-kek-file.png)
+![Huawei - Commit changes](../../images/huawei-key-commit.png)
+
+In "DB Options", select "Enroll Signature" then "Enroll Signature Using
+File" and enroll both DB keys from the same `keys` folder, selecting
+"Commit Changes and Exit" after each enrollment.
+
+![Huawei - Enroll DB](../../images/huawei-key-db.png)
+
+When booting the install media, a "UEFI Secure Boot Verify Success"
+message confirms the keys were correctly enrolled.
+```
+
 ```{group-tab} Lenovo
 Lenovo servers use a modified version of AMI Aptio for their firmware.
 

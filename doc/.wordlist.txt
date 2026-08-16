@@ -6,6 +6,7 @@ Asus
 authenticode
 backend
 BMC
+BYOSOFT
 CAs
 CDN
 CDROM
@@ -48,6 +49,7 @@ Hetzner's
 homelab
 hotfix
 HP
+Huawei
 HTTPS
 hugepages
 iKVM
@@ -159,6 +161,7 @@ vSphere
 WireGuard
 WWN
 Xeon
+xFusion
 YAML
 Zabbly
 ZFS
