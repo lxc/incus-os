@@ -71,10 +71,22 @@ type SystemNetworkBond struct {
 	Mode              string                      `json:"mode"                          yaml:"mode"`
 	MTU               int                         `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	Name              string                      `json:"name"                          yaml:"name"`
+	Options           *SystemNetworkBondOptions   `json:"options,omitempty"             yaml:"options,omitempty"`
 	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
 	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+}
+
+// SystemNetworkBondOptions contains link monitoring and tuning options for a network bond.
+type SystemNetworkBondOptions struct {
+	ARPInterval        int      `json:"arp_interval,omitempty"         yaml:"arp_interval,omitempty"`
+	ARPIPTargets       []string `json:"arp_ip_targets,omitempty"       yaml:"arp_ip_targets,omitempty"`
+	DownDelay          int      `json:"down_delay,omitempty"           yaml:"down_delay,omitempty"`
+	LACPRate           string   `json:"lacp_rate,omitempty"            yaml:"lacp_rate,omitempty"`
+	MIIMonitorInterval int      `json:"mii_monitor_interval,omitempty" yaml:"mii_monitor_interval,omitempty"`
+	TransmitHashPolicy string   `json:"transmit_hash_policy,omitempty" yaml:"transmit_hash_policy,omitempty"`
+	UpDelay            int      `json:"up_delay,omitempty"             yaml:"up_delay,omitempty"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.
