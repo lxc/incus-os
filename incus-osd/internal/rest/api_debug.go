@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v7/shared/subprocess"
 
+	"github.com/lxc/incus-os/incus-osd/internal/kernel"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
@@ -68,12 +69,63 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"log", "processes", ":run-script", "secureboot"} {
+	for _, debug := range []string{"kernel", "log", "processes", ":run-script", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}
 
 	_ = response.SyncResponse(true, urls).Render(w)
+}
+
+// swagger:operation GET /1.0/debug/kernel debug debug_get_kernel
+//
+//	Get kernel debug information
+//
+//	Return kernel debug information (kernel version, architecture, CPU details and module list).
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    description: Kernel debug information
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          $ref: "#/definitions/DebugKernel"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiDebugKernel(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	info, err := kernel.GetDebugInfo(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, info).Render(w)
 }
 
 // swagger:operation GET /1.0/debug/log debug debug_get_log

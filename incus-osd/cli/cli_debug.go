@@ -21,6 +21,10 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	cmd.Short = "Debug IncusOS systems"
 	cmd.Long = cli.FormatSection("Description", "Debug IncusOS systems")
 
+	// Kernel.
+	kernelCmd := cmdAdminOSDebugKernel{os: c.os}
+	cmd.AddCommand(kernelCmd.command())
+
 	// Log.
 	logCmd := cmdAdminOSDebugLog{os: c.os}
 	cmd.AddCommand(logCmd.command())

@@ -12,6 +12,41 @@ definitions:
         title: ApplicationAction defines a generic struct that can be used when triggering an application-specific action.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugKernel:
+        properties:
+            architecture:
+                type: string
+                x-go-name: Architecture
+            cpu_baseline:
+                type: string
+                x-go-name: CPUBaseline
+            modules:
+                items:
+                    $ref: '#/definitions/DebugKernelModule'
+                type: array
+                x-go-name: Modules
+            version:
+                type: string
+                x-go-name: Version
+        title: DebugKernel represents kernel debug information for the system.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugKernelModule:
+        properties:
+            dependencies:
+                items:
+                    type: string
+                type: array
+                x-go-name: Dependencies
+            in_use:
+                type: boolean
+                x-go-name: InUse
+            name:
+                type: string
+                x-go-name: Name
+        title: DebugKernelModule represents a loaded kernel module.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemFallbackListener:
         description: |-
             SystemFallbackListener defines a struct to configure the fallback HTTPS listener that will
@@ -1891,6 +1926,38 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Run a signed debug script
+            tags:
+                - debug
+    /1.0/debug/kernel:
+        get:
+            description: Return kernel debug information (kernel version, architecture, CPU details and module list).
+            operationId: debug_get_kernel
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Kernel debug information
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/DebugKernel'
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get kernel debug information
             tags:
                 - debug
     /1.0/debug/log:
