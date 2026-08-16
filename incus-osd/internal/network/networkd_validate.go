@@ -7,6 +7,7 @@ import (
 	"net"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -503,6 +504,23 @@ func validateEthernet(eth *api.SystemNetworkEthernet) error {
 		err := validateHwaddr(eth.WakeOnLANPassword, true)
 		if err != nil {
 			return fmt.Errorf("bad wake-on-lan password: %w", err)
+		}
+	}
+
+	// Validate ring buffer sizes (a positive integer or "max").
+	for name, value := range map[string]string{
+		"rx_buffer_size":       eth.RxBufferSize,
+		"rx_jumbo_buffer_size": eth.RxJumboBufferSize,
+		"rx_mini_buffer_size":  eth.RxMiniBufferSize,
+		"tx_buffer_size":       eth.TxBufferSize,
+	} {
+		if value == "" || value == "max" {
+			continue
+		}
+
+		size, err := strconv.Atoi(value)
+		if err != nil || size <= 0 {
+			return fmt.Errorf("bad %s %q: must be a positive integer or \"max\"", name, value)
 		}
 	}
 
