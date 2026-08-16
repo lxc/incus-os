@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -45,6 +46,50 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 	// Enable zram swap, if configured.
 	if config.Memory != nil {
 		err := EnableZramSwap(ctx, config.Memory.ZramSwapSize)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the CPU scaling governor, if configured.
+	if config.CPU != nil {
+		err := ApplyCPUScalingGovernor(config.CPU.ScalingGovernor)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplyCPUScalingGovernor sets the provided scaling governor on all CPUs.
+func ApplyCPUScalingGovernor(governor string) error {
+	if governor == "" {
+		return nil
+	}
+
+	// Validate the governor against those known to the kernel.
+	available, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("CPU frequency scaling isn't available on this system")
+		}
+
+		return err
+	}
+
+	if !slices.Contains(strings.Fields(string(available)), governor) {
+		return fmt.Errorf("unsupported scaling governor, must be one of %v", strings.Fields(string(available)))
+	}
+
+	// Apply the governor to every CPU.
+	entries, err := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		err := os.WriteFile(entry, []byte(governor+"\n"), 0o644)
 		if err != nil {
 			return err
 		}
