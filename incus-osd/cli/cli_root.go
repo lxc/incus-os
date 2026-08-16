@@ -29,6 +29,10 @@ func (c *cmdAdminOS) command() *cobra.Command {
 	debugCmd := cmdAdminOSDebug{os: c}
 	cmd.AddCommand(debugCmd.command())
 
+	// Info.
+	infoCmd := cmdAdminOSInfo{os: c}
+	cmd.AddCommand(infoCmd.command())
+
 	// Services.
 	serviceCmd := cmdAdminOSService{os: c}
 	cmd.AddCommand(serviceCmd.command())
