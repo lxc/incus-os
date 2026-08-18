@@ -271,26 +271,37 @@ func CheckMinimumDiskSpace(ctx context.Context, path string) error {
 	if freeSpace < 1.0 {
 		slog.ErrorContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in "+path+", attempting emergency disk cleanup", freeSpace))
 
-		// Clear old journal entries.
-		_, err = subprocess.RunCommandContext(ctx, "journalctl", "--vacuum-files=1")
+		err = CleanupRootPartition(ctx)
 		if err != nil {
 			return err
-		}
-
-		// Clear anything in /var/cache/.
-		cacheEntries, err := os.ReadDir("/var/cache/")
-		if err != nil {
-			return err
-		}
-
-		for _, entry := range cacheEntries {
-			err := os.RemoveAll(filepath.Join("/var/cache", entry.Name()))
-			if err != nil {
-				return err
-			}
 		}
 	} else if freeSpace < 5.0 {
 		slog.WarnContext(ctx, fmt.Sprintf("Only %.02fGiB free space available in "+path, freeSpace))
+	}
+
+	return nil
+}
+
+// CleanupRootPartition attempts to free up space on the root partition by
+// clearing old journal entries and cached files.
+func CleanupRootPartition(ctx context.Context) error {
+	// Clear old journal entries.
+	_, err := subprocess.RunCommandContext(ctx, "journalctl", "--vacuum-files=1")
+	if err != nil {
+		return err
+	}
+
+	// Clear anything in /var/cache/.
+	cacheEntries, err := os.ReadDir("/var/cache/")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range cacheEntries {
+		err := os.RemoveAll(filepath.Join("/var/cache", entry.Name()))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
