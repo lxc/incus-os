@@ -10,8 +10,15 @@ type SystemStorageConfig struct {
 
 // SystemStorageState represents additional state for the system's local storage.
 type SystemStorageState struct {
-	Drives []SystemStorageDrive `json:"drives" yaml:"drives"`
-	Pools  []SystemStoragePool  `json:"pools"  yaml:"pools"`
+	Drives        []SystemStorageDrive       `json:"drives"         yaml:"drives"`
+	Pools         []SystemStoragePool        `json:"pools"          yaml:"pools"`
+	RootPartition SystemStorageRootPartition `json:"root_partition" yaml:"root_partition"`
+}
+
+// SystemStorageRootPartition defines a struct that holds usage information about the root ("/") partition.
+type SystemStorageRootPartition struct {
+	SizeInBytes      int `json:"size_in_bytes"      yaml:"size_in_bytes"`
+	AvailableInBytes int `json:"available_in_bytes" yaml:"available_in_bytes"`
 }
 
 // SystemStorage defines a struct to hold information about the system's local storage.

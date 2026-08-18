@@ -174,6 +174,14 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			isWritable:  true,
 			info:        systemInfoStorageCommand,
 			extraCommands: func() []*cobra.Command {
+				// Clean up the root partition.
+				cleanupRootCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "cleanup-root",
+					description: "Clean up the root partition",
+					endpoint:    "system/storage",
+				}
+
 				// Create storage volume.
 				createVolumeCmd := cmdGenericRun{
 					os:          c.os,
@@ -254,7 +262,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					hasData:     true,
 				}
 
-				return []*cobra.Command{createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
+				return []*cobra.Command{cleanupRootCmd.command(), createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
 			},
 		},
 		{

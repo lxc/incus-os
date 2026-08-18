@@ -549,12 +549,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	// Enable zram-backed swap, if configured.
-	if s.System.Kernel.Config.Memory != nil {
-		err = kernel.EnableZramSwap(ctx, s.System.Kernel.Config.Memory.ZramSwapSize)
-		if err != nil {
-			slog.WarnContext(ctx, "Unable to activate zram-backed sawp: "+err.Error())
-		}
+	// Apply the kernel configuration (sysctls, zram swap, CPU governor, SR-IOV, ...).
+	err = kernel.ApplyKernelConfiguration(ctx, s.System.Kernel.Config)
+	if err != nil {
+		slog.WarnContext(ctx, "Unable to apply kernel configuration: "+err.Error())
 	}
 
 	// Remove an accidental install of the incus-lts-7.0 application. This only affected

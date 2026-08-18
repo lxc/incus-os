@@ -4,9 +4,15 @@ package api
 type SystemKernelConfig struct {
 	Console          []SystemKernelConfigConsole `json:"console,omitempty"           yaml:"console,omitempty"`
 	BlacklistModules []string                    `json:"blacklist_modules,omitempty" yaml:"blacklist_modules,omitempty"`
+	CPU              *SystemKernelConfigCPU      `json:"cpu,omitempty"               yaml:"cpu,omitempty"`
 	Memory           *SystemKernelConfigMemory   `json:"memory,omitempty"            yaml:"memory,omitempty"`
 	Network          *SystemKernelConfigNetwork  `json:"network,omitempty"           yaml:"network,omitempty"`
 	PCI              *SystemKernelConfigPCI      `json:"pci,omitempty"               yaml:"pci,omitempty"`
+}
+
+// SystemKernelConfigCPU holds CPU-specific kernel configuration.
+type SystemKernelConfigCPU struct {
+	ScalingGovernor string `json:"scaling_governor,omitempty" yaml:"scaling_governor,omitempty"`
 }
 
 // SystemKernelConfigConsole holds console-specific kernel configuration.
@@ -24,13 +30,22 @@ type SystemKernelConfigMemory struct {
 // SystemKernelConfigNetwork holds network-specific kernel configuration.
 type SystemKernelConfigNetwork struct {
 	BufferSize             int    `json:"buffer_size,omitempty"              yaml:"buffer_size,omitempty"`
+	NetdevMaxBacklog       int    `json:"netdev_max_backlog,omitempty"       yaml:"netdev_max_backlog,omitempty"`
 	QueuingDiscipline      string `json:"queuing_discipline,omitempty"       yaml:"queuing_discipline,omitempty"`
 	TCPCongestionAlgorithm string `json:"tcp_congestion_algorithm,omitempty" yaml:"tcp_congestion_algorithm,omitempty"`
+	TCPMTUProbing          bool   `json:"tcp_mtu_probing,omitempty"          yaml:"tcp_mtu_probing,omitempty"`
 }
 
 // SystemKernelConfigPCI holds PCI-specific kernel configuration.
 type SystemKernelConfigPCI struct {
 	Passthrough []SystemKernelConfigPCIPassthrough `json:"passthrough,omitempty" yaml:"passthrough,omitempty"`
+	SRIOV       []SystemKernelConfigPCISRIOV       `json:"sriov,omitempty"       yaml:"sriov,omitempty"`
+}
+
+// SystemKernelConfigPCISRIOV defines the number of SR-IOV virtual functions to create on a PCI device.
+type SystemKernelConfigPCISRIOV struct {
+	PCIAddress string `json:"pci_address" yaml:"pci_address"`
+	VFCount    int    `json:"vf_count"    yaml:"vf_count"`
 }
 
 // SystemKernelConfigPCIPassthrough defines a specific PCI device that should be made available for passthrough to a VM.

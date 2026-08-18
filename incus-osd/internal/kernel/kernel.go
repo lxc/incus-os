@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -40,11 +41,116 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		if err != nil {
 			return err
 		}
+
+		err = ApplySRIOV(config.PCI.SRIOV)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Enable zram swap, if configured.
 	if config.Memory != nil {
 		err := EnableZramSwap(ctx, config.Memory.ZramSwapSize)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the CPU scaling governor, if configured.
+	if config.CPU != nil {
+		err := ApplyCPUScalingGovernor(config.CPU.ScalingGovernor)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplySRIOV creates the requested number of SR-IOV virtual functions on each configured PCI device.
+func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
+	for _, c := range config {
+		if c.VFCount < 0 {
+			return errors.New("SR-IOV virtual function count cannot be negative")
+		}
+
+		devicePath := filepath.Join("/sys/bus/pci/devices", c.PCIAddress)
+
+		_, err := os.Stat(devicePath)
+		if err != nil {
+			return fmt.Errorf("PCI device %q not found", c.PCIAddress)
+		}
+
+		// Check SR-IOV support and the maximum number of virtual functions.
+		totalVFs, err := os.ReadFile(filepath.Join(devicePath, "sriov_totalvfs"))
+		if err != nil {
+			return fmt.Errorf("PCI device %q doesn't support SR-IOV", c.PCIAddress)
+		}
+
+		maxVFs, err := strconv.Atoi(strings.TrimSpace(string(totalVFs)))
+		if err != nil {
+			return err
+		}
+
+		if c.VFCount > maxVFs {
+			return fmt.Errorf("PCI device %q supports at most %d SR-IOV virtual functions", c.PCIAddress, maxVFs)
+		}
+
+		// Check the current number of virtual functions.
+		currentVFs, err := os.ReadFile(filepath.Join(devicePath, "sriov_numvfs"))
+		if err != nil {
+			return err
+		}
+
+		if strings.TrimSpace(string(currentVFs)) == strconv.Itoa(c.VFCount) {
+			continue
+		}
+
+		// The number of virtual functions can only be changed from zero.
+		if strings.TrimSpace(string(currentVFs)) != "0" {
+			err := os.WriteFile(filepath.Join(devicePath, "sriov_numvfs"), []byte("0\n"), 0o644)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = os.WriteFile(filepath.Join(devicePath, "sriov_numvfs"), []byte(strconv.Itoa(c.VFCount)+"\n"), 0o644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplyCPUScalingGovernor sets the provided scaling governor on all CPUs.
+func ApplyCPUScalingGovernor(governor string) error {
+	if governor == "" {
+		return nil
+	}
+
+	// Validate the governor against those known to the kernel.
+	available, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return errors.New("CPU frequency scaling isn't available on this system")
+		}
+
+		return err
+	}
+
+	if !slices.Contains(strings.Fields(string(available)), governor) {
+		return fmt.Errorf("unsupported scaling governor, must be one of %v", strings.Fields(string(available)))
+	}
+
+	// Apply the governor to every CPU.
+	entries, err := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		err := os.WriteFile(entry, []byte(governor+"\n"), 0o644)
 		if err != nil {
 			return err
 		}
@@ -272,6 +378,10 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		return errors.New("buffer size cannot be negative")
 	}
 
+	if netConfig.NetdevMaxBacklog < 0 {
+		return errors.New("netdev max backlog cannot be negative")
+	}
+
 	if netConfig.TCPCongestionAlgorithm != "" {
 		output, err := subprocess.RunCommand("sysctl", "-n", "net.ipv4.tcp_available_congestion_control")
 		if err != nil {
@@ -322,6 +432,27 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		if err != nil {
 			return err
 		}
+	}
+
+	// Always write values so clearing the config resets to the kernel defaults.
+	backlog := netConfig.NetdevMaxBacklog
+	if backlog == 0 {
+		backlog = 1000
+	}
+
+	_, err = fmt.Fprintf(fd, "net.core.netdev_max_backlog = %d\n", backlog)
+	if err != nil {
+		return err
+	}
+
+	mtuProbing := 0
+	if netConfig.TCPMTUProbing {
+		mtuProbing = 1
+	}
+
+	_, err = fmt.Fprintf(fd, "net.ipv4.tcp_mtu_probing = %d\n", mtuProbing)
+	if err != nil {
+		return err
 	}
 
 	if netConfig.QueuingDiscipline != "" {
