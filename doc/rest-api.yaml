@@ -101,6 +101,8 @@ definitions:
                     $ref: '#/definitions/SystemKernelConfigConsole'
                 type: array
                 x-go-name: Console
+            cpu:
+                $ref: '#/definitions/SystemKernelConfigCPU'
             memory:
                 $ref: '#/definitions/SystemKernelConfigMemory'
             network:
@@ -108,6 +110,14 @@ definitions:
             pci:
                 $ref: '#/definitions/SystemKernelConfigPCI'
         title: SystemKernelConfig holds the kernel-level configuration data.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemKernelConfigCPU:
+        properties:
+            scaling_governor:
+                type: string
+                x-go-name: ScalingGovernor
+        title: SystemKernelConfigCPU holds CPU-specific kernel configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelConfigConsole:
@@ -140,12 +150,19 @@ definitions:
                 format: int64
                 type: integer
                 x-go-name: BufferSize
+            netdev_max_backlog:
+                format: int64
+                type: integer
+                x-go-name: NetdevMaxBacklog
             queuing_discipline:
                 type: string
                 x-go-name: QueuingDiscipline
             tcp_congestion_algorithm:
                 type: string
                 x-go-name: TCPCongestionAlgorithm
+            tcp_mtu_probing:
+                type: boolean
+                x-go-name: TCPMTUProbing
         title: SystemKernelConfigNetwork holds network-specific kernel configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -156,6 +173,11 @@ definitions:
                     $ref: '#/definitions/SystemKernelConfigPCIPassthrough'
                 type: array
                 x-go-name: Passthrough
+            sriov:
+                items:
+                    $ref: '#/definitions/SystemKernelConfigPCISRIOV'
+                type: array
+                x-go-name: SRIOV
         title: SystemKernelConfigPCI holds PCI-specific kernel configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -171,6 +193,18 @@ definitions:
                 type: string
                 x-go-name: VendorID
         title: SystemKernelConfigPCIPassthrough defines a specific PCI device that should be made available for passthrough to a VM.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemKernelConfigPCISRIOV:
+        properties:
+            pci_address:
+                type: string
+                x-go-name: PCIAddress
+            vf_count:
+                format: int64
+                type: integer
+                x-go-name: VFCount
+        title: SystemKernelConfigPCISRIOV defines the number of SR-IOV virtual functions to create on a PCI device.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelState:
@@ -1246,6 +1280,19 @@ definitions:
         title: SystemStoragePoolVolume represents a single IncusOS-managed volume in a pool.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemStorageRootPartition:
+        properties:
+            available_in_bytes:
+                format: int64
+                type: integer
+                x-go-name: AvailableInBytes
+            size_in_bytes:
+                format: int64
+                type: integer
+                x-go-name: SizeInBytes
+        title: SystemStorageRootPartition defines a struct that holds usage information about the root ("/") partition.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemStorageState:
         properties:
             drives:
@@ -1258,6 +1305,8 @@ definitions:
                     $ref: '#/definitions/SystemStoragePool'
                 type: array
                 x-go-name: Pools
+            root_partition:
+                $ref: '#/definitions/SystemStorageRootPartition'
         title: SystemStorageState represents additional state for the system's local storage.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -3008,6 +3057,20 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Update system storage configuration
+            tags:
+                - system
+    /1.0/system/storage/:cleanup-root:
+        post:
+            description: Attempts to free up space on the root partition by clearing old logs and cached files.
+            operationId: system_post_storage_cleanup_root
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Clean up the root partition
             tags:
                 - system
     /1.0/system/storage/:create-volume:
