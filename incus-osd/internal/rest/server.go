@@ -82,6 +82,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/system/security", s.apiSystemSecurity)
 	router.HandleFunc("/1.0/system/security/:tpm-rebind", s.apiSystemSecurityTPMRebind)
 	router.HandleFunc("/1.0/system/storage", s.apiSystemStorage)
+	router.HandleFunc("/1.0/system/storage/:cleanup-root", s.apiSystemStorageCleanupRoot)
 	router.HandleFunc("/1.0/system/storage/:create-volume", s.apiSystemStorageCreateVolume)
 	router.HandleFunc("/1.0/system/storage/:import-encrypted-drive", s.apiSystemStorageImportEncryptedDrive)
 	router.HandleFunc("/1.0/system/storage/:encrypt-drive", s.apiSystemStorageEncryptDrive)

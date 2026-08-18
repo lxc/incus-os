@@ -832,3 +832,37 @@ func (s *Server) apiSystemStorageImportEncryptedDrive(w http.ResponseWriter, r *
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/storage/:cleanup-root system system_post_storage_cleanup_root
+//
+//	Clean up the root partition
+//
+//	Attempts to free up space on the root partition by clearing old logs and cached files.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageCleanupRoot(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Clean up the root partition.
+	err := storage.CleanupRootPartition(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
