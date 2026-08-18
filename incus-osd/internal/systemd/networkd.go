@@ -1411,9 +1411,13 @@ Name=_i%s
 		if b.Mode != "" {
 			_, _ = sbMode.WriteString("Mode=" + b.Mode)
 
-			if b.Mode == "802.3ad" {
+			switch b.Mode {
+			case "802.3ad":
 				_, _ = sbMode.WriteString("\nTransmitHashPolicy=layer3+4")
 				_, _ = sbMode.WriteString("\nLACPTransmitRate=fast")
+			case "active-backup":
+				_, _ = sbMode.WriteString("\nMIIMonitorSec=100ms")
+			default:
 			}
 		}
 
