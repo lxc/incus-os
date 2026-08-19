@@ -156,6 +156,14 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			description: "Security configuration",
 			isWritable:  true,
 			extraCommands: func() []*cobra.Command {
+				// Recovery keys retrieved.
+				retrievedCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "retrieved",
+					description: "Mark the encryption recovery keys as retrieved",
+					endpoint:    "system/security",
+				}
+
 				// TPM rebind.
 				tpmRebindCmd := cmdGenericRun{
 					os:          c.os,
@@ -165,7 +173,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					confirm:     "rebind the TPM and reboot the system",
 				}
 
-				return []*cobra.Command{tpmRebindCmd.command()}
+				return []*cobra.Command{retrievedCmd.command(), tpmRebindCmd.command()}
 			},
 		},
 		{
