@@ -35,6 +35,12 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		return err
 	}
 
+	// Update ZFS module configuration.
+	err = updateZFSConfig(config.ZFS)
+	if err != nil {
+		return err
+	}
+
 	// Update the list of PCI(e) pass-throughs.
 	if config.PCI != nil {
 		err := updatePCIPassthroughs(config.PCI.Passthrough)
@@ -354,6 +360,37 @@ func updateBlacklistModules(modules []string) error {
 
 		// Ignore any errors encountered attempting to unload the module.
 		_, _ = subprocess.RunCommand("/sbin/rmmod", module)
+	}
+
+	return nil
+}
+
+func updateZFSConfig(config *api.SystemKernelConfigZFS) error {
+	// Initialize if nil.
+	if config == nil {
+		config = &api.SystemKernelConfigZFS{}
+	}
+
+	// Parse the requested ARC size limit.
+	arcMax := int64(0)
+
+	if config.ARCMaxSize != "" {
+		var err error
+
+		arcMax, err = units.ParseByteSizeString(config.ARCMaxSize)
+		if err != nil {
+			return err
+		}
+
+		if arcMax < 0 {
+			return errors.New("ZFS ARC max size cannot be negative")
+		}
+	}
+
+	// Apply to the running module (a value of 0 resets to the ZFS default).
+	err := os.WriteFile("/sys/module/zfs/parameters/zfs_arc_max", fmt.Appendf(nil, "%d\n", arcMax), 0o644)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
 	return nil
