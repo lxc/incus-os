@@ -1044,20 +1044,15 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 	}
 
 	// Generate systemd-timesyncd configuration if any timeservers are defined.
-	ntpCfg := ""
-	if networkCfg.Time != nil {
-		ntpCfg = generateTimesyncContents(*networkCfg.Time)
+	if networkCfg.Time != nil && len(networkCfg.Time.NTPServers) > 0 {
+		ntpCfg := "[Time]\nFallbackNTP=" + strings.Join(networkCfg.Time.NTPServers, " ") + "\n"
 
-		if ntpCfg != "" {
-			err := os.WriteFile(systemd.SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
-			if err != nil {
-				return err
-			}
+		err := os.WriteFile(systemd.SystemdTimesyncConfigFile, []byte(ntpCfg), 0o644)
+		if err != nil {
+			return err
 		}
-	}
-
-	// If there's no NTP configuration, remove the old config file that might exist.
-	if networkCfg.Time == nil || ntpCfg == "" {
+	} else {
+		// If there's no NTP configuration, remove any old config file that might exist.
 		_ = os.Remove(systemd.SystemdTimesyncConfigFile)
 	}
 
@@ -1809,14 +1804,6 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 	}
 
 	return ret, nil
-}
-
-func generateTimesyncContents(timeCfg api.SystemNetworkTime) string {
-	if len(timeCfg.NTPServers) == 0 {
-		return ""
-	}
-
-	return "[Time]\nFallbackNTP=" + strings.Join(timeCfg.NTPServers, " ") + "\n"
 }
 
 func getVLANTags(devName string, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) []int {
