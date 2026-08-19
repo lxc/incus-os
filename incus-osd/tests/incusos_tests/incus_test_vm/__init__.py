@@ -164,7 +164,7 @@ class IncusTestVM:
         else:
             if self.vm_ip is None:
                 result = subprocess.run(["incus", "list", self.vm_name, "--columns", "4", "--format", "csv"], capture_output=True, check=True)
-                match = re.search(r"(\d+\.\d+\.\d+\.\d+) \(_venp5s0\)", str(result.stdout))
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+) \(_v(enp5s|bond)0\)", str(result.stdout))
                 if match is None:
                     raise IncusOSException("failed to get IP address for VM")
 
