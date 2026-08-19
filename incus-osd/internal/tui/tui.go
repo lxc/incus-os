@@ -321,6 +321,10 @@ func (t *TUI) redrawScreen() {
 			t.frame.AddText("WARNING: Degraded security state: incus-agent has been fully enabled", true, tview.AlignCenter, tcell.ColorRed)
 		}
 
+		if t.state.System.Update.State.NeedsReboot {
+			t.frame.AddText("A system reboot is required to finalize a pending update", true, tview.AlignCenter, tcell.ColorYellow)
+		}
+
 		// Get list of applications from state.
 		apps, err := applications.GetInstalled(context.Background(), t.state)
 		if err != nil {
