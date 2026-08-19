@@ -10,4 +10,4 @@ The following configuration options can be set:
 
 * `enabled`: If `true`, enable the Multipath service.
 
-* `wwns`: An array of storage device {abbr}`WWN (World Wide Name)`s to configure for multipath. These should be lowercase hexadecimal strings with no colon separators and are typically prefixed with a `3`. The correct format is seen in the output of `incus admin os system storage show` under the `id` field, for example `/dev/disk/by-id/scsi-<wwn>`.
+* `wwns`: An array of storage device {abbr}`WWN (World Wide Name)`s to configure for multipath. These should be lowercase hexadecimal strings with no colon separators and enclosed in single quotes, for example `'0x5abcdef123456001'`. See the available disk `WWN`s in the output of `incus admin os system storage show`.
