@@ -1,0 +1,15 @@
+[Unit]
+Description=Cleanup of the root partition
+After=initrd-fs.target
+Requires=initrd-fs.target
+Before=initrd.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/usr/bin/initrd-utils cleanup-root
+
+[Install]
+WantedBy=initrd.target
