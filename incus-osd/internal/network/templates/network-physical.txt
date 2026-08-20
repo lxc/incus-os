@@ -1,0 +1,20 @@
+[Match]
+Name=_p{{.Name}}
+
+[Link]
+MTUBytes={{.MTU}}
+
+[Network]
+LLDP={{.LLDP}}
+EmitLLDP={{.LLDP}}
+{{- if .Bond}}
+Bond=_b{{.Bond}}
+{{- end}}
+{{- if .Bridge}}
+Bridge={{.Bridge}}
+{{- end}}
+{{- range .VLANTags}}
+
+[BridgeVLAN]
+VLAN={{.}}
+{{- end}}

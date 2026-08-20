@@ -1,0 +1,43 @@
+[NetDev]
+Name={{.Name}}
+Kind={{.Type}}
+{{- if .Hwaddr}}
+MACAddress={{.Hwaddr}}{{end}}
+
+{{if eq .Type "bridge"}}[Bridge]
+VLANFiltering=true
+{{- else if eq .Type "veth"}}[Peer]
+Name=_i{{.StrippedHwaddr}}
+{{- else if eq .Type "bond"}}[Bond]
+  {{- if .BondMode}}
+Mode={{.BondMode}}
+  {{- if eq .BondMode "802.3ad"}}
+TransmitHashPolicy=layer3+4
+LACPTransmitRate=fast
+  {{- else if eq .BondMode "active-backup"}}
+MIIMonitorSec=100ms
+  {{- end}}
+  {{- end}}
+{{- else if eq .Type "vlan"}}[VLAN]
+Id={{.VLANID}}
+{{- else if eq .Type "wireguard"}}[WireGuard]
+PrivateKey={{.WGPrivateKey}}
+  {{- if .WGPort}}
+ListenPort={{.WGPort}}{{end}}
+{{range .WGPeers}}
+[WireGuardPeer]
+PublicKey={{.PublicKey}}
+    {{- range .AllowedIPs}}
+AllowedIPs={{.}}
+    {{- end}}
+    {{- if .PresharedKey}}
+PresharedKey={{.PresharedKey}}
+    {{- end}}
+    {{- if .Endpoint}}
+Endpoint={{.Endpoint}}
+    {{- end}}
+    {{- if .PersistentKeepalive}}
+PersistentKeepalive={{.PersistentKeepalive}}
+    {{- end}}
+{{end}}
+{{- end}}

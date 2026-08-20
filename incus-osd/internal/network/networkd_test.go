@@ -1,4 +1,4 @@
-package systemd
+package network
 
 import (
 	"context"
@@ -614,11 +614,11 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 3)
 	require.Equal(t, "00-_paabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nGenericSegmentationOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nGenericSegmentationOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
 	require.Equal(t, "01-_paabbccddee02.link", cfgs[1].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[1].Contents)
 	require.Equal(t, "01-_paabbccddee03.link", cfgs[2].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[2].Contents)
 
 	// Test sixth config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -629,7 +629,7 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 1)
 	require.Equal(t, "00-_paabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
 }
 
 func TestNetdevFileGeneration(t *testing.T) {
@@ -641,7 +641,8 @@ func TestNetdevFileGeneration(t *testing.T) {
 	err := yaml.Load([]byte(networkdConfig1), &networkCfg)
 	require.NoError(t, err)
 
-	cfgs := generateNetdevFileContents(networkCfg)
+	cfgs, err := generateNetdevFileContents(networkCfg)
+	require.NoError(t, err)
 	require.Len(t, cfgs, 9)
 	require.Equal(t, "10-san1.netdev", cfgs[0].Name)
 	require.Equal(t, "[NetDev]\nName=san1\nKind=bridge\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
@@ -660,21 +661,22 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "12-uplink.netdev", cfgs[7].Name)
 	require.Equal(t, "[NetDev]\nName=uplink\nKind=vlan\n\n[VLAN]\nId=1234\n", cfgs[7].Contents)
 	require.Equal(t, "13-wg0.netdev", cfgs[8].Name)
-	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=AE1SCwtkp8ruDYlUa9x9wsoTzEOePl3P9sMdFFa9PmI=\nListenPort=51820\n\n[WireGuardPeer]\nPublicKey=rJhRcAtHUldTAA/J+TPQPQpr6G9C2Arf5FiTVwjOYCE=\nAllowedIPs=10.9.0.1/32\nAllowedIPs=fd25:6c9a:6c19::1/128\nAllowedIPs=192.168.1.0/24\nEndpoint=10.102.89.87:51820\n\n\n[WireGuardPeer]\nPublicKey=qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ=\nAllowedIPs=10.9.0.3/32\nAllowedIPs=fd25:6c9a:6c19::3/128\nEndpoint=10.180.60.231:51820\n\n\n", cfgs[8].Contents)
+	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=AE1SCwtkp8ruDYlUa9x9wsoTzEOePl3P9sMdFFa9PmI=\nListenPort=51820\n\n[WireGuardPeer]\nPublicKey=rJhRcAtHUldTAA/J+TPQPQpr6G9C2Arf5FiTVwjOYCE=\nAllowedIPs=10.9.0.1/32\nAllowedIPs=fd25:6c9a:6c19::1/128\nAllowedIPs=192.168.1.0/24\nEndpoint=10.102.89.87:51820\n\n[WireGuardPeer]\nPublicKey=qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ=\nAllowedIPs=10.9.0.3/32\nAllowedIPs=fd25:6c9a:6c19::3/128\nEndpoint=10.180.60.231:51820\n\n", cfgs[8].Contents)
 
 	// Test second config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
 	err = yaml.Load([]byte(networkdConfig2), &networkCfg)
 	require.NoError(t, err)
 
-	cfgs = generateNetdevFileContents(networkCfg)
+	cfgs, err = generateNetdevFileContents(networkCfg)
+	require.NoError(t, err)
 	require.Len(t, cfgs, 3)
 	require.Equal(t, "10-management.netdev", cfgs[0].Name)
 	require.Equal(t, "[NetDev]\nName=management\nKind=bridge\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
 	require.Equal(t, "10-_vmanagement.netdev", cfgs[1].Name)
 	require.Equal(t, "[NetDev]\nName=_vmanagement\nKind=veth\nMACAddress=AA:BB:CC:DD:EE:01\n\n[Peer]\nName=_iaabbccddee01\n", cfgs[1].Contents)
 	require.Equal(t, "13-wg0.netdev", cfgs[2].Name)
-	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=\n\n\n", cfgs[2].Contents)
+	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=\n\n", cfgs[2].Contents)
 
 	// Test third config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -686,7 +688,8 @@ func TestNetdevFileGeneration(t *testing.T) {
 	err = ValidateNetworkConfiguration(&networkCfg, true)
 	require.NoError(t, err)
 
-	cfgs = generateNetdevFileContents(networkCfg)
+	cfgs, err = generateNetdevFileContents(networkCfg)
+	require.NoError(t, err)
 	require.Len(t, cfgs, 2)
 	require.Equal(t, "10-ffeeddccbbaa.netdev", cfgs[0].Name)
 	require.Equal(t, "[NetDev]\nName=ffeeddccbbaa\nKind=bridge\n\n[Bridge]\nVLANFiltering=true\n", cfgs[0].Contents)
@@ -698,7 +701,8 @@ func TestNetdevFileGeneration(t *testing.T) {
 	err = yaml.Load([]byte(networkdConfig4), &networkCfg)
 	require.NoError(t, err)
 
-	cfgs = generateNetdevFileContents(networkCfg)
+	cfgs, err = generateNetdevFileContents(networkCfg)
+	require.NoError(t, err)
 	require.Len(t, cfgs, 4)
 	require.Equal(t, "11-_buplink.netdev", cfgs[0].Name)
 	require.Equal(t, "[NetDev]\nName=_buplink\nKind=bond\n\n[Bond]\nMode=802.3ad\nTransmitHashPolicy=layer3+4\nLACPTransmitRate=fast\n", cfgs[0].Contents)
@@ -743,7 +747,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "21-_bmanagement-dev1.network", cfgs[9].Name)
 	require.Equal(t, "[Match]\nName=_paabbccddee04\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[9].Contents)
 	require.Equal(t, "21-_vmanagement.network", cfgs[10].Name)
-	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\nMTUBytes=8750\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=uplink\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n", cfgs[10].Contents)
+	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\nMTUBytes=8750\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=uplink\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n\n", cfgs[10].Contents)
 	require.Equal(t, "21-_iaabbccddee03.network", cfgs[11].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee03\n\n[Link]\nMTUBytes=9000\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[11].Contents)
 	require.Equal(t, "21-_bmanagement.network", cfgs[12].Name)
@@ -751,9 +755,9 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "21-management.network", cfgs[13].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[Link]\nMTUBytes=9000\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n", cfgs[13].Contents)
 	require.Equal(t, "22-uplink.network", cfgs[14].Name)
-	require.Equal(t, "[Match]\nName=uplink\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=ipv4\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\n", cfgs[14].Contents)
+	require.Equal(t, "[Match]\nName=uplink\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=ipv4\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\n\n", cfgs[14].Contents)
 	require.Equal(t, "23-wg0.network", cfgs[15].Name)
-	require.Equal(t, "[Match]\nName=wg0\n\n[Link]\nMTUBytes=1500\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.9.0.7/24\nAddress=fd25:6c9a:6c19::7/64\nIPv6AcceptRA=false\n\n[Route]\nGateway=10.9.0.3\nDestination=192.168.2.0/24\n", cfgs[15].Contents)
+	require.Equal(t, "[Match]\nName=wg0\n\n[Link]\nMTUBytes=1500\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.9.0.7/24\nAddress=fd25:6c9a:6c19::7/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.9.0.3\nDestination=192.168.2.0/24\n\n", cfgs[15].Contents)
 
 	// Test second config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -764,7 +768,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 5)
 	require.Equal(t, "20-_vmanagement.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=ipv6\nMTUBytes=8500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=true\nDHCP=ipv4\n\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\n\n[Route]\nGateway=_ipv6ra\nDestination=::/0\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=ipv6\nMTUBytes=8500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=true\nDHCP=ipv4\n[Route]\nGateway=_dhcp4\nDestination=0.0.0.0/0\n\n[Route]\nGateway=_ipv6ra\nDestination=::/0\n\n", cfgs[0].Contents)
 	require.Equal(t, "20-_iaabbccddee01.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=management\n", cfgs[1].Contents)
 	require.Equal(t, "20-_paabbccddee01.network", cfgs[2].Name)
@@ -788,7 +792,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 4)
 	require.Equal(t, "20-_vffeeddccbbaa.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nDomains=example.org\nDNS=ns1.example.org\nDNS=ns2.example.org\nDNSOverTLS=yes\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nDomains=example.org \nDNS=ns1.example.org\nDNS=ns2.example.org\nDNSOverTLS=yes\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
 	require.Equal(t, "20-_iffeeddccbbaa.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=ffeeddccbbaa\n", cfgs[1].Contents)
 	require.Equal(t, "20-_pffeeddccbbaa.network", cfgs[2].Name)

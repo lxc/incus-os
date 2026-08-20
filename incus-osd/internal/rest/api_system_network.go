@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/network"
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -81,7 +82,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// Refresh network state; needed to get current LLDP info.
-		err := systemd.UpdateNetworkState(r.Context(), &s.state.System.Network)
+		err := network.UpdateNetworkState(r.Context(), &s.state.System.Network)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
@@ -230,7 +231,7 @@ func applyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	err = systemd.ApplyNetworkConfiguration(ctx, s, networkCfg, timeout, false, providers.Notify, false)
+	err = network.ApplyNetworkConfiguration(ctx, s, networkCfg, timeout, false, providers.Notify, false)
 	if err != nil {
 		return err
 	}

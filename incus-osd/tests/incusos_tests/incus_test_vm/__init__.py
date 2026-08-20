@@ -164,7 +164,7 @@ class IncusTestVM:
         else:
             if self.vm_ip is None:
                 result = subprocess.run(["incus", "list", self.vm_name, "--columns", "4", "--format", "csv"], capture_output=True, check=True)
-                match = re.search(r"(\d+\.\d+\.\d+\.\d+) \(_venp5s0\)", str(result.stdout))
+                match = re.search(r"(\d+\.\d+\.\d+\.\d+) \(_v(enp5s|bond)0\)", str(result.stdout))
                 if match is None:
                     raise IncusOSException("failed to get IP address for VM")
 
@@ -210,13 +210,15 @@ class IncusTestVM:
         return subprocess.run(["incus", "exec", self.vm_name, "--", *cmd], capture_output=capture_output, check=check)
 
 class IncusTestNetwork:
-    def __init__(self):
+    def __init__(self, dns_mode="managed", mtu=1500):
         self.name = util._get_random_string()
+        self.dns_mode = dns_mode
+        self.mtu = mtu
 
     def __enter__(self):
         """Create a temporary Incus bridge network for testing purposes."""
 
-        subprocess.run(["incus", "network", "create", self.name, "--type=bridge"], capture_output=True, check=True)
+        subprocess.run(["incus", "network", "create", self.name, "--type=bridge", "dns.mode="+self.dns_mode, "bridge.mtu="+str(self.mtu)], capture_output=True, check=True)
 
         return self
 

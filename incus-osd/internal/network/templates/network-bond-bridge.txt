@@ -1,0 +1,25 @@
+[Match]
+{{- if eq .Type "bond"}}
+Name=_b{{.Name}}
+{{- else if eq .Type "veth-bridge"}}
+Name=_i{{.Name}}
+{{- else}}
+Name={{.Name}}
+{{- end}}
+
+[Link]
+MTUBytes={{.MTU}}
+
+[Network]
+{{- if ne .Type "veth-bridge"}}
+LinkLocalAddressing=no
+ConfigureWithoutCarrier=yes
+{{- end}}
+{{- if ne .Type "bridge"}}
+Bridge={{.Bridge}}
+  {{- range .VLANTags}}
+
+[BridgeVLAN]
+VLAN={{.}}
+  {{- end}}
+{{- end}}
