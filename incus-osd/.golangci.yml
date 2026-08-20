@@ -7,6 +7,7 @@ linters:
     - depguard
     - err113
     - exhaustruct
+    - exhaustruct_v5
     - funlen # handled by revive
     - gochecknoglobals
     - gocognit
@@ -71,6 +72,17 @@ linters:
         - name: function-result-limit
           arguments:
             - 8
+
+    staticcheck:
+      checks:
+        - all
+        - -SA4023 # Hangs and produces false positives as of staticcheck 2026.1 rc.
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
 
     tagliatelle:
       case:

@@ -128,7 +128,7 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fields := strings.Fields(string(content))
-		uptimeStr := strings.Split(fields[0], ".")[0]
+		uptimeStr, _, _ := strings.Cut(fields[0], ".")
 
 		uptime, err := strconv.ParseInt(uptimeStr, 10, 64)
 		if err != nil {
