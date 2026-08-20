@@ -171,7 +171,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.76.3",
+        "version": "v0.77.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -229,7 +229,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.12.5",
+        "version": "v1.12.6",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -279,7 +279,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.2",
+        "version": "v1.102.3",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
@@ -336,7 +336,7 @@
         ]
     },
     "terraform-provider-null": {
-        "version": "v3.3.0",
+        "version": "v3.3.1",
         "repo": "https://github.com/hashicorp/terraform-provider-null.git",
         "build_targets": [
             [
@@ -384,7 +384,7 @@
         ]
     },
     "terraform-provider-time": {
-        "version": "v0.14.0",
+        "version": "v0.14.1",
         "repo": "https://github.com/hashicorp/terraform-provider-time.git",
         "build_targets": [
             [
