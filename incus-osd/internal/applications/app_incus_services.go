@@ -23,7 +23,7 @@ func (*incusCeph) Action(ctx context.Context, data api.ApplicationAction) error 
 	case "refresh-images":
 		return ceph.RefreshCephOCIImages(ctx, data.Config)
 	case "remove-drive":
-		return ceph.RemoveOSD(ctx)
+		return ceph.RemoveOSD(ctx, data.Config)
 	default:
 		return errors.New("unsupported action '" + data.Action + "'")
 	}

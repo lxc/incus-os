@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -35,6 +36,7 @@ var projectName = "internal"
 
 type shTemplate struct {
 	DEVICE_CLASS string //nolint:revive
+	DEVICE_PATH  string //nolint:revive
 	FSID         string //nolint:revive
 	INST_IPV6    string //nolint:revive
 	NET_IPV6     string //nolint:revive
@@ -296,7 +298,9 @@ func InitializeCephCluster(ctx context.Context, config map[string]string) error 
 	return nil
 }
 
-// AddOSD adds a Ceph OSD with storage backing from the local server.
+// AddOSD adds a Ceph OSD with storage backing from the local server. If the local server
+// doesn't have an OSD instance yet, one is created; otherwise the drive is attached to the
+// existing instance and an additional OSD is provisioned in it.
 //
 // Configuration fields:
 //
@@ -313,18 +317,7 @@ func AddOSD(ctx context.Context, config map[string]string) error {
 		return err
 	}
 
-	//
-	// Check that there's not already an OSD on this host.
-	//
-
-	osdHosts, err := getOSDHosts(ctx)
-	if err != nil {
-		return err
-	}
-
-	if slices.Contains(osdHosts, server.Environment.ServerName) {
-		return errors.New("a Ceph OSD instance already exists on Incus server " + server.Environment.ServerName)
-	}
+	containerName := "ceph-osd-" + server.Environment.ServerName
 
 	//
 	// Ensure the local raw device is encrypted.
@@ -336,19 +329,76 @@ func AddOSD(ctx context.Context, config map[string]string) error {
 	}
 
 	//
-	// Create the new OSD instance.
+	// Check if an OSD instance already exists on this host.
 	//
 
-	err = deployCephContainer(ctx, server.Environment.ServerName, "ceph-osd-"+server.Environment.ServerName, "ceph-osd.sh", &osdCreationInfo{
-		Host:        server.Environment.ServerName,
-		DeviceID:    encryptedDeviceID,
-		DeviceClass: deviceClass,
-	})
+	incusClient = incusClient.UseProject(projectName)
+
+	instance, etag, err := incusClient.GetInstance(containerName)
+	if err != nil {
+		if !incusapi.StatusErrorCheck(err, http.StatusNotFound) {
+			return err
+		}
+
+		// Create the new OSD instance.
+		return deployCephContainer(ctx, server.Environment.ServerName, containerName, "ceph-osd.sh", &osdCreationInfo{
+			Host:        server.Environment.ServerName,
+			DeviceID:    encryptedDeviceID,
+			DeviceClass: deviceClass,
+		})
+	}
+
+	//
+	// Attach the drive to the existing OSD instance.
+	//
+
+	if instance.Devices == nil {
+		instance.Devices = map[string]map[string]string{}
+	}
+
+	// Ensure the drive isn't already attached and find the next free device name.
+	nextIndex := 1
+
+	for name, device := range instance.Devices {
+		if device["type"] != "unix-block" {
+			continue
+		}
+
+		if device["source"] == encryptedDeviceID {
+			return errors.New("device '" + config["device_id"] + "' is already used by an OSD on Incus server " + server.Environment.ServerName)
+		}
+
+		index, err := strconv.Atoi(strings.TrimPrefix(name, "ceph-"))
+		if err == nil && index >= nextIndex {
+			nextIndex = index + 1
+		}
+	}
+
+	devicePath := "/dev/ceph-" + strconv.Itoa(nextIndex)
+
+	instance.Devices["ceph-"+strconv.Itoa(nextIndex)] = map[string]string{
+		"type":   "unix-block",
+		"source": encryptedDeviceID,
+		"path":   devicePath,
+		"uid":    "167",
+		"gid":    "167",
+	}
+
+	op, err := incusClient.UpdateInstance(containerName, instance.InstancePut, etag)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	err = op.Wait()
+	if err != nil {
+		return err
+	}
+
+	// Provision the new OSD.
+	return execCephScript(incusClient, containerName, "ceph-osd.sh", shTemplate{
+		DEVICE_CLASS: deviceClass,
+		DEVICE_PATH:  devicePath,
+	})
 }
 
 // RefreshCephOCIImages refreshes the OCI image used by the Ceph containers.
@@ -404,12 +454,21 @@ func RefreshCephOCIImages(ctx context.Context, config map[string]string) error {
 	return nil
 }
 
-// RemoveOSD removes a Ceph OSD from the local server. Because Ceph requires a minimum of
-// three OSDs, removal won't be allowed if there are currently three or fewer OSDs.
+// RemoveOSD removes a Ceph OSD from the local server. If the local OSD instance has
+// multiple drives attached, the drive to remove must be specified through device_id; the
+// matching OSD is then stopped and its drive detached. When removing the last (or only)
+// drive, the whole OSD instance is deleted instead. Because Ceph requires a minimum of
+// three OSDs, removal won't be allowed if it would leave the cluster with fewer than
+// three OSDs.
 //
 // WARNING -- This will forcefully remove the OSD from the Ceph cluster. Prior to removal,
 // you should remove the OSD via Ceph's API and wait for data migration to complete.
-func RemoveOSD(ctx context.Context) error {
+//
+// Configuration fields:
+//
+//	device_id -- The ID of the raw device backing the OSD to remove. Optional if the
+//	             local OSD instance only has a single drive attached.
+func RemoveOSD(ctx context.Context, config map[string]string) error {
 	incusClient, err := incus.ConnectIncusUnixWithContext(ctx, "", nil)
 	if err != nil {
 		return err
@@ -420,30 +479,101 @@ func RemoveOSD(ctx context.Context) error {
 		return err
 	}
 
+	containerName := "ceph-osd-" + server.Environment.ServerName
+
 	incusClient = incusClient.UseProject(projectName)
 
 	//
 	// Check if it's possible to remove the OSD.
 	//
 
-	osdHosts, err := getOSDHosts(ctx)
+	instance, etag, err := incusClient.GetInstance(containerName)
+	if err != nil {
+		if incusapi.StatusErrorCheck(err, http.StatusNotFound) {
+			return errors.New("no Ceph OSD instance exists on Incus server " + server.Environment.ServerName)
+		}
+
+		return err
+	}
+
+	// Get the list of drives attached to the local OSD instance.
+	localDrives := []string{}
+
+	for name, device := range instance.Devices {
+		if device["type"] == "unix-block" && strings.HasPrefix(name, "ceph-") {
+			localDrives = append(localDrives, name)
+		}
+	}
+
+	// Identify the drive to remove.
+	deviceName := ""
+
+	if config["device_id"] != "" {
+		encryptedDeviceID, err := getEncryptedDeviceID(ctx, config["device_id"])
+		if err != nil {
+			return err
+		}
+
+		for _, name := range localDrives {
+			if instance.Devices[name]["source"] == encryptedDeviceID || instance.Devices[name]["source"] == config["device_id"] {
+				deviceName = name
+
+				break
+			}
+		}
+
+		if deviceName == "" {
+			return errors.New("device '" + config["device_id"] + "' isn't used by an OSD on Incus server " + server.Environment.ServerName)
+		}
+	} else if len(localDrives) > 1 {
+		return errors.New("multiple drives are attached to the OSD instance on Incus server " + server.Environment.ServerName + "; a device_id must be specified")
+	}
+
+	// Ensure enough OSDs remain after the removal.
+	removeCount := len(localDrives)
+
+	if deviceName != "" && len(localDrives) > 1 {
+		removeCount = 1
+	}
+
+	driveCount, err := getOSDDriveCount(ctx)
 	if err != nil {
 		return err
 	}
 
-	if !slices.Contains(osdHosts, server.Environment.ServerName) {
-		return errors.New("no Ceph OSD instance exists on Incus server " + server.Environment.ServerName)
-	}
-
-	if len(osdHosts) <= 3 {
+	if driveCount-removeCount < 3 {
 		return errors.New("a minimum of three OSDs are required by Ceph; refusing to remove OSD from Incus server " + server.Environment.ServerName)
 	}
 
 	//
-	// Delete the OSD.
+	// Remove a single drive if others remain on this host.
 	//
 
-	op, err := incusClient.UpdateInstanceState("ceph-osd-"+server.Environment.ServerName, incusapi.InstanceStatePut{
+	if deviceName != "" && len(localDrives) > 1 {
+		// Stop the OSD and remove its local state.
+		err = execCephScript(incusClient, containerName, "ceph-osd-remove.sh", shTemplate{
+			DEVICE_PATH: instance.Devices[deviceName]["path"],
+		})
+		if err != nil {
+			return err
+		}
+
+		// Detach the drive.
+		delete(instance.Devices, deviceName)
+
+		op, err := incusClient.UpdateInstance(containerName, instance.InstancePut, etag)
+		if err != nil {
+			return err
+		}
+
+		return op.Wait()
+	}
+
+	//
+	// Delete the OSD instance.
+	//
+
+	op, err := incusClient.UpdateInstanceState(containerName, incusapi.InstanceStatePut{
 		Action:  "stop",
 		Timeout: -1,
 	}, "")
@@ -456,7 +586,7 @@ func RemoveOSD(ctx context.Context) error {
 		return err
 	}
 
-	op, err = incusClient.DeleteInstance("ceph-osd-" + server.Environment.ServerName)
+	op, err = incusClient.DeleteInstance(containerName)
 	if err != nil {
 		return err
 	}
@@ -561,8 +691,6 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 	// Allow the container to start up.
 	time.Sleep(5 * time.Second)
 
-	var buf bytes.Buffer
-
 	var templateVars shTemplate
 
 	switch configScript {
@@ -643,6 +771,7 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 	case "ceph-osd.sh":
 		templateVars = shTemplate{
 			DEVICE_CLASS: osd.DeviceClass,
+			DEVICE_PATH:  "/dev/ceph-1",
 		}
 
 		cephConfigFiles, err := getCephClusterConfigFiles(ctx)
@@ -685,6 +814,14 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 		return errors.New("unrecognized configuration script: " + configScript)
 	}
 
+	// Execute the configuration script.
+	return execCephScript(incusClient, cephContainerName, configScript, templateVars)
+}
+
+// execCephScript renders one of the embedded script templates and runs it in the container.
+func execCephScript(incusClient incus.InstanceServer, cephContainerName string, configScript string, templateVars shTemplate) error {
+	var buf bytes.Buffer
+
 	// Parse and render the script template.
 	t, err := template.ParseFS(embeddedScripts, configScript)
 	if err != nil {
@@ -697,7 +834,7 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 	}
 
 	// Execute the configuration script.
-	op, err = incusClient.ExecInstance(cephContainerName, incusapi.InstanceExecPost{
+	op, err := incusClient.ExecInstance(cephContainerName, incusapi.InstanceExecPost{
 		Command:     []string{"sh", "-eux"},
 		WaitForWS:   true,
 		Interactive: false,
@@ -713,6 +850,12 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 	err = op.Wait()
 	if err != nil {
 		return err
+	}
+
+	// Check the script's exit code.
+	exitCode, ok := op.Get().Metadata["return"].(float64)
+	if !ok || exitCode != 0 {
+		return errors.New("script '" + configScript + "' failed in container " + cephContainerName)
 	}
 
 	return nil
@@ -795,6 +938,40 @@ func ensureDeviceIsEncrypted(ctx context.Context, deviceID string) (string, stri
 	})
 
 	return storageInfo.State.Drives[i].EncryptedID, deviceClass, nil
+}
+
+// getEncryptedDeviceID resolves a raw device ID to its encrypted counterpart, without
+// modifying the device in any way. The ID is returned unchanged if the device isn't
+// known or isn't encrypted.
+func getEncryptedDeviceID(ctx context.Context, deviceID string) (string, error) {
+	incusClient, err := incus.ConnectIncusUnixWithContext(ctx, "", nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, _, err := incusClient.RawQuery("GET", "/os/1.0/system/storage", nil, "")
+	if err != nil {
+		return "", err
+	} else if resp.StatusCode != http.StatusOK {
+		return "", errors.New("bad response: " + resp.Error)
+	}
+
+	storageInfo := api.SystemStorage{}
+
+	err = json.Unmarshal(resp.Metadata, &storageInfo)
+	if err != nil {
+		return "", err
+	}
+
+	i := slices.IndexFunc(storageInfo.State.Drives, func(drive api.SystemStorageDrive) bool {
+		return drive.ID == deviceID
+	})
+
+	if i < 0 || !storageInfo.State.Drives[i].Encrypted {
+		return deviceID, nil
+	}
+
+	return storageInfo.State.Drives[i].EncryptedID, nil
 }
 
 func fetchOCIImage(ctx context.Context, imageAlias string) error {
@@ -1117,7 +1294,7 @@ func refreshCephOCIImage(ctx context.Context, containerName string, imageAlias s
 		}
 	} else {
 		op, err := incusClient.ExecInstance(containerName, incusapi.InstanceExecPost{
-			Command:     []string{"sh", "-ceux", `systemctl enable --now "ceph-osd@$(ls /var/lib/ceph/osd/ | cut -d '-' -f 2)"`},
+			Command:     []string{"sh", "-ceux", `for d in /var/lib/ceph/osd/ceph-*; do systemctl enable --now "ceph-osd@${d##*ceph-}"; done`},
 			WaitForWS:   true,
 			Interactive: false,
 		}, &incus.InstanceExecArgs{
@@ -1161,4 +1338,35 @@ func getOSDHosts(ctx context.Context) ([]string, error) {
 	}
 
 	return ret, nil
+}
+
+// Return the total number of OSD drives attached across all OSD instances.
+func getOSDDriveCount(ctx context.Context) (int, error) {
+	incusClient, err := incus.ConnectIncusUnixWithContext(ctx, "", nil)
+	if err != nil {
+		return 0, err
+	}
+
+	incusClient = incusClient.UseProject(projectName)
+
+	instances, err := incusClient.GetInstances("container")
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+
+	for _, i := range instances {
+		if !strings.HasPrefix(i.Name, "ceph-osd-") {
+			continue
+		}
+
+		for name, device := range i.Devices {
+			if device["type"] == "unix-block" && strings.HasPrefix(name, "ceph-") {
+				count++
+			}
+		}
+	}
+
+	return count, nil
 }
