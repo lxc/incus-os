@@ -12,7 +12,7 @@ jobs:
     name: IncusOS Certificate end-to-end tests
     strategy:
       fail-fast: false
-    timeout-minutes: 45
+    timeout-minutes: 120
     runs-on:
       - self-hosted
       - arch-amd64
@@ -67,7 +67,7 @@ jobs:
           echo "setting zfs sync to disabled for better performance in CI environment"
           sudo zfs set sync=disabled default
 
-      - name: Build local test image
+      - name: Build local test images
         run: |
           export PATH="${PATH}:/${HOME}/.local/bin"
 
@@ -78,8 +78,25 @@ jobs:
 
           make publish-local-update
 
-          export VERSION=$(ls mkosi.output/*.efi 2>/dev/null | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
+          export VERSION=$(ls local-image-server/ | grep ^202)
           SIG_KEY=./certs/update-E1.key SIG_CERTIFICATE=./certs/update-E1.crt SIG_CHAIN=./incus-osd/certs/files/update-E1.crt ./incus-osd/image-publisher promote ./local-image-server/ ${VERSION} stable
+
+          # Perform a second build with a different Secure Boot signing key.
+          # We don't automatically promote it to stable so we can control
+          # when the test VM is upgraded.
+          make clean
+          ./scripts/test/switch-secure-boot-signing-key.sh 2
+          make
+
+          make publish-local-update
+
+          # Generate a dbx update for the Secure Boot certificate used by the first build
+          export FINGERPRINT=$(openssl x509 -in "incus-osd/certs/files/secureboot-DB-1-R1.crt" -noout -fingerprint -sha256 | cut -d '=' -f2 | tr -d ':')
+          cert-to-efi-sig-list -g "433f8160-9ab6-4407-8e38-12d70e1d54e5" "incus-osd/certs/files/secureboot-DB-1-R1.crt" "dbx_${FINGERPRINT}.esl"
+          sign-efi-sig-list -g "433f8160-9ab6-4407-8e38-12d70e1d54e5" -a -c "incus-osd/certs/files/secureboot-KEK-R1.crt" -k "certs/secureboot-KEK-R1.key" dbx "dbx_${FINGERPRINT}.esl" "dbx_${FINGERPRINT}.auth"
+
+          (cd ./certs/efi/updates/ && tar cf ../../../sb-update.tar *.auth)
+          tar cf sb-uki-revoke.tar *.auth
 
       - name: Run certificate end-to-end tests
         run: |
