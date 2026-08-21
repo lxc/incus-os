@@ -73,6 +73,10 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 	return nil
 }
 
+// sriovLinkUpDrivers lists the network drivers that require the physical link to be
+// up before SR-IOV virtual functions can be created.
+var sriovLinkUpDrivers = []string{"bnxt_en"}
+
 // ApplySRIOV creates the requested number of SR-IOV virtual functions on each configured PCI device.
 func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
 	for _, c := range config {
@@ -110,6 +114,21 @@ func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
 
 		if strings.TrimSpace(string(currentVFs)) == strconv.Itoa(c.VFCount) {
 			continue
+		}
+
+		// Some drivers refuse to create virtual functions while the physical link
+		// is administratively down. For those, bring the link up first.
+		driverPath, err := os.Readlink(filepath.Join(devicePath, "driver"))
+		if err == nil && slices.Contains(sriovLinkUpDrivers, filepath.Base(driverPath)) {
+			netDevs, err := os.ReadDir(filepath.Join(devicePath, "net"))
+			if err == nil {
+				for _, netDev := range netDevs {
+					_, err := subprocess.RunCommand("ip", "link", "set", "dev", netDev.Name(), "up")
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
 
 		// The number of virtual functions can only be changed from zero.
