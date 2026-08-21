@@ -31,9 +31,9 @@ incus admin os application action incus -d '{"action":"initialize-ceph-cluster",
 
 ## Adding storage drives (OSDs)
 
-Ceph requires a minimum of three OSDs, and only one OSD can run at a time on a given physical Incus server to help ensure proper replication.
+Ceph requires a minimum of three OSDs. Each Incus server runs at most one OSD instance, which can be backed by multiple drives; each drive results in one OSD.
 
-Each OSD is bound to a specific Incus server, so the `--target` parameter must be specified when creating a new OSD.
+Each OSD instance is bound to a specific Incus server, so the `--target` parameter must be specified when adding a drive. Repeating the action with additional drives on the same server attaches them to the existing OSD instance.
 
 ```
 incus admin os application action incus-ceph -d '{"action":"add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server01
@@ -70,8 +70,12 @@ Removing an OSD via the IncusOS API is equivalent to pulling the power cord of a
 ```
 
 ```
-incus admin os application action incus-ceph -d '{"action":"remove-drive"}' --target server01
+incus admin os application action incus-ceph -d '{"action":"remove-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server01
 ```
+
+### Configuration parameters
+
+* `device_id`: The device ID of the raw block device backing the OSD to remove. Optional if the server's OSD instance only has a single drive attached. When the last (or only) drive of a server is removed, the whole OSD instance is deleted.
 
 ## Ceph cluster configuration and status
 
