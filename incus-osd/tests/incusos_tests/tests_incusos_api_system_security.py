@@ -24,7 +24,7 @@ def TestIncusOSAPISystemSecurity(install_image):
         if len(result["metadata"]["config"]["encryption_recovery_keys"]) != 1:
             raise IncusOSException("expected exactly one encryption recovery key")
 
-        if not result["metadata"]["state"]["encryption_recovery_keys_retrieved"]:
+        if result["metadata"]["state"]["encryption_recovery_keys_retrieved"]:
             raise IncusOSException("invalid encryption_recovery_keys_retrieved state")
 
         if len(result["metadata"]["state"]["encrypted_volumes"]) != 2:
@@ -46,6 +46,18 @@ def TestIncusOSAPISystemSecurity(install_image):
 
         if "foo-bar-biz-1234" not in result["metadata"]["config"]["encryption_recovery_keys"]:
             raise IncusOSException("new encryption key isn't present")
+
+        # Record that the recovery keys have been retrieved.
+        result = vm.APIRequest("/1.0/system/security/:retrieved", method="POST")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        result = vm.APIRequest("/1.0/system/security")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if not result["metadata"]["state"]["encryption_recovery_keys_retrieved"]:
+            raise IncusOSException("invalid encryption_recovery_keys_retrieved state")
 
 def TestIncusOSAPISystemSecurityTPMRebind(install_image):
     test_name = "incusos-api-system-security-tpm-rebind"
