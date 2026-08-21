@@ -83,11 +83,9 @@ jobs:
 
       - name: Run certificate end-to-end tests
         run: |
-          export OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
-          export VERSION=$(ls mkosi.output/*.efi 2>/dev/null | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
           export SERVER_IP=$(incus network list incusbr0 -c 4 -f csv | cut -d '/' -f 1)
           export IMAGES_SERVER="http://${SERVER_IP}:8123"
 
           make start-local-image-server
 
-          incus-osd/tests/certificate-e2e-tests.py
+          ./incus-osd/tests/certificate-e2e-tests.py

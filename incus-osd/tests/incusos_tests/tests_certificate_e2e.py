@@ -2,18 +2,46 @@ import os
 import subprocess
 import tempfile
 
-from .incus_test_vm import IncusOSException, util
+from .incus_test_vm import IncusTestVM, IncusOSException, util
 
-def TestUpdateMetadata(vm):
+def TestUpdateMetadata(install_image):
+    # Create the test VM
+    test_name = "test-update-metadata"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version)
+
+        testUpdateMetadata(vm, os_version)
+
+def TestHotfixScript(install_image):
+    # Create the test VM
+    test_name = "test-hotfix-script"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version)
+
+        testHotfixScriptAPI(vm)
+
+        testHotfixScriptRecovery(vm)
+
+def testUpdateMetadata(vm, os_version):
     """Test verification of update metadata consumed by the images provider."""
-
-    print("  Running provider update metadata tests", flush=True)
 
     # At this point we expect to have a fresh IncusOS running with Incus installed.
     # The update index.sjson has been properly validated using the Update intermediate CA.
 
     # Sign the update index.sjson using an incorrect intermediate CA and expect to get an openssl verification error.
-    subprocess.run(["./incus-osd/image-publisher", "demote", "./local-image-server/", os.environ["VERSION"], "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/support-E1.crt"}, capture_output=True, check=True)
+    subprocess.run(["./incus-osd/image-publisher", "demote", "./local-image-server/", os_version, "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/support-E1.crt"}, capture_output=True, check=True)
 
     # Trigger an update check
     result = vm.APIRequest("/1.0/system/update/:check", method="POST")
@@ -28,7 +56,7 @@ def TestUpdateMetadata(vm):
 
     # Sign the update index.sjson with both an incorrect certificate and intermediate CA which will result
     # in a valid signature, but expect IncusOS to properly catch and return an error.
-    subprocess.run(["./incus-osd/image-publisher", "promote", "./local-image-server/", os.environ["VERSION"], "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/support-E1.key", "SIG_CERTIFICATE": "./certs/support-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/support-E1.crt"}, capture_output=True, check=True)
+    subprocess.run(["./incus-osd/image-publisher", "promote", "./local-image-server/", os_version, "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/support-E1.key", "SIG_CERTIFICATE": "./certs/support-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/support-E1.crt"}, capture_output=True, check=True)
 
     # Trigger an update check
     result = vm.APIRequest("/1.0/system/update/:check", method="POST")
@@ -42,13 +70,11 @@ def TestUpdateMetadata(vm):
     vm.RunCommand("journalctl", "--vacuum-time=1ms")
 
     # Restore the update index.sjson to a correct state
-    subprocess.run(["./incus-osd/image-publisher", "demote", "./local-image-server/", os.environ["VERSION"], "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/update-E1.crt"}, capture_output=True, check=True)
-    subprocess.run(["./incus-osd/image-publisher", "promote", "./local-image-server/", os.environ["VERSION"], "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/update-E1.crt"}, capture_output=True, check=True)
+    subprocess.run(["./incus-osd/image-publisher", "demote", "./local-image-server/", os_version, "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/update-E1.crt"}, capture_output=True, check=True)
+    subprocess.run(["./incus-osd/image-publisher", "promote", "./local-image-server/", os_version, "stable"], env={"PATH": "/usr/bin", "SIG_KEY": "./certs/update-E1.key", "SIG_CERTIFICATE": "./certs/update-E1.crt", "SIG_CHAIN": "./incus-osd/certs/files/update-E1.crt"}, capture_output=True, check=True)
 
-def TestScriptAPI(vm):
+def testHotfixScriptAPI(vm):
     """Test verification and running of a hotfix script via the debug API."""
-
-    print("  Running hotfix script via debug API tests", flush=True)
 
     # Input that doesn't look like a S/MIME-signed message should be rejected.
     result = vm.APIRequest("/1.0/debug/:run-script", method="POST", body="#!/bin/sh\necho 'unsigned script'\n")
@@ -89,10 +115,8 @@ def TestScriptAPI(vm):
     if result["error"] != "S/MIME message contained a valid signature, but was not signed by one of the following expected intermediate CAs: 'CN=TestOS - Support E1,O=TestOS'\n\n":
         raise IncusOSException("got an unexpected error: " + result["error"])
 
-def TestScriptRecovery(vm):
+def testHotfixScriptRecovery(vm):
     """Test verification and running of a hotfix script from recovery media."""
-
-    print("  Running hotfix script via recovery media tests", flush=True)
 
     # Note that we only test a simple success case here, since running a hotfix script
     # via the debug API exercises the same code path for various errors.
