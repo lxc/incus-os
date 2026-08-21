@@ -48,3 +48,9 @@ systemctl enable --now ceph-mds@{{.INST_NAME}}.service
 ceph auth get-or-create client.rbd-mirror.{{.INST_NAME}} mon 'profile rbd-mirror' osd 'profile rbd' > /etc/ceph/ceph.client.rbd-mirror.{{.INST_NAME}}.keyring
 chown ceph:ceph /etc/ceph/ceph.client.rbd-mirror.{{.INST_NAME}}.keyring
 systemctl enable --now ceph-rbd-mirror@rbd-mirror.{{.INST_NAME}}.service
+
+# Setup the initial object gateway
+mkdir -p /var/lib/ceph/radosgw/ceph-rgw.{{.INST_NAME}}
+ceph auth get-or-create client.rgw.{{.INST_NAME}} mon 'allow rw' osd 'allow rwx' > /var/lib/ceph/radosgw/ceph-rgw.{{.INST_NAME}}/keyring
+chown -R ceph:ceph /var/lib/ceph/radosgw/ceph-rgw.{{.INST_NAME}}
+systemctl enable --now ceph-radosgw@rgw.{{.INST_NAME}}.service
