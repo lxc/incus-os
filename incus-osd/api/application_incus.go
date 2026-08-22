@@ -16,6 +16,27 @@ type ApplicationIncusConfig struct {
 // ApplicationIncusState represents the state of the Incus application.
 type ApplicationIncusState struct {
 	ApplicationState
+
+	Services ApplicationIncusStateServices `incusos:"-" json:"services" yaml:"services"`
+}
+
+// ApplicationIncusStateServices represents the state of the services managed through the Incus application.
+type ApplicationIncusStateServices struct {
+	Ceph ApplicationIncusStateServicesCeph `json:"ceph" yaml:"ceph"`
+}
+
+// ApplicationIncusStateServicesCeph represents the state of a managed Ceph cluster.
+type ApplicationIncusStateServicesCeph struct {
+	Deployed bool                                   `json:"deployed"          yaml:"deployed"`
+	Version  string                                 `json:"version,omitempty" yaml:"version,omitempty"`
+	FSID     string                                 `json:"fsid,omitempty"    yaml:"fsid,omitempty"`
+	OSDs     []ApplicationIncusStateServicesCephOSD `json:"osds,omitempty"    yaml:"osds,omitempty"`
+}
+
+// ApplicationIncusStateServicesCephOSD represents a single OSD of a managed Ceph cluster.
+type ApplicationIncusStateServicesCephOSD struct {
+	Host   string `json:"host"   yaml:"host"`
+	Device string `json:"device" yaml:"device"`
 }
 
 // ApplicationIncus represents the state and configuration of the Incus application.
