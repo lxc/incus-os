@@ -208,6 +208,19 @@ def install(image, artifact):
         subprocess.run(["mkdir", "-p", os.path.join(base_path, target[1])], check=True)
         subprocess.run(["cp", "-r", *sources, os.path.join(base_path, target[1])], check=True)
 
+    if artifact.startswith("linux-firmware"):
+        with open(os.path.join(directory, "WHENCE"), "r") as f:
+            for line in f:
+                if not line.startswith("Link:"):
+                    continue
+
+                link, target = line.removeprefix("Link:").split("->", 1)
+                link_path = os.path.join(base_path, "usr/lib/firmware", link.strip())
+                if not os.path.exists(os.path.join(os.path.dirname(link_path), target.strip())):
+                    continue
+
+                subprocess.run(["ln", "-sf", target.strip(), link_path], check=True)
+
     # Conditionally install the Migration Manager worker image if performing an x86_64 build
     if artifact == "migration-manager" and ARCH == "amd64":
         subprocess.run(["mkdir", "-p", os.path.join(base_path, "usr/share/migration-manager/images/")], check=True)
