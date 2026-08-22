@@ -513,6 +513,78 @@ func RefreshCephOCIImages(ctx context.Context, config map[string]string) error {
 	return nil
 }
 
+// GetServiceState returns the state of the managed Ceph cluster, based on Incus API data.
+func GetServiceState(ctx context.Context) (*api.ApplicationIncusStateServicesCeph, error) {
+	ret := &api.ApplicationIncusStateServicesCeph{}
+
+	incusClient, err := incus.ConnectIncusUnixWithContext(ctx, "", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the cluster FSID from the project configuration.
+	project, _, err := incusClient.GetProject(projectName)
+	if err != nil {
+		// Without the project, no Ceph cluster was ever deployed.
+		return ret, nil //nolint:nilerr
+	}
+
+	ret.FSID = project.Config["user.ceph.fsid"]
+	if ret.FSID == "" {
+		return ret, nil
+	}
+
+	incusClient = incusClient.UseProject(projectName)
+
+	// Consider the cluster deployed once the initial control plane container exists.
+	instance, _, err := incusClient.GetInstance(cephControlContainerNames[0])
+	if err != nil {
+		if incusapi.StatusErrorCheck(err, http.StatusNotFound) {
+			return ret, nil
+		}
+
+		return nil, err
+	}
+
+	ret.Deployed = true
+
+	// Report the Ceph version from the container image tag.
+	_, version, ok := strings.Cut(instance.Config["image.id"], ":")
+	if ok {
+		ret.Version = version
+	}
+
+	// Collect the list of OSDs.
+	instances, err := incusClient.GetInstances("container")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, instance := range instances {
+		host, ok := strings.CutPrefix(instance.Name, "ceph-osd-")
+		if !ok {
+			continue
+		}
+
+		for name, device := range instance.Devices {
+			if device["type"] != "unix-block" || !strings.HasPrefix(name, "ceph-") {
+				continue
+			}
+
+			ret.OSDs = append(ret.OSDs, api.ApplicationIncusStateServicesCephOSD{
+				Host:   host,
+				Device: device["source"],
+			})
+		}
+	}
+
+	slices.SortFunc(ret.OSDs, func(a, b api.ApplicationIncusStateServicesCephOSD) int {
+		return strings.Compare(a.Host+a.Device, b.Host+b.Device)
+	})
+
+	return ret, nil
+}
+
 // RemoveOSD removes a Ceph OSD from the local server. If the local OSD instance has
 // multiple drives attached, the drive to remove must be specified through device_id; the
 // matching OSD is then stopped and its drive detached. When removing the last (or only)
