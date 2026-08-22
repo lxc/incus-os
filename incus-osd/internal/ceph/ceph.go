@@ -403,13 +403,37 @@ func AddOSD(ctx context.Context, config map[string]string) error {
 
 // RefreshCephOCIImages refreshes the OCI image used by the Ceph containers.
 //
+// The current remote OCI image is compared with the one used to spawn a Ceph
+// container running on the local system (avoiding any architecture mismatch).
+// If they differ, all the containers get rebuilt, each cluster member
+// downloading the image matching its own architecture.
+//
 // Configuration fields:
 //
 //	oci_tag -- Optional; if specified, set the Ceph OCI image tag to the provided value.
 //	           This is useful for performing major version updates, such as from v19 to
 //	           v20, or pinning to an exact version.
 func RefreshCephOCIImages(ctx context.Context, config map[string]string) error {
+	// Temporarily add /opt/incus/bin to $PATH so the skopeo binary bundled with Incus
+	// can be found. We don't just add /opt/incus/bin to the incus-osd service definition
+	// because of conflicts with various tpm2_* commands.
+	originalPath := os.Getenv("PATH")
+
+	err := os.Setenv("PATH", originalPath+":/opt/incus/bin")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = os.Setenv("PATH", originalPath)
+	}()
+
 	incusClient, err := incus.ConnectIncusUnixWithContext(ctx, "", nil)
+	if err != nil {
+		return err
+	}
+
+	server, _, err := incusClient.GetServer()
 	if err != nil {
 		return err
 	}
@@ -428,11 +452,8 @@ func RefreshCephOCIImages(ctx context.Context, config map[string]string) error {
 		cephContainers = append(cephContainers, "ceph-osd-"+host)
 	}
 
-	// Get the current image list.
-	images, err := incusClient.GetImages()
-	if err != nil {
-		return err
-	}
+	// Find a Ceph container running on the local system.
+	var localInstance *incusapi.Instance
 
 	for _, containerName := range cephContainers {
 		instance, _, err := incusClient.GetInstance(containerName)
@@ -440,41 +461,47 @@ func RefreshCephOCIImages(ctx context.Context, config map[string]string) error {
 			return err
 		}
 
-		var imageAlias string
+		if instance.Location == server.Environment.ServerName {
+			localInstance = instance
 
-		if config["oci_tag"] != "" {
-			imageAlias = "ceph/ceph:" + config["oci_tag"]
-		} else {
-			imageAlias = instance.Config["image.id"]
+			break
+		}
+	}
+
+	if localInstance == nil {
+		return errors.New("no Ceph container found on Incus server " + server.Environment.ServerName)
+	}
+
+	// Determine the target image alias.
+	imageAlias := localInstance.Config["image.id"]
+
+	if config["oci_tag"] != "" {
+		imageAlias = "ceph/ceph:" + config["oci_tag"]
+	}
+
+	// Get the fingerprint of the current remote OCI image for the local architecture.
+	ociRemote, err := incus.ConnectOCI("https://"+cephDockerHost, nil)
+	if err != nil {
+		return err
+	}
+
+	alias, _, err := ociRemote.GetImageAlias(imageAlias)
+	if err != nil {
+		if strings.Contains(err.Error(), "manifest unknown") {
+			return errors.New("OCI image '" + cephDockerHost + "/" + imageAlias + "' doesn't exist")
 		}
 
-		// Find the most recent cached image for the container's architecture.
-		var (
-			latestFingerprint string
-			latestUploaded    time.Time
-		)
+		return err
+	}
 
-		for _, image := range images {
-			if image.Architecture != instance.Architecture || image.UpdateSource == nil {
-				continue
-			}
+	// Nothing to do if the local container was spawned from the current remote image.
+	if localInstance.Config["image.id"] == imageAlias && localInstance.Config["volatile.base_image"] == alias.Target {
+		return nil
+	}
 
-			if image.UpdateSource.Protocol != "oci" || image.UpdateSource.Server != "https://"+cephDockerHost || image.UpdateSource.Alias != imageAlias {
-				continue
-			}
-
-			if latestFingerprint == "" || image.UploadedAt.After(latestUploaded) {
-				latestFingerprint = image.Fingerprint
-				latestUploaded = image.UploadedAt
-			}
-		}
-
-		// Skip containers that are already on the current image.
-		if instance.Config["image.id"] == imageAlias && latestFingerprint != "" && instance.Config["volatile.base_image"] == latestFingerprint {
-			continue
-		}
-
-		err = refreshCephOCIImage(ctx, containerName, imageAlias)
+	// Rebuild all the containers.
+	for _, containerName := range cephContainers {
+		err := refreshCephOCIImage(ctx, containerName, imageAlias)
 		if err != nil {
 			return err
 		}
