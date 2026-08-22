@@ -175,7 +175,15 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	return a.Initialize(ctx)
 }
 
-func (a *incus) Get(_ context.Context) (any, error) {
+func (a *incus) Get(ctx context.Context) (any, error) {
+	// Update the managed Ceph service state.
+	cephState, err := ceph.GetServiceState(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	a.state.Applications.Incus.State.Services.Ceph = *cephState
+
 	return a.state.Applications.Incus, nil
 }
 
