@@ -1,0 +1,7 @@
+Enabled: yes
+Types: deb
+URIs: http://download.proxmox.com/debian/ceph-tentacle
+Suites: trixie
+Architectures: amd64 arm64
+Components: no-subscription
+Signed-By: /etc/apt/keyrings/proxmox.asc
