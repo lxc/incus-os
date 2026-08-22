@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/google/go-eventlog/tcg"
 	"github.com/lxc/incus/v7/shared/subprocess"
@@ -480,18 +481,18 @@ func (*Server) apiDebugSecureBootEventLog(w http.ResponseWriter, r *http.Request
 //
 //	Apply Secure Boot updates
 //
-//	Apply a `gzip` compressed tar archive of Secure Boot variable updates.
+//	Apply a tar archive of Secure Boot variable updates.
 //
-//	Remember to properly set the `Content-Type: application/gzip` HTTP header.
+//	Remember to properly set the `Content-Type: application/x-tar` HTTP header.
 //
 //	---
 //	consumes:
-//	  - application/gzip
+//	  - application/x-tar
 //	produces:
 //	  - application/json
 //	parameters:
 //	  - in: body
-//	    name: gzip tar archive
+//	    name: tar archive
 //	    description: Secure Boot updates to apply
 //	    required: true
 //	    schema:
@@ -504,7 +505,7 @@ func (*Server) apiDebugSecureBootEventLog(w http.ResponseWriter, r *http.Request
 //	    $ref: "#/responses/BadRequest"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -551,7 +552,7 @@ func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Invoke the Secure Boot update process.
-	_, err = secureboot.UpdateSecureBootCerts(r.Context(), f.Name())
+	needsReboot, err := secureboot.UpdateSecureBootCerts(r.Context(), f.Name())
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -559,6 +560,15 @@ func (*Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	_ = response.EmptySyncResponse.Render(w)
+
+	// Reboot the system if necessary.
+	if needsReboot {
+		go func() {
+			time.Sleep(1 * time.Second)
+
+			s.state.TriggerReboot <- true
+		}()
+	}
 }
 
 // swagger:operation POST /1.0/debug/:run-script debug debug_post_run_script
