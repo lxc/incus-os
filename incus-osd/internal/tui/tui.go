@@ -18,8 +18,8 @@ import (
 	"github.com/rivo/tview"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/network"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
-	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 var (
@@ -375,7 +375,7 @@ func (t *TUI) getIPAddresses() []string {
 			return
 		}
 
-		addrs, err := systemd.GetIPAddresses(context.Background(), name)
+		addrs, err := network.GetIPAddresses(context.Background(), name)
 		if err == nil {
 			ret = append(ret, name+"("+strings.Join(addrs, ", ")+")")
 		}

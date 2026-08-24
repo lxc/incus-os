@@ -1,0 +1,43 @@
+[Match]
+PermanentMACAddress={{.Hwaddr}}
+
+[Link]
+{{- if .RandomMAC}}
+MACAddressPolicy=random{{- end}}
+NamePolicy=
+Name=_p{{.Name}}
+MTUBytes={{.MTU}}
+{{- if .Ethernet}}
+  {{- if .Ethernet.DisableGRO}}
+GenericReceiveOffload=false
+GenericReceiveOffloadHardware=false
+  {{- end}}
+  {{- if .Ethernet.DisableGSO}}
+GenericSegmentationOffload=false
+  {{- end}}
+  {{- if .Ethernet.DisableIPv4TSO}}
+TCPSegmentationOffload=false
+  {{- end}}
+  {{- if .Ethernet.DisableIPv6TSO}}
+TCP6SegmentationOffload=false
+  {{- end}}
+  {{- if .Ethernet.WakeOnLAN}}
+    {{- if gt (len .Ethernet.WakeOnLANModes) 0 }}
+      {{- range .Ethernet.WakeOnLANModes}}
+WakeOnLan={{.}}
+      {{- end}}
+    {{- else}}
+WakeOnLan=magic
+    {{- end}}
+    {{- range .Ethernet.WakeOnLANModes}}
+      {{- if eq . "secureon"}}
+WakeOnLanPassword={{$.Ethernet.WakeOnLANPassword}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+  {{- if .Ethernet.DisableEnergyEfficient}}
+
+[EnergyEfficientEthernet]
+Enable=false
+  {{- end}}
+{{- end}}
