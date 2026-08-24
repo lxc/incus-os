@@ -2170,16 +2170,16 @@ paths:
     /1.0/debug/secureboot/:update:
         post:
             consumes:
-                - application/gzip
+                - application/x-tar
             description: |-
-                Apply a `gzip` compressed tar archive of Secure Boot variable updates.
+                Apply a tar archive of Secure Boot variable updates.
 
-                Remember to properly set the `Content-Type: application/gzip` HTTP header.
+                Remember to properly set the `Content-Type: application/x-tar` HTTP header.
             operationId: debug_post_secureboot_update
             parameters:
                 - description: Secure Boot updates to apply
                   in: body
-                  name: gzip tar archive
+                  name: tar archive
                   required: true
                   schema:
                     format: binary
