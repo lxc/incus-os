@@ -12,7 +12,7 @@
         ]
     },
     "edk2": {
-        "version": "edk2-stable202605",
+        "version": "edk2-stable202608",
         "repo": "https://github.com/tianocore/edk2",
         "submodules": true,
         "build_targets": [],
@@ -176,7 +176,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.77.0",
+        "version": "v0.77.1",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -216,7 +216,7 @@
         ]
     },
     "openfga-sync": {
-        "version": "c17052a247953e7c83807d5b8110a6d89e1772c8",
+        "version": "9984f8d301bdcd94976f4820e2c8405cb856ff8d",
         "repo": "https://github.com/FuturFusion/openfga-sync.git",
         "build_targets": [
             [
@@ -317,7 +317,7 @@
         ]
     },
     "terraform-provider-incus": {
-        "version": "v1.1.1",
+        "version": "v1.2.0",
         "repo": "https://github.com/lxc/terraform-provider-incus.git",
         "build_targets": [
             [
