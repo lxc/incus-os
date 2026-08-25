@@ -31,3 +31,10 @@ Installing on VirtualBox </getting-started/installation/virtual-virtualbox>
 Installing on VMware </getting-started/installation/virtual-vmware>
 Installing on VMware Fusion </getting-started/installation/virtual-fusion>
 ```
+
+## Unsupported platforms
+
+- Xen: The `xen_blkfront` kernel module doesn't expose a stable device ID (SCSI ID, WWN,
+  etc) for block devices within a guest virtual machine. This prevents `udev` from creating
+  symlinks under `/dev/disk/by-id/` which are used extensively by IncusOS when interacting
+  with system storage.
