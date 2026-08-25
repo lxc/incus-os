@@ -1,3 +1,4 @@
+import re
 import time
 
 from .incus_test_vm import IncusTestVM, IncusOSException, util
@@ -366,6 +367,79 @@ def TestIncusOSAPIApplicationsRemove(install_image):
 
         time.sleep(5)
 
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise IncusOSException("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus":
+            raise IncusOSException("expected the incus application to be installed")
+
+def TestIncusOSAPIApplicationsIncusUpgrade(install_image):
+    test_name = "incusos-api-applications-incus-upgrade"
+    test_seed = {
+        "install.json": "{}",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    # Test downgrading Incus from Feature to LTS release (expected to fail).
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version)
+
+        # Verify that the Incus application is installed.
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise IncusOSException("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus":
+            raise IncusOSException("expected the incus application to be installed")
+
+        # Verify we cannot downgrade a Feature release of Incus to an LTS version.
+        result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"incus-lts-7.0"}""")
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success downgrading Incus Feature release to LTS")
+
+        if not re.search(r"unable to replace application 'incus' with 'incus-lts-7.0': current Incus version \(7\.[0-9]+\) is too new to rollback to older LTS branch", result["error"]):
+            raise IncusOSException("got unexpected error attempting to downgrade Incus: " + result["error"])
+
+    test_seed = {
+        "install.json": "{}",
+        "applications.json": """{"applications":[{"name":"incus-lts-7.0"}]}""",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    # Test upgrading Incus from LTS to Feature release.
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+        vm.WaitSystemReady(os_version, application="incus-lts-7.0")
+
+        # Verify that the Incus LTS application is installed.
+        result = vm.APIRequest("/1.0/applications")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if len(result["metadata"]) != 1:
+            raise IncusOSException("expected exactly one application")
+
+        if result["metadata"][0] != "/1.0/applications/incus-lts-7.0":
+            raise IncusOSException("expected the incus LTS application to be installed")
+
+        # Verify we can upgrade a LTS release of Incus to a Feature version.
+        result = vm.APIRequest("/1.0/applications", method="POST", body="""{"name":"incus"}""")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        vm.WaitExpectedLog("incus-osd", "Preparing to replace Incus application 'incus-lts-7.0' with 'incus'")
+        vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=")
+        vm.WaitExpectedLog("incus-osd", "Reloading application name=incus version=")
+
+        # Verify that the LTS version is gone.
         result = vm.APIRequest("/1.0/applications")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
