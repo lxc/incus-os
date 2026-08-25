@@ -128,6 +128,7 @@ structs
 subnet
 SuperMicro
 symlink
+symlinks
 syslog
 systemd
 systemd's
@@ -160,6 +161,7 @@ VPN
 vSphere
 WireGuard
 WWN
+Xen
 Xeon
 xFusion
 YAML
