@@ -53,6 +53,18 @@ must be typed as is, including the dashes.
 Alternatively, with the recovery key(s), you can remove the affected drive(s) to a different
 machine and unlock them to access/migrate any data they contain.
 
+### Unlocking with a recovery key on `RESCUE_DATA`
+
+If the TPM is unable to unlock the install drive and typing the recovery passphrase on the
+console isn't practical (for example when no keyboard is available), the passphrase can be
+placed in a file named `recovery.txt` at the root of a FAT-formatted partition labeled
+`RESCUE_DATA`. During boot, IncusOS will display a warning, wait one minute so the process
+can be aborted by powering off the system, securely destroy the file and then use the
+passphrase to unlock the install drive.
+
+The drive is only unlocked if the file was successfully destroyed, so a system won't keep
+booting with the passphrase available on an attached device.
+
 ```{tip}
 IncusOS has some basic recovery key complexity rules:
 
