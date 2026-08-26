@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 
 	"github.com/lxc/incus/v7/shared/revert"
@@ -21,6 +22,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
+
+var recoveryKeyRegex = regexp.MustCompile(`^recovery\..+\.key$`)
 
 // GetOSBackup returns a tar archive of all the files under /var/lib/incus-os/.
 func GetOSBackup() ([]byte, error) {
@@ -73,6 +76,13 @@ func GetOSBackup() ([]byte, error) {
 			return nil, errors.New("backup cannot contain directories")
 		}
 
+		// Skip backing up system-specific internal encryption recovery keys.
+		// They won't work on any other IncusOS system, and including them
+		// only makes the recovery process more complex for no real gain.
+		if recoveryKeyRegex.MatchString(file.Name()) {
+			continue
+		}
+
 		err := writeFile(file)
 		if err != nil {
 			return nil, err
@@ -120,6 +130,38 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	err = os.Mkdir("/var/lib/incus-os/", 0o700)
 	if err != nil {
 		return err
+	}
+
+	// Copy any existing system-specific encryption recovery keys.
+	existingFiles, err := os.ReadDir("/var/lib/incus-os.bak/")
+	if err != nil {
+		return err
+	}
+
+	for _, file := range existingFiles {
+		if recoveryKeyRegex.MatchString(file.Name()) {
+			src, err := os.Open(filepath.Join("/var/lib/incus-os.bak", file.Name()))
+			if err != nil {
+				return err
+			}
+			defer src.Close() //nolint:revive
+
+			dst, err := os.Create(filepath.Join("/var/lib/incus-os", file.Name()))
+			if err != nil {
+				return err
+			}
+			defer dst.Close() //nolint:revive
+
+			err = dst.Chmod(0o600)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(dst, src)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Iterate through each file in the tar archive.
@@ -212,6 +254,11 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 
 		// Don't let someone feed us a path traversal escape attack.
 		filename := filepath.Base(header.Name)
+
+		// Don't attempt to restore a system-specific encryption recovery key from an older backup.
+		if recoveryKeyRegex.MatchString(filename) {
+			continue
+		}
 
 		// If told to skip restoring local pool key, copy the existing one from the backup directory.
 		if filename == "zpool.local.key" && slices.Contains(skipOptions, "local-data-encryption-key") {
