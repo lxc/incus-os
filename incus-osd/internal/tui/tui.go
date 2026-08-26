@@ -64,21 +64,13 @@ func GetTUI(s *state.State) (*TUI, error) {
 		state: s,
 	}
 
-	// If we're running in an Incus VM, additionally use /dev/ttyS0.
-	_, err := os.Stat("/dev/virtio-ports/org.linuxcontainers.incus")
-	if err == nil {
-		ttyDevs = append(ttyDevs, "/dev/ttyS0")
-	}
-
-	// Add any additional user-provided console devices.
-	for _, console := range s.System.Kernel.Config.Console {
-		if !slices.Contains(ttyDevs, console.Device) {
-			ttyDevs = append(ttyDevs, console.Device)
-		}
-	}
+	// Detect any additional console devices.
+	discoverConsoleDevices(s)
 
 	// Get information about the system's resources. Since we only display CPU
 	// and RAM, caching the results at creation time should be sufficient.
+	var err error
+
 	singletonTUI.systemResources, err = resources.GetResources()
 	if err != nil {
 		return nil, err
@@ -434,10 +426,34 @@ func wrapFooterText(label string, text string, maxLineLength int) []string {
 	return ret
 }
 
+// discoverConsoleDevices adds any additional console devices to the list of ttys used by the TUI.
+func discoverConsoleDevices(s *state.State) {
+	// If we're running in an Incus VM, additionally use /dev/ttyS0.
+	_, err := os.Stat("/dev/virtio-ports/org.linuxcontainers.incus")
+	if err == nil && !slices.Contains(ttyDevs, "/dev/ttyS0") {
+		ttyDevs = append(ttyDevs, "/dev/ttyS0")
+	}
+
+	// Without any state (early errors), the user-provided console devices aren't known yet.
+	if s == nil {
+		return
+	}
+
+	// Add any additional user-provided console devices.
+	for _, console := range s.System.Kernel.Config.Console {
+		if !slices.Contains(ttyDevs, console.Device) {
+			ttyDevs = append(ttyDevs, console.Device)
+		}
+	}
+}
+
 // EarlyError renders a basic startup error to the console.
 func EarlyError(msg string, osName string) {
 	// Send error to stderr first.
 	_, _ = fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+
+	// Detect any additional console devices.
+	discoverConsoleDevices(nil)
 
 	// Attempt to open the system's consoles.
 	ttys, err := newTtyMultiplexer(ttyDevs...)
