@@ -2109,7 +2109,9 @@ func getMaxMTUForMAC(ctx context.Context, mac string) (int, error) {
 
 	match := mtuRegex.FindAllStringSubmatch(output, -1)
 	if len(match) == 0 {
-		return -1, errors.New("unable to determine maximum MTU for " + mac)
+		slog.WarnContext(ctx, "unable to determine maximum MTU for "+mac+", defaulting to 1500")
+
+		return 1500, nil
 	}
 
 	mtu, err := strconv.Atoi(match[0][1])
