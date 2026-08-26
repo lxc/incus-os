@@ -393,13 +393,20 @@ func createZpoolHelper(ctx context.Context, args []string, allowMixedDevSizes bo
 }
 
 // DestroyZpool destroys an existing zpool.
-func DestroyZpool(ctx context.Context, zpoolName string) error {
+func DestroyZpool(ctx context.Context, zpoolName string, osName string) error {
 	// Don't allow destruction of the "local" zpool.
 	if zpoolName == "local" {
 		return errors.New("cannot destroy special zpool 'local'")
 	}
 
 	zpoolKey := "/var/lib/incus-os/zpool." + zpoolName + ".key"
+
+	// Make sure the encryption key exists, otherwise refuse to destroy
+	// a zpool that's not managed by IncusOS.
+	_, err := os.Stat(zpoolKey)
+	if err != nil && os.IsNotExist(err) {
+		return errors.New("cannot destroy zpool '" + zpoolName + "' that isn't managed by " + osName)
+	}
 
 	// Get a list of member devices.
 	poolConfig, err := storage.GetZpoolMembers(ctx, zpoolName)
@@ -408,11 +415,6 @@ func DestroyZpool(ctx context.Context, zpoolName string) error {
 		// If we still have an encryption key clean that up and return. Otherwise return an error
 		// about the pool not existing.
 		if strings.Contains(err.Error(), "cannot open '"+zpoolName+"': no such pool") {
-			_, err := os.Stat(zpoolKey)
-			if os.IsNotExist(err) {
-				return errors.New("cannot destroy zpool '" + zpoolName + "': no such pool")
-			}
-
 			return os.Remove(zpoolKey)
 		}
 
