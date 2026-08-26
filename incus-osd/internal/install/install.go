@@ -727,6 +727,9 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	}
 
 	// Before starting the install, wipe the target device.
+	slog.InfoContext(ctx, "Wiping target drive, this may take a while")
+	modal.Update("Wiping target drive, this may take a while.")
+
 	err = storage.WipeDrive(ctx, targetDeviceID, false)
 	if err != nil {
 		return err
