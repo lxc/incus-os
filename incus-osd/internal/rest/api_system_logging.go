@@ -90,6 +90,13 @@ func (s *Server) apiSystemLogging(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		err = systemd.SetJournalUpload(r.Context(), loggingData.Config.JournalUpload)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
 		// Persist the configuration.
 		s.state.System.Logging.Config = loggingData.Config
 
