@@ -109,6 +109,8 @@ definitions:
                 $ref: '#/definitions/SystemKernelConfigNetwork'
             pci:
                 $ref: '#/definitions/SystemKernelConfigPCI'
+            zfs:
+                $ref: '#/definitions/SystemKernelConfigZFS'
         title: SystemKernelConfig holds the kernel-level configuration data.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -207,6 +209,14 @@ definitions:
         title: SystemKernelConfigPCISRIOV defines the number of SR-IOV virtual functions to create on a PCI device.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemKernelConfigZFS:
+        properties:
+            arc_max_size:
+                type: string
+                x-go-name: ARCMaxSize
+        title: SystemKernelConfigZFS holds ZFS-specific kernel configuration.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelState:
         properties:
             memory:
@@ -297,6 +307,8 @@ definitions:
                     type: string
                 type: array
                 x-go-name: Addresses
+            bridge:
+                $ref: '#/definitions/SystemNetworkBridge'
             ethernet:
                 $ref: '#/definitions/SystemNetworkEthernet'
             firewall_rules:
@@ -325,6 +337,8 @@ definitions:
             name:
                 type: string
                 x-go-name: Name
+            options:
+                $ref: '#/definitions/SystemNetworkBondOptions'
             required_for_online:
                 type: string
                 x-go-name: RequiredForOnline
@@ -345,6 +359,49 @@ definitions:
                 type: array
                 x-go-name: VLANTags
         title: SystemNetworkBond contains information about a network bond.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkBondOptions:
+        properties:
+            arp_interval:
+                format: int64
+                type: integer
+                x-go-name: ARPInterval
+            arp_ip_targets:
+                items:
+                    type: string
+                type: array
+                x-go-name: ARPIPTargets
+            down_delay:
+                format: int64
+                type: integer
+                x-go-name: DownDelay
+            lacp_rate:
+                type: string
+                x-go-name: LACPRate
+            mii_monitor_interval:
+                format: int64
+                type: integer
+                x-go-name: MIIMonitorInterval
+            transmit_hash_policy:
+                type: string
+                x-go-name: TransmitHashPolicy
+            up_delay:
+                format: int64
+                type: integer
+                x-go-name: UpDelay
+        title: SystemNetworkBondOptions contains link monitoring and tuning options for a network bond.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkBridge:
+        properties:
+            disable_multicast_snooping:
+                type: boolean
+                x-go-name: DisableMulticastSnooping
+            stp:
+                type: boolean
+                x-go-name: STP
+        title: SystemNetworkBridge contains configuration for the bridge that is automatically created on top of an interface or bond.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkConfig:
@@ -425,6 +482,18 @@ definitions:
             disable_ipv6_tso:
                 type: boolean
                 x-go-name: DisableIPv6TSO
+            rx_buffer_size:
+                type: string
+                x-go-name: RxBufferSize
+            rx_jumbo_buffer_size:
+                type: string
+                x-go-name: RxJumboBufferSize
+            rx_mini_buffer_size:
+                type: string
+                x-go-name: RxMiniBufferSize
+            tx_buffer_size:
+                type: string
+                x-go-name: TxBufferSize
             wakeonlan:
                 type: boolean
                 x-go-name: WakeOnLAN
@@ -464,6 +533,8 @@ definitions:
                     type: string
                 type: array
                 x-go-name: Addresses
+            bridge:
+                $ref: '#/definitions/SystemNetworkBridge'
             ethernet:
                 $ref: '#/definitions/SystemNetworkEthernet'
             firewall_rules:
