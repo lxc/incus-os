@@ -2100,7 +2100,7 @@ func getMaxMTUForMAC(ctx context.Context, mac string) (int, error) {
 		return 9009, nil
 	}
 
-	mtuRegex := regexp.MustCompile(mac + ` .+? minmtu \d+ maxmtu (\d+)`)
+	mtuRegex := regexp.MustCompile(strings.ToLower(mac) + ` .+? minmtu \d+ maxmtu (\d+)`)
 
 	output, err := subprocess.RunCommandContext(ctx, "ip", "-d", "link")
 	if err != nil {
