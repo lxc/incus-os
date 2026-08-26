@@ -221,7 +221,7 @@ func (s *Server) apiSystemStorageDeletePool(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Delete the pool.
-	err = zfs.DestroyZpool(r.Context(), config.Name)
+	err = zfs.DestroyZpool(r.Context(), config.Name, s.state.OS.Name)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
