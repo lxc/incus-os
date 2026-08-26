@@ -8,6 +8,12 @@ type SystemKernelConfig struct {
 	Memory           *SystemKernelConfigMemory   `json:"memory,omitempty"            yaml:"memory,omitempty"`
 	Network          *SystemKernelConfigNetwork  `json:"network,omitempty"           yaml:"network,omitempty"`
 	PCI              *SystemKernelConfigPCI      `json:"pci,omitempty"               yaml:"pci,omitempty"`
+	ZFS              *SystemKernelConfigZFS      `json:"zfs,omitempty"               yaml:"zfs,omitempty"`
+}
+
+// SystemKernelConfigZFS holds ZFS-specific kernel configuration.
+type SystemKernelConfigZFS struct {
+	ARCMaxSize string `json:"arc_max_size,omitempty" yaml:"arc_max_size,omitempty"`
 }
 
 // SystemKernelConfigCPU holds CPU-specific kernel configuration.

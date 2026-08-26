@@ -35,6 +35,12 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		return err
 	}
 
+	// Update ZFS module configuration.
+	err = updateZFSConfig(config.ZFS)
+	if err != nil {
+		return err
+	}
+
 	// Update the list of PCI(e) pass-throughs.
 	if config.PCI != nil {
 		err := updatePCIPassthroughs(config.PCI.Passthrough)
@@ -66,6 +72,10 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 
 	return nil
 }
+
+// sriovLinkUpDrivers lists the network drivers that require the physical link to be
+// up before SR-IOV virtual functions can be created.
+var sriovLinkUpDrivers = []string{"bnxt_en"}
 
 // ApplySRIOV creates the requested number of SR-IOV virtual functions on each configured PCI device.
 func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
@@ -104,6 +114,21 @@ func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
 
 		if strings.TrimSpace(string(currentVFs)) == strconv.Itoa(c.VFCount) {
 			continue
+		}
+
+		// Some drivers refuse to create virtual functions while the physical link
+		// is administratively down. For those, bring the link up first.
+		driverPath, err := os.Readlink(filepath.Join(devicePath, "driver"))
+		if err == nil && slices.Contains(sriovLinkUpDrivers, filepath.Base(driverPath)) {
+			netDevs, err := os.ReadDir(filepath.Join(devicePath, "net"))
+			if err == nil {
+				for _, netDev := range netDevs {
+					_, err := subprocess.RunCommand("ip", "link", "set", "dev", netDev.Name(), "up")
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
 
 		// The number of virtual functions can only be changed from zero.
@@ -354,6 +379,37 @@ func updateBlacklistModules(modules []string) error {
 
 		// Ignore any errors encountered attempting to unload the module.
 		_, _ = subprocess.RunCommand("/sbin/rmmod", module)
+	}
+
+	return nil
+}
+
+func updateZFSConfig(config *api.SystemKernelConfigZFS) error {
+	// Initialize if nil.
+	if config == nil {
+		config = &api.SystemKernelConfigZFS{}
+	}
+
+	// Parse the requested ARC size limit.
+	arcMax := int64(0)
+
+	if config.ARCMaxSize != "" {
+		var err error
+
+		arcMax, err = units.ParseByteSizeString(config.ARCMaxSize)
+		if err != nil {
+			return err
+		}
+
+		if arcMax < 0 {
+			return errors.New("ZFS ARC max size cannot be negative")
+		}
+	}
+
+	// Apply to the running module (a value of 0 resets to the ZFS default).
+	err := os.WriteFile("/sys/module/zfs/parameters/zfs_arc_max", fmt.Appendf(nil, "%d\n", arcMax), 0o644)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
 	"net"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -144,6 +145,36 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 		err = validateEthernet(bond.Ethernet)
 		if err != nil {
 			return fmt.Errorf("bond %d %s", index, err.Error())
+		}
+
+		if bond.Options != nil {
+			err := validateBondOptions(bond.Options)
+			if err != nil {
+				return fmt.Errorf("bond %d %s", index, err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateBondOptions(options *api.SystemNetworkBondOptions) error {
+	if options.TransmitHashPolicy != "" && !slices.Contains([]string{"layer2", "layer2+3", "layer3+4", "encap2+3", "encap3+4", "vlan+srcmac"}, options.TransmitHashPolicy) {
+		return fmt.Errorf("has invalid transmit hash policy '%s'", options.TransmitHashPolicy)
+	}
+
+	if options.LACPRate != "" && !slices.Contains([]string{"slow", "fast"}, options.LACPRate) {
+		return fmt.Errorf("has invalid LACP rate '%s'", options.LACPRate)
+	}
+
+	if options.MIIMonitorInterval < 0 || options.ARPInterval < 0 || options.UpDelay < 0 || options.DownDelay < 0 {
+		return errors.New("monitoring intervals cannot be negative")
+	}
+
+	for targetIndex, target := range options.ARPIPTargets {
+		err := validateAddress(target)
+		if err != nil {
+			return fmt.Errorf("arp target %d %s", targetIndex, err.Error())
 		}
 	}
 
@@ -503,6 +534,23 @@ func validateEthernet(eth *api.SystemNetworkEthernet) error {
 		err := validateHwaddr(eth.WakeOnLANPassword, true)
 		if err != nil {
 			return fmt.Errorf("bad wake-on-lan password: %w", err)
+		}
+	}
+
+	// Validate ring buffer sizes (a positive integer or "max").
+	for name, value := range map[string]string{
+		"rx_buffer_size":       eth.RxBufferSize,
+		"rx_jumbo_buffer_size": eth.RxJumboBufferSize,
+		"rx_mini_buffer_size":  eth.RxMiniBufferSize,
+		"tx_buffer_size":       eth.TxBufferSize,
+	} {
+		if value == "" || value == "max" {
+			continue
+		}
+
+		size, err := strconv.Atoi(value)
+		if err != nil || size <= 0 {
+			return fmt.Errorf("bad %s %q: must be a positive integer or \"max\"", name, value)
 		}
 	}
 

@@ -47,6 +47,7 @@ type SystemNetworkConfig struct {
 // SystemNetworkInterface contains information about a network interface.
 type SystemNetworkInterface struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Bridge            *SystemNetworkBridge        `json:"bridge,omitempty"              yaml:"bridge,omitempty"`
 	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr"                        yaml:"hwaddr"`
@@ -63,6 +64,7 @@ type SystemNetworkInterface struct {
 // SystemNetworkBond contains information about a network bond.
 type SystemNetworkBond struct {
 	Addresses         []string                    `json:"addresses,omitempty"           yaml:"addresses,omitempty"`
+	Bridge            *SystemNetworkBridge        `json:"bridge,omitempty"              yaml:"bridge,omitempty"`
 	Ethernet          *SystemNetworkEthernet      `json:"ethernet,omitempty"            yaml:"ethernet,omitempty"`
 	FirewallRules     []SystemNetworkFirewallRule `json:"firewall_rules,omitempty"      yaml:"firewall_rules,omitempty"`
 	Hwaddr            string                      `json:"hwaddr,omitempty"              yaml:"hwaddr,omitempty"`
@@ -71,10 +73,22 @@ type SystemNetworkBond struct {
 	Mode              string                      `json:"mode"                          yaml:"mode"`
 	MTU               int                         `json:"mtu,omitempty"                 yaml:"mtu,omitempty"`
 	Name              string                      `json:"name"                          yaml:"name"`
+	Options           *SystemNetworkBondOptions   `json:"options,omitempty"             yaml:"options,omitempty"`
 	RequiredForOnline string                      `json:"required_for_online,omitempty" yaml:"required_for_online,omitempty"`
 	Roles             []string                    `json:"roles,omitempty"               yaml:"roles,omitempty"`
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
 	VLANTags          []int                       `json:"vlan_tags,omitempty"           yaml:"vlan_tags,omitempty"`
+}
+
+// SystemNetworkBondOptions contains link monitoring and tuning options for a network bond.
+type SystemNetworkBondOptions struct {
+	ARPInterval        int      `json:"arp_interval,omitempty"         yaml:"arp_interval,omitempty"`
+	ARPIPTargets       []string `json:"arp_ip_targets,omitempty"       yaml:"arp_ip_targets,omitempty"`
+	DownDelay          int      `json:"down_delay,omitempty"           yaml:"down_delay,omitempty"`
+	LACPRate           string   `json:"lacp_rate,omitempty"            yaml:"lacp_rate,omitempty"`
+	MIIMonitorInterval int      `json:"mii_monitor_interval,omitempty" yaml:"mii_monitor_interval,omitempty"`
+	TransmitHashPolicy string   `json:"transmit_hash_policy,omitempty" yaml:"transmit_hash_policy,omitempty"`
+	UpDelay            int      `json:"up_delay,omitempty"             yaml:"up_delay,omitempty"`
 }
 
 // SystemNetworkVLAN contains information about a network vlan.
@@ -90,6 +104,12 @@ type SystemNetworkVLAN struct {
 	Routes            []SystemNetworkRoute        `json:"routes,omitempty"              yaml:"routes,omitempty"`
 }
 
+// SystemNetworkBridge contains configuration for the bridge that is automatically created on top of an interface or bond.
+type SystemNetworkBridge struct {
+	DisableMulticastSnooping bool `json:"disable_multicast_snooping,omitempty" yaml:"disable_multicast_snooping,omitempty"`
+	STP                      bool `json:"stp,omitempty"                        yaml:"stp,omitempty"`
+}
+
 // SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
 type SystemNetworkEthernet struct {
 	DisableEnergyEfficient bool     `json:"disable_energy_efficient,omitempty" yaml:"disable_energy_efficient,omitempty"`
@@ -97,6 +117,10 @@ type SystemNetworkEthernet struct {
 	DisableGSO             bool     `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
 	DisableIPv4TSO         bool     `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
 	DisableIPv6TSO         bool     `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
+	RxBufferSize           string   `json:"rx_buffer_size,omitempty"           yaml:"rx_buffer_size,omitempty"`
+	RxJumboBufferSize      string   `json:"rx_jumbo_buffer_size,omitempty"     yaml:"rx_jumbo_buffer_size,omitempty"`
+	RxMiniBufferSize       string   `json:"rx_mini_buffer_size,omitempty"      yaml:"rx_mini_buffer_size,omitempty"`
+	TxBufferSize           string   `json:"tx_buffer_size,omitempty"           yaml:"tx_buffer_size,omitempty"`
 	WakeOnLAN              bool     `json:"wakeonlan,omitempty"                yaml:"wakeonlan,omitempty"`
 	WakeOnLANModes         []string `json:"wakeonlan_modes,omitempty"          yaml:"wakeonlan_modes,omitempty"`
 	WakeOnLANPassword      string   `json:"wakeonlan_password,omitempty"       yaml:"wakeonlan_password,omitempty"`

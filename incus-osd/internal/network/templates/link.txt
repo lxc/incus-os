@@ -21,6 +21,18 @@ TCPSegmentationOffload=false
   {{- if .Ethernet.DisableIPv6TSO}}
 TCP6SegmentationOffload=false
   {{- end}}
+  {{- if .Ethernet.RxBufferSize}}
+RxBufferSize={{.Ethernet.RxBufferSize}}
+  {{- end}}
+  {{- if .Ethernet.RxJumboBufferSize}}
+RxJumboBufferSize={{.Ethernet.RxJumboBufferSize}}
+  {{- end}}
+  {{- if .Ethernet.RxMiniBufferSize}}
+RxMiniBufferSize={{.Ethernet.RxMiniBufferSize}}
+  {{- end}}
+  {{- if .Ethernet.TxBufferSize}}
+TxBufferSize={{.Ethernet.TxBufferSize}}
+  {{- end}}
   {{- if .Ethernet.WakeOnLAN}}
     {{- if gt (len .Ethernet.WakeOnLANModes) 0 }}
       {{- range .Ethernet.WakeOnLANModes}}
