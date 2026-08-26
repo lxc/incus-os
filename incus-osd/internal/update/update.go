@@ -329,21 +329,15 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 // HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
 // that the update modal is dismissed.
 func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
-	updateModal := t.GetModal("update")
-
 	if osVersion != "" {
-		if updateModal == nil {
-			updateModal = t.AddModal(s.OS.Name+" Update", "update")
-		}
-
 		s.System.Update.State.Status = s.OS.Name + " has been updated to version " + osVersion
-		updateModal.Update(s.OS.Name + " has been updated to version " + osVersion + ".\nPlease reboot the system to finalize update.")
 	} else {
 		s.System.Update.State.Status = "Update check completed"
+	}
 
-		if updateModal != nil {
-			updateModal.Done()
-		}
+	updateModal := t.GetModal("update")
+	if updateModal != nil {
+		updateModal.Done()
 	}
 }
 
@@ -507,13 +501,12 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 			s.System.Update.State.NeedsReboot = true
 
-			sbModal := t.GetModal("secureboot-update")
-
-			if t.GetModal("secureboot-update") == nil {
-				sbModal = t.AddModal(s.OS.Name+" SecureBoot Certificate Update", "secureboot-update")
-			}
-
 			if isStartupCheck {
+				sbModal := t.GetModal("secureboot-update")
+				if sbModal == nil {
+					sbModal = t.AddModal(s.OS.Name+" SecureBoot Certificate Update", "secureboot-update")
+				}
+
 				slog.InfoContext(ctx, "Automatically rebooting system in five seconds")
 				sbModal.Update("Automatically rebooting system in five seconds")
 
@@ -523,8 +516,8 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
+				// The pending reboot is indicated through the TUI header.
 				slog.InfoContext(ctx, "A reboot is required to finalize the update")
-				sbModal.Update("A reboot is required to finalize the update")
 			}
 
 			return "", nil
