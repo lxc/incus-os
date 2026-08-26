@@ -24,6 +24,11 @@ disable smartmontools.service
 # System
 disable dpkg-db-backup.service
 disable dpkg-db-backup.timer
+disable systemd-journal-gatewayd.service
+disable systemd-journal-gatewayd.socket
+disable systemd-journal-remote.service
+disable systemd-journal-remote.socket
+disable systemd-journal-upload.service
 disable systemd-journald-audit.socket
 disable systemd-netlogd.service
 disable systemd-sysupdate-reboot.service
