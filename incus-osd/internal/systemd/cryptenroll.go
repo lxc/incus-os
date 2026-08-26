@@ -110,21 +110,23 @@ func GenerateRecoveryKeys(ctx context.Context, s *state.State) error {
 
 // AddEncryptionKey utilizes systemd-cryptenroll to add a user-specified key for the
 // root and swap LUKS volumes.
-func AddEncryptionKey(ctx context.Context, s *state.State, key string) error {
+func AddEncryptionKey(ctx context.Context, s *state.State, key string, skipKeyValidation bool) error {
 	if slices.Contains(s.System.Security.Config.EncryptionRecoveryKeys, key) {
 		return errors.New("provided encryption key is already enrolled")
 	}
 
-	validator := crunchy.NewValidatorWithOpts(crunchy.Options{
-		MinLength:         15,
-		MustContainDigit:  false, // systemd-cryptenroll generates recovery passphrases that don't contain any digits.
-		MustContainSymbol: true,
-		CheckHIBP:         false,
-	})
+	if !skipKeyValidation {
+		validator := crunchy.NewValidatorWithOpts(crunchy.Options{
+			MinLength:         15,
+			MustContainDigit:  false, // systemd-cryptenroll generates recovery passphrases that don't contain any digits.
+			MustContainSymbol: true,
+			CheckHIBP:         false,
+		})
 
-	err := validator.Check(key)
-	if err != nil {
-		return err
+		err := validator.Check(key)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Get the underlying LUKS partitions.
@@ -181,7 +183,7 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 			continue
 		}
 
-		err := AddEncryptionKey(ctx, s, existingKey)
+		err := AddEncryptionKey(ctx, s, existingKey, false)
 		if err != nil {
 			return err
 		}

@@ -185,7 +185,7 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Add any new encryption keys.
 		for _, newKey := range securityStruct.Config.EncryptionRecoveryKeys {
 			if !slices.Contains(s.state.System.Security.Config.EncryptionRecoveryKeys, newKey) {
-				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey)
+				err := systemd.AddEncryptionKey(r.Context(), s.state, newKey, false)
 				if err != nil {
 					_ = response.InternalError(err).Render(w)
 

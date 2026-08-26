@@ -402,7 +402,7 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		s.System.Security.Config.EncryptionRecoveryKeys = []string{}
 
 		for _, key := range newKeys {
-			err := systemd.AddEncryptionKey(ctx, s, key)
+			err := systemd.AddEncryptionKey(ctx, s, key, true)
 			if err != nil {
 				return err
 			}
