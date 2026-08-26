@@ -14,9 +14,7 @@ import (
 
 	"github.com/lxc/incus/v7/shared/revert"
 
-	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
-	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
@@ -304,18 +302,8 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 	}
 
 	// Sanity checks:
-	// 1. Need to be able to use TPM to change encryption recovery passphrase(s).
-	// 2. At least one recovery passphrase provided.
-	// 3. At least one primary application must be installed.
-	tpmStatus, err := secureboot.TPMStatus()
-	if err != nil {
-		return err
-	}
-
-	if tpmStatus != api.TPMStatusOK {
-		return errors.New("TPM status isn't OK: " + string(tpmStatus))
-	}
-
+	// 1. At least one recovery passphrase provided.
+	// 2. At least one primary application must be installed.
 	if len(newState.System.Security.Config.EncryptionRecoveryKeys) == 0 {
 		return errors.New("at least one recovery passphrase must be provided")
 	}
