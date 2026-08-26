@@ -198,6 +198,14 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			return err
 		}
 
+		// IncusOS generates backup archives without a relative path, but if the backup
+		// has been modified (for example, to replace a key), the recreated archive
+		// might have file names with relative paths, including a "./" directory. In this
+		// case, skip that directory when processing the archive.
+		if header.Typeflag == tar.TypeDir && header.Name == "./" {
+			continue
+		}
+
 		if header.Typeflag != tar.TypeReg {
 			return errors.New("backup cannot contain anything other than regular files")
 		}
