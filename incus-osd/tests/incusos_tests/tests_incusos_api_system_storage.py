@@ -230,12 +230,12 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                    if len(result["metadata"]["state"]["pools"]) != 2:
+                    if len(result["metadata"]["config"]["pools"]) != 2:
                         raise IncusOSException("expected two storage pools")
 
-                    poolState = result["metadata"]["state"]["pools"][0]
+                    poolState = result["metadata"]["config"]["pools"][0]
                     if poolState["name"] != "mypool":
-                        poolState = result["metadata"]["state"]["pools"][1]
+                        poolState = result["metadata"]["config"]["pools"][1]
 
                     if len(poolState["devices"]) != 3:
                         raise IncusOSException("expected three member devices for 'mypool' pool")
@@ -269,12 +269,12 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                if len(result["metadata"]["state"]["pools"]) != 2:
+                if len(result["metadata"]["config"]["pools"]) != 2:
                     raise IncusOSException("expected two storage pools")
 
-                poolState = result["metadata"]["state"]["pools"][0]
+                poolState = result["metadata"]["config"]["pools"][0]
                 if poolState["name"] != "mypool":
-                    poolState = result["metadata"]["state"]["pools"][1]
+                    poolState = result["metadata"]["config"]["pools"][1]
 
                 if len(poolState["devices"]) != 1:
                     raise IncusOSException("expected exactly one device for 'mypool' pool")
@@ -292,12 +292,12 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                if len(result["metadata"]["state"]["pools"]) != 2:
+                if len(result["metadata"]["config"]["pools"]) != 2:
                     raise IncusOSException("expected two storage pools")
 
-                poolState = result["metadata"]["state"]["pools"][0]
+                poolState = result["metadata"]["config"]["pools"][0]
                 if poolState["name"] != "mypool":
-                    poolState = result["metadata"]["state"]["pools"][1]
+                    poolState = result["metadata"]["config"]["pools"][1]
 
                 if len(poolState["devices"]) != 2:
                     raise IncusOSException("expected exactly two devices for 'mypool' pool")
@@ -337,12 +337,12 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                    if len(result["metadata"]["state"]["pools"]) != 2:
+                    if len(result["metadata"]["config"]["pools"]) != 2:
                         raise IncusOSException("expected two storage pools")
 
-                    poolState = result["metadata"]["state"]["pools"][0]
+                    poolState = result["metadata"]["config"]["pools"][0]
                     if poolState["name"] != "mypool":
-                        poolState = result["metadata"]["state"]["pools"][1]
+                        poolState = result["metadata"]["config"]["pools"][1]
 
                     if poolState["type"] != "zfs-raid0":
                         raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -378,12 +378,12 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                    if len(result["metadata"]["state"]["pools"]) != 2:
+                    if len(result["metadata"]["config"]["pools"]) != 2:
                         raise IncusOSException("expected two storage pools")
 
-                    poolState = result["metadata"]["state"]["pools"][0]
+                    poolState = result["metadata"]["config"]["pools"][0]
                     if poolState["name"] != "mypool":
-                        poolState = result["metadata"]["state"]["pools"][1]
+                        poolState = result["metadata"]["config"]["pools"][1]
 
                     if poolState["type"] != "zfs-raid0":
                         raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -445,12 +445,12 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                        if len(result["metadata"]["state"]["pools"]) != 2:
+                        if len(result["metadata"]["config"]["pools"]) != 2:
                             raise IncusOSException("expected two storage pools")
 
-                        poolState = result["metadata"]["state"]["pools"][0]
+                        poolState = result["metadata"]["config"]["pools"][0]
                         if poolState["name"] != "mypool":
-                            poolState = result["metadata"]["state"]["pools"][1]
+                            poolState = result["metadata"]["config"]["pools"][1]
 
                         if poolState["type"] != "zfs-raid1":
                             raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -474,12 +474,12 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                        if len(result["metadata"]["state"]["pools"]) != 2:
+                        if len(result["metadata"]["config"]["pools"]) != 2:
                             raise IncusOSException("expected two storage pools")
 
-                        poolState = result["metadata"]["state"]["pools"][0]
+                        poolState = result["metadata"]["config"]["pools"][0]
                         if poolState["name"] != "mypool":
-                            poolState = result["metadata"]["state"]["pools"][1]
+                            poolState = result["metadata"]["config"]["pools"][1]
 
                         if poolState["type"] != "zfs-raid1":
                             raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -506,12 +506,12 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                        if len(result["metadata"]["state"]["pools"]) != 2:
+                        if len(result["metadata"]["config"]["pools"]) != 2:
                             raise IncusOSException("expected two storage pools")
 
-                        poolState = result["metadata"]["state"]["pools"][0]
+                        poolState = result["metadata"]["config"]["pools"][0]
                         if poolState["name"] != "mypool":
-                            poolState = result["metadata"]["state"]["pools"][1]
+                            poolState = result["metadata"]["config"]["pools"][1]
 
                         if poolState["type"] != "zfs-raid1":
                             raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -535,12 +535,12 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                        if len(result["metadata"]["state"]["pools"]) != 2:
+                        if len(result["metadata"]["config"]["pools"]) != 2:
                             raise IncusOSException("expected two storage pools")
 
-                        poolState = result["metadata"]["state"]["pools"][0]
+                        poolState = result["metadata"]["config"]["pools"][0]
                         if poolState["name"] != "mypool":
-                            poolState = result["metadata"]["state"]["pools"][1]
+                            poolState = result["metadata"]["config"]["pools"][1]
 
                         if poolState["type"] != "zfs-raid1":
                             raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -600,12 +600,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid0":
                                     raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -629,12 +629,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid0":
                                     raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -662,12 +662,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid1":
                                     raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -691,12 +691,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid1":
                                     raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -732,12 +732,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid10":
                                     raise IncusOSException("'mypool' type isn't zfs-raid10")
@@ -769,12 +769,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid10":
                                     raise IncusOSException("'mypool' type isn't zfs-raid10")
@@ -802,12 +802,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raidz1":
                                     raise IncusOSException("'mypool' type isn't zfs-raidz1")
@@ -831,12 +831,12 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raidz1":
                                     raise IncusOSException("'mypool' type isn't zfs-raidz1")
@@ -903,12 +903,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid0":
                                     raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -943,12 +943,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid0":
                                     raise IncusOSException("'mypool' type isn't zfs-raid0")
@@ -988,12 +988,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid1":
                                     raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -1031,12 +1031,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raid1":
                                     raise IncusOSException("'mypool' type isn't zfs-raid1")
@@ -1076,12 +1076,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raidz1":
                                     raise IncusOSException("'mypool' type isn't zfs-raidz1")
@@ -1119,12 +1119,12 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                                if len(result["metadata"]["state"]["pools"]) != 2:
+                                if len(result["metadata"]["config"]["pools"]) != 2:
                                     raise IncusOSException("expected two storage pools")
 
-                                poolState = result["metadata"]["state"]["pools"][0]
+                                poolState = result["metadata"]["config"]["pools"][0]
                                 if poolState["name"] != "mypool":
-                                    poolState = result["metadata"]["state"]["pools"][1]
+                                    poolState = result["metadata"]["config"]["pools"][1]
 
                                 if poolState["type"] != "zfs-raidz1":
                                     raise IncusOSException("'mypool' type isn't zfs-raidz1")
