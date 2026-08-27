@@ -81,12 +81,14 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		info, err := storage.GetStorageInfo(r.Context())
+		info, pools, err := storage.GetStorageInfo(r.Context())
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
 			return
 		}
+
+		s.state.System.Storage.Config.Pools = pools
 
 		ret := api.SystemStorage{
 			State:  info,

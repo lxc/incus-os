@@ -689,8 +689,9 @@ func calculateScrubProgress(stats zpoolScanStats) string {
 }
 
 // GetStorageInfo returns current SMART data for each drive and the status of each local zpool.
-func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
+func GetStorageInfo(ctx context.Context) (api.SystemStorageState, []api.SystemStoragePool, error) {
 	ret := api.SystemStorageState{}
+	retPools := []api.SystemStoragePool{}
 
 	type zpoolStatusRaw struct {
 		Pools map[string]json.RawMessage `json:"pools"`
@@ -699,24 +700,24 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 	// Get the status of the zpool(s).
 	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-jp", "--json-int")
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	zpools := zpoolStatusRaw{}
 
 	err = json.Unmarshal([]byte(zpoolOutput), &zpools)
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	// Populate the Config.State struct.
 	for zpoolName := range zpools.Pools {
 		poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 		if err != nil {
-			return ret, err
+			return ret, retPools, err
 		}
 
-		ret.Pools = append(ret.Pools, poolConfig)
+		retPools = append(retPools, poolConfig)
 	}
 
 	// Get a list of all local drives.
@@ -724,19 +725,19 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 	// Exclude devices with major numbers 1 (RAM disk), 2 (floppy disks), 7 (loopback), 43 (NBD), 147 (DRBD), 230 (zvols), 251 (Ceph RBD)
 	output, err := subprocess.RunCommandContext(ctx, "lsblk", "-JMpdb", "-e", "1,2,7,43,147,230,251", "-o", "KNAME,ID_LINK,SIZE,SUBSYSTEMS,RM,WWN")
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	drives := LsblkOutput{}
 
 	err = json.Unmarshal([]byte(output), &drives)
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	bootDevice, err := GetUnderlyingDevice()
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	// Get SMART data and populate struct for each drive.
@@ -771,7 +772,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		// Determine if this is a remote device (NVMEoTCP, FC, etc).
 		isRemote, err := IsRemoteDevice(drive.KName)
 		if err != nil {
-			return ret, err
+			return ret, retPools, err
 		}
 
 		// If model_family or model_name are empty, try to populate values by looking at SCSI fields.
@@ -808,7 +809,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		// Resolve the device name to a more stable by-id symlink.
 		deviceID, err := DeviceToID(ctx, drive.KName, true)
 		if err != nil {
-			return ret, err
+			return ret, retPools, err
 		}
 
 		// Check if the drive belongs to a zpool.
@@ -817,7 +818,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		for zpoolName := range zpools.Pools {
 			poolConfig, err := getZpoolMembersHelper(ctx, []byte(zpoolOutput), zpoolName)
 			if err != nil {
-				return ret, err
+				return ret, retPools, err
 			}
 
 			if isMemberDrive(poolConfig.Devices, deviceID) || isMemberDrive(poolConfig.Log, deviceID) || isMemberDrive(poolConfig.Cache, deviceID) || (poolConfig.Special != nil && isMemberDrive(poolConfig.Special.Devices, deviceID)) ||
@@ -934,7 +935,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 
 	err = unix.Statfs("/", &fs)
 	if err != nil {
-		return ret, err
+		return ret, retPools, err
 	}
 
 	blockSize := int(fs.Bsize)
@@ -944,7 +945,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, error) {
 		AvailableInBytes: int(fs.Bavail) * blockSize, //nolint:gosec
 	}
 
-	return ret, nil
+	return ret, retPools, nil
 }
 
 // Helper function that checks if a given drive is a member of the provided list of drives.
@@ -1103,7 +1104,7 @@ func isBootDevice(ctx context.Context, deviceName string, bootDevice string) boo
 // and then remove the corresponding encryption key.
 func WipeDrive(ctx context.Context, drive string, secure bool) error {
 	// Get a list of all drives.
-	drives, err := GetStorageInfo(ctx)
+	drives, _, err := GetStorageInfo(ctx)
 	if err != nil {
 		return err
 	}

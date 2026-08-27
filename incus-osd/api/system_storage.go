@@ -11,7 +11,6 @@ type SystemStorageConfig struct {
 // SystemStorageState represents additional state for the system's local storage.
 type SystemStorageState struct {
 	Drives        []SystemStorageDrive       `json:"drives"         yaml:"drives"`
-	Pools         []SystemStoragePool        `json:"pools"          yaml:"pools"`
 	RootPartition SystemStorageRootPartition `json:"root_partition" yaml:"root_partition"`
 }
 
