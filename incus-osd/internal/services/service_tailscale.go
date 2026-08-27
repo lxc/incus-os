@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,6 +18,8 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
+
+const tailscaleUnitDropInPath = "/run/systemd/system/tailscale.service.d/incus-os.conf"
 
 // Tailscale represents the system Tailscale service.
 type Tailscale struct {
@@ -106,8 +110,19 @@ func (n *Tailscale) Update(ctx context.Context, req any) error {
 		return false
 	}(n.state.Services.Tailscale.Config, newState.Config)
 
-	// Ensure the service is running.
-	err := systemd.StartUnit(ctx, "tailscale.service")
+	// Apply the listen port.
+	err := n.applyPort(ctx, newState.Config.Port)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the service is running, restarting it if the listen port changed.
+	if n.state.Services.Tailscale.Config.Port != newState.Config.Port {
+		err = systemd.RestartUnit(ctx, "tailscale.service")
+	} else {
+		err = systemd.StartUnit(ctx, "tailscale.service")
+	}
+
 	if err != nil {
 		return err
 	}
@@ -153,8 +168,14 @@ func (n *Tailscale) Start(ctx context.Context) error {
 		return nil
 	}
 
+	// Apply the listen port.
+	err := n.applyPort(ctx, n.state.Services.Tailscale.Config.Port)
+	if err != nil {
+		return err
+	}
+
 	// Ensure the service is running.
-	err := systemd.StartUnit(ctx, "tailscale.service")
+	err = systemd.StartUnit(ctx, "tailscale.service")
 	if err != nil {
 		return err
 	}
@@ -170,6 +191,32 @@ func (n *Tailscale) ShouldStart() bool {
 // Struct returns the API struct for the Tailscale service.
 func (*Tailscale) Struct() any {
 	return &api.ServiceTailscale{}
+}
+
+// applyPort writes the unit drop-in setting the UDP port tailscaled listens on (0 for automatic).
+func (*Tailscale) applyPort(ctx context.Context, port int) error {
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("invalid port %d", port)
+	}
+
+	if port == 0 {
+		err := os.Remove(tailscaleUnitDropInPath)
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		err := os.MkdirAll(filepath.Dir(tailscaleUnitDropInPath), 0o755)
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(tailscaleUnitDropInPath, fmt.Appendf(nil, "[Service]\nEnvironment=PORT=%d\n", port), 0o644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return systemd.ReloadDaemon(ctx)
 }
 
 // backendState returns the current state of the Tailscale backend.
