@@ -9,18 +9,19 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 
 	"github.com/lxc/incus/v7/shared/revert"
 
-	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
-	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
+
+var recoveryKeyRegex = regexp.MustCompile(`^recovery\..+\.key$`)
 
 // GetOSBackup returns a tar archive of all the files under /var/lib/incus-os/.
 func GetOSBackup() ([]byte, error) {
@@ -73,6 +74,13 @@ func GetOSBackup() ([]byte, error) {
 			return nil, errors.New("backup cannot contain directories")
 		}
 
+		// Skip backing up system-specific internal encryption recovery keys.
+		// They won't work on any other IncusOS system, and including them
+		// only makes the recovery process more complex for no real gain.
+		if recoveryKeyRegex.MatchString(file.Name()) {
+			continue
+		}
+
 		err := writeFile(file)
 		if err != nil {
 			return nil, err
@@ -120,6 +128,38 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	err = os.Mkdir("/var/lib/incus-os/", 0o700)
 	if err != nil {
 		return err
+	}
+
+	// Copy any existing system-specific encryption recovery keys.
+	existingFiles, err := os.ReadDir("/var/lib/incus-os.bak/")
+	if err != nil {
+		return err
+	}
+
+	for _, file := range existingFiles {
+		if recoveryKeyRegex.MatchString(file.Name()) {
+			src, err := os.Open(filepath.Join("/var/lib/incus-os.bak", file.Name()))
+			if err != nil {
+				return err
+			}
+			defer src.Close() //nolint:revive
+
+			dst, err := os.Create(filepath.Join("/var/lib/incus-os", file.Name()))
+			if err != nil {
+				return err
+			}
+			defer dst.Close() //nolint:revive
+
+			err = dst.Chmod(0o600)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(dst, src)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Iterate through each file in the tar archive.
@@ -198,12 +238,25 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			return err
 		}
 
+		// IncusOS generates backup archives without a relative path, but if the backup
+		// has been modified (for example, to replace a key), the recreated archive
+		// might have file names with relative paths, including a "./" directory. In this
+		// case, skip that directory when processing the archive.
+		if header.Typeflag == tar.TypeDir && header.Name == "./" {
+			continue
+		}
+
 		if header.Typeflag != tar.TypeReg {
 			return errors.New("backup cannot contain anything other than regular files")
 		}
 
 		// Don't let someone feed us a path traversal escape attack.
 		filename := filepath.Base(header.Name)
+
+		// Don't attempt to restore a system-specific encryption recovery key from an older backup.
+		if recoveryKeyRegex.MatchString(filename) {
+			continue
+		}
 
 		// If told to skip restoring local pool key, copy the existing one from the backup directory.
 		if filename == "zpool.local.key" && slices.Contains(skipOptions, "local-data-encryption-key") {
@@ -249,18 +302,8 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 	}
 
 	// Sanity checks:
-	// 1. Need to be able to use TPM to change encryption recovery passphrase(s).
-	// 2. At least one recovery passphrase provided.
-	// 3. At least one primary application must be installed.
-	tpmStatus, err := secureboot.TPMStatus()
-	if err != nil {
-		return err
-	}
-
-	if tpmStatus != api.TPMStatusOK {
-		return errors.New("TPM status isn't OK: " + string(tpmStatus))
-	}
-
+	// 1. At least one recovery passphrase provided.
+	// 2. At least one primary application must be installed.
 	if len(newState.System.Security.Config.EncryptionRecoveryKeys) == 0 {
 		return errors.New("at least one recovery passphrase must be provided")
 	}
@@ -359,7 +402,7 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		s.System.Security.Config.EncryptionRecoveryKeys = []string{}
 
 		for _, key := range newKeys {
-			err := systemd.AddEncryptionKey(ctx, s, key)
+			err := systemd.AddEncryptionKey(ctx, s, key, true)
 			if err != nil {
 				return err
 			}
