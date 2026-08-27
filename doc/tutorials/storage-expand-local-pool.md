@@ -25,50 +25,63 @@ For this tutorial, let's assume there are three drives, each 50GiB in size. Incu
 We can get the system's current storage state:
 
 ```
-gibmat@futurfusion:~$ incus admin os system storage show
+$ incus admin os system storage show
 WARNING: The IncusOS API and configuration is subject to change
 
-config: {}
+config:
+  pools:
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+      encryption_key_status: available
+      managed: true
+      name: local
+      pool_allocated_space_in_bytes: 4.562944e+06
+      raw_pool_size_in_bytes: 1.7716740096e+10
+      state: ONLINE
+      type: zfs-raid0
+      usable_pool_size_in_bytes: 1.7716740096e+10
+      volumes:
+        - name: incus
+          quota_in_bytes: 0
+          usage_in_bytes: 2.965504e+06
+          use: incus
+  scrub_schedule: 0 4 * * 0
 state:
   drives:
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk1
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk2
-  - boot: true
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_root
-  pools:
-  - devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    encryption_key_status: available
-    name: local
-    pool_allocated_space_in_bytes: 4.3008e+06
-    raw_pool_size_in_bytes: 1.7716740096e+10
-    state: ONLINE
-    type: zfs-raid0
-    usable_pool_size_in_bytes: 1.7716740096e+10
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk1
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk2
+    - boot: true
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_root
+  root_partition:
+    available_in_bytes: 2.5271922688e+10
+    size_in_bytes: 2.6225119232e+10
 ```
 
 ## RAID0
@@ -80,62 +93,76 @@ Let's add `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1` to the "local" 
 ```
 config:
   pools:
-  - name: local
-    type: zfs-raid0
-    devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      name: local
+      type: zfs-raid0
+  scrub_schedule: 0 4 * * 0
 ```
 
 After saving and exiting, IncusOS will apply the changes. We can see the updated storage configuration reflecting the expansion of the "local" storage pool:
 
 ```
-gibmat@futurfusion:~$ incus admin os system storage show
+$ incus admin os system storage show
 WARNING: The IncusOS API and configuration is subject to change
 
-config: {}
+config:
+  pools:
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+      encryption_key_status: available
+      managed: true
+      name: local
+      pool_allocated_space_in_bytes: 4.882432e+06
+      raw_pool_size_in_bytes: 7.0866960384e+10
+      state: ONLINE
+      type: zfs-raid0
+      usable_pool_size_in_bytes: 7.0866960384e+10
+      volumes:
+        - name: incus
+          quota_in_bytes: 0
+          usage_in_bytes: 2.965504e+06
+          use: incus
+  scrub_schedule: 0 4 * * 0
 state:
   drives:
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk1
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk2
-  - boot: true
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_root
-  pools:
-  - devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    encryption_key_status: available
-    name: local
-    pool_allocated_space_in_bytes: 4.558848e+06
-    raw_pool_size_in_bytes: 7.0866960384e+10
-    state: ONLINE
-    type: zfs-raid0
-    usable_pool_size_in_bytes: 7.0866960384e+10
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk1
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk2
+    - boot: true
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_root
+  root_partition:
+    available_in_bytes: 2.5271922688e+10
+    size_in_bytes: 2.6225119232e+10
 ```
 
 ## RAID1
@@ -147,11 +174,12 @@ Let's add `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1` to the "local" 
 ```
 config:
   pools:
-  - name: local
-    type: zfs-raid1
-    devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      name: local
+      type: zfs-raid1
+  scrub_schedule: 0 4 * * 0
 ```
 
 ```{note}
@@ -162,52 +190,71 @@ After saving and exiting, IncusOS will apply the changes. We can see the updated
 
 ```
 
-gibmat@futurfusion:~$ incus admin os system storage show
+$ incus admin os system storage show
 WARNING: The IncusOS API and configuration is subject to change
 
-config: {}
+config:
+  pools:
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+      encryption_key_status: available
+      last_scrub:
+        end_time: "2026-08-27T19:45:13Z"
+        errors: 0
+        progress: 100.00%
+        start_time: "2026-08-27T19:45:13Z"
+        state: FINISHED
+      managed: true
+      name: local
+      pool_allocated_space_in_bytes: 4.58752e+06
+      raw_pool_size_in_bytes: 1.7716740096e+10
+      state: ONLINE
+      type: zfs-raid1
+      usable_pool_size_in_bytes: 1.7716740096e+10
+      volumes:
+        - name: incus
+          quota_in_bytes: 0
+          usage_in_bytes: 2.965504e+06
+          use: incus
+  scrub_schedule: 0 4 * * 0
 state:
   drives:
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk1
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk2
-  - boot: true
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_root
-  pools:
-  - devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    encryption_key_status: available
-    name: local
-    pool_allocated_space_in_bytes: 4.42368e+06
-    raw_pool_size_in_bytes: 1.7716740096e+10
-    state: ONLINE
-    type: zfs-raid1
-    usable_pool_size_in_bytes: 1.7716740096e+10
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk1
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk2
+    - boot: true
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_root
+  root_partition:
+    available_in_bytes: 2.5271922688e+10
+    size_in_bytes: 2.6225119232e+10
 ```
 
 ### Recovering a failed non-system drive
@@ -219,62 +266,86 @@ Once again, run `incus admin os system storage edit` and replace `disk1` with `d
 ```
 config:
   pools:
-  - name: local
-    type: zfs-raid1
-    devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+      name: local
+      type: zfs-raid1
+  scrub_schedule: 0 4 * * 0
+```
+
+```{note}
+When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
 ```
 
 After saving and exiting, IncusOS will apply the changes. Depending on how much data is stored in the "local" pool, it might take some time for ZFS to finish the resilver. Eventually the process will complete, and the system's storage state will look like the following:
 
 ```
-gibmat@futurfusion:~$ incus admin os system storage show
+$ incus admin os system storage show
 WARNING: The IncusOS API and configuration is subject to change
 
-config: {}
+config:
+  pools:
+    - devices:
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11
+        - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
+      encryption_key_status: available
+      last_scrub:
+        end_time: "2026-08-27T19:47:36Z"
+        errors: 0
+        progress: 100.00%
+        start_time: "2026-08-27T19:47:36Z"
+        state: FINISHED
+      managed: true
+      name: local
+      pool_allocated_space_in_bytes: 4.734976e+06
+      raw_pool_size_in_bytes: 1.7716740096e+10
+      state: ONLINE
+      type: zfs-raid1
+      usable_pool_size_in_bytes: 1.7716740096e+10
+      volumes:
+        - name: incus
+          quota_in_bytes: 0
+          usage_in_bytes: 2.965504e+06
+          use: incus
+  scrub_schedule: 0 4 * * 0
 state:
   drives:
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk1
-  - boot: false
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_disk2
-  - boot: true
-    bus: scsi
-    capacity_in_bytes: 5.36870912e+10
-    id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
-    member_pool: local
-    model_family: QEMU
-    model_name: QEMU HARDDISK
-    remote: false
-    removable: false
-    serial_number: incus_root
-  pools:
-  - devices:
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11
-    - /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11
-    encryption_key_status: available
-    name: local
-    pool_allocated_space_in_bytes: 4.460544e+06
-    raw_pool_size_in_bytes: 1.7716740096e+10
-    state: ONLINE
-    type: zfs-raid1
-    usable_pool_size_in_bytes: 1.7716740096e+10
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk1
+    - boot: false
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_disk2
+    - boot: true
+      bus: scsi
+      capacity_in_bytes: 5.36870912e+10
+      id: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root
+      member_pool: local
+      model_family: QEMU
+      model_name: QEMU HARDDISK
+      multipath: false
+      remote: false
+      removable: false
+      serial_number: incus_root
+  root_partition:
+    available_in_bytes: 2.5271922688e+10
+    size_in_bytes: 2.6225119232e+10
 ```
 
 ### Recovering a failed system drive
@@ -282,9 +353,10 @@ state:
 If the main system drive fails, it is possible to recover the data from the "local" storage pool. After reinstalling IncusOS on a new drive, if the second drive is physically present on first boot IncusOS will attempt to recover the "local" storage pool:
 
 ```
-2025-11-18 18:05:22 INFO Bringing up the local storage
-2025-11-18 18:05:22 INFO Attempting to recover storage pool 'local' using existing non-system drive
-2025-11-18 18:05:23 INFO System is ready release=202511181747
+2026-08-27 19:52:00 INFO Bringing up the local storage
+2026-08-27 19:52:01 INFO Attempting to recover storage pool 'local' using existing non-system drive
+[snip]
+2026-08-27 19:52:25 INFO System is ready version=202608271552
 ```
 
 This will restore the pool to a good state, but because this is a fresh IncusOS install you must supply the encryption key for the previously-created "local" storage pool:

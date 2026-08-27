@@ -1012,14 +1012,14 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 		return errors.New("zpool '" + poolName + "' doesn't exist")
 	}
 
-	info, err := storage.GetStorageInfo(ctx)
+	_, pools, err := storage.GetStorageInfo(ctx)
 	if err != nil {
 		return err
 	}
 
 	pool := api.SystemStoragePool{}
 
-	for _, p := range info.Pools {
+	for _, p := range pools {
 		if p.Name == poolName {
 			pool = p
 		}
@@ -1040,13 +1040,13 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 
 // ScrubAllPools scrubs all pools in the system sequentially, blocking until the scrub is complete.
 func ScrubAllPools(ctx context.Context) error {
-	info, err := storage.GetStorageInfo(ctx)
+	_, pools, err := storage.GetStorageInfo(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Scrub every pool sequentially.
-	for _, pool := range info.Pools {
+	for _, pool := range pools {
 		slog.InfoContext(ctx, "Scrubbing pool", slog.String("pool", pool.Name))
 
 		// If a scrub is already in progress for a pool, skip it.
@@ -1062,14 +1062,14 @@ func ScrubAllPools(ctx context.Context) error {
 
 		// Wait for the scrub to finish.
 		for {
-			latestInfo, err := storage.GetStorageInfo(ctx)
+			_, latestPools, err := storage.GetStorageInfo(ctx)
 			if err != nil {
 				return err
 			}
 
 			latestPoolInfo := api.SystemStoragePool{}
 
-			for _, p := range latestInfo.Pools {
+			for _, p := range latestPools {
 				if p.Name == pool.Name {
 					latestPoolInfo = p
 				}

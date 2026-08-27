@@ -65,11 +65,11 @@ func renderStorageInfo(resp *incusapi.Response) error {
 	}
 
 	// Pools table.
-	if len(storage.State.Pools) > 0 {
+	if len(storage.Config.Pools) > 0 {
 		_, _ = fmt.Println("\nPools:") //nolint:forbidigo
 
-		poolRows := make([][]string, 0, len(storage.State.Pools))
-		for _, pool := range storage.State.Pools {
+		poolRows := make([][]string, 0, len(storage.Config.Pools))
+		for _, pool := range storage.Config.Pools {
 			poolRows = append(poolRows, []string{
 				pool.Name,
 				pool.Type,

@@ -1371,11 +1371,6 @@ definitions:
                     $ref: '#/definitions/SystemStorageDrive'
                 type: array
                 x-go-name: Drives
-            pools:
-                items:
-                    $ref: '#/definitions/SystemStoragePool'
-                type: array
-                x-go-name: Pools
             root_partition:
                 $ref: '#/definitions/SystemStorageRootPartition'
         title: SystemStorageState represents additional state for the system's local storage.

@@ -24,23 +24,23 @@ def TestIncusOSAPISystemStorageLocalPool(install_image):
         if len(result["metadata"]["state"]["drives"]) != 1:
             raise IncusOSException("expected exactly one drive")
 
-        if len(result["metadata"]["state"]["pools"]) != 1:
+        if len(result["metadata"]["config"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
 
         if result["metadata"]["state"]["drives"][0].get("member_pool", "") != "local":
             raise IncusOSException("drive isn't part of the local pool")
 
-        if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+        if len(result["metadata"]["config"]["pools"][0]["devices"]) != 1:
                 raise IncusOSException("expected one member device for local pool")
 
-        if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+        if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
             raise IncusOSException("pool doesn't have expected member device")
 
-        if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid0":
-            raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+        if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid0":
+            raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-        if result["metadata"]["state"]["pools"][0]["name"] != "local":
-            raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+        if result["metadata"]["config"]["pools"][0]["name"] != "local":
+            raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
 def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
     test_name = "incusos-api-system-storage-local-pool-expand-raid0"
@@ -66,7 +66,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
 
-            if len(result["metadata"]["state"]["pools"]) != 1:
+            if len(result["metadata"]["config"]["pools"]) != 1:
                 raise IncusOSException("expected exactly one pool")
 
             if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -81,17 +81,17 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if result["metadata"]["state"]["drives"][1].get("member_pool", "") != "local":
                 raise IncusOSException("second drive isn't part of the local pool")
 
-            if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+            if len(result["metadata"]["config"]["pools"][0]["devices"]) != 1:
                 raise IncusOSException("expected one member device for local pool")
 
-            if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+            if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                 raise IncusOSException("pool doesn't have expected member device")
 
-            if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid0":
-                raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+            if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid0":
+                raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-            if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+            if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
             # Extend the "local" pool with the second drive
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
@@ -106,7 +106,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
 
-            if len(result["metadata"]["state"]["pools"]) != 1:
+            if len(result["metadata"]["config"]["pools"]) != 1:
                 raise IncusOSException("expected exactly one pool")
 
             if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -121,20 +121,20 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if result["metadata"]["state"]["drives"][1].get("member_pool", "") != "local":
                 raise IncusOSException("second drive isn't part of the local pool")
 
-            if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+            if len(result["metadata"]["config"]["pools"][0]["devices"]) != 2:
                 raise IncusOSException("expected two member devices for local pool")
 
-            if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
+            if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
                 raise IncusOSException("pool doesn't have expected member device")
 
-            if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+            if result["metadata"]["config"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                 raise IncusOSException("pool doesn't have expected member device")
 
-            if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid0":
-                raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+            if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid0":
+                raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-            if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+            if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
             # Don't allow removal of the main system partition from the pool
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1",""]}]}}""")
@@ -157,7 +157,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if len(result["metadata"]["state"]["drives"]) != 2:
                 raise IncusOSException("expected exactly two drives")
 
-            if len(result["metadata"]["state"]["pools"]) != 1:
+            if len(result["metadata"]["config"]["pools"]) != 1:
                 raise IncusOSException("expected exactly one pool")
 
             if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -172,17 +172,17 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if result["metadata"]["state"]["drives"][1].get("member_pool", "") != "local":
                 raise IncusOSException("second drive isn't part of the local pool")
 
-            if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+            if len(result["metadata"]["config"]["pools"][0]["devices"]) != 1:
                 raise IncusOSException("expected one member device for local pool")
 
-            if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+            if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                 raise IncusOSException("pool doesn't have expected member device")
 
-            if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid0":
-                raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+            if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid0":
+                raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-            if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+            if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
 def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
     test_name = "incusos-api-system-storage-local-pool-expand-raid1"
@@ -211,7 +211,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
 
-                if len(result["metadata"]["state"]["pools"]) != 1:
+                if len(result["metadata"]["config"]["pools"]) != 1:
                     raise IncusOSException("expected exactly one pool")
 
                 if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -232,17 +232,17 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if result["metadata"]["state"]["drives"][2].get("member_pool", "") != "local":
                     raise IncusOSException("third drive isn't part of the local pool")
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 1:
                     raise IncusOSException("expected one member device for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid0":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid0":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
                 # Extend the "local" pool with the second drive
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
@@ -257,7 +257,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
 
-                if len(result["metadata"]["state"]["pools"]) != 1:
+                if len(result["metadata"]["config"]["pools"]) != 1:
                     raise IncusOSException("expected exactly one pool")
 
                 if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -278,20 +278,20 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if result["metadata"]["state"]["drives"][2].get("member_pool", "") != "local":
                     raise IncusOSException("second drive isn't part of the local pool")
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
                 # Can't add a third device to the "local" pool
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
@@ -314,7 +314,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if len(result["metadata"]["state"]["drives"]) != 3:
                     raise IncusOSException("expected exactly three drives")
 
-                if len(result["metadata"]["state"]["pools"]) != 1:
+                if len(result["metadata"]["config"]["pools"]) != 1:
                     raise IncusOSException("expected exactly one pool")
 
                 if result["metadata"]["state"]["drives"][0]["id"] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1":
@@ -335,20 +335,20 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if result["metadata"]["state"]["drives"][2].get("member_pool", "") != "local":
                     raise IncusOSException("second drive isn't part of the local pool")
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
 def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
     test_name = "incusos-api-system-storage-local-pool-recover"
@@ -409,10 +409,10 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]["state"]["pools"]) != 1:
+        if len(result["metadata"]["config"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
 
-        if "last_scrub" in result["metadata"]["state"]["pools"][0]:
+        if "last_scrub" in result["metadata"]["config"]["pools"][0]:
             raise IncusOSException("expected no last_scrub to be reported since to scrub was requested")
 
         # Scrub the pool.
@@ -428,25 +428,25 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]["state"]["pools"]) != 1:
+        if len(result["metadata"]["config"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
 
-        if "last_scrub" not in result["metadata"]["state"]["pools"][0]:
+        if "last_scrub" not in result["metadata"]["config"]["pools"][0]:
             raise IncusOSException("expected last_scrub to be reported after scrubbing the pool")
 
-        if "start_time" not in result["metadata"]["state"]["pools"][0]["last_scrub"]:
+        if "start_time" not in result["metadata"]["config"]["pools"][0]["last_scrub"]:
             raise IncusOSException("expected start time to be reported on the last scrub")
 
-        if "end_time" not in result["metadata"]["state"]["pools"][0]["last_scrub"]:
+        if "end_time" not in result["metadata"]["config"]["pools"][0]["last_scrub"]:
             raise IncusOSException("expected end time to be reported on the last scrub")
 
-        if result["metadata"]["state"]["pools"][0]["last_scrub"]["state"] != "FINISHED":
+        if result["metadata"]["config"]["pools"][0]["last_scrub"]["state"] != "FINISHED":
             raise IncusOSException("expected last scrub to have 'FINISHED' status")
 
-        if result["metadata"]["state"]["pools"][0]["last_scrub"]["progress"] != "100.00%":
+        if result["metadata"]["config"]["pools"][0]["last_scrub"]["progress"] != "100.00%":
             raise IncusOSException("expected progress to be reported on the last scrub")
 
-        if result["metadata"]["state"]["pools"][0]["last_scrub"]["errors"] != 0:
+        if result["metadata"]["config"]["pools"][0]["last_scrub"]["errors"] != 0:
             raise IncusOSException("expected 0 errors to be reported on the last scrub")
 
 def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
@@ -465,7 +465,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]["state"]["pools"]) != 1:
+        if len(result["metadata"]["config"]["pools"]) != 1:
             raise IncusOSException("expected exactly one pool")
 
         if result["metadata"]["config"]["scrub_schedule"] != "0 4 * * 0":
@@ -513,20 +513,20 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
                 # Physically yank the second drive and trigger a scrub to put the pool into a degraded state.
                 vm.RemoveDevice("disk1")
@@ -540,26 +540,26 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 1:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 1:
                     raise IncusOSException("expected one member device for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if len(result["metadata"]["state"]["pools"][0]["devices_degraded"]) != 1:
+                if len(result["metadata"]["config"]["pools"][0]["devices_degraded"]) != 1:
                     raise IncusOSException("expected one degraded device for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices_degraded"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
+                if result["metadata"]["config"]["pools"][0]["devices_degraded"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11":
                     raise IncusOSException("pool doesn't have expected degraded device")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
-                if result["metadata"]["state"]["pools"][0]["state"] != "DEGRADED":
-                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["state"]["pools"][0]["state"])
+                if result["metadata"]["config"]["pools"][0]["state"] != "DEGRADED":
+                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["config"]["pools"][0]["state"])
 
                 # Replace the missing drive with the third one.
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
@@ -574,26 +574,26 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-                if len(result["metadata"]["state"]["pools"][0]["devices"]) != 2:
+                if len(result["metadata"]["config"]["pools"][0]["devices"]) != 2:
                     raise IncusOSException("expected two member devices for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if result["metadata"]["state"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
+                if result["metadata"]["config"]["pools"][0]["devices"][1] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11":
                     raise IncusOSException("pool doesn't have expected member device")
 
-                if len(result["metadata"]["state"]["pools"][0].get("devices_degraded", [])) != 0:
+                if len(result["metadata"]["config"]["pools"][0].get("devices_degraded", [])) != 0:
                     raise IncusOSException("expected no degraded devices for local pool")
 
-                if result["metadata"]["state"]["pools"][0]["type"] != "zfs-raid1":
-                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["state"]["pools"][0]["type"])
+                if result["metadata"]["config"]["pools"][0]["type"] != "zfs-raid1":
+                    raise IncusOSException("pool has unexpected type: " + result["metadata"]["config"]["pools"][0]["type"])
 
-                if result["metadata"]["state"]["pools"][0]["name"] != "local":
-                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["state"]["pools"][0]["name"])
+                if result["metadata"]["config"]["pools"][0]["name"] != "local":
+                    raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
-                if result["metadata"]["state"]["pools"][0]["state"] != "ONLINE":
-                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["state"]["pools"][0]["state"])
+                if result["metadata"]["config"]["pools"][0]["state"] != "ONLINE":
+                    raise IncusOSException("pool has unexpected state: " + result["metadata"]["config"]["pools"][0]["state"])
 
 def TestIncusOSAPISystemStorageLocalAutoexpand(install_image):
     test_name = "incusos-api-system-storage-local-autoexpand"
@@ -611,7 +611,7 @@ def TestIncusOSAPISystemStorageLocalAutoexpand(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if result["metadata"]["state"]["pools"][0]["raw_pool_size_in_bytes"] != 17716740096:
+        if result["metadata"]["config"]["pools"][0]["raw_pool_size_in_bytes"] != 17716740096:
             raise IncusOSException("local pool has incorrect initial size")
 
         # Stop the VM and expand the root device
@@ -633,5 +633,5 @@ def TestIncusOSAPISystemStorageLocalAutoexpand(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if result["metadata"]["state"]["pools"][0]["raw_pool_size_in_bytes"] != 23085449216:
+        if result["metadata"]["config"]["pools"][0]["raw_pool_size_in_bytes"] != 23085449216:
             raise IncusOSException("local pool has incorrect updated size")
