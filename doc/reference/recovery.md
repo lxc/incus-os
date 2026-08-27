@@ -44,6 +44,12 @@ will need to manually provide an encryption recovery passphrase. After IncusOS s
 up, you can use the API to force-reset the TPM encryption bindings which should allow
 automatic decryption of the install drive at boot time.
 
+```{note}
+When manually entering the recovery, keep in mind that the keyboard
+layout is a traditional United States layout and that the recovery key
+must be typed as is, including the dashes.
+```
+
 Alternatively, with the recovery key(s), you can remove the affected drive(s) to a different
 machine and unlock them to access/migrate any data they contain.
 
