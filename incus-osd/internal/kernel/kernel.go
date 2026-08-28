@@ -457,13 +457,6 @@ func updateSysctlConfig(ctx context.Context, netConfig *api.SystemKernelConfigNe
 		return err
 	}
 
-	// Remove legacy sysctl configuration.
-	// NOTE: Can be removed in April 2026.
-	err = os.Remove("/etc/sysctl.d/99-local-network-sysctl.conf")
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
 	// Ensure the sysctl.d directory exists.
 	err = os.MkdirAll("/etc/sysctl.d/", 0o755)
 	if err != nil {
