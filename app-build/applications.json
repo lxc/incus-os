@@ -196,7 +196,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.18.3",
+        "version": "v1.19.0",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
