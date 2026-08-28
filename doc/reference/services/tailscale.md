@@ -14,6 +14,8 @@ The following configuration options can be set:
 
 * `auth_key`: A Tailscale authentication key.
 
+* `port`: UDP port used for WireGuard and peer-to-peer traffic, `0` (the default) picks a random port on every start. Pinning the port and forwarding it from a public IP makes direct connections possible from peers on restrictive networks (see the Tailscale [documentation](https://tailscale.com/docs/reference/connection-types#home-and-small-office-networks)).
+
 * `accept_routes`: If `true`, accept routes.
 
 * `advertised_routes`: An array of routes to advertise.
@@ -32,6 +34,10 @@ The following configuration options can be set:
 
 ```{note}
 Enabling Tailscale Serve requires provisioning HTTPS certificates on the dashboard beforehand ([documentation](https://tailscale.com/kb/1153/enabling-https#configure-https))
+```
+
+```{note}
+When `firewall_rules` are set on an interface, the pinned `port` must also be allowed there for incoming connections to reach Tailscale.
 ```
 
 ```{warning}
