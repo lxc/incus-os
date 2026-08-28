@@ -5,6 +5,7 @@ import "time"
 // SystemStorageConfig represents additional configuration for the system's local storage.
 type SystemStorageConfig struct {
 	ScrubSchedule string              `json:"scrub_schedule" yaml:"scrub_schedule"`
+	TrimSchedule  string              `json:"trim_schedule"  yaml:"trim_schedule"`
 	Pools         []SystemStoragePool `incusos:"-"           json:"pools,omitempty" yaml:"pools,omitempty"`
 }
 
@@ -47,7 +48,8 @@ type SystemStoragePool struct {
 	// Read-only fields returned from the server with additional pool information.
 	Managed                   bool                          `json:"managed"                       yaml:"managed"`
 	State                     string                        `json:"state"                         yaml:"state"`
-	LastScrub                 *SystemStoragePoolScrubStatus `json:"last_scrub,omitempty"          yaml:"last_scrub,omitempty,omitempty"`
+	LastScrub                 *SystemStoragePoolScrubStatus `json:"last_scrub,omitempty"          yaml:"last_scrub,omitempty"`
+	LastTrim                  *SystemStoragePoolTrimStatus  `json:"last_trim,omitempty"           yaml:"last_trim,omitempty"`
 	EncryptionKeyStatus       string                        `json:"encryption_key_status"         yaml:"encryption_key_status"`
 	DevicesDegraded           []string                      `json:"devices_degraded,omitempty"    yaml:"devices_degraded,omitempty"`
 	CacheDegraded             []string                      `json:"cache_degraded,omitempty"      yaml:"cache_degraded,omitempty"`
@@ -96,6 +98,30 @@ type SystemStoragePoolScrubStatus struct {
 	EndTime   time.Time                   `json:"end_time"`
 	Progress  string                      `json:"progress"`
 	Errors    int                         `json:"errors"`
+}
+
+// SystemStoragePoolTrimState represents the state of a trim in a pool.
+type SystemStoragePoolTrimState string
+
+const (
+	// SystemStoragePoolTrimUnknown represents an unknown trim status.
+	SystemStoragePoolTrimUnknown SystemStoragePoolTrimState = "UNKNOWN"
+	// SystemStoragePoolTrimInProgress represents that the trim is in progress.
+	SystemStoragePoolTrimInProgress SystemStoragePoolTrimState = "IN_PROGRESS"
+	// SystemStoragePoolTrimSuspended represents that the trim was suspended.
+	SystemStoragePoolTrimSuspended SystemStoragePoolTrimState = "SUSPENDED"
+	// SystemStoragePoolTrimCanceled represents that the trim was canceled.
+	SystemStoragePoolTrimCanceled SystemStoragePoolTrimState = "CANCELED"
+	// SystemStoragePoolTrimFinished represents that the trim has finished.
+	SystemStoragePoolTrimFinished SystemStoragePoolTrimState = "FINISHED"
+)
+
+// SystemStoragePoolTrimStatus represents the status of a trim in a pool.
+type SystemStoragePoolTrimStatus struct {
+	State          SystemStoragePoolTrimState `json:"state"`
+	LastActionTime time.Time                  `json:"last_action_time"`
+	Progress       string                     `json:"progress"`
+	Errors         int                        `json:"errors"`
 }
 
 // SystemStorageDrive defines a struct that holds information about a specific drive.
