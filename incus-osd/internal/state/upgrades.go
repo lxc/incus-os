@@ -184,4 +184,10 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 
 		return lines, nil
 	},
+	// V9: Set default value for TrimSchedule.
+	func(lines []string) ([]string, error) {
+		lines = append(lines, "System.Storage.Config.TrimSchedule: 0 4 * * 6")
+
+		return lines, nil
+	},
 }
