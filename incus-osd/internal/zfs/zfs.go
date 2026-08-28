@@ -1020,6 +1020,21 @@ func ScrubAllPools(ctx context.Context) error {
 	return runOnAllPools(ctx, "scrub", startScrub)
 }
 
+// TrimZpool trims the specified pool.
+func TrimZpool(ctx context.Context, poolName string) error {
+	pool, err := getPool(ctx, poolName)
+	if err != nil {
+		return err
+	}
+
+	return startTrim(ctx, pool)
+}
+
+// TrimAllPools trims all pools in the system sequentially, blocking until the trim is complete.
+func TrimAllPools(ctx context.Context) error {
+	return runOnAllPools(ctx, "trim", startTrim)
+}
+
 // startScrub starts a scrub of the pool unless one is already in progress.
 func startScrub(ctx context.Context, pool api.SystemStoragePool) error {
 	if pool.LastScrub != nil && pool.LastScrub.State == api.SystemStoragePoolScrubInProgress {
@@ -1027,6 +1042,20 @@ func startScrub(ctx context.Context, pool api.SystemStoragePool) error {
 	}
 
 	_, err := subprocess.RunCommandContext(ctx, "zpool", "scrub", pool.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// startTrim starts a trim of the pool unless one is already in progress.
+func startTrim(ctx context.Context, pool api.SystemStoragePool) error {
+	if pool.LastTrim != nil && pool.LastTrim.State == api.SystemStoragePoolTrimInProgress {
+		return storage.ErrTrimAlreadyInProgress
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "trim", pool.Name)
 	if err != nil {
 		return err
 	}
