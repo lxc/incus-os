@@ -726,6 +726,9 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
 	}
 
+	// Messege before the start wiping operations
+	modal.Update("Wiping target drive, this may take a while.")
+	
 	// Before starting the install, wipe the target device.
 	err = storage.WipeDrive(ctx, targetDeviceID, false)
 	if err != nil {
