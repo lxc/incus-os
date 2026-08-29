@@ -1025,7 +1025,7 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 		}
 	}
 
-	if pool.LastScrub != nil && pool.LastScrub.State == api.ScrubInProgress {
+	if pool.LastScrub != nil && pool.LastScrub.State == api.SystemStoragePoolScrubInProgress {
 		return storage.ErrScrubAlreadyInProgress
 	}
 
@@ -1050,7 +1050,7 @@ func ScrubAllPools(ctx context.Context) error {
 		slog.InfoContext(ctx, "Scrubbing pool", slog.String("pool", pool.Name))
 
 		// If a scrub is already in progress for a pool, skip it.
-		if pool.LastScrub != nil && pool.LastScrub.State == api.ScrubInProgress {
+		if pool.LastScrub != nil && pool.LastScrub.State == api.SystemStoragePoolScrubInProgress {
 			continue
 		}
 
@@ -1076,7 +1076,7 @@ func ScrubAllPools(ctx context.Context) error {
 			}
 
 			// If the scrub is not in progress, break and move to the next pool.
-			if latestPoolInfo.LastScrub != nil && latestPoolInfo.LastScrub.State != api.ScrubInProgress {
+			if latestPoolInfo.LastScrub != nil && latestPoolInfo.LastScrub.State != api.SystemStoragePoolScrubInProgress {
 				break
 			}
 

@@ -48,8 +48,8 @@ const (
 )
 
 var zpoolToScrubStateMap = map[ZpoolScrubState]api.SystemStoragePoolScrubState{
-	ZpoolScanning: api.ScrubInProgress,
-	ZpoolFinished: api.ScrubFinished,
+	ZpoolScanning: api.SystemStoragePoolScrubInProgress,
+	ZpoolFinished: api.SystemStoragePoolScrubFinished,
 }
 
 func zpoolScrubStateToPoolScrubState(state ZpoolScrubState) api.SystemStoragePoolScrubState {
@@ -58,7 +58,7 @@ func zpoolScrubStateToPoolScrubState(state ZpoolScrubState) api.SystemStoragePoo
 		return mapped
 	}
 
-	return api.ScrubUnknown
+	return api.SystemStoragePoolScrubUnknown
 }
 
 // ErrScrubAlreadyInProgress is returned if a scrub is requested for a pool that already has one in progress.

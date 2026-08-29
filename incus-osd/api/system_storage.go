@@ -81,12 +81,12 @@ type SystemStoragePoolVolume struct {
 type SystemStoragePoolScrubState string
 
 const (
-	// ScrubUnknown represents and unknown scrub status.
-	ScrubUnknown SystemStoragePoolScrubState = "UNKNOWN"
-	// ScrubInProgress represents that the scrub is in progress.
-	ScrubInProgress SystemStoragePoolScrubState = "IN_PROGRESS"
-	// ScrubFinished represents that the scrub has finished.
-	ScrubFinished SystemStoragePoolScrubState = "FINISHED"
+	// SystemStoragePoolScrubUnknown represents an unknown scrub status.
+	SystemStoragePoolScrubUnknown SystemStoragePoolScrubState = "UNKNOWN"
+	// SystemStoragePoolScrubInProgress represents that the scrub is in progress.
+	SystemStoragePoolScrubInProgress SystemStoragePoolScrubState = "IN_PROGRESS"
+	// SystemStoragePoolScrubFinished represents that the scrub has finished.
+	SystemStoragePoolScrubFinished SystemStoragePoolScrubState = "FINISHED"
 )
 
 // SystemStoragePoolScrubStatus represents the status of a scrub in a pool.
