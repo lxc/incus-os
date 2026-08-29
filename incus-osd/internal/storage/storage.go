@@ -35,43 +35,44 @@ type LsblkOutput struct {
 	BlockDevices []BlockDevices `json:"blockdevices"`
 }
 
-// ZpoolScrubState represents the scrub state of a pool.
-type ZpoolScrubState string
-
-const (
-	// ZpoolNone represents the empty state for a ZpoolScrubState.
-	ZpoolNone ZpoolScrubState = ""
-	// ZpoolScanning represents that the zpool scrub is in progress.
-	ZpoolScanning ZpoolScrubState = "SCANNING"
-	// ZpoolFinished represents that the zpool scrub has finished.
-	ZpoolFinished ZpoolScrubState = "FINISHED"
-)
-
-var zpoolToScrubStateMap = map[ZpoolScrubState]api.SystemStoragePoolScrubState{
-	ZpoolScanning: api.ScrubInProgress,
-	ZpoolFinished: api.ScrubFinished,
-}
-
-func zpoolScrubStateToPoolScrubState(state ZpoolScrubState) api.SystemStoragePoolScrubState {
-	mapped, ok := zpoolToScrubStateMap[state]
-	if ok {
-		return mapped
-	}
-
-	return api.ScrubUnknown
+// zpoolToScrubStateMap maps the scan states reported by zpool to the API states.
+var zpoolToScrubStateMap = map[string]api.SystemStoragePoolScrubState{
+	"SCANNING": api.SystemStoragePoolScrubInProgress,
+	"FINISHED": api.SystemStoragePoolScrubFinished,
 }
 
 // ErrScrubAlreadyInProgress is returned if a scrub is requested for a pool that already has one in progress.
 var ErrScrubAlreadyInProgress = errors.New("scrub already in progress")
 
+// zpoolToTrimStateMap maps the vdev trim states reported by zpool to the API states.
+var zpoolToTrimStateMap = map[string]api.SystemStoragePoolTrimState{
+	"ACTIVE":    api.SystemStoragePoolTrimInProgress,
+	"SUSPENDED": api.SystemStoragePoolTrimSuspended,
+	"CANCELED":  api.SystemStoragePoolTrimCanceled,
+	"COMPLETE":  api.SystemStoragePoolTrimFinished,
+}
+
+// ErrTrimAlreadyInProgress is returned if a trim is requested for a pool that already has one in progress.
+var ErrTrimAlreadyInProgress = errors.New("trim already in progress")
+
+// zpoolTrimStats holds the per-vdev trim statistics reported by "zpool status -t".
+type zpoolTrimStats struct {
+	TrimState  string `json:"trim_state"`
+	Trimmed    int    `json:"trimmed"`
+	ToTrim     int    `json:"to_trim"`
+	TrimTime   int    `json:"trim_time"`
+	TrimErrors int    `json:"trim_errors"`
+	TrimNotSup int    `json:"trim_notsup"`
+}
+
 type zpoolScanStats struct {
-	Function  string          `json:"function"`
-	State     ZpoolScrubState `json:"state"`
-	StartTime int             `json:"start_time"`
-	EndTime   int             `json:"end_time"`
-	ToExamine int             `json:"to_examine"`
-	Examined  int             `json:"examined"`
-	Errors    int             `json:"errors"`
+	Function  string `json:"function"`
+	State     string `json:"state"`
+	StartTime int    `json:"start_time"`
+	EndTime   int    `json:"end_time"`
+	ToExamine int    `json:"to_examine"`
+	Examined  int    `json:"examined"`
+	Errors    int    `json:"errors"`
 }
 
 type zpoolStatusPartialParse struct {
@@ -80,6 +81,8 @@ type zpoolStatusPartialParse struct {
 		ScanStats zpoolScanStats `json:"scan_stats"`
 		Vdevs     map[string]struct {
 			Vdevs map[string]struct {
+				zpoolTrimStats
+
 				VdevType   string `json:"vdev_type"`
 				State      string `json:"state"`
 				Path       string `json:"path"`
@@ -87,15 +90,21 @@ type zpoolStatusPartialParse struct {
 				TotalSpace int    `json:"total_space"`
 				DefSpace   int    `json:"def_space"`
 				Vdevs      map[string]struct {
+					zpoolTrimStats
+
 					State string `json:"state"`
 				} `json:"vdevs,omitempty"`
 			} `json:"vdevs"`
 		} `json:"vdevs"`
 		Logs map[string]struct {
+			zpoolTrimStats
+
 			Name     string `json:"name"`
 			VdevType string `json:"vdev_type"`
 			State    string `json:"state"`
 			Vdevs    map[string]struct {
+				zpoolTrimStats
+
 				State string `json:"state"`
 			} `json:"vdevs,omitempty"`
 		} `json:"logs"`
@@ -104,10 +113,14 @@ type zpoolStatusPartialParse struct {
 			State string `json:"state"`
 		} `json:"l2cache"`
 		Special map[string]struct {
+			zpoolTrimStats
+
 			Name     string `json:"name"`
 			VdevType string `json:"vdev_type"`
 			State    string `json:"state"`
 			Vdevs    map[string]struct {
+				zpoolTrimStats
+
 				State string `json:"state"`
 			} `json:"vdevs,omitempty"`
 		} `json:"special"`
@@ -371,7 +384,7 @@ func DatasetExists(ctx context.Context, datasetName string) bool {
 // GetZpoolMembers returns an instantiated SystemStoragePool struct for the specified storage pool.
 // Logically it makes more sense for this to be in the zfs package, but that would cause an import loop.
 func GetZpoolMembers(ctx context.Context, zpoolName string) (api.SystemStoragePool, error) {
-	output, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName, "-jp", "--json-int")
+	output, err := subprocess.RunCommandContext(ctx, "zpool", "status", zpoolName, "-jpt", "--json-int")
 	if err != nil {
 		return api.SystemStoragePool{}, err
 	}
@@ -610,14 +623,54 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	var scrubStatus *api.SystemStoragePoolScrubStatus
 
 	if zpoolJSON.Pools[zpoolName].ScanStats.StartTime != 0 {
+		scrubState, ok := zpoolToScrubStateMap[zpoolJSON.Pools[zpoolName].ScanStats.State]
+		if !ok {
+			scrubState = api.SystemStoragePoolScrubUnknown
+		}
+
 		scrubStatus = &api.SystemStoragePoolScrubStatus{
-			State:     zpoolScrubStateToPoolScrubState(zpoolJSON.Pools[zpoolName].ScanStats.State),
+			State:     scrubState,
 			StartTime: time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.StartTime), 0),
 			EndTime:   time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.EndTime), 0),
 			Progress:  calculateScrubProgress(zpoolJSON.Pools[zpoolName].ScanStats),
 			Errors:    zpoolJSON.Pools[zpoolName].ScanStats.Errors,
 		}
 	}
+
+	// Get the trim status from the leaf vdevs (cache devices aren't trimmed).
+	leafTrimStats := []zpoolTrimStats{}
+
+	for _, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
+		if len(vdev.Vdevs) == 0 {
+			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
+		}
+
+		for _, memberVdev := range vdev.Vdevs {
+			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
+		}
+	}
+
+	for _, vdev := range zpoolJSON.Pools[zpoolName].Logs {
+		if len(vdev.Vdevs) == 0 {
+			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
+		}
+
+		for _, memberVdev := range vdev.Vdevs {
+			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
+		}
+	}
+
+	for _, vdev := range zpoolJSON.Pools[zpoolName].Special {
+		if len(vdev.Vdevs) == 0 {
+			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
+		}
+
+		for _, memberVdev := range vdev.Vdevs {
+			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
+		}
+	}
+
+	trimStatus := calculateTrimStatus(leafTrimStats)
 
 	var specialVdevInfo *api.SystemStoragePoolSpecial
 	if len(zpoolDevices["special"]) > 0 || len(zpoolDevices["special_degraded"]) > 0 {
@@ -649,6 +702,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		Managed:                   isManaged == nil,
 		State:                     zpoolJSON.Pools[zpoolName].State,
 		LastScrub:                 scrubStatus,
+		LastTrim:                  trimStatus,
 		EncryptionKeyStatus:       zpoolKeyStatus,
 		Type:                      zpoolType,
 		Devices:                   zpoolDevices["devices"],
@@ -668,17 +722,70 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 
 // calculateScrubProgress calculates the scrub progress for a given zpool and returns it in a formatted percentage string.
 func calculateScrubProgress(stats zpoolScanStats) string {
-	// If we know the scan is finished, the progress is 100%.
-	if stats.State == ZpoolFinished {
+	return formatProgress(stats.Examined, stats.ToExamine, stats.State == "FINISHED")
+}
+
+// calculateTrimStatus aggregates the trim statistics of the leaf vdevs into a pool trim status.
+// Returns nil if no vdev supporting trim was ever trimmed.
+func calculateTrimStatus(leaves []zpoolTrimStats) *api.SystemStoragePoolTrimStatus {
+	// Vdev states in order of precedence for the pool-wide state.
+	statePrecedence := []api.SystemStoragePoolTrimState{api.SystemStoragePoolTrimInProgress, api.SystemStoragePoolTrimSuspended, api.SystemStoragePoolTrimCanceled, api.SystemStoragePoolTrimUnknown, api.SystemStoragePoolTrimFinished}
+
+	states := map[api.SystemStoragePoolTrimState]bool{}
+	status := &api.SystemStoragePoolTrimStatus{}
+	trimmed := 0
+	toTrim := 0
+
+	for _, leaf := range leaves {
+		if leaf.TrimNotSup != 0 || leaf.TrimState == "" || leaf.TrimState == "UNTRIMMED" {
+			continue
+		}
+
+		state, ok := zpoolToTrimStateMap[leaf.TrimState]
+		if !ok {
+			state = api.SystemStoragePoolTrimUnknown
+		}
+
+		states[state] = true
+		trimmed += leaf.Trimmed
+		toTrim += leaf.ToTrim
+		status.Errors += leaf.TrimErrors
+
+		if int64(leaf.TrimTime) > status.LastActionTime.Unix() {
+			status.LastActionTime = time.Unix(int64(leaf.TrimTime), 0)
+		}
+	}
+
+	if len(states) == 0 {
+		return nil
+	}
+
+	for _, state := range statePrecedence {
+		if states[state] {
+			status.State = state
+
+			break
+		}
+	}
+
+	status.Progress = formatProgress(trimmed, toTrim, status.State == api.SystemStoragePoolTrimFinished)
+
+	return status
+}
+
+// formatProgress returns the progress as a formatted percentage string.
+func formatProgress(done int, total int, finished bool) string {
+	// If we know the operation is finished, the progress is 100%.
+	if finished {
 		return "100.00%"
 	}
 
-	// If no bytes were reported to scan, fallback to 0%.
-	if stats.ToExamine == 0 {
+	// If no bytes were reported to process, fallback to 0%.
+	if total == 0 {
 		return "0.00%"
 	}
 
-	progress := (float64(stats.Examined) / float64(stats.ToExamine)) * 100
+	progress := (float64(done) / float64(total)) * 100
 
 	// Handle progress overflow for live pools if the state is not reported as finished.
 	if progress > 100 {
@@ -698,7 +805,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, []api.SystemSt
 	}
 
 	// Get the status of the zpool(s).
-	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-jp", "--json-int")
+	zpoolOutput, err := subprocess.RunCommandContext(ctx, "zpool", "status", "-jpt", "--json-int")
 	if err != nil {
 		return ret, retPools, err
 	}

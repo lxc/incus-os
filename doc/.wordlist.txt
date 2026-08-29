@@ -123,6 +123,7 @@ RSA
 Ryzen
 Scaleway
 SLAAC
+SSD
 struct
 structs
 subnet

@@ -270,7 +270,16 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					hasData:     true,
 				}
 
-				return []*cobra.Command{cleanupRootCmd.command(), createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command()}
+				// Trim pool.
+				trimPoolCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "trim-pool",
+					description: "Trim the storage pool",
+					endpoint:    "system/storage",
+					hasData:     true,
+				}
+
+				return []*cobra.Command{cleanupRootCmd.command(), createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command(), trimPoolCmd.command()}
 			},
 		},
 		{

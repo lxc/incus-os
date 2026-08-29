@@ -6,6 +6,8 @@ When creating a storage pool, IncusOS can use local devices, or remote devices m
 
 To maintain data integrity, IncusOS automatically performs a weekly scrub of all storage pools in the system. The scrub schedule defaults to Sunday at 04:00, but can be configured by the user. It is also possible to manually trigger a scrub of any given pool.
 
+To keep SSD write performance and endurance from degrading, IncusOS also performs a weekly trim (discard of unused blocks) of all storage pools. The trim schedule defaults to Saturday at 04:00, but can be configured by the user. It is also possible to manually trigger a trim of any given pool.
+
 It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
 ## Configuration options
@@ -16,6 +18,7 @@ The following system-wide configuration options can be set:
 
 * `pools`: An array of zero or more user-defined storage pool definitions.
 * `scrub_schedule`: A cron expression with five fields defining when to perform an automatic scrub of all the storage pools. Defaults to `0 4 * * 0`.
+* `trim_schedule`: A cron expression with five fields defining when to perform an automatic trim of all the storage pools. Defaults to `0 4 * * 6`.
 
 User-defined storage pools are defined in the [`SystemStoragePool` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go), which has the following options:
 
@@ -30,7 +33,7 @@ When specifying devices for a pool, order is important. IncusOS will always retu
 
 ### Examples
 
-Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device, setting the automatic scrub to run every Saturday at 00:00:
+Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device, setting the automatic scrub to run every Saturday at 00:00 and the automatic trim every Friday at 00:00:
 
 ```yaml
 config:
@@ -50,6 +53,7 @@ config:
     log:
     - "/dev/sdg"
   scrub_schedule: "0 0 * * 6"
+  trim_schedule: "0 0 * * 5"
 ```
 
 Replace failed device `/dev/sdb` in the above example with `/dev/sdh`:
@@ -159,6 +163,14 @@ Start a scrub for the storage pool `mypool` by running
 
 ```
 incus admin os system storage scrub-pool -d '{"name":"mypool"}'
+```
+
+## Trimming a storage pool
+
+Start a trim for the storage pool `mypool` by running
+
+```
+incus admin os system storage trim-pool -d '{"name":"mypool"}'
 ```
 
 ## Wiping a drive

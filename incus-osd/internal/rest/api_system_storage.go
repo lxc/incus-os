@@ -130,6 +130,23 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// Update scrub schedule in state.
 		s.state.System.Storage.Config.ScrubSchedule = storageStruct.Config.ScrubSchedule
 
+		// Apply new trim schedule to the job scheduler.
+		err = s.state.JobScheduler.RegisterJob(zfs.PoolTrimJob, storageStruct.Config.TrimSchedule, zfs.TrimAllPools)
+		if err != nil {
+			if errors.Is(err, scheduling.ErrInvalidCronTab) {
+				_ = response.BadRequest(errors.New("invalid cron expression provided for trim schedule")).Render(w)
+
+				return
+			}
+
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		// Update trim schedule in state.
+		s.state.System.Storage.Config.TrimSchedule = storageStruct.Config.TrimSchedule
+
 		// Create or update a pool.
 		if len(storageStruct.Config.Pools) == 0 {
 			_ = response.EmptySyncResponse.Render(w)
@@ -679,6 +696,79 @@ func (*Server) apiSystemStorageScrubPool(w http.ResponseWriter, r *http.Request)
 	err = zfs.ScrubZpool(r.Context(), config.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrScrubAlreadyInProgress) {
+			_ = response.Conflict(err).Render(w)
+		} else {
+			_ = response.InternalError(err).Render(w)
+		}
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/system/storage/:trim-pool system system_post_storage_trim_pool
+//
+//	Trim local pool
+//
+//	Starts a trim for a local storage pool.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: configuration
+//	    description: The pool to be trimmed
+//	    required: true
+//	    schema:
+//	      type: object
+//	      example: {"name":"mypool"}
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "409":
+//	    $ref: "#/responses/Conflict"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageTrimPool(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	type trimStruct struct {
+		Name string `json:"name"`
+	}
+
+	config := &trimStruct{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(config)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if config.Name == "" {
+		_ = response.BadRequest(errors.New("no pool name provided")).Render(w)
+
+		return
+	}
+
+	// Trim the pool.
+	err = zfs.TrimZpool(r.Context(), config.Name)
+	if err != nil {
+		if errors.Is(err, storage.ErrTrimAlreadyInProgress) {
 			_ = response.Conflict(err).Render(w)
 		} else {
 			_ = response.InternalError(err).Render(w)

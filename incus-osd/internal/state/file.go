@@ -8,7 +8,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
-var currentStateVersion = 8
+var currentStateVersion = 9
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
@@ -118,6 +118,9 @@ func (s *State) initialize() error {
 
 	// Set the initial scrub schedule to weekly on sunday 4 AM.
 	s.System.Storage.Config.ScrubSchedule = "0 4 * * 0"
+
+	// Set the initial trim schedule to weekly on saturday 4 AM.
+	s.System.Storage.Config.TrimSchedule = "0 4 * * 6"
 
 	return nil
 }

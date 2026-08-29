@@ -1063,6 +1063,9 @@ definitions:
             scrub_schedule:
                 type: string
                 x-go-name: ScrubSchedule
+            trim_schedule:
+                type: string
+                x-go-name: TrimSchedule
         title: SystemStorageConfig represents additional configuration for the system's local storage.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -1219,6 +1222,8 @@ definitions:
                 x-go-name: EncryptionKeyStatus
             last_scrub:
                 $ref: '#/definitions/SystemStoragePoolScrubStatus'
+            last_trim:
+                $ref: '#/definitions/SystemStoragePoolTrimStatus'
             log:
                 items:
                     type: string
@@ -1330,6 +1335,28 @@ definitions:
                 type: string
                 x-go-name: Type
         title: SystemStoragePoolSpecial defines a struct that is used to create or update a pool's special vdev.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemStoragePoolTrimState:
+        title: SystemStoragePoolTrimState represents the state of a trim in a pool.
+        type: string
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemStoragePoolTrimStatus:
+        properties:
+            errors:
+                format: int64
+                type: integer
+                x-go-name: Errors
+            last_action_time:
+                format: date-time
+                type: string
+                x-go-name: LastActionTime
+            progress:
+                type: string
+                x-go-name: Progress
+            state:
+                $ref: '#/definitions/SystemStoragePoolTrimState'
+        title: SystemStoragePoolTrimStatus represents the status of a trim in a pool.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemStoragePoolVolume:
@@ -3348,6 +3375,35 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Scrub local pool
+            tags:
+                - system
+    /1.0/system/storage/:trim-pool:
+        post:
+            consumes:
+                - application/json
+            description: Starts a trim for a local storage pool.
+            operationId: system_post_storage_trim_pool
+            parameters:
+                - description: The pool to be trimmed
+                  in: body
+                  name: configuration
+                  required: true
+                  schema:
+                    example:
+                        name: mypool
+                    type: object
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "409":
+                    $ref: '#/responses/Conflict'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Trim local pool
             tags:
                 - system
     /1.0/system/storage/:wipe-drive:
