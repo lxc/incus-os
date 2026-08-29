@@ -17,7 +17,7 @@ func TestCalculateScrubProgress(t *testing.T) {
 		{
 			name: "Finished returns 100.00% regardless of values",
 			stats: zpoolScanStats{
-				State:     ZpoolFinished,
+				State:     "FINISHED",
 				Examined:  4268032,
 				ToExamine: 4276224,
 			},
@@ -26,7 +26,7 @@ func TestCalculateScrubProgress(t *testing.T) {
 		{
 			name: "Scanning returns current progress",
 			stats: zpoolScanStats{
-				State:     ZpoolScanning,
+				State:     "SCANNING",
 				Examined:  4268032,
 				ToExamine: 4276224,
 			},
@@ -35,7 +35,7 @@ func TestCalculateScrubProgress(t *testing.T) {
 		{
 			name: "Scanning with progress overflow",
 			stats: zpoolScanStats{
-				State:     ZpoolScanning,
+				State:     "SCANNING",
 				Examined:  5268081,
 				ToExamine: 4276224,
 			},
@@ -44,7 +44,7 @@ func TestCalculateScrubProgress(t *testing.T) {
 		{
 			name: "Scanning with no reported ToExamine",
 			stats: zpoolScanStats{
-				State:     ZpoolScanning,
+				State:     "SCANNING",
 				Examined:  5268081,
 				ToExamine: 0,
 			},
@@ -53,7 +53,7 @@ func TestCalculateScrubProgress(t *testing.T) {
 		{
 			name: "Scanning with no reported Examined",
 			stats: zpoolScanStats{
-				State:     ZpoolScanning,
+				State:     "SCANNING",
 				Examined:  0,
 				ToExamine: 4276224,
 			},

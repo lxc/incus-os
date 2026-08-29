@@ -35,43 +35,23 @@ type LsblkOutput struct {
 	BlockDevices []BlockDevices `json:"blockdevices"`
 }
 
-// ZpoolScrubState represents the scrub state of a pool.
-type ZpoolScrubState string
-
-const (
-	// ZpoolNone represents the empty state for a ZpoolScrubState.
-	ZpoolNone ZpoolScrubState = ""
-	// ZpoolScanning represents that the zpool scrub is in progress.
-	ZpoolScanning ZpoolScrubState = "SCANNING"
-	// ZpoolFinished represents that the zpool scrub has finished.
-	ZpoolFinished ZpoolScrubState = "FINISHED"
-)
-
-var zpoolToScrubStateMap = map[ZpoolScrubState]api.SystemStoragePoolScrubState{
-	ZpoolScanning: api.SystemStoragePoolScrubInProgress,
-	ZpoolFinished: api.SystemStoragePoolScrubFinished,
-}
-
-func zpoolScrubStateToPoolScrubState(state ZpoolScrubState) api.SystemStoragePoolScrubState {
-	mapped, ok := zpoolToScrubStateMap[state]
-	if ok {
-		return mapped
-	}
-
-	return api.SystemStoragePoolScrubUnknown
+// zpoolToScrubStateMap maps the scan states reported by zpool to the API states.
+var zpoolToScrubStateMap = map[string]api.SystemStoragePoolScrubState{
+	"SCANNING": api.SystemStoragePoolScrubInProgress,
+	"FINISHED": api.SystemStoragePoolScrubFinished,
 }
 
 // ErrScrubAlreadyInProgress is returned if a scrub is requested for a pool that already has one in progress.
 var ErrScrubAlreadyInProgress = errors.New("scrub already in progress")
 
 type zpoolScanStats struct {
-	Function  string          `json:"function"`
-	State     ZpoolScrubState `json:"state"`
-	StartTime int             `json:"start_time"`
-	EndTime   int             `json:"end_time"`
-	ToExamine int             `json:"to_examine"`
-	Examined  int             `json:"examined"`
-	Errors    int             `json:"errors"`
+	Function  string `json:"function"`
+	State     string `json:"state"`
+	StartTime int    `json:"start_time"`
+	EndTime   int    `json:"end_time"`
+	ToExamine int    `json:"to_examine"`
+	Examined  int    `json:"examined"`
+	Errors    int    `json:"errors"`
 }
 
 type zpoolStatusPartialParse struct {
@@ -610,8 +590,13 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	var scrubStatus *api.SystemStoragePoolScrubStatus
 
 	if zpoolJSON.Pools[zpoolName].ScanStats.StartTime != 0 {
+		scrubState, ok := zpoolToScrubStateMap[zpoolJSON.Pools[zpoolName].ScanStats.State]
+		if !ok {
+			scrubState = api.SystemStoragePoolScrubUnknown
+		}
+
 		scrubStatus = &api.SystemStoragePoolScrubStatus{
-			State:     zpoolScrubStateToPoolScrubState(zpoolJSON.Pools[zpoolName].ScanStats.State),
+			State:     scrubState,
 			StartTime: time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.StartTime), 0),
 			EndTime:   time.Unix(int64(zpoolJSON.Pools[zpoolName].ScanStats.EndTime), 0),
 			Progress:  calculateScrubProgress(zpoolJSON.Pools[zpoolName].ScanStats),
@@ -668,17 +653,22 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 
 // calculateScrubProgress calculates the scrub progress for a given zpool and returns it in a formatted percentage string.
 func calculateScrubProgress(stats zpoolScanStats) string {
-	// If we know the scan is finished, the progress is 100%.
-	if stats.State == ZpoolFinished {
+	return formatProgress(stats.Examined, stats.ToExamine, stats.State == "FINISHED")
+}
+
+// formatProgress returns the progress as a formatted percentage string.
+func formatProgress(done int, total int, finished bool) string {
+	// If we know the operation is finished, the progress is 100%.
+	if finished {
 		return "100.00%"
 	}
 
-	// If no bytes were reported to scan, fallback to 0%.
-	if stats.ToExamine == 0 {
+	// If no bytes were reported to process, fallback to 0%.
+	if total == 0 {
 		return "0.00%"
 	}
 
-	progress := (float64(stats.Examined) / float64(stats.ToExamine)) * 100
+	progress := (float64(done) / float64(total)) * 100
 
 	// Handle progress overflow for live pools if the state is not reported as finished.
 	if progress > 100 {
