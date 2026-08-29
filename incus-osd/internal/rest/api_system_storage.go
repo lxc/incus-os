@@ -130,6 +130,23 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// Update scrub schedule in state.
 		s.state.System.Storage.Config.ScrubSchedule = storageStruct.Config.ScrubSchedule
 
+		// Apply new trim schedule to the job scheduler.
+		err = s.state.JobScheduler.RegisterJob(zfs.PoolTrimJob, storageStruct.Config.TrimSchedule, zfs.TrimAllPools)
+		if err != nil {
+			if errors.Is(err, scheduling.ErrInvalidCronTab) {
+				_ = response.BadRequest(errors.New("invalid cron expression provided for trim schedule")).Render(w)
+
+				return
+			}
+
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		// Update trim schedule in state.
+		s.state.System.Storage.Config.TrimSchedule = storageStruct.Config.TrimSchedule
+
 		// Create or update a pool.
 		if len(storageStruct.Config.Pools) == 0 {
 			_ = response.EmptySyncResponse.Render(w)

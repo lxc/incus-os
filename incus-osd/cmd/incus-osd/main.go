@@ -937,6 +937,12 @@ func registerJobs(s *state.State) error {
 		return err
 	}
 
+	// Register the ZFS trim job.
+	err = s.JobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
