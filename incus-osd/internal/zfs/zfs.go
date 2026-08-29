@@ -1007,30 +1007,26 @@ func DestroyDataset(ctx context.Context, poolName string, name string, force boo
 
 // ScrubZpool scrubs the specified pool.
 func ScrubZpool(ctx context.Context, poolName string) error {
-	// Check if the zpool exists.
-	if !storage.PoolExists(ctx, poolName) {
-		return errors.New("zpool '" + poolName + "' doesn't exist")
-	}
-
-	_, pools, err := storage.GetStorageInfo(ctx)
+	pool, err := getPool(ctx, poolName)
 	if err != nil {
 		return err
 	}
 
-	pool := api.SystemStoragePool{}
+	return startScrub(ctx, pool)
+}
 
-	for _, p := range pools {
-		if p.Name == poolName {
-			pool = p
-		}
-	}
+// ScrubAllPools scrubs all pools in the system sequentially, blocking until the scrub is complete.
+func ScrubAllPools(ctx context.Context) error {
+	return runOnAllPools(ctx, "scrub", startScrub)
+}
 
+// startScrub starts a scrub of the pool unless one is already in progress.
+func startScrub(ctx context.Context, pool api.SystemStoragePool) error {
 	if pool.LastScrub != nil && pool.LastScrub.State == api.SystemStoragePoolScrubInProgress {
 		return storage.ErrScrubAlreadyInProgress
 	}
 
-	// Perform the scrub.
-	_, err = subprocess.RunCommandContext(ctx, "zpool", "scrub", poolName)
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "scrub", pool.Name)
 	if err != nil {
 		return err
 	}
@@ -1038,49 +1034,49 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 	return nil
 }
 
-// ScrubAllPools scrubs all pools in the system sequentially, blocking until the scrub is complete.
-func ScrubAllPools(ctx context.Context) error {
+// getPool returns the current information for the specified pool.
+func getPool(ctx context.Context, poolName string) (api.SystemStoragePool, error) {
+	// Check if the zpool exists.
+	if !storage.PoolExists(ctx, poolName) {
+		return api.SystemStoragePool{}, errors.New("zpool '" + poolName + "' doesn't exist")
+	}
+
+	_, pools, err := storage.GetStorageInfo(ctx)
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	for _, pool := range pools {
+		if pool.Name == poolName {
+			return pool, nil
+		}
+	}
+
+	return api.SystemStoragePool{}, errors.New("zpool '" + poolName + "' not found")
+}
+
+// runOnAllPools starts the zpool activity on every pool sequentially, waiting for each to complete.
+// Pools on which the activity can't be started (already in progress, unsupported, ...) are skipped.
+func runOnAllPools(ctx context.Context, activity string, start func(context.Context, api.SystemStoragePool) error) error {
 	_, pools, err := storage.GetStorageInfo(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Scrub every pool sequentially.
 	for _, pool := range pools {
-		slog.InfoContext(ctx, "Scrubbing pool", slog.String("pool", pool.Name))
+		slog.InfoContext(ctx, "Starting pool activity", slog.String("activity", activity), slog.String("pool", pool.Name))
 
-		// If a scrub is already in progress for a pool, skip it.
-		if pool.LastScrub != nil && pool.LastScrub.State == api.SystemStoragePoolScrubInProgress {
+		err = start(ctx, pool)
+		if err != nil {
+			slog.WarnContext(ctx, "Unable to start pool activity", slog.String("activity", activity), slog.String("pool", pool.Name), slog.Any("error", err))
+
 			continue
 		}
 
-		// Perform the scrub.
-		_, err = subprocess.RunCommandContext(ctx, "zpool", "scrub", pool.Name)
+		// Wait for the activity to finish.
+		_, err = subprocess.RunCommandContext(ctx, "zpool", "wait", "-t", activity, pool.Name)
 		if err != nil {
 			return err
-		}
-
-		// Wait for the scrub to finish.
-		for {
-			_, latestPools, err := storage.GetStorageInfo(ctx)
-			if err != nil {
-				return err
-			}
-
-			latestPoolInfo := api.SystemStoragePool{}
-
-			for _, p := range latestPools {
-				if p.Name == pool.Name {
-					latestPoolInfo = p
-				}
-			}
-
-			// If the scrub is not in progress, break and move to the next pool.
-			if latestPoolInfo.LastScrub != nil && latestPoolInfo.LastScrub.State != api.SystemStoragePoolScrubInProgress {
-				break
-			}
-
-			time.Sleep(time.Minute)
 		}
 	}
 
