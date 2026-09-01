@@ -182,6 +182,13 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 		}
 
 		if len(contents) != 0 {
+			// Spawn a gofunc to automatically reboot the system when the install media is removed. This is
+			// mostly to help with automated installs where the system may reboot too quickly before we're
+			// able to remove the virtual media via the RedFish (or similar) API.
+			go func() {
+				_ = rebootUponDeviceRemoval(sourceDevice, false)
+			}()
+
 			return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
 		}
 
@@ -389,7 +396,7 @@ func (i *Install) DoInstall(ctx context.Context, osName string) error {
 	slog.InfoContext(ctx, "Please remove the install media to complete the installation")
 	modal.Update(osName + " was successfully installed.\nPlease remove the install media to complete the installation.")
 
-	return i.rebootUponDeviceRemoval(ctx, sourceDevice)
+	return rebootUponDeviceRemoval(sourceDevice, i.config.ForceReboot)
 }
 
 // runningFromCDROM returns true we're running from a CDROM, which should only happen during an install.
@@ -1103,8 +1110,8 @@ func doCopy(ctx context.Context, modal *tui.Modal, sourceDevice string, sourcePa
 }
 
 // rebootUponDeviceRemoval waits for the given device to disappear from /dev/, and once it does
-// it will reboot the system. If ForceReoot is true in the config, the system will reboot immediately.
-func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) error {
+// it will reboot the system. If forceReoot is true, the system will reboot immediately.
+func rebootUponDeviceRemoval(device string, forceReboot bool) error {
 	partition := fmt.Sprintf("%s%s1", device, GetPartitionPrefix(device))
 
 	// If we're running from a CDROM, adjust the device we watch for removal.
@@ -1113,7 +1120,7 @@ func (i *Install) rebootUponDeviceRemoval(_ context.Context, device string) erro
 	}
 
 	// Wait for the partition to disappear; if ForceReboot is true, skip the loop and immediately reboot.
-	for !i.config.ForceReboot {
+	for !forceReboot {
 		_, err := os.Stat(partition)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
