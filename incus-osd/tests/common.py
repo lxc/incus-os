@@ -81,7 +81,7 @@ def _download_images(require_prior_release_stable=True):
 
     return prior_image_img, current_image_img, current_image_iso
 
-def _run_tests(tests, max_workers=3):
+def _run_tests(tests, max_workers=6):
     num_pass = 0
     num_fail = 0
 
