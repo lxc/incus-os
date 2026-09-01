@@ -90,7 +90,7 @@ def _timed(fn):
         return elapsed, ret
     return _fn
 
-def _run_tests(tests, max_workers=3):
+def _run_tests(tests, max_workers=6):
     num_pass = 0
     num_fail = 0
 
