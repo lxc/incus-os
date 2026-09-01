@@ -914,9 +914,21 @@ func resolveBridge(iface string) string {
 // GetIPAddresses returns any non-link-local address for an interface.
 func GetIPAddresses(ctx context.Context, iface string) ([]string, error) {
 	ipAddressRegex := regexp.MustCompile(`inet6? (.+)/\d+ `)
+	dev := resolveBridge(iface)
 
-	output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "ip", "address", "show", dev)
 	if err != nil {
+		// We typically expect to only attempt to get IP address(es) for interfaces
+		// that exist, but if the user is in the middle of editing their configuration
+		// we might be in an inconstant state. Rather than returning an error and
+		// preventing the user from being able to correct things, log a warning and
+		// return no IP addresses.
+		if strings.Contains(err.Error(), `Device "`+dev+`" does not exist.`) {
+			slog.WarnContext(ctx, "Failed to get IP address(es) for "+dev)
+
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
