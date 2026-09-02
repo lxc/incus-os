@@ -1,0 +1,2 @@
+SUBSYSTEM=="block", ACTION=="add|change", ENV{ID_FS_TYPE}=="vfat", ENV{ID_FS_LABEL}=="RESCUE_DATA", ENV{SYSTEMD_WANTS}+="initrd-recovery-key.service"
+SUBSYSTEM=="block", ACTION=="add|change", ENV{ID_FS_TYPE}=="vfat", ENV{ID_PART_ENTRY_NAME}=="RESCUE_DATA", ENV{SYSTEMD_WANTS}+="initrd-recovery-key.service"
