@@ -1272,47 +1272,11 @@ func refreshCephOCIImage(ctx context.Context, containerName string, imageAlias s
 	time.Sleep(5 * time.Second)
 
 	// Re-enable the various systemd services.
-	if !strings.HasPrefix(containerName, "ceph-osd-") {
-		for _, serviceName := range []string{"ceph-mon@" + containerName + ".service", "ceph-mgr@" + containerName + ".service", "ceph-mds@" + containerName + ".service", "ceph-rbd-mirror@rbd-mirror." + containerName + ".service"} {
-			op, err := incusClient.ExecInstance(containerName, incusapi.InstanceExecPost{
-				Command:     []string{"systemctl", "enable", "--now", serviceName},
-				WaitForWS:   true,
-				Interactive: false,
-			}, &incus.InstanceExecArgs{
-				Stdin:  nil,
-				Stdout: nil,
-				Stderr: nil,
-			})
-			if err != nil {
-				return err
-			}
-
-			err = op.Wait()
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		op, err := incusClient.ExecInstance(containerName, incusapi.InstanceExecPost{
-			Command:     []string{"sh", "-ceux", `for d in /var/lib/ceph/osd/ceph-*; do systemctl enable --now "ceph-osd@${d##*ceph-}"; done`},
-			WaitForWS:   true,
-			Interactive: false,
-		}, &incus.InstanceExecArgs{
-			Stdin:  nil,
-			Stdout: nil,
-			Stderr: nil,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = op.Wait()
-		if err != nil {
-			return err
-		}
+	if strings.HasPrefix(containerName, "ceph-osd-") {
+		return execCephScript(incusClient, containerName, "ceph-refresh-osd.sh", shTemplate{})
 	}
 
-	return nil
+	return execCephScript(incusClient, containerName, "ceph-refresh.sh", shTemplate{INST_NAME: containerName})
 }
 
 // Return a list of Incus servers that currently host an OSD.
