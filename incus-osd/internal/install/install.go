@@ -237,7 +237,7 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 			switch installSeed.ForceInstallConfirmation {
 			case "":
 				return fmt.Errorf("%s is already installed on this system; to confirm overwriting, add `ForceInstallConfirmation=%s` to the install seed and reboot", osName, confirmationValue)
-			case confirmationValue:
+			case confirmationValue, "FORCE-WIPE-I-KNOW-WHAT-IAM-DOING":
 				// Get the device that IncusOS is currently installed on.
 				output, err := subprocess.RunCommandContext(ctx, "dmsetup", "deps", "-o", "blkdevname", "/dev/mapper/root")
 				if err != nil {
