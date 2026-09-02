@@ -2,14 +2,14 @@
 # shellcheck disable=SC1083
 
 # Wipe the disk
-wipefs -af /dev/ceph-1
+wipefs -af {{.DEVICE_PATH}}
 
 # Get a new OSD ID
 ID=$(ceph osd create)
 
 # Create filesystem structure
 mkdir -p "/var/lib/ceph/osd/ceph-${ID}"
-ln -s /dev/ceph-1 "/var/lib/ceph/osd/ceph-${ID}/block"
+ln -s {{.DEVICE_PATH}} "/var/lib/ceph/osd/ceph-${ID}/block"
 uuidgen > "/var/lib/ceph/osd/ceph-${ID}/fsid"
 echo bluestore > "/var/lib/ceph/osd/ceph-${ID}/type"
 

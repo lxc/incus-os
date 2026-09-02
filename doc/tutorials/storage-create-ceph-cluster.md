@@ -21,7 +21,7 @@ An IncusOS cluster deployed by Operations Center should meet all of these requir
 The first step is to create the Ceph control plane. The Ceph OCI image will be downloaded and three Ceph containers will be created, each on a different Incus cluster server. The initialization logic also ensures the `incus-ceph` application is installed on each member of the Incus cluster, and that the Ceph service is properly configured.
 
 ```
-incus admin os application action incus -d '{"action":"initialize-ceph-cluster","config":{"control_servers":"server01,server02,server03"}}'
+incus admin os application action incus -d '{"action":"ceph-initialize","config":{"control_servers":"server01,server02,server03"}}'
 ```
 
 ### Configuration parameters
@@ -31,14 +31,14 @@ incus admin os application action incus -d '{"action":"initialize-ceph-cluster",
 
 ## Adding storage drives (OSDs)
 
-Ceph requires a minimum of three OSDs, and only one OSD can run at a time on a given physical Incus server to help ensure proper replication.
+Ceph requires a minimum of three OSDs. Each Incus server runs at most one OSD instance, which can be backed by multiple drives; each drive results in one OSD.
 
-Each OSD is bound to a specific Incus server, so the `--target` parameter must be specified when creating a new OSD.
+Each OSD instance is bound to a specific Incus server, so the `--target` parameter must be specified when adding a drive. Repeating the action with additional drives on the same server attaches them to the existing OSD instance.
 
 ```
-incus admin os application action incus-ceph -d '{"action":"add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server01
-incus admin os application action incus-ceph -d '{"action":"add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server02
-incus admin os application action incus-ceph -d '{"action":"add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server03
+incus admin os application action incus -d '{"action":"ceph-add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server01
+incus admin os application action incus -d '{"action":"ceph-add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server02
+incus admin os application action incus -d '{"action":"ceph-add-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server03
 ```
 
 ### Configuration parameters
@@ -58,7 +58,7 @@ IncusOS will not automatically remove old, unused Ceph OCI images; this must be 
 * `oci_tag`: If specified, update the Ceph containers to use the specific OCI image tag; otherwise, refresh the currently used OCI image and update the Ceph containers if a newer version is available.
 
 ```
-incus admin os application action incus-ceph -d '{"action":"refresh-images"}'
+incus admin os application action incus -d '{"action":"ceph-refresh-images"}'
 ```
 
 ## Removing a storage drive (OSD)
@@ -70,8 +70,12 @@ Removing an OSD via the IncusOS API is equivalent to pulling the power cord of a
 ```
 
 ```
-incus admin os application action incus-ceph -d '{"action":"remove-drive"}' --target server01
+incus admin os application action incus -d '{"action":"ceph-remove-drive","config":{"device_id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_ceph--disk"}}' --target server01
 ```
+
+### Configuration parameters
+
+* `device_id`: The device ID of the raw block device backing the OSD to remove. Optional if the server's OSD instance only has a single drive attached. When the last (or only) drive of a server is removed, the whole OSD instance is deleted.
 
 ## Ceph cluster configuration and status
 

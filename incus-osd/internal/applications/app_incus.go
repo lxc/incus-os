@@ -46,8 +46,14 @@ type incus struct {
 // Action runs an application-specific action/task.
 func (*incus) Action(ctx context.Context, data api.ApplicationAction) error {
 	switch data.Action {
-	case "initialize-ceph-cluster":
+	case "ceph-add-drive":
+		return ceph.AddOSD(ctx, data.Config)
+	case "ceph-initialize":
 		return ceph.InitializeCephCluster(ctx, data.Config)
+	case "ceph-refresh-images":
+		return ceph.RefreshCephOCIImages(ctx, data.Config)
+	case "ceph-remove-drive":
+		return ceph.RemoveOSD(ctx, data.Config)
 	default:
 		return errors.New("unsupported action '" + data.Action + "'")
 	}
@@ -169,7 +175,15 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 	return a.Initialize(ctx)
 }
 
-func (a *incus) Get(_ context.Context) (any, error) {
+func (a *incus) Get(ctx context.Context) (any, error) {
+	// Update the managed Ceph service state.
+	cephState, err := ceph.GetServiceState(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	a.state.Applications.Incus.State.Services.Ceph = *cephState
+
 	return a.state.Applications.Incus, nil
 }
 
