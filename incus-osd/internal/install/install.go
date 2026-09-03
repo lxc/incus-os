@@ -192,7 +192,7 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 			return errors.New("install media detected, but the system is already installed; please remove USB/CDROM and reboot the system")
 		}
 
-		// Sanity check: If /var/lib/incus-os/recovery.root.key exists, that means we've booted with an install
+		// Sanity check: If /var/lib/incus-os/keys/recovery.root.key exists, that means we've booted with an install
 		// seed, but there's already an install of IncusOS present (of the exact same version). Check if the user
 		// provided a specific seed value for this system that will cause us to zap the current install, then reboot
 		// and actually perform the install.
@@ -207,7 +207,7 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 		// If the version of IncusOS that's installed is different from the install media, there will be two distinct
 		// /usr-verity hashes and we won't be able to automatically unlock the root LUKS volume. In these cases ForceInstall
 		// must still be set to true to overwrite the existing install, but we don't have the following extra safety net.
-		_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+		_, err = os.Stat("/var/lib/incus-os/keys/recovery.root.key")
 		if err == nil {
 			osName, _, err := systemd.GetCurrentRelease(ctx)
 			if err != nil {

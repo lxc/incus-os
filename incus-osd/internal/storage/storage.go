@@ -692,7 +692,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	}
 
 	// Determine if this zpool is manged by IncusOS.
-	_, isManaged := os.Stat("/var/lib/incus-os/zpool." + zpoolName + ".key")
+	_, isManaged := os.Stat("/var/lib/incus-os/keys/zpool." + zpoolName + ".key")
 	if isManaged != nil && !errors.Is(isManaged, os.ErrNotExist) {
 		return api.SystemStoragePool{}, isManaged
 	}
@@ -946,7 +946,7 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, []api.SystemSt
 
 		// Check if the drive is encrypted (and we have a key).
 		devName := filepath.Base(deviceID)
-		keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+		keyfilePath := "/var/lib/incus-os/keys/luks." + devName + ".key"
 
 		var (
 			encrypted   bool
@@ -1227,7 +1227,7 @@ func WipeDrive(ctx context.Context, drive string, secure bool) error {
 			// Check if this is a LUKS-encrypted drive, and if so attempt to close the
 			// mapping and remove its key file before wiping the underlying device.
 			devName := filepath.Base(drive)
-			keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+			keyfilePath := "/var/lib/incus-os/keys/luks." + devName + ".key"
 
 			_, err := os.Stat(keyfilePath)
 			if err == nil {

@@ -21,13 +21,16 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
-var recoveryKeyRegex = regexp.MustCompile(`^recovery\..+\.key$`)
+var (
+	recoveryKeyRegex = regexp.MustCompile(`^recovery\..+\.key$`)
+	keyFileRegex     = regexp.MustCompile(`^(luks|zpool)\..+\.key$`)
+)
 
 // GetOSBackup returns a tar archive of all the files under /var/lib/incus-os/.
 func GetOSBackup() ([]byte, error) {
 	// Simplifying assumption: /var/lib/incus-osd/ only contains files that are
-	// relatively small. We don't handle traversing directories or need to worry
-	// about memory exhaustion when creating the tar archive.
+	// relatively small. We don't handle traversing directories other than keys/
+	// or need to worry about memory exhaustion when creating the tar archive.
 	var ret bytes.Buffer
 
 	zw := gzip.NewWriter(&ret)
@@ -38,8 +41,8 @@ func GetOSBackup() ([]byte, error) {
 		return nil, err
 	}
 
-	writeFile := func(file os.DirEntry) error {
-		fd, err := os.Open(filepath.Join("/var/lib/incus-os/", file.Name()))
+	writeFile := func(name string) error {
+		fd, err := os.Open(filepath.Join("/var/lib/incus-os/", name))
 		if err != nil {
 			return err
 		}
@@ -51,7 +54,7 @@ func GetOSBackup() ([]byte, error) {
 		}
 
 		header := &tar.Header{
-			Name: file.Name(),
+			Name: name,
 			Mode: 0o600,
 			Size: stat.Size(),
 		}
@@ -71,17 +74,37 @@ func GetOSBackup() ([]byte, error) {
 
 	for _, file := range files {
 		if file.IsDir() {
-			return nil, errors.New("backup cannot contain directories")
-		}
+			if file.Name() != "keys" {
+				return nil, errors.New("backup cannot contain directories")
+			}
 
-		// Skip backing up system-specific internal encryption recovery keys.
-		// They won't work on any other IncusOS system, and including them
-		// only makes the recovery process more complex for no real gain.
-		if recoveryKeyRegex.MatchString(file.Name()) {
+			keyFiles, err := os.ReadDir("/var/lib/incus-os/keys/")
+			if err != nil {
+				return nil, err
+			}
+
+			for _, keyFile := range keyFiles {
+				if keyFile.IsDir() {
+					return nil, errors.New("backup cannot contain directories")
+				}
+
+				// Skip backing up system-specific internal encryption recovery keys.
+				// They won't work on any other IncusOS system, and including them
+				// only makes the recovery process more complex for no real gain.
+				if recoveryKeyRegex.MatchString(keyFile.Name()) {
+					continue
+				}
+
+				err := writeFile("keys/" + keyFile.Name())
+				if err != nil {
+					return nil, err
+				}
+			}
+
 			continue
 		}
 
-		err := writeFile(file)
+		err := writeFile(file.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -125,26 +148,26 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	})
 
 	// Create a new /var/lib/incus-os/.
-	err = os.Mkdir("/var/lib/incus-os/", 0o700)
+	err = os.MkdirAll("/var/lib/incus-os/keys/", 0o700)
 	if err != nil {
 		return err
 	}
 
 	// Copy any existing system-specific encryption recovery keys.
-	existingFiles, err := os.ReadDir("/var/lib/incus-os.bak/")
+	existingFiles, err := os.ReadDir("/var/lib/incus-os.bak/keys/")
 	if err != nil {
 		return err
 	}
 
 	for _, file := range existingFiles {
 		if recoveryKeyRegex.MatchString(file.Name()) {
-			src, err := os.Open(filepath.Join("/var/lib/incus-os.bak", file.Name()))
+			src, err := os.Open(filepath.Join("/var/lib/incus-os.bak/keys", file.Name()))
 			if err != nil {
 				return err
 			}
 			defer src.Close() //nolint:revive
 
-			dst, err := os.Create(filepath.Join("/var/lib/incus-os", file.Name()))
+			dst, err := os.Create(filepath.Join("/var/lib/incus-os/keys", file.Name()))
 			if err != nil {
 				return err
 			}
@@ -238,11 +261,11 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			return err
 		}
 
-		// IncusOS generates backup archives without a relative path, but if the backup
+		// IncusOS generates backup archives without directory entries, but if the backup
 		// has been modified (for example, to replace a key), the recreated archive
-		// might have file names with relative paths, including a "./" directory. In this
-		// case, skip that directory when processing the archive.
-		if header.Typeflag == tar.TypeDir && header.Name == "./" {
+		// might have file names with relative paths, including a "./" directory, as well
+		// as an entry for the "keys/" directory. In this case, skip those directories.
+		if header.Typeflag == tar.TypeDir && slices.Contains([]string{".", "keys"}, filepath.Base(header.Name)) {
 			continue
 		}
 
@@ -258,9 +281,15 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			continue
 		}
 
+		// Encryption keys live under keys/, regardless of where the backup has them.
+		dstPath := "/var/lib/incus-os/" + filename
+		if keyFileRegex.MatchString(filename) {
+			dstPath = "/var/lib/incus-os/keys/" + filename
+		}
+
 		// If told to skip restoring local pool key, copy the existing one from the backup directory.
 		if filename == "zpool.local.key" && slices.Contains(skipOptions, "local-data-encryption-key") {
-			err := copyFile("/var/lib/incus-os.bak/zpool.local.key", "/var/lib/incus-os/zpool.local.key")
+			err := copyFile("/var/lib/incus-os.bak/keys/zpool.local.key", dstPath)
 			if err != nil {
 				return err
 			}
@@ -269,7 +298,7 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		}
 
 		// Write file to disk.
-		err = writeFile("/var/lib/incus-os/"+filename, tr)
+		err = writeFile(dstPath, tr)
 		if err != nil {
 			return err
 		}

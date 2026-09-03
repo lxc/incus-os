@@ -149,7 +149,7 @@ func recoverLocalPool(ctx context.Context) error {
 
 // Helper function to return a list of ZFS pools that have a corresponding known encryption key saved locally.
 func getPoolsWithKnownKeys() ([]string, error) {
-	files, err := os.ReadDir("/var/lib/incus-os/")
+	files, err := os.ReadDir("/var/lib/incus-os/keys/")
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func getPoolsWithKnownKeys() ([]string, error) {
 
 // CreateZpool creates a new zpool.
 func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.State) error { //nolint:revive
-	keyfilePath := "/var/lib/incus-os/zpool." + zpool.Name + ".key"
+	keyfilePath := "/var/lib/incus-os/keys/zpool." + zpool.Name + ".key"
 
 	// Verify a zpool name was provided.
 	if zpool.Name == "" {
@@ -401,7 +401,7 @@ func DestroyZpool(ctx context.Context, zpoolName string, osName string) error {
 		return errors.New("cannot destroy special zpool 'local'")
 	}
 
-	zpoolKey := "/var/lib/incus-os/zpool." + zpoolName + ".key"
+	zpoolKey := "/var/lib/incus-os/keys/zpool." + zpoolName + ".key"
 
 	// Make sure the encryption key exists, otherwise refuse to destroy
 	// a zpool that's not managed by IncusOS.
@@ -871,7 +871,7 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 func GetZpoolEncryptionKeys() (map[string]string, error) {
 	ret := make(map[string]string)
 
-	files, err := os.ReadDir("/var/lib/incus-os/")
+	files, err := os.ReadDir("/var/lib/incus-os/keys/")
 	if err != nil {
 		return ret, err
 	}
@@ -881,7 +881,7 @@ func GetZpoolEncryptionKeys() (map[string]string, error) {
 
 		if strings.HasPrefix(filename, "zpool.") && strings.HasSuffix(filename, ".key") {
 			// #nosec G304
-			contents, err := os.ReadFile(filepath.Join("/var/lib/incus-os/", filename))
+			contents, err := os.ReadFile(filepath.Join("/var/lib/incus-os/keys/", filename))
 			if err != nil {
 				return ret, err
 			}
@@ -942,7 +942,7 @@ func ImportExistingPool(ctx context.Context, pool string, key string) error {
 		return errors.New("refusing to import encrypted pool '" + pool + "' that doesn't use a raw encryption key")
 	}
 
-	keyfilePath := "/var/lib/incus-os/zpool." + pool + ".key"
+	keyfilePath := "/var/lib/incus-os/keys/zpool." + pool + ".key"
 
 	// Decode encryption key into raw bytes.
 	rawKey, err := base64.StdEncoding.DecodeString(key)

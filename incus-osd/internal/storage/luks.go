@@ -31,7 +31,7 @@ func EncryptDrive(ctx context.Context, devPath string, secure bool) error {
 	}
 
 	devName := filepath.Base(devPath)
-	keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+	keyfilePath := "/var/lib/incus-os/keys/luks." + devName + ".key"
 
 	// Wipe the drive.
 	err := WipeDrive(ctx, devPath, secure)
@@ -62,7 +62,7 @@ func ImportEncryptedDrive(ctx context.Context, devPath string, key string) error
 	}
 
 	devName := filepath.Base(devPath)
-	keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+	keyfilePath := "/var/lib/incus-os/keys/luks." + devName + ".key"
 
 	// Decode encryption key into raw bytes.
 	rawKey, err := base64.StdEncoding.DecodeString(key)
@@ -94,7 +94,7 @@ func ImportEncryptedDrive(ctx context.Context, devPath string, key string) error
 // DecryptDrives decrypts all LUKS encrypted drives on the system where a key is available.
 func DecryptDrives(ctx context.Context) error {
 	// Look for keys.
-	entries, err := os.ReadDir("/var/lib/incus-os")
+	entries, err := os.ReadDir("/var/lib/incus-os/keys/")
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func GetDriveKeys() (map[string]string, error) {
 	keys := map[string]string{}
 
 	// Look for keys.
-	entries, err := os.ReadDir("/var/lib/incus-os")
+	entries, err := os.ReadDir("/var/lib/incus-os/keys/")
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func GetDriveKeys() (map[string]string, error) {
 
 		devID := strings.TrimSuffix(strings.TrimPrefix(entryName, "luks."), ".key")
 
-		devKey, err := os.ReadFile("/var/lib/incus-os/" + entryName)
+		devKey, err := os.ReadFile("/var/lib/incus-os/keys/" + entryName)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +186,7 @@ func LUKSBoundToPCR(ctx context.Context, devPath string, pcrIndex int) (bool, er
 
 func unlockDrive(ctx context.Context, devPath string) error {
 	devName := filepath.Base(devPath)
-	keyfilePath := "/var/lib/incus-os/luks." + devName + ".key"
+	keyfilePath := "/var/lib/incus-os/keys/luks." + devName + ".key"
 
 	_, err := os.Stat("/dev/mapper/luks-" + devName)
 	if err == nil {

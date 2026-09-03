@@ -76,7 +76,7 @@ func GenerateRecoveryKeys(ctx context.Context, s *state.State) error {
 		recoveryPassword = strings.TrimSuffix(recoveryPassword, "\n")
 
 		// Write the recovery password to disk.
-		f, err := os.Create("/var/lib/incus-os/recovery." + volumeName + ".key")
+		f, err := os.Create("/var/lib/incus-os/keys/recovery." + volumeName + ".key")
 		if err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func AddEncryptionKey(ctx context.Context, s *state.State, key string, skipKeyVa
 
 	// Add the new encryption password. Need to pass to systemd-cryptenroll via NEWPASSWORD environment variable.
 	for name, volume := range luksVolumes {
-		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--password", volume)
+		_, _, err := subprocess.RunCommandSplit(ctx, append(os.Environ(), "NEWPASSWORD="+key), nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--password", volume)
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func DeleteEncryptionKey(ctx context.Context, s *state.State, key string) error 
 
 // WipeAllRecoveryKeys will wipe all password key slots for the provided volume.
 func WipeAllRecoveryKeys(ctx context.Context, name string, volume string) error {
-	_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--wipe-slot=password", volume)
+	_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--wipe-slot=password", volume)
 
 	return err
 }
