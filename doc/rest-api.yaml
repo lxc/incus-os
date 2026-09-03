@@ -268,9 +268,28 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemLoggingConfig:
         properties:
+            journal_upload:
+                $ref: '#/definitions/SystemLoggingJournalUpload'
             syslog:
                 $ref: '#/definitions/SystemLoggingSyslog'
         title: SystemLoggingConfig holds the modifiable part of the logging data.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemLoggingJournalUpload:
+        properties:
+            tls_ca_certificate:
+                type: string
+                x-go-name: TLSCACertificate
+            tls_client_certificate:
+                type: string
+                x-go-name: TLSClientCertificate
+            tls_client_key:
+                type: string
+                x-go-name: TLSClientKey
+            url:
+                type: string
+                x-go-name: URL
+        title: SystemLoggingJournalUpload contains the configuration options for uploading the journal to a remote server.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemLoggingState:

@@ -731,6 +731,11 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
+	err = systemd.SetJournalUpload(ctx, s.System.Logging.Config.JournalUpload)
+	if err != nil {
+		return err
+	}
+
 	// Ensure all systemd extensions are applied.
 	err = applications.RefreshExtensions(ctx, s)
 	if err != nil {
