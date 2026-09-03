@@ -1,4 +1,5 @@
 usr/lib/systemd/system/initrd-boot-message.service        usr/lib/systemd/system/boot.mount.wants/initrd-boot-message.service
+usr/lib/systemd/system/initrd-cleanup-root.service        usr/lib/systemd/system/initrd.target.wants/initrd-cleanup-root.service
 usr/lib/systemd/system/initrd-debug-info.service          usr/lib/systemd/system/emergency.target.wants/initrd-debug-info.service
 usr/lib/systemd/system/initrd-finalize-luks-state.service usr/lib/systemd/system/initrd.target.wants/initrd-finalize-luks-state.service
 usr/lib/systemd/system/initrd-multipath.service           usr/lib/systemd/system/boot.mount.wants/initrd-multipath.service

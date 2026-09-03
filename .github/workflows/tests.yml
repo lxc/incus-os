@@ -194,6 +194,12 @@ jobs:
           RELEASE=$(ls mkosi.output/*.efi | sed -e "s/.*_//g" -e "s/.efi//g" | sort -n | tail -1)
           OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
 
+          # Wait for incus-osd to re-enable the incus-agent features following the reboot.
+          timeout 300 sh -c "until incus exec test-incus-os -- true; do sleep 5; done"
+
+          # Re-create the updates directory as it's wiped on reboot.
+          incus exec test-incus-os -- mkdir -p /root/updates
+
           echo ${RELEASE} | incus file push --quiet - test-incus-os/root/updates/RELEASE
           incus file push --quiet mkosi.output/${OSNAME}_${RELEASE}.efi test-incus-os/root/updates/
           incus file push --quiet mkosi.output/${OSNAME}_${RELEASE}.usr* test-incus-os/root/updates/
@@ -207,6 +213,9 @@ jobs:
           incus exec test-incus-os -- curl --unix-socket /run/incus-os/unix.socket http://localhost/1.0/system/:reboot -X POST
 
           sleep 3m
+
+          # Wait for incus-osd to re-enable the incus-agent features following the reboot.
+          timeout 300 sh -c "until incus exec test-incus-os -- true; do sleep 5; done"
 
           incus exec test-incus-os -- grep $RELEASE /usr/lib/os-release
 

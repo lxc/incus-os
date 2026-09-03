@@ -122,7 +122,15 @@ func (*State) SystemUUID() (string, error) {
 		return "", errors.New("invalid length for a UUID")
 	}
 
-	return strings.TrimSpace(string(productUUID)), nil
+	uuid := strings.TrimSpace(string(productUUID))
+
+	// Reject common invalid firmware values.
+	stripped := strings.ToLower(strings.ReplaceAll(uuid, "-", ""))
+	if stripped == strings.Repeat("0", 32) || stripped == strings.Repeat("f", 32) {
+		return "", errors.New("invalid system UUID")
+	}
+
+	return uuid, nil
 }
 
 // Hostname returns the preferred hostname for the system.

@@ -28,6 +28,8 @@ func main() {
 		err = fmt.Errorf("usage: %s <cmd>", os.Args[0])
 	} else {
 		switch os.Args[1] {
+		case "cleanup-root":
+			err = cleanupRoot("/sysroot")
 		case "measure-pcrs":
 			err = measurePCRs()
 		case "seal-pcr15":

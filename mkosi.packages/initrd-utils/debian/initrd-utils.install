@@ -9,6 +9,7 @@ initrd-recovery-key.sh        usr/bin/
 initrd-startup-checks.sh      usr/bin/
 
 initrd-boot-message.service        usr/lib/systemd/system/
+initrd-cleanup-root.service        usr/lib/systemd/system/
 initrd-debug-info.service          usr/lib/systemd/system/
 initrd-finalize-luks-state.service usr/lib/systemd/system/
 initrd-multipath.service           usr/lib/systemd/system/
