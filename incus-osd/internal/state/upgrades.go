@@ -1,12 +1,18 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var keyFileRegex = regexp.MustCompile(`^(luks|zpool|recovery)\..+\.key$`)
 
 // UpgradeFuncs is a list of functions to apply in order to upgrade the version of a given state.
 // Each function consumes a list of strings, each representing one line of input, and returns a
@@ -187,6 +193,36 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 	// V9: Set default value for TrimSchedule.
 	func(lines []string) ([]string, error) {
 		lines = append(lines, "System.Storage.Config.TrimSchedule: 0 4 * * 6")
+
+		return lines, nil
+	},
+	// V10: Move encryption keys to /var/lib/incus-os/keys/.
+	func(lines []string) ([]string, error) {
+		files, err := os.ReadDir("/var/lib/incus-os/")
+		if err != nil {
+			// Nothing to move on systems without a state directory.
+			if errors.Is(err, os.ErrNotExist) {
+				return lines, nil
+			}
+
+			return nil, err
+		}
+
+		err = os.MkdirAll("/var/lib/incus-os/keys/", 0o700)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, file := range files {
+			if file.IsDir() || !keyFileRegex.MatchString(file.Name()) {
+				continue
+			}
+
+			err = os.Rename(filepath.Join("/var/lib/incus-os/", file.Name()), filepath.Join("/var/lib/incus-os/keys/", file.Name()))
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		return lines, nil
 	},
