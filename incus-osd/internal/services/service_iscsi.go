@@ -133,29 +133,27 @@ func (n *ISCSI) doStart(ctx context.Context) error {
 
 	// Create the host initiator name if missing.
 	_, err = os.Stat("/etc/iscsi/initiatorname.iscsi")
-	if err != nil {
+	if err != nil { //nolint:nestif
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 
-		f, err := os.Create("/etc/iscsi/initiatorname.iscsi")
-		if err != nil {
-			return err
+		// Prefer the DMI UUID so the value can be predicted from hardware inventory.
+		var suffix string
+
+		systemUUID, err := n.state.SystemUUID()
+		if err == nil {
+			suffix = strings.ReplaceAll(systemUUID, "-", "")[:12]
+		} else {
+			machineID, err := n.state.MachineID()
+			if err != nil {
+				return err
+			}
+
+			suffix = machineID[:12]
 		}
 
-		err = f.Chmod(0o600)
-		if err != nil {
-			return err
-		}
-
-		defer f.Close()
-
-		output, err := subprocess.RunCommandContext(ctx, "iscsi-iname", "-p", "iqn.2004-10.org.linuxcontainers:01")
-		if err != nil {
-			return err
-		}
-
-		_, err = fmt.Fprintf(f, "InitiatorName=%s\n", strings.TrimSpace(output))
+		err = os.WriteFile("/etc/iscsi/initiatorname.iscsi", []byte("InitiatorName=iqn.2004-10.org.linuxcontainers:01:"+suffix+"\n"), 0o600)
 		if err != nil {
 			return err
 		}

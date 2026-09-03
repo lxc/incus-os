@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
@@ -175,7 +174,19 @@ func (n *NVME) Start(ctx context.Context) error {
 			return err
 		}
 
-		err = os.WriteFile("/etc/nvme/hostid", append([]byte(uuid.New().String()), []byte("\n")...), 0o600)
+		// Prefer the DMI UUID so the value can be predicted from hardware inventory.
+		hostID, err := n.state.SystemUUID()
+		if err != nil {
+			machineID, err := n.state.MachineID()
+			if err != nil {
+				return err
+			}
+
+			// The machine ID is a UUID without its dashes.
+			hostID = machineID[0:8] + "-" + machineID[8:12] + "-" + machineID[12:16] + "-" + machineID[16:20] + "-" + machineID[20:32]
+		}
+
+		err = os.WriteFile("/etc/nvme/hostid", []byte(hostID+"\n"), 0o600)
 		if err != nil {
 			return err
 		}
