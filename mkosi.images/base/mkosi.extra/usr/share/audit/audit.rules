@@ -1,0 +1,29 @@
+# Reset rules and configure the audit subsystem.
+-D
+-b 8192
+-f 1
+
+# Kernel module loading and unloading.
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -F key=modules
+
+# Kernel replacement attempts.
+-a always,exit -F arch=b64 -S kexec_load,kexec_file_load -F key=kexec
+
+# System time changes.
+-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -F key=time-change
+-a always,exit -F arch=b64 -F path=/etc/localtime -F perm=wa -F key=time-change
+
+# System identity.
+-a always,exit -F arch=b64 -F path=/etc/hostname -F perm=wa -F key=system-identity
+-a always,exit -F arch=b64 -F path=/etc/hosts -F perm=wa -F key=system-identity
+-a always,exit -F arch=b64 -F path=/etc/machine-id -F perm=wa -F key=system-identity
+
+# Runtime system configuration (wiped and regenerated on every boot).
+-a always,exit -F arch=b64 -F dir=/etc/ -F perm=wa -F key=system-config
+
+# Boot partition (UKIs, boot loader configuration, Secure Boot keys).
+-a always,exit -F arch=b64 -F dir=/boot/ -F perm=wa -F key=boot
+
+# IncusOS state and secrets.
+-a always,exit -F arch=b64 -F dir=/var/lib/incus-os/ -F perm=wa -F key=incus-os-state
+-a always,exit -F arch=b64 -F dir=/var/lib/incus-os/keys/ -F perm=r -F key=incus-os-secrets

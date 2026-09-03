@@ -1,0 +1,2 @@
+# swtpm state (only loaded when a swtpm-backed TPM is in use).
+-a always,exit -F arch=b64 -F dir=/boot/swtpm/ -F perm=r -F key=incus-os-secrets
