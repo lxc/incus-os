@@ -1,0 +1,12 @@
+[Unit]
+Description=Remount /dev/shm with noexec
+DefaultDependencies=no
+ConditionPathIsMountPoint=/dev/shm
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mount -o remount,noexec /dev/shm
+
+[Install]
+WantedBy=sysinit.target
