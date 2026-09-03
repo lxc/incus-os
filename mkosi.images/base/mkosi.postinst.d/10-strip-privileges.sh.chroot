@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+# Everything on IncusOS runs as root, drop setuid/setgid bits and file capabilities.
+find /usr -type f \( -perm -4000 -o -perm -2000 \) -exec chmod u-s,g-s {} +
+getcap -r /usr 2>/dev/null | cut -d' ' -f1 | while read -r path; do
+    setcap -r "${path}"
+done
