@@ -213,7 +213,7 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
                     vm.WaitSystemReady(os_version)
 
                     # By default, can't create a storage pool with devices of different sizes.
-                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                     if result["status_code"] == 200:
                         raise IncusOSException("unexpected success creating pool with mismatched devices")
 
@@ -221,7 +221,7 @@ def TestIncusOSAPISystemStorageMixedDeviceSize(install_image):
                         raise IncusOSException("unexpected error message: " + result["error"])
 
                     # Set AllowMixedDevSizes to true and we should be able to create the storage pool.
-                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","allow_mixed_dev_sizes":true,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","allow_mixed_dev_sizes":true,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -260,7 +260,7 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
                 vm.WaitSystemReady(os_version)
 
                 # Create a storage pool using a single device.
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -283,7 +283,7 @@ def TestIncusOSAPISystemStorageConvertToMirror(install_image):
                     raise IncusOSException("'mypool' type isn't zfs-raid0")
 
                 # Convert the storage pool to a mirrored configuration.
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -328,7 +328,7 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                     vm.WaitSystemReady(os_version)
 
                     # Create a simple pool with one log device.
-                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"log":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"log":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -369,7 +369,7 @@ def TestIncusOSAPISystemStoragePoolLogDevices(install_image):
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                     # Create a simple pool with two log devices.
-                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"log":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                    result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"log":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                     if result["status_code"] != 200:
                         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -436,7 +436,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                         vm.WaitSystemReady(os_version)
 
                         # Create a basic raidz1 pool
-                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -462,7 +462,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                             raise IncusOSException("expected exactly three devices for 'mypool' pool")
 
                         # Delete (offline) one device in the pool
-                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -494,7 +494,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                             raise IncusOSException("removed device in 'mypool' pool incorrectly reported as a member")
 
                         # Replace (online) the pool's removed device
-                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -523,7 +523,7 @@ def TestIncusOSAPISystemStoragePoolDeleteReplaceDevices(install_image):
                             raise IncusOSException("expected exactly three devices for 'mypool' pool")
 
                         # Replace one device with another in the pool
-                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
                         if result["status_code"] != 200:
                             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -591,7 +591,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 # raid0 testing
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -617,7 +617,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 10200547328 != " + str(poolState[1]["usable_pool_size_in_bytes"]))
 
                                 # Expand the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -653,7 +653,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 # raid1 testing
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -679,7 +679,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 10200547328 != " + str(poolState[1]["usable_pool_size_in_bytes"]))
 
                                 # Expand the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -708,7 +708,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 10200547328 != " + str(poolState["usable_pool_size_in_bytes"]))
 
                                 # Can't expand multiple devices at once
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}]}}""")
                                 if result["status_code"] == 200:
                                     raise IncusOSException("unexpected success expanding raid1 pool with multiple devices")
 
@@ -723,7 +723,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 # raid10 testing
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -749,7 +749,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 20401094656 != " + str(poolState[1]["usable_pool_size_in_bytes"]))
 
                                 # Can't expand with only one device
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}]}}""")
                                 if result["status_code"] == 200:
                                     raise IncusOSException("unexpected success expanding raid10 pool with a single device")
 
@@ -757,7 +757,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("unexpected error message: " + result["error"])
 
                                 # Expand the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid10","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -793,7 +793,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                 # raidz testing
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -819,7 +819,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 21096300544 != " + str(poolState[1]["usable_pool_size_in_bytes"]))
 
                                 # Expand the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -848,7 +848,7 @@ def TestIncusOSAPISystemStoragePoolExpansionTests(install_image):
                                     raise IncusOSException("'mypool' size 28247588864 != " + str(poolState["usable_pool_size_in_bytes"]))
 
                                 # Can't expand multiple devices at once
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}]}}""")
                                 if result["status_code"] == 200:
                                     raise IncusOSException("unexpected success expanding raidz1 pool with multiple devices")
 
@@ -894,7 +894,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 # Special device for a raid0 pool
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"special":{"type":"zfs-raid0","special_small_blocks_size_in_kb":16,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"special":{"type":"zfs-raid0","special_small_blocks_size_in_kb":16,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -934,7 +934,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"special":{"type":"zfs-raid0","special_small_blocks_size_in_kb":24,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"],"special":{"type":"zfs-raid0","special_small_blocks_size_in_kb":24,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -979,7 +979,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 # Special device for a raid1 pool
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"],"special":{"type":"zfs-raid1","special_small_blocks_size_in_kb":32,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"],"special":{"type":"zfs-raid1","special_small_blocks_size_in_kb":32,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -1022,7 +1022,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"],"special":{"type":"zfs-raidz1","special_small_blocks_size_in_kb":48,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"],"special":{"type":"zfs-raidz1","special_small_blocks_size_in_kb":48,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -1067,7 +1067,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 # Special device for a raidz1 pool
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"],"special":{"type":"zfs-raid1","special_small_blocks_size_in_kb":64,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"],"special":{"type":"zfs-raid1","special_small_blocks_size_in_kb":64,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -1110,7 +1110,7 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
                                 # Create the pool
-                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule":"0 4 * * 0","pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"],"special":{"type":"zfs-raidz1","special_small_blocks_size_in_kb":128,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}}]}}""")
+                                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"],"special":{"type":"zfs-raidz1","special_small_blocks_size_in_kb":128,"devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk5","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk6"]}}]}}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
