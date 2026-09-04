@@ -173,6 +173,22 @@ jobs:
           incus exec test-incus-os -- sleep 30s
           incus exec test-incus-os -- incus list
 
+      - name: Test system hardening
+        run: |
+          incus exec test-incus-os -- grep -q "\[integrity\]" /sys/kernel/security/lockdown
+          incus exec test-incus-os -- sh -c "[ \"\$(sysctl -n fs.protected_symlinks)\" = 1 ]"
+          incus exec test-incus-os -- sh -c "[ \"\$(sysctl -n kernel.kexec_load_disabled)\" = 1 ]"
+          incus exec test-incus-os -- sh -c "[ \"\$(sysctl -n net.ipv4.conf.all.send_redirects)\" = 0 ]"
+          incus exec test-incus-os -- findmnt -no OPTIONS /tmp | grep -q noexec
+          incus exec test-incus-os -- findmnt -no OPTIONS /dev/shm | grep -q noexec
+          incus exec test-incus-os -- systemctl is-active auditd
+          incus exec test-incus-os -- auditctl -s | grep -q "^enabled 2"
+          incus exec test-incus-os -- auditctl -l | grep -q "key=modules"
+          incus exec test-incus-os -- auditctl -l | grep -q "dir=/var/lib/incus-os/keys/"
+          incus exec test-incus-os -- sh -c "[ -z \"\$(find /usr -type f \( -perm -4000 -o -perm -2000 \))\" ]"
+          incus exec test-incus-os -- sh -c "[ -z \"\$(getcap -r /usr)\" ]"
+          incus exec test-incus-os -- sh -c "! [ -e /usr/bin/su ]"
+
       - name: Test EFI db and dbx updates
         run: |
           pushd certs/efi/updates/ && tar cf SecureBootKeys_${RELEASE}.tar *.auth && popd
