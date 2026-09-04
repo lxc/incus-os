@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -10,10 +11,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lxc/incus/v7/shared/subprocess"
+
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC bool) error {
+func validateInterfaces(ctx context.Context, interfaces []api.SystemNetworkInterface, requireValidMAC bool) error {
 	for index, iface := range interfaces {
 		err := validateName(iface.Name)
 		if err != nil {
@@ -64,6 +67,13 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
 
+		if requireValidMAC {
+			err := hwaddrExists(ctx, iface.Hwaddr)
+			if err != nil {
+				return fmt.Errorf("interface %d %s", index, err.Error())
+			}
+		}
+
 		err = validateEthernet(iface.Ethernet)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
@@ -73,7 +83,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 	return nil
 }
 
-func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
+func validateBonds(ctx context.Context, bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 	for index, bond := range bonds {
 		err := validateName(bond.Name)
 		if err != nil {
@@ -124,10 +134,18 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 			}
 		}
 
+		// A bond configuration may not explicitly define a MAC, so only check if one is present.
 		if bond.Hwaddr != "" {
 			err = validateHwaddr(bond.Hwaddr, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d %s", index, err.Error())
+			}
+
+			if requireValidMAC {
+				err := hwaddrExists(ctx, bond.Hwaddr)
+				if err != nil {
+					return fmt.Errorf("bond %d %s", index, err.Error())
+				}
 			}
 		}
 
@@ -139,6 +157,13 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 			err := validateHwaddr(member, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
+			}
+
+			if requireValidMAC {
+				err := hwaddrExists(ctx, member)
+				if err != nil {
+					return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
+				}
 			}
 		}
 
@@ -513,6 +538,26 @@ func validateHwaddr(hwaddr string, requireValidMAC bool) error {
 		if !hwaddrhRegex.MatchString(hwaddr) {
 			return fmt.Errorf("invalid MAC address '%s'", hwaddr)
 		}
+	}
+
+	return nil
+}
+
+func hwaddrExists(ctx context.Context, hwaddr string) error {
+	// To support testing, if an empty context is provided, pretend the device exists.
+	if ctx == context.TODO() {
+		return nil
+	}
+
+	// `ip link show` will report all known network interfaces and their MACs.
+	// We can then do a simple search to see if the provided MAC is in the output.
+	output, err := subprocess.RunCommandContext(ctx, "ip", "link", "show")
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(output, strings.ToLower(hwaddr)) {
+		return errors.New("MAC address " + hwaddr + " doesn't exist on any known device")
 	}
 
 	return nil
