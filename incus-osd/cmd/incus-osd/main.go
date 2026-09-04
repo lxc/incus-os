@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"log/slog"
 	"net"
 	"os"
@@ -441,8 +440,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		slog.DebugContext(ctx, "Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
-	// If no encryption recovery keys have been defined for the root and swap partitions, generate one before going any further.
-	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 {
+	// If no encryption recovery keys have been defined for the root and swap partitions, this is a fresh install.
+	// Generate recovery keys and ensure we're binding against PCR15 to mitigate an attacker from bypassing the
+	// TPM encryption with a malicious root partition.
+	if len(s.System.Security.Config.EncryptionRecoveryKeys) == 0 { //nolint:nestif
 		slog.InfoContext(ctx, "Auto-generating encryption recovery key, this may take a few seconds")
 
 		err := systemd.GenerateRecoveryKeys(ctx, s)
@@ -463,61 +464,22 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 				return err
 			}
 		}
-	}
 
-	// Update any existing IncusOS installs that don't have a dedicated recovery key. This migration logic
-	// can be removed after September 2026.
-	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
-	if err != nil && os.IsNotExist(err) {
-		slog.InfoContext(ctx, "Updating encryption recovery key bindings, this may take a few seconds")
-
-		// Get the LUKS partitions.
-		luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Check if the TPM can unlock the LUKS volumes.
-		_, err = subprocess.RunCommandContext(ctx, "cryptsetup", "luksOpen", "--test-passphrase", luksVolumes["root"], "root")
-		if err == nil {
-			err := systemd.GenerateRecoveryKeys(ctx, s)
-			if err != nil {
-				return err
-			}
-		} else {
-			slog.WarnContext(ctx, "Current TPM state cannot unlock LUKS volume, unable to update recovery key bindings")
-		}
-	}
-
-	// Check if the root and swap partitions include a binding on PCR15. If not, update the LUKS bindings before proceeding.
-	// This is required to counter the attack described at https://oddlama.org/blog/bypassing-disk-encryption-with-tpm2-unlock/.
-	//
-	// Binding to exact values of PCRs 4+7 and a PCR11 policy are insufficient when an attacker has physical access to the system
-	// and can create a malicious root partition. Because the system will boot with an unmodified UKI and SecureBoot/TPM state,
-	// after the system exits the initrd IncusOS will behave like it's a first boot, but more critically the TPM will be in a
-	// known "good" state and happily release its encryption key used by LUKS allowing the attacker to trivially extract the
-	// LUKS volume key. They can then undo their malicious changes to the disk, and IncusOS wlll have no idea an attack occurred
-	// while the attacker now can decrypt the LUKS volumes at any time to exfiltrate data, mess with the system, etc.
-	//
-	// We add a binding to an empty PCR15. This PCR is extended when a root LUKS volume is successfully opened in the initrd, so the
-	// only time the TPM state could automatically unlock things for us is at the beginning of the initrd. After that point, PCR15
-	// will have a different value which cannot be reset, rendering the attack impossible.
-	//
-	// Performing the check and PCR binding update here catches both fresh installs as well as existing deployments. In either case,
-	// the TPM state will allow a single re-bind, after which it will only work in the initrd. At some point after September 2026
-	// we can move this logic into the recovery key generation block above so only fresh installs are inspected. systemd v259 did
-	// add a TPM2PCRs= option to systemd-repart which would also make life easier.
-	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
-	if err != nil {
-		return err
-	}
-
-	isBoundPCR15, err := storage.LUKSBoundToPCR(ctx, luksVolumes["root"], 15)
-	if err != nil {
-		return err
-	}
-
-	if !isBoundPCR15 {
+		// Update the LUKS bindings to include PCR15 before proceeding. This is required to counter the attack described at
+		// https://oddlama.org/blog/bypassing-disk-encryption-with-tpm2-unlock/.
+		//
+		// Binding to exact values of PCRs 4+7 and a PCR11 policy are insufficient when an attacker has physical access to the system
+		// and can create a malicious root partition. Because the system will boot with an unmodified UKI and SecureBoot/TPM state,
+		// after the system exits the initrd IncusOS will behave like it's a first boot, but more critically the TPM will be in a
+		// known "good" state and happily release its encryption key used by LUKS allowing the attacker to trivially extract the
+		// LUKS volume key. They can then undo their malicious changes to the disk, and IncusOS wlll have no idea an attack occurred
+		// while the attacker now can decrypt the LUKS volumes at any time to exfiltrate data, mess with the system, etc.
+		//
+		// We add a binding to an empty PCR15. This PCR is extended when a root LUKS volume is successfully opened in the initrd, so the
+		// only time the TPM state could automatically unlock things for us is at the beginning of the initrd. After that point, PCR15
+		// will have a different value which cannot be reset, rendering the attack impossible.
+		//
+		// systemd v259 did add a TPM2PCRs= option to systemd-repart which would also make life easier.
 		slog.InfoContext(ctx, "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
 
 		ukiVersions, err := util.GetUKIVersions()
@@ -554,97 +516,6 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	err = kernel.ApplyKernelConfiguration(ctx, s.System.Kernel.Config)
 	if err != nil {
 		slog.WarnContext(ctx, "Unable to apply kernel configuration: "+err.Error())
-	}
-
-	// Remove an accidental install of the incus-lts-7.0 application. This only affected
-	// a few versions of IncusOS, but one was promoted to the stable channel for a short
-	// while. This cleanup can be removed in early June 2026.
-
-	// Check if the "incus" application is present. If so, opportunistically remove any
-	// "incus-lts-7.0" sysext images or symlink that may exist. Only one version of Incus
-	// can be installed, and the LTS version being present is an accident.
-	_, err = os.Stat(filepath.Join(systemd.SystemExtensionsPath, "incus.raw"))
-	if err == nil {
-		_ = os.Remove(filepath.Join(systemd.SystemExtensionsPath, "incus-lts-7.0.raw"))
-
-		versions, err := os.ReadDir(systemd.LocalExtensionsPath)
-		if err == nil {
-			for _, version := range versions {
-				_ = os.Remove(filepath.Join(systemd.LocalExtensionsPath, version.Name(), "incus-lts-7.0.raw"))
-			}
-		}
-	}
-
-	// Cleanup any accidentally downloaded manifest files. This code can be removed after April 2026.
-	_, err = os.Stat(systemd.SystemExtensionsPath)
-	if err == nil {
-		files, err := os.ReadDir(systemd.SystemExtensionsPath)
-		if err == nil {
-			for _, file := range files {
-				if strings.HasSuffix(file.Name(), ".manifest.json") {
-					_ = os.Remove(filepath.Join(systemd.SystemExtensionsPath, file.Name()))
-				}
-			}
-		}
-	}
-
-	// Migrate existing sysext images under /var/lib/extensions/ to /var/lib/incus-os-extensions/<version>/.
-	// This code can be removed after April 2026.
-	err = os.MkdirAll(systemd.LocalExtensionsPath, 0o700)
-	if err != nil {
-		return err
-	}
-
-	migratedApps := false
-
-	for _, appName := range applications.Supported {
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return err
-		}
-
-		oldPath := filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw")
-		newPath := filepath.Join(systemd.LocalExtensionsPath, app.Version(), app.Name()+".raw")
-
-		fileStat, err := os.Lstat(oldPath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-
-			return err
-		}
-
-		// Skip any symlinked application file that may exist.
-		if fileStat.Mode().Type()&fs.ModeSymlink != 0 {
-			continue
-		}
-
-		// Ensure /var/lib/incus-os-extensions/<version>/ exists.
-		err = os.Mkdir(filepath.Join(systemd.LocalExtensionsPath, app.Version()), 0o700)
-		if err != nil && !os.IsExist(err) {
-			return err
-		}
-
-		// Move the application image and create symlink.
-		err = os.Rename(oldPath, newPath)
-		if err != nil {
-			return err
-		}
-
-		err = os.Symlink(newPath, oldPath)
-		if err != nil {
-			return err
-		}
-
-		migratedApps = true
-	}
-
-	if migratedApps {
-		err := applications.RefreshExtensions(ctx, s)
-		if err != nil {
-			return err
-		}
 	}
 
 	// Get the machine ID.
@@ -1015,68 +886,7 @@ func setupLocalStorage(ctx context.Context, s *state.State) error {
 		}
 	}
 
-	// Migrate application data for Migration Manager and Operations Center to
-	// dedicated zfs datasets. This code can be removed after June 2026.
-	_, err = os.Stat("/var/lib/migration-manager")
-	if err == nil {
-		err := migrateApplicationData(ctx, "migration-manager")
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = os.Stat("/var/lib/operations-center")
-	if err == nil {
-		err := migrateApplicationData(ctx, "operations-center")
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
-}
-
-func migrateApplicationData(ctx context.Context, applicationName string) error {
-	// Check if the application-specific dataset already exists.
-	_, err := subprocess.RunCommandContext(ctx, "zfs", "get", "mountpoint", "local/"+applicationName)
-	if err == nil {
-		return nil
-	}
-
-	slog.InfoContext(ctx, "Moving /var/lib/"+applicationName+" to dedicated dataset")
-
-	// Rename the existing application data directory.
-	err = os.Rename(filepath.Join("/var/lib/", applicationName), filepath.Join("/var/lib/", applicationName+".bak"))
-	if err != nil {
-		return err
-	}
-
-	// Create a new zfs dataset for the application.
-	err = zfs.CreateApplicationDataset(ctx, applicationName)
-	if err != nil {
-		// Attempt to restore the application's data.
-		_ = os.Rename(filepath.Join("/var/lib/", applicationName+".bak"), filepath.Join("/var/lib/", applicationName))
-
-		return err
-	}
-
-	// Move any existing application data.
-	entries, err := os.ReadDir(filepath.Join("/var/lib/", applicationName+".bak"))
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range entries {
-		// os.Rename() doesn't work across file system boundaries, so just be lazy and
-		// rely on `mv`.
-		_, err := subprocess.RunCommandContext(ctx, "mv", filepath.Join("/var/lib/", applicationName+".bak", entry.Name()), filepath.Join("/var/lib/", applicationName, entry.Name()))
-		if err != nil {
-			return err
-		}
-	}
-
-	// Remove the old directory.
-	return os.RemoveAll(filepath.Join("/var/lib/", applicationName+".bak"))
 }
 
 func configureIncusAgent(ctx context.Context, s *state.State) error {
