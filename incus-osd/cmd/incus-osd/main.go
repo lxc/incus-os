@@ -73,9 +73,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create storage path if missing.
-	err = os.Mkdir(varPath, 0o700)
-	if err != nil && !os.IsExist(err) {
+	// Create storage and key paths if missing.
+	err = os.MkdirAll(filepath.Join(varPath, "keys"), 0o700)
+	if err != nil {
 		tui.EarlyError(err.Error(), osName)
 		os.Exit(1)
 	}
@@ -467,7 +467,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	// Update any existing IncusOS installs that don't have a dedicated recovery key. This migration logic
 	// can be removed after September 2026.
-	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+	_, err = os.Stat("/var/lib/incus-os/keys/recovery.root.key")
 	if err != nil && os.IsNotExist(err) {
 		slog.InfoContext(ctx, "Updating encryption recovery key bindings, this may take a few seconds")
 
@@ -538,7 +538,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		_, err := os.Stat("/dev/disk/by-partlabel/swap")
 		if err == nil {
 			// Unlock the LUKS swap volume.
-			_, err := subprocess.RunCommandContext(ctx, "systemd-cryptsetup", "attach", "swap", "/dev/disk/by-partlabel/swap", "/var/lib/incus-os/recovery.swap.key")
+			_, err := subprocess.RunCommandContext(ctx, "systemd-cryptsetup", "attach", "swap", "/dev/disk/by-partlabel/swap", "/var/lib/incus-os/keys/recovery.swap.key")
 			if err != nil {
 				slog.WarnContext(ctx, "Unable to decrypt LUKS swap partition")
 			} else {

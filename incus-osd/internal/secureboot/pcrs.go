@@ -99,7 +99,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	// to unlock the LUKS volume and rebind PCRs. This code can be removed after September 2026.
 	luksKey := ""
 
-	_, err = os.Stat("/var/lib/incus-os/recovery.root.key")
+	_, err = os.Stat("/var/lib/incus-os/keys/recovery.root.key")
 	if err != nil && os.IsNotExist(err) {
 		// Rather than trying to pass through an encryption passphrase, just re-read the state here.
 		s, err := state.LoadOrCreate("/var/lib/incus-os/state.txt")
@@ -114,7 +114,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 		var stderr string
 
 		if luksKey == "" {
-			_, stderr, err = subprocess.RunCommandSplit(ctx, nil, nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+			_, stderr, err = subprocess.RunCommandSplit(ctx, nil, nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		} else {
 			_, stderr, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 		}
@@ -143,13 +143,13 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 
 			if luksKey == "" {
 				// Set a bad PCR policy.
-				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
+				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
 				if err != nil {
 					return err
 				}
 
 				// Re-bind the expected PCR policy.
-				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
+				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
 				if err != nil {
 					return err
 				}
