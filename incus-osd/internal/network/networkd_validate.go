@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC bool) error {
+func validateInterfaces(ctx context.Context, interfaces []api.SystemNetworkInterface, requireValidMAC bool) error {
 	for index, iface := range interfaces {
 		err := validateName(iface.Name)
 		if err != nil {
@@ -64,6 +65,13 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 			return fmt.Errorf("interface %d %s", index, err.Error())
 		}
 
+		if requireValidMAC && ctx != context.TODO() {
+			err := hwaddrExists(iface.Hwaddr)
+			if err != nil {
+				return fmt.Errorf("interface %d %s", index, err.Error())
+			}
+		}
+
 		err = validateEthernet(iface.Ethernet)
 		if err != nil {
 			return fmt.Errorf("interface %d %s", index, err.Error())
@@ -73,7 +81,7 @@ func validateInterfaces(interfaces []api.SystemNetworkInterface, requireValidMAC
 	return nil
 }
 
-func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
+func validateBonds(ctx context.Context, bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 	for index, bond := range bonds {
 		err := validateName(bond.Name)
 		if err != nil {
@@ -124,10 +132,18 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 			}
 		}
 
+		// A bond configuration may not explicitly define a MAC, so only check if one is present.
 		if bond.Hwaddr != "" {
 			err = validateHwaddr(bond.Hwaddr, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d %s", index, err.Error())
+			}
+
+			if requireValidMAC && ctx != context.TODO() {
+				err := hwaddrExists(bond.Hwaddr)
+				if err != nil {
+					return fmt.Errorf("bond %d %s", index, err.Error())
+				}
 			}
 		}
 
@@ -139,6 +155,13 @@ func validateBonds(bonds []api.SystemNetworkBond, requireValidMAC bool) error {
 			err := validateHwaddr(member, requireValidMAC)
 			if err != nil {
 				return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
+			}
+
+			if requireValidMAC && ctx != context.TODO() {
+				err := hwaddrExists(member)
+				if err != nil {
+					return fmt.Errorf("bond %d member %d %s", index, memberIndex, err.Error())
+				}
 			}
 		}
 
@@ -513,6 +536,29 @@ func validateHwaddr(hwaddr string, requireValidMAC bool) error {
 		if !hwaddrhRegex.MatchString(hwaddr) {
 			return fmt.Errorf("invalid MAC address '%s'", hwaddr)
 		}
+	}
+
+	return nil
+}
+
+func hwaddrExists(hwaddr string) error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+
+	found := false
+
+	for _, iface := range ifaces {
+		if iface.HardwareAddr.String() == strings.ToLower(hwaddr) {
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("MAC address " + hwaddr + " doesn't exist on any known device")
 	}
 
 	return nil
