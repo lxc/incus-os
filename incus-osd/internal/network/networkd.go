@@ -67,7 +67,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	}
 
 	// Validate the new network configuration, allowing for invalid MACs.
-	err = ValidateNetworkConfiguration(networkCfg, false)
+	err = ValidateNetworkConfiguration(ctx, networkCfg, false)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 	}
 
 	// Now, perform a strict validation of the new network configuration before proceeding.
-	err = ValidateNetworkConfiguration(networkCfg, true)
+	err = ValidateNetworkConfiguration(ctx, networkCfg, true)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 }
 
 // ValidateNetworkConfiguration performs some basic validation checks on the supplied network configuration.
-func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireValidMAC bool) error {
+func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNetworkConfig, requireValidMAC bool) error {
 	if networkCfg == nil {
 		return errors.New("no network configuration provided")
 	}
@@ -295,12 +295,12 @@ func ValidateNetworkConfiguration(networkCfg *api.SystemNetworkConfig, requireVa
 	// To work around this, strip the leading "enx" before validating network interfaces.
 	mangleUSBNICs(networkCfg)
 
-	err := validateInterfaces(networkCfg.Interfaces, requireValidMAC)
+	err := validateInterfaces(ctx, networkCfg.Interfaces, requireValidMAC)
 	if err != nil {
 		return err
 	}
 
-	err = validateBonds(networkCfg.Bonds, requireValidMAC)
+	err = validateBonds(ctx, networkCfg.Bonds, requireValidMAC)
 	if err != nil {
 		return err
 	}
