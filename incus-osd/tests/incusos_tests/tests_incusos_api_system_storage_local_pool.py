@@ -94,7 +94,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
                 raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
             # Extend the "local" pool with the second drive
-            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -137,7 +137,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
                 raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
             # Don't allow removal of the main system partition from the pool
-            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1",""]}]}}""")
+            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1",""]}]}}""")
             if result["status_code"] == 200:
                 raise IncusOSException("unexpected success removing main storage partition")
 
@@ -145,7 +145,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
                 raise IncusOSException("unexpected error message: " + result["error"])
 
             # Remove the second drive from the pool
-            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid0","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
+            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid0","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -245,7 +245,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                     raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
                 # Extend the "local" pool with the second drive
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -294,7 +294,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                     raise IncusOSException("pool has unexpected name: " + result["metadata"]["config"]["pools"][0]["name"])
 
                 # Can't add a third device to the "local" pool
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                 if result["status_code"] == 200:
                     raise IncusOSException("unexpected success adding third drive")
 
@@ -302,7 +302,7 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                     raise IncusOSException("unexpected error message: " + result["error"])
 
                 # Replace the second drive with the third
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -370,7 +370,7 @@ def TestIncusOSAPISystemStorageLocalPoolRecoverFreshInstall(install_image):
             vm.WaitSystemReady(os_version)
 
             # Convert "local" pool to RAID1 and get its encryption key
-            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+            result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -449,7 +449,7 @@ def TestIncusOSAPISystemStorageLocalPoolScrub(install_image):
         if result["metadata"]["config"]["pools"][0]["last_scrub"]["errors"] != 0:
             raise IncusOSException("expected 0 errors to be reported on the last scrub")
 
-def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
+def TestIncusOSAPISystemStorageLocalPoolScrubTrimSchedule(install_image):
     test_name = "incusos-api-system-storage-local-pool-scrub-schedule"
     test_seed = {
         "install.json": "{}",
@@ -471,8 +471,11 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
         if result["metadata"]["config"]["scrub_schedule"] != "0 4 * * 0":
             raise IncusOSException("expected scrub schedule to start with '0 4 * * 0' as the default value")
 
-        # Update the scrub schedule
-        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 0 * * 5", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
+        if result["metadata"]["config"]["trim_schedule"] != "0 4 * * 6":
+            raise IncusOSException("expected scrub schedule to start with '0 4 * * 6' as the default value")
+
+        # Update the scrub and trim schedules
+        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 0 * * 5", "trim_schedule": "0 3 * * 6", "pools":[{"name":"local","type":"zfs-raid0","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -483,6 +486,9 @@ def TestIncusOSAPISystemStorageLocalPoolScrubSchedule(install_image):
 
         if result["metadata"]["config"]["scrub_schedule"] != "0 0 * * 5":
             raise IncusOSException("expected scrub schedule to be updated")
+
+        if result["metadata"]["config"]["trim_schedule"] != "0 3 * * 6":
+            raise IncusOSException("expected trim schedule to be updated")
 
 def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
     test_name = "incusos-api-system-storage-local-pool-degraded"
@@ -504,7 +510,7 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                 vm.WaitSystemReady(os_version)
 
                 # Extend the "local" pool with the second drive and convert to RAID1.
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -562,7 +568,7 @@ def TestIncusOSAPISystemStorageLocalPoolDegraded(install_image):
                     raise IncusOSException("pool has unexpected state: " + result["metadata"]["config"]["pools"][0]["state"])
 
                 # Replace the missing drive with the third one.
-                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
+                result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
