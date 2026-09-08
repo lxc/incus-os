@@ -1214,6 +1214,13 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemStoragePool:
         properties:
+            alignment:
+                description: |-
+                    Optionally, configure the sector alignment size for the pool; defaults to 4096 byte sectors.
+                    Must be a power of two. Can only be specified when initially creating the pool.
+                format: int64
+                type: integer
+                x-go-name: Alignment
             allow_mixed_dev_sizes:
                 description: If true, allow creation of a pool with devices of different sizes.
                 type: boolean
