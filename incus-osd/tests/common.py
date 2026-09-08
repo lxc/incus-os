@@ -5,6 +5,7 @@ import os
 import requests
 import shutil
 import subprocess
+import time
 import urllib.request
 
 from incusos_tests.incus_test_vm import IncusOSException
@@ -81,13 +82,21 @@ def _download_images(require_prior_release_stable=True):
 
     return prior_image_img, current_image_img, current_image_iso
 
+def _timed(fn):
+    def _fn(*a, **k):
+        start = time.time()
+        ret = fn(*a, **k)
+        elapsed = int(time.time() - start)
+        return elapsed, ret
+    return _fn
+
 def _run_tests(tests, max_workers=3):
     num_pass = 0
     num_fail = 0
 
     # Run the tests
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(fn, image): name for name,fn,image in tests.GetTests()}
+        futures = {executor.submit(_timed(fn), image): name for name,fn,image in tests.GetTests()}
 
         print("Running %d tests...\n" % len(futures), flush=True)
 
@@ -95,7 +104,7 @@ def _run_tests(tests, max_workers=3):
             name = futures[future]
 
             try:
-                data = future.result()
+                elapsed, _ = future.result()
             except IncusOSException as e:
                 num_fail += 1
                 print("FAIL: %s: %s" % (name, e.args[0]), flush=True)
@@ -115,7 +124,8 @@ def _run_tests(tests, max_workers=3):
                 print("FAIL: %s: %s" % (name, e), flush=True)
             else:
                 num_pass += 1
-                print("PASS: %s" % name, flush=True)
+                minute, second = divmod(elapsed, 60)
+                print("PASS: %s (%02d:%02d)" % (name, minute, second), flush=True)
 
     print("\nDone with tests: %d/%d passed." % (num_pass, num_fail+num_pass), flush=True)
 
