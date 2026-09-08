@@ -137,13 +137,25 @@ func RunSignedScript(ctx context.Context, signedScript []byte) (string, error) {
 		return "", err
 	}
 
-	// Write the script contents to a temp file.
-	scriptFile, err := os.CreateTemp("", "")
+	// Create a temporary tmpfs mount for running the recovery script from.
+	mountDir, err := os.MkdirTemp("", "incus-os-hotfix")
 	if err != nil {
 		return "", err
 	}
+	defer os.RemoveAll(mountDir)
 
-	defer os.Remove(scriptFile.Name())
+	// Mount a new tmpfs.
+	err = unix.Mount("tmpfs", mountDir, "tmpfs", unix.MS_NOSUID|unix.MS_NODEV, "size=16m")
+	if err != nil {
+		return "", err
+	}
+	defer unix.Unmount(mountDir, 0)
+
+	// Write the script contents to a temp file.
+	scriptFile, err := os.CreateTemp(mountDir, "")
+	if err != nil {
+		return "", err
+	}
 
 	_, err = scriptFile.WriteString(strings.ReplaceAll(verified.String(), "\r\n", "\n"))
 	if err != nil {
