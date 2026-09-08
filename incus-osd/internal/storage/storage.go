@@ -135,6 +135,14 @@ type zfsGetPartialParse struct {
 	} `json:"datasets"`
 }
 
+type zpoolGetPartialParse struct {
+	Pools map[string]struct {
+		Properties map[string]struct {
+			Value any `json:"value"`
+		} `json:"properties"`
+	} `json:"pools"`
+}
+
 type smartOutput struct {
 	err error
 
@@ -398,6 +406,24 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 	err := json.Unmarshal(rawJSONContent, &zpoolJSON)
 	if err != nil {
 		return api.SystemStoragePool{}, err
+	}
+
+	// Get the ashift value.
+	zpoolGetOutput, err := subprocess.RunCommandContext(ctx, "zpool", "get", "ashift", zpoolName, "-j", "--json-int")
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zpoolProperties := zpoolGetPartialParse{}
+
+	err = json.Unmarshal([]byte(zpoolGetOutput), &zpoolProperties)
+	if err != nil {
+		return api.SystemStoragePool{}, err
+	}
+
+	zpoolAshift, ok := zpoolProperties.Pools[zpoolName].Properties["ashift"].Value.(float64)
+	if !ok {
+		return api.SystemStoragePool{}, errors.New("bad type for ashift field")
 	}
 
 	// Get the encryption key status.
@@ -705,6 +731,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		LastTrim:                  trimStatus,
 		EncryptionKeyStatus:       zpoolKeyStatus,
 		Type:                      zpoolType,
+		Alignment:                 1 << int(zpoolAshift),
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
 		Cache:                     zpoolDevices["cache"],

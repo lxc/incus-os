@@ -65,6 +65,7 @@ ISO
 JSON
 KEK
 Kerberos
+KiB
 KVM
 LDAP
 Lenovo

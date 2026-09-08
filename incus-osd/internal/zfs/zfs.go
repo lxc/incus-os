@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -201,6 +202,16 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 		return errors.New("unsupported pool type " + zpool.Type)
 	}
 
+	// If no alignment is specified, default to 4096 bytes.
+	if zpool.Alignment == 0 {
+		zpool.Alignment = 4096
+	}
+
+	// Verify a valid alignment value was provided.
+	if zpool.Alignment <= 0 || (zpool.Alignment > 0 && (zpool.Alignment&(zpool.Alignment-1)) != 0) {
+		return errors.New("pool alignment value must be a power of two")
+	}
+
 	// Verify at least one device was specified.
 	if len(zpool.Devices) == 0 {
 		return errors.New("at least one device must be specified")
@@ -290,7 +301,7 @@ func CreateZpool(ctx context.Context, zpool api.SystemStoragePool, s *state.Stat
 	}
 
 	// Create the ZFS pool.
-	args := []string{"create", "-o", "ashift=12", "-O", "mountpoint=none", "-O", "encryption=aes-256-gcm", "-O", "keyformat=raw", "-O", "keylocation=file://" + keyfilePath, zpool.Name}
+	args := []string{"create", "-o", fmt.Sprintf("ashift=%d", int(math.Log2(float64(zpool.Alignment)))), "-O", "mountpoint=none", "-O", "encryption=aes-256-gcm", "-O", "keyformat=raw", "-O", "keylocation=file://" + keyfilePath, zpool.Name}
 
 	switch zpool.Type {
 	case "zfs-raid0":
@@ -524,6 +535,11 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	// Verify we are given a supported type.
 	if !slices.Contains(supportedPoolTypes, currentConfig.Type) {
 		return errors.New("unsupported pool type " + currentConfig.Type)
+	}
+
+	// Cannot change pool alignment.
+	if currentConfig.Alignment != newConfig.Alignment {
+		return errors.New("cannot change pool alignment after creation")
 	}
 
 	// Verify the update contains at least as many device entries as exist in the current config.

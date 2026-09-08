@@ -25,10 +25,17 @@ User-defined storage pools are defined in the [`SystemStoragePool` struct](https
 * `name`: The name of the storage pool.
 * `type`: The type of the storage pool, which must be one of `zfs-raid0`, `zfs-raid1`, `zfs-raid10`, `zfs-raidz1`, `zfs-raidz2`, or `zfs-raidz3`.
 * `allow_mixed_dev_sizes`: If true, allow creation of a storage pool with devices of different sizes. Note that in most cases this will result in a storage pool whose total available capacity will be constrained by the smallest device size.
+* `alignment`: Optional, if specified sets the default sector alignment size for the pool; must be a power of two.
 * `devices`, `cache`, `log,` and `special`: Used to assign various storage devices to the pool in different roles.
 
-```{note}
+```{warning}
 When specifying devices for a pool, order is important. IncusOS will always return a sorted list which it will use when comparing the list of devices it receives via the API to determine what device(s) to add, remove, or replace in the pool. Put another way, `"devices": ["/dev/sda", "/dev/sdb"]` != `"devices": ["/dev/sdb", "/dev/sda"]`.
+```
+
+```{warning}
+When creating a storage pool with a custom sector alignment value, be aware of the potential for significant performance degradation due to write amplification if the alignment value is smaller than that of the underlying physical device(s). For example, setting an alignment of 512 bytes for a storage pool on a drive with 4KiB sectors will result in write amplification of approximately 8x compared to using an alignment of 4096 bytes.
+
+IncusOS defaults to an alignment value of 4096 bytes, which works well for drives with either 512 byte or 4KiB sector sizes.
 ```
 
 ### Examples
