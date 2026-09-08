@@ -308,7 +308,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig1), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "interface 0 name 'myreallylongname' cannot be longer than 13 characters")
 	}
 
@@ -318,7 +318,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig2), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "interface 0 name cannot begin with an underscore")
 	}
 
@@ -328,7 +328,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig3), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "duplicate interface/bond/vlan/wireguard name: iface")
 	}
 
@@ -338,7 +338,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig4), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "interface 0 address 0 invalid IP address '192.168.0.100', must provide a CIDR mask")
 	}
 
@@ -348,7 +348,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig5), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "wireguard 0 private key 'invalidkey' invalid")
 	}
 
@@ -358,7 +358,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig6), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "wireguard 0 port '65536' out of range")
 	}
 
@@ -368,7 +368,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		err := yaml.Load([]byte(badNetworkdConfig7), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, false)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "duplicate MAC address: 10:66:6a:b0:5f:02")
 	}
 }
@@ -383,7 +383,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Load([]byte(networkdConfig1), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, true)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -443,7 +443,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Load([]byte(networkdConfig2), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, true)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -477,7 +477,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Load([]byte(networkdConfig3), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, true)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -512,7 +512,7 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		err := yaml.Load([]byte(networkdConfig4), &cfg)
 		require.NoError(t, err)
 
-		err = ValidateNetworkConfiguration(&cfg, true)
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, true)
 		require.NoError(t, err)
 
 		// Verify values were parsed correctly.
@@ -685,7 +685,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 
 	// The third test case contains a mock USB NIC name, and we must first validate the config
 	// to properly correct that name.
-	err = ValidateNetworkConfiguration(&networkCfg, true)
+	err = ValidateNetworkConfiguration(context.TODO(), &networkCfg, true)
 	require.NoError(t, err)
 
 	cfgs, err = generateNetdevFileContents(networkCfg)
@@ -785,7 +785,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 
 	// The third test case contains a mock USB NIC name, and we must first validate the config
 	// to properly correct that name.
-	err = ValidateNetworkConfiguration(&networkCfg, true)
+	err = ValidateNetworkConfiguration(context.TODO(), &networkCfg, true)
 	require.NoError(t, err)
 
 	cfgs, err = generateNetworkFileContents(context.TODO(), networkCfg)

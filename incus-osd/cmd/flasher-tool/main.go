@@ -439,7 +439,7 @@ func configureNetworkSeed(ctx context.Context) error {
 		return nil
 	}
 
-	err = network.ValidateNetworkConfiguration(&newSeed.SystemNetworkConfig, false)
+	err = network.ValidateNetworkConfiguration(ctx, &newSeed.SystemNetworkConfig, false)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
 
