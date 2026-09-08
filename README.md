@@ -30,7 +30,7 @@ A daily test is also run, exercising most of the API endpoints and
 running tests that would be impractical (too slow) to run for every pull
 request.
 
-[![Daily API tests](https://github.com/lxc/incus-os/actions/workflows/daily.yml/badge.svg)](https://github.com/lxc/incus-os/actions/workflows/daily.yml)
+[![Daily API tests](https://github.com/lxc/incus-os/actions/workflows/daily.yml/badge.svg)](https://github.com/lxc/incus-os/actions/workflows/daily.yml) [![Weekly Certificate E2E tests](https://github.com/lxc/incus-os/actions/workflows/certificate-e2e.yml/badge.svg)](https://github.com/lxc/incus-os/actions/workflows/certificate-e2e.yml)
 
 # Contributing
 This repository is released under the terms of the Apache 2.0 license.

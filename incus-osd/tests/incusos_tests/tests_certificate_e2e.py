@@ -116,7 +116,7 @@ def testSecureBootKeyRotation(vm, os_name, os_version):
 
         vm.WaitExpectedLog("incus-osd", "Appending certificate SHA256:[0-9A-F]{64} to EFI variable db", regex=True)
 
-        time.sleep(5)
+        time.sleep(15)
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "System is ready")
 
@@ -127,7 +127,7 @@ def testSecureBootKeyRotation(vm, os_name, os_version):
 
         vm.WaitExpectedLog("incus-osd", "Appending certificate SHA256:[0-9A-F]{64} to EFI variable dbx", regex=True)
 
-        time.sleep(5)
+        time.sleep(15)
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "System is ready")
 
@@ -191,7 +191,7 @@ def testSecureBootKeyRotation(vm, os_name, os_version):
 
         vm.WaitExpectedLog("incus-osd", "Appending certificate SHA256:[0-9A-F]{64} to EFI variable dbx", regex=True)
 
-        time.sleep(5)
+        time.sleep(15)
         vm.WaitAgentRunning()
         vm.WaitExpectedLog("incus-osd", "System is ready")
 
