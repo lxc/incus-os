@@ -1,8 +1,10 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -10,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 var keyFileRegex = regexp.MustCompile(`^(luks|zpool|recovery)\..+\.key$`)
@@ -222,8 +226,34 @@ System.Network.Config.Proxy.Rules[%d].Target: direct
 			if err != nil {
 				return nil, err
 			}
+
+			// Point ZFS pools at the new key file location.
+			pool, ok := strings.CutPrefix(file.Name(), "zpool.")
+			if ok {
+				err = updateZpoolKeyLocation(strings.TrimSuffix(pool, ".key"))
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 
 		return lines, nil
 	},
+}
+
+// updateZpoolKeyLocation sets the pool's keylocation to its key file in /var/lib/incus-os/keys/.
+func updateZpoolKeyLocation(pool string) error {
+	ctx := context.Background()
+
+	// Import the pool unless it already is.
+	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", pool)
+	if err != nil && !strings.Contains(err.Error(), "cannot import '"+pool+"': a pool with that name already exists") {
+		slog.Warn("Unable to import storage pool to update its key location", "pool", pool, "err", err)
+
+		return nil
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "zfs", "set", "keylocation=file:///var/lib/incus-os/keys/zpool."+pool+".key", pool)
+
+	return err
 }
