@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/lxc/incus/v7/shared/revert"
@@ -91,6 +92,16 @@ func LoadPools(ctx context.Context, s *state.State) error {
 				return err
 			}
 		}
+	}
+
+	// After we have successfully loaded the ZFS kernel module, make sure the kernel's lockdown=integrity
+	// mode is enabled. This will be the case on systems with SecureBoot enabled, but for systems without
+	// it we do want to prohibit the loading of unverified kernel modules. We cannot simply include this
+	// as a kernel command line option, as it would prevent loading of ZFS, so enable the lockdown as
+	// soon as we can after initially loading the zpools.
+	err = os.WriteFile("/sys/kernel/security/lockdown", []byte("integrity\n"), 0o644)
+	if err != nil && !errors.Is(err, syscall.EPERM) {
+		return err
 	}
 
 	return nil
