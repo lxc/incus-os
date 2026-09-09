@@ -64,6 +64,9 @@ definitions:
             listen_address:
                 type: string
                 x-go-name: ListenAddress
+            persistent:
+                type: boolean
+                x-go-name: Persistent
             trusted_client_certificates:
                 items:
                     type: string
@@ -2706,8 +2709,9 @@ paths:
                 - application/json
             description: |-
                 Updates the configuration for the fallback HTTPS listener. Supported options include
-                listening on a specific IP:port and setting the list of trusted client TLS certificates,
-                which should be provided as PEM-encoded certificates.
+                listening on a specific IP:port or :port, always running the listener rather than only
+                when the primary application is unavailable, and setting the list of trusted client TLS
+                certificates, which should be provided as PEM-encoded certificates.
             operationId: system_put_fallback_listener
             parameters:
                 - description: Fallback listener configuration
