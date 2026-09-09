@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/vishvananda/netlink"
+
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
@@ -542,7 +544,7 @@ func validateHwaddr(hwaddr string, requireValidMAC bool) error {
 }
 
 func hwaddrExists(hwaddr string) error {
-	ifaces, err := net.Interfaces()
+	ifaces, err := netlink.LinkList()
 	if err != nil {
 		return err
 	}
@@ -550,7 +552,7 @@ func hwaddrExists(hwaddr string) error {
 	found := false
 
 	for _, iface := range ifaces {
-		if iface.HardwareAddr.String() == strings.ToLower(hwaddr) {
+		if iface.Attrs().HardwareAddr.String() == strings.ToLower(hwaddr) {
 			found = true
 
 			break
