@@ -302,7 +302,7 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 			if app.IsPrimary() {
 				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to reload; attempting to enable fallback HTTPS server for basic connectivity")
 
-				s.TriggerFallbackListener <- true
+				s.RequestFallbackListener()
 			}
 
 			return err
@@ -316,7 +316,7 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 			if app.IsPrimary() {
 				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
 
-				s.TriggerFallbackListener <- true
+				s.RequestFallbackListener()
 			}
 
 			return err
