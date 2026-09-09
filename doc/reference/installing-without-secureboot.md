@@ -8,6 +8,8 @@ To support users who wish to run IncusOS on these broken systems, Secure Boot ca
 
 * IncusOS will rely on the physical TPM PCR4 event log to verify that the `systemd-boot` stub and UKI that booted match the UEFI measurements and are signed by a trusted certificate. This is normally handled automatically when Secure Boot is enabled, but IncusOS will perform these actions early in the boot process. This opens some avenues of attack to an adversary with physical access to the system.
 
+* IncusOS can't enable the kernel's `lockdown=integrity` mode until after ZFS storage pools are imported. This opens a small attack window during early boot when an attacker could load a malicious kernel module.
+
 Additionally, the following limitations are imposed compared to normal operation:
 
 * Because disk encryption is additionally bound to PCR4, when booting into a prior version of IncusOS you will always need to provide an encryption recovery passphrase.
