@@ -91,7 +91,7 @@ def TestIncusOSAPISystemNetworkBadMAC(install_image):
         vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
         vm.WaitExpectedLog("incus-osd", "Bringing up the network")
-        vm.WaitExpectedLog("incus-osd", "unable to determine maximum MTU for 00:11:22:33:44:55")
+        vm.WaitExpectedLog("incus-osd", "interface 0 MAC address 00:11:22:33:44:55 doesn't exist on any known device")
 
         # We shouldn't see anything about the system being ready.
         vm.LogDoesntContain("incus-osd", "System is ready version="+os_version)

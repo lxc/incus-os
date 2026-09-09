@@ -46,7 +46,7 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             # Can't import an encrypted pool with an incorrect key
             vm.RunCommand("sgdisk", "-Z", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
-            vm.RunCommand("zpool", "create", "-O", "encryption=aes-256-gcm", "-O", "keyformat=raw", "-O", "keylocation=file:///var/lib/incus-os/zpool.local.key", "mypool", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
+            vm.RunCommand("zpool", "create", "-O", "encryption=aes-256-gcm", "-O", "keyformat=raw", "-O", "keylocation=file:///var/lib/incus-os/keys/zpool.local.key", "mypool", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
             vm.RunCommand("zpool", "export", "mypool")
 
             result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","encryption_key":"KoPGQLcHG/u4p8F82Jyl8mDfeElTEWlHE7pQV6bClCw="}""")
@@ -172,7 +172,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
 
             # Test importing an already-encrypted drive.
             vm.RunCommand("sgdisk", "-Z", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")
-            vm.RunCommand("cryptsetup", "luksFormat", "-q", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1", "/var/lib/incus-os/zpool.local.key")
+            vm.RunCommand("cryptsetup", "luksFormat", "-q", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1", "/var/lib/incus-os/keys/zpool.local.key")
 
             # Import the pre-encrypted drive
             result = vm.APIRequest("/1.0/system/storage/:import-encrypted-drive", method="POST", body="""{"id":"/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","key":""" + '"' + result["metadata"]["state"]["pool_recovery_keys"]["local"] + '"' + """}""")
