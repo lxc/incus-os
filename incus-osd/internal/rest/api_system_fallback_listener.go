@@ -6,8 +6,10 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/netip"
+	"strconv"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
@@ -52,8 +54,9 @@ import (
 //	Update the fallback HTTPS listener configuration
 //
 //	Updates the configuration for the fallback HTTPS listener. Supported options include
-//	listening on a specific IP:port and setting the list of trusted client TLS certificates,
-//	which should be provided as PEM-encoded certificates.
+//	listening on a specific IP:port or :port, always running the listener rather than only
+//	when the primary application is unavailable, and setting the list of trusted client TLS
+//	certificates, which should be provided as PEM-encoded certificates.
 //
 //	---
 //	consumes:
@@ -96,7 +99,7 @@ func (s *Server) apiSystemFallbackListener(w http.ResponseWriter, r *http.Reques
 
 		// Validate the listen address, if specified.
 		if fallbackListenerStruct.Config.ListenAddress != "" {
-			_, err := netip.ParseAddrPort(fallbackListenerStruct.Config.ListenAddress)
+			err := validateListenAddress(fallbackListenerStruct.Config.ListenAddress)
 			if err != nil {
 				_ = response.BadRequest(errors.New("invalid listen address: " + err.Error())).Render(w)
 
@@ -136,4 +139,26 @@ func (s *Server) apiSystemFallbackListener(w http.ResponseWriter, r *http.Reques
 	}
 
 	_ = s.state.Save()
+}
+
+// validateListenAddress checks that the address is either an IP:port or a :port.
+func validateListenAddress(address string) error {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+
+	if host != "" {
+		_, err = netip.ParseAddr(host)
+		if err != nil {
+			return err
+		}
+	}
+
+	portNum, err := strconv.Atoi(port)
+	if err != nil || portNum < 1 || portNum > 65535 {
+		return errors.New("invalid port " + port)
+	}
+
+	return nil
 }
