@@ -184,7 +184,13 @@ func (*openfga) NeedsLateUpdateCheck() bool {
 }
 
 // Restart restarts the systemd units.
-func (*openfga) Restart(ctx context.Context) error {
+func (o *openfga) Restart(ctx context.Context) error {
+	// Refresh the TLS certificate in case the primary application rotated it.
+	err := o.refreshCerts(ctx)
+	if err != nil {
+		return err
+	}
+
 	return systemd.RestartUnit(ctx, "openfga.service", "openfga-sync.service")
 }
 
@@ -263,20 +269,8 @@ func (o *openfga) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Each time OpenFGA starts, grab a copy of the primary application's TLS certificate and
-	// key so OpenFGA can use the same TLS certificate when serving requests. This also simplifies
-	// handling of TLS certificate rotation, as OpenFGA only needs to be restarted to pickup the change.
-	primaryApp, err := GetPrimary(ctx, o.state, true)
-	if err != nil {
-		return err
-	}
-
-	tlsCert, err := primaryApp.GetServerCertificate()
-	if err != nil {
-		return err
-	}
-
-	err = writeCerts(tlsCert)
+	// Copy the primary application's TLS certificate for OpenFGA to serve.
+	err = o.refreshCerts(ctx)
 	if err != nil {
 		return err
 	}
@@ -344,7 +338,7 @@ func (*openfga) Struct() any {
 }
 
 // Update triggers restart after an application update.
-func (*openfga) Update(ctx context.Context) error {
+func (o *openfga) Update(ctx context.Context) error {
 	// Reload the systemd daemon to pickup any service definition changes.
 	err := systemd.ReloadDaemon(ctx)
 	if err != nil {
@@ -352,7 +346,7 @@ func (*openfga) Update(ctx context.Context) error {
 	}
 
 	// Restart the units.
-	return systemd.RestartUnit(ctx, "openfga.service", "openfga-sync.service")
+	return o.Restart(ctx)
 }
 
 func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
@@ -499,4 +493,20 @@ func (*openfga) WipeLocalData(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// refreshCerts writes a copy of the primary application's TLS certificate and key for OpenFGA.
+// This lets OpenFGA serve the same certificate and pick up rotations on every (re)start.
+func (o *openfga) refreshCerts(ctx context.Context) error {
+	primaryApp, err := GetPrimary(ctx, o.state, true)
+	if err != nil {
+		return err
+	}
+
+	tlsCert, err := primaryApp.GetServerCertificate()
+	if err != nil {
+		return err
+	}
+
+	return writeCerts(tlsCert)
 }
