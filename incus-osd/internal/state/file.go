@@ -124,3 +124,11 @@ func (s *State) initialize() error {
 
 	return nil
 }
+
+// RequestFallbackListener asks for the fallback HTTPS listener to be started, dropping duplicate requests.
+func (s *State) RequestFallbackListener() {
+	select {
+	case s.TriggerFallbackListener <- true:
+	default:
+	}
+}
