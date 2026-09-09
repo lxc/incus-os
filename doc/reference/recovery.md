@@ -14,7 +14,12 @@ network even if the primary application is unavailable for some reason.
 By default, IncusOS will pick a random port and attempt to listen on all available
 network interfaces. The chosen port number will be displayed on the system's terminal.
 A specific IP address and/or port can be set to limit where the fallback API endpoint
-is configured to listen.
+is configured to listen, either as an `IP:port` such as `10.0.0.1:8445` or as a `:port`
+such as `:8445` to listen on all interfaces.
+
+The fallback API endpoint can also be configured to always run by setting the `persistent`
+option, providing a stable way to reach IncusOS regardless of the primary application's
+state.
 
 On first boot, IncusOS will attempt to extract any trusted client certificates present
 in seed data and set them as trusted client certificates for the fallback API endpoint.
