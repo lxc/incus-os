@@ -132,6 +132,11 @@ func (s *Server) apiSystemFallbackListener(w http.ResponseWriter, r *http.Reques
 
 		s.state.System.FallbackListener = *fallbackListenerStruct
 
+		// Start the listener right away when configured to be persistent.
+		if fallbackListenerStruct.Config.Persistent {
+			s.state.RequestFallbackListener()
+		}
+
 		_ = response.EmptySyncResponse.Render(w)
 	default:
 		// If none of the supported methods, return NotImplemented.

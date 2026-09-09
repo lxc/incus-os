@@ -685,7 +685,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 		slog.WarnContext(ctx, "Will attempt to enable fallback HTTPS server for additional connectivity after completing startup tasks")
 
-		s.TriggerFallbackListener <- true
+		s.RequestFallbackListener()
+	}
+
+	// Always start the fallback HTTPS listener when configured to be persistent.
+	if s.System.FallbackListener.Config.Persistent {
+		slog.InfoContext(ctx, "Will enable persistent fallback HTTPS server after completing startup tasks")
+
+		s.RequestFallbackListener()
 	}
 
 	// If there's no network configuration in the state, attempt to fetch from the seed info.
@@ -1175,6 +1182,11 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 }
 
 func startFallbackListener(ctx context.Context, s *state.State) error {
+	// Nothing to do if the listener is already running.
+	if s.System.FallbackListener.State.Active {
+		return nil
+	}
+
 	// Get the primary application, requiring that it be initialized.
 	app, err := applications.GetPrimary(ctx, s, true)
 	if err != nil {
@@ -1283,7 +1295,7 @@ func startApplications(ctx context.Context, s *state.State) error {
 			if !s.OS.RunningFromBackup() {
 				slog.WarnContext(ctx, "Primary application "+app.Name()+" failed to start; attempting to enable fallback HTTPS server for basic connectivity")
 
-				s.TriggerFallbackListener <- true
+				s.RequestFallbackListener()
 			}
 		}
 	}
