@@ -326,6 +326,23 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 	return nil
 }
 
+// rebootSystem reboots through the daemon's regular shutdown sequence so applications and services
+// are stopped in order. The trigger channel isn't available during recovery or early startup, in
+// which case the system is rebooted directly.
+func rebootSystem(ctx context.Context, s *state.State) error {
+	if s.TriggerReboot == nil {
+		return systemd.SystemReboot(ctx)
+	}
+
+	// Non-blocking send in case a reboot is already pending.
+	select {
+	case s.TriggerReboot <- true:
+	default:
+	}
+
+	return nil
+}
+
 // HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
 // that the update modal is dismissed.
 func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
@@ -512,7 +529,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 				time.Sleep(5 * time.Second)
 
-				_ = systemd.SystemReboot(ctx)
+				_ = rebootSystem(ctx, s)
 
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
@@ -561,15 +578,15 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		// Handle reboot if needed.
 		if s.System.Update.Config.AutoReboot || isStartupCheck {
-			err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
-			if err != nil {
-				return "", err
+			// The reboot handler notifies the provider itself when going through the regular shutdown sequence.
+			if s.TriggerReboot == nil {
+				err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
+				if err != nil {
+					return "", err
+				}
 			}
 
-			// Rather than closing s.TriggerReboot, explicitly reboot here. This is needed when
-			// applying an update via the recovery mechanism since at that point in startup
-			// the channels won't be available yet.
-			err = systemd.SystemReboot(ctx)
+			err = rebootSystem(ctx, s)
 			if err != nil {
 				return "", err
 			}
