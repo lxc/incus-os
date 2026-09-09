@@ -7,7 +7,8 @@ type SystemFallbackListenerState struct {
 
 // SystemFallbackListenerConfig holds fallback listener configuration settings.
 type SystemFallbackListenerConfig struct {
-	ListenAddress             string   `json:"listen_address,omitempty"              yaml:"listen_address,omitempty"`              // If defined, listen on the specified IP:port address, otherwise attempt to listen on all interfaces on a random port.
+	ListenAddress             string   `json:"listen_address,omitempty"              yaml:"listen_address,omitempty"`              // If defined, listen on the specified IP:port or :port address, otherwise attempt to listen on all interfaces on a random port.
+	Persistent                bool     `json:"persistent"                            yaml:"persistent"`                            // If true, always start the listener at boot rather than only when the primary application is unavailable.
 	TrustedClientCertificates []string `json:"trusted_client_certificates,omitempty" yaml:"trusted_client_certificates,omitempty"` // A list of PEM-encoded trusted client certificates.
 }
 
