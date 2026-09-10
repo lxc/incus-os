@@ -10,6 +10,15 @@ done
 SECURE_BOOT_DISABLED=false
 TPM_MISSING=false
 
+# Refuse to boot on any system with less than 1GiB of RAM
+RAM=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+if [ "$RAM" -lt 1048576 ]; then
+    for TTY in $TTYS; do
+        echo "\033[31m$NAME cannot run with less than 1GiB of RAM.\033[0m" > "$TTY" || true
+    done
+    sleep 3600
+fi
+
 # Check if SecureBoot is enabled
 if [ -e /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c ]; then
     raw_secure_boot_state=$(tail -c 1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c)

@@ -5,6 +5,7 @@ Requires=modprobe@tpm_vtpm_proxy.service boot.mount
 Before=cryptsetup.target systemd-cryptsetup@root.service systemd-repart.service
 DefaultDependencies=no
 ConditionPathExists=/boot/swtpm/
+OnFailure=emergency.target
 
 [Service]
 Type=exec
