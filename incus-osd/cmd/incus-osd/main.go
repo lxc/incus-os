@@ -1257,6 +1257,43 @@ func configureConsoleDevices(ctx context.Context, s *state.State) error {
 }
 
 func startApplications(ctx context.Context, s *state.State) error {
+	// Handle an edge case where an application has been installed and initialized,
+	// but the on-disk raw image has disappeared. Normally this shouldn't be possible,
+	// but we've had some reports of this occurring with interrupted updates. Ideally
+	// this logic could live in the applications package, but due to package import loops
+	// it must exist here.
+	for _, appName := range applications.Supported {
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			continue
+		}
+
+		// If the application has been initialized, but isn't installed, attempt to
+		// re-download it.
+		if app.IsInitialized() && !app.IsInstalled() {
+			// The Incus application is a bit special, since it can be either the
+			// monthly stable or LTS release. We don't want to try to install both,
+			// so skip incorrect name/version pairs.
+			if strings.HasPrefix(app.Name(), "incus") {
+				if app.Name() == "incus" && strings.Contains(app.FriendlyVersion(), ".0.") {
+					continue
+				}
+
+				if app.Name() != "incus" && !strings.Contains(app.FriendlyVersion(), ".0.") {
+					continue
+				}
+			}
+
+			slog.WarnContext(ctx, "Application "+app.Name()+" should be installed, but doesn't exist on disk; attempting to re-download")
+
+			err := update.InstallUpdateApp(ctx, s, app.Name(), true, true)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Get currently installed applications.
 	apps, err := applications.GetInstalled(ctx, s)
 	if err != nil {
 		return err
