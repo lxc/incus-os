@@ -383,7 +383,7 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		})
 
 		if !exists {
-			err := update.InstallUpdateApp(ctx, s, newApp.Name(), false)
+			err := update.InstallUpdateApp(ctx, s, newApp.Name(), false, false)
 			if err != nil {
 				return err
 			}

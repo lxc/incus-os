@@ -186,7 +186,7 @@ func (s *Server) apiSystemUpdateCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for an OS update.
-	newInstalledOSVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeOS, "", false)
+	newInstalledOSVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeOS, "", false, false)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
