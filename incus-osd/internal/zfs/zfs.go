@@ -20,6 +20,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
+	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
@@ -72,19 +73,65 @@ func LoadPools(ctx context.Context, s *state.State) error {
 
 	// If the "local" pool isn't automatically imported, this is a first boot and we either
 	// need to create a fresh "local" pool or attempt to recover an existing pool.
-	if !storage.PoolExists(ctx, "local") {
+	if !storage.PoolExists(ctx, "local") { //nolint:nestif
 		_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "local")
 		if err != nil {
-			// Failed to import the pool, so create a fresh one.
-			zpool := api.SystemStoragePool{
+			// The local pool doesn't exist, so create it along with any other pools
+			// defined in the storage seed.
+			storageSeed, err := seed.GetStorage(ctx)
+			if err != nil && !seed.IsMissing(err) {
+				return err
+			}
+
+			// Basic local pool definition.
+			localZpool := api.SystemStoragePool{
 				Name:    "local",
 				Type:    "zfs-raid0",
 				Devices: []string{"/dev/disk/by-partlabel/local-data"},
 			}
 
-			err := CreateZpool(ctx, zpool, s)
+			// Selectively expand the local pool definition from the storage seed, if provided.
+			for _, pool := range storageSeed.Pools {
+				if pool.Name == "local" {
+					localZpool.Alignment = pool.Alignment
+					localZpool.AllowMixedDevSizes = pool.AllowMixedDevSizes
+
+					if pool.Type != "" {
+						if pool.Type != "zfs-raid0" && pool.Type != "zfs-raid1" {
+							return errors.New("invalid local pool type from storage seed: " + pool.Type)
+						}
+
+						localZpool.Type = pool.Type
+					}
+
+					if len(pool.Devices) > 0 {
+						if !slices.Contains(pool.Devices, "/dev/disk/by-partlabel/local-data") || len(pool.Devices) > 2 {
+							return fmt.Errorf("invalid local pool devices from storage seed: %v", pool.Devices)
+						}
+
+						localZpool.Devices = pool.Devices
+					}
+
+					break
+				}
+			}
+
+			// Create the local pool.
+			err = CreateZpool(ctx, localZpool, s)
 			if err != nil {
 				return err
+			}
+
+			// Create any other pools from the storage seed.
+			for _, pool := range storageSeed.Pools {
+				if pool.Name == "local" {
+					continue
+				}
+
+				err := CreateZpool(ctx, pool, s)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			// We were able to import the existing "local" pool.
