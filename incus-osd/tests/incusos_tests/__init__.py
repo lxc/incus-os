@@ -10,7 +10,7 @@ from . import tests_certificate_e2e, tests_flasher_tool, tests_incusos_api, test
 from .install import tests_secureboot_disabled, tests_multipath, tests_smoke, tests_swtpm, tests_system_checks
 
 from .seed import test_external_seed, test_applications, test_install, test_kernel, test_network, test_provider, \
-    test_security, test_update
+    test_security, test_storage, test_update
 
 class IncusOSTests:
     def __init__(self, prior_image_img, current_image_img, current_image_iso):
@@ -82,6 +82,7 @@ class IncusOSTests:
             test_network,
             test_provider,
             test_security,
+            test_storage,
             test_update,
         ]
 
