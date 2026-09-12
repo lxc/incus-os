@@ -152,6 +152,20 @@ The "debug" provider is not intended for general use, and should only be used to
 support work developing IncusOS.
 ```
 
+### `security.{json,yml,yaml}`
+This file provides security configuration for the system.
+
+The structure used is the [security API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_security.go):
+
+- `custom_ca_certs`: An array of PEM-encoded CA certificates that should be
+  added to the IncusOS trust store.
+
+```{note}
+It is not possible to set encryption recovery key(s) via the security seed. This is
+because the seed must be stored in plain text, which would allow trivial access to
+anyone trying to compromise the encrypted IncusOS root partition.
+```
+
 ### `services.{json,yml,yaml}`
 This file provides preseed information to configure [services](services.md) at
 install time. Each service is optional and uses the `config` section of its
@@ -176,19 +190,15 @@ sensitive information such as authentication keys and prefer setting
 those up after the fact.
 ```
 
-### `security.{json,yml,yaml}`
-This file provides security configuration for the system.
+### `storage.{json,yml,yaml}`
+This file configures initial storage pools for the system.
 
-The structure used is the [security API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_security.go):
+The structure used is the [storage API struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go):
 
-- `custom_ca_certs`: An array of PEM-encoded CA certificates that should be
-  added to the IncusOS trust store.
-
-```{note}
-It is not possible to set encryption recovery key(s) via the security seed. This is
-because the seed must be stored in plain text, which would allow trivial access to
-anyone trying to compromise the encrypted IncusOS root partition.
-```
+- `pools`: Define one or more additional pools to automatically create on first boot.
+  The `local` pool is special; any configuration values other than alignment, allowing mixed
+  size devices, setting a pool type of `zfs-raid0` or `zfs-raid1`, or optionally specifying a
+  second drive in addition to `/dev/disk/by-partlabel/local-data` will be ignored.
 
 ### `update.{json,yml,yaml}`
 This file provides update configuration for the system.
