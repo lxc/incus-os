@@ -201,7 +201,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 						// At this point, the prior incus application is gone, although any local data
 						// is still preserved. Install the "new" incus application to complete the
 						// version switch.
-						err = update.InstallUpdateApp(ctx, s.state, app.Name, false)
+						err = update.InstallUpdateApp(ctx, s.state, app.Name, false, false)
 						if err != nil {
 							slog.ErrorContext(ctx, "Failed to install new application '"+app.Name+"'", "error", err)
 
@@ -221,7 +221,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Install the application.
-		err = update.InstallUpdateApp(r.Context(), s.state, app.Name, false)
+		err = update.InstallUpdateApp(r.Context(), s.state, app.Name, false, false)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
@@ -947,7 +947,7 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 
 		ctx := context.Background() // Must use our own context here.
 
-		err := update.InstallUpdateApp(ctx, s.state, name, true)
+		err := update.InstallUpdateApp(ctx, s.state, name, true, false)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
 		}

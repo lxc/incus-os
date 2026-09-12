@@ -137,7 +137,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
 		// Only check if Secure Boot is enabled.
 		if !s.SecureBootDisabled {
-			_, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck)
+			_, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck, false)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -167,7 +167,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		appsUpdated := map[string]string{}
 
 		for _, appName := range toInstall {
-			newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck)
+			newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck, false)
 			if err != nil {
 				s.System.Update.State.Status = "Failed to check for application updates"
 				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -198,7 +198,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 		}
 
 		// Check for the latest OS update.
-		newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck)
+		newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck, false)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for OS updates"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -227,7 +227,7 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 }
 
 // InstallUpdateApp wraps common logic used when manually installing or updating an application.
-func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool) error {
+func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool, forceApplyUpdate bool) error {
 	// Get the TUI.
 	t, err := tui.GetTUI(nil)
 	if err != nil {
@@ -249,7 +249,7 @@ func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clear
 	}
 
 	// Attempt to download the application.
-	newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, false)
+	newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, false, forceApplyUpdate)
 	if err != nil {
 		return err
 	}
@@ -359,7 +359,7 @@ func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
 }
 
 // CheckAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
-func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool) (string, error) {
+func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool, forceApplyUpdate bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
@@ -438,7 +438,7 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	}
 
 	// Apply the update.
-	if updateNeeded {
+	if updateNeeded || forceApplyUpdate {
 		// Before applying the update, check current disk space.
 		err := storage.CheckMinimumDiskSpace(ctx, "/")
 		if err != nil {
