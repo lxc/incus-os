@@ -3,7 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.7
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.1
+	github.com/FuturFusion/migration-manager v0.7.2
 	github.com/FuturFusion/openfga-sync v0.0.0-20260903230144-37a8eb10ac73
 	github.com/FuturFusion/operations-center v0.9.0
 	github.com/cavaliergopher/cpio v1.0.1
@@ -30,7 +30,7 @@ require (
 	golang.org/x/sys v0.48.0
 	gopkg.in/ini.v1 v1.67.3
 	software.sslmate.com/src/go-pkcs12 v0.7.3
-	tailscale.com v1.102.3
+	tailscale.com v1.102.4
 )
 
 require (
@@ -69,7 +69,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-runewidth v0.0.29 // indirect
+	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.2.1 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
@@ -105,8 +105,8 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa // indirect
-	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
