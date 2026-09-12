@@ -71,7 +71,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20260810",
+        "version": "20260910",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -101,7 +101,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260810",
+        "version": "20260910",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -137,7 +137,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.7.1",
+        "version": "v0.7.2",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -196,7 +196,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.19.0",
+        "version": "v1.20.0",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -284,7 +284,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.3",
+        "version": "v1.102.4",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
@@ -341,7 +341,7 @@
         ]
     },
     "terraform-provider-null": {
-        "version": "v3.3.1",
+        "version": "v3.3.2",
         "repo": "https://github.com/hashicorp/terraform-provider-null.git",
         "build_targets": [
             [
@@ -365,7 +365,7 @@
         ]
     },
     "terraform-provider-random": {
-        "version": "v3.9.0",
+        "version": "v3.9.1",
         "repo": "https://github.com/hashicorp/terraform-provider-random.git",
         "build_targets": [
             [
@@ -389,7 +389,7 @@
         ]
     },
     "terraform-provider-time": {
-        "version": "v0.14.1",
+        "version": "v0.14.2",
         "repo": "https://github.com/hashicorp/terraform-provider-time.git",
         "build_targets": [
             [
