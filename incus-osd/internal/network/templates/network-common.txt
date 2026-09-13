@@ -56,6 +56,9 @@ ConfigureWithoutCarrier=yes
 {{- else}}
 LinkLocalAddressing=ipv6
 {{- end}}
+{{- if not .HasIPv4}}
+IPv4ReversePathFilter=no
+{{- end}}
 {{- $hasDHCP4 := false}}
 {{- $hasDHCP6 := false}}
 {{- $acceptIPv6RA := false}}

@@ -1,6 +1,8 @@
 package network
 
 import (
+	"net/netip"
+
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
@@ -40,4 +42,20 @@ type networkFileVariables struct {
 	Addresses         []string
 	Routes            []api.SystemNetworkRoute
 	VLANTags          []int
+}
+
+// HasIPv4 reports whether the network configures any IPv4 addressing.
+func (v networkFileVariables) HasIPv4() bool {
+	for _, address := range v.Addresses {
+		if address == "dhcp4" {
+			return true
+		}
+
+		prefix, err := netip.ParsePrefix(address)
+		if err == nil && prefix.Addr().Is4() {
+			return true
+		}
+	}
+
+	return false
 }
