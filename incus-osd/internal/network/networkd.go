@@ -1256,9 +1256,10 @@ func waitForDNS(ctx context.Context, timeout time.Duration) error {
 // waitForSystemdTimesyncd waits up to a provided timeout for systemd-timesyncd to
 // perform an initial NTP synchronization.
 func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
-	endTime := time.Now().Add(timeout)
+	startTime := time.Now()
+	endTime := startTime.Add(timeout)
 
-	count := 0
+	restarted := false
 
 	for {
 		if time.Now().After(endTime) {
@@ -1271,10 +1272,10 @@ func waitForSystemdTimesyncd(ctx context.Context, timeout time.Duration) error {
 			return nil
 		}
 
-		// Restart systemd-timesyncd every 5 tries.
-		count++
-		if count == 5 {
-			count = 0
+		// Restart systemd-timesyncd once halfway through. Restarting more often than its own
+		// 10s reply timeout never lets a remote server answer and gets us rate limited by public servers.
+		if !restarted && time.Since(startTime) > timeout/2 {
+			restarted = true
 
 			err = systemd.RestartUnit(ctx, "systemd-timesyncd")
 			if err != nil {
