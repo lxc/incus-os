@@ -10,6 +10,10 @@ The recovery key(s) can be retrieved by running
 incus admin os system security show
 ```
 
+```{note}
+IncusOS will report a warning about needing to retrieve encryption recovery keys until they are explicitly marked as retrieved by running `incus admin os system security retrieved`.
+```
+
 ## Configuration options
 
 Configuration fields are defined in the [`SystemSecurityConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_security.go).
