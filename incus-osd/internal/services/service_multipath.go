@@ -157,8 +157,11 @@ func (n *Multipath) Update(ctx context.Context, req any) error {
 		if err != nil {
 			return err
 		}
+
+		// Update the configuration after stopping the service.
+		n.state.Services.Multipath.Config = newState.Config
 	} else {
-		// Update the configuration.
+		// Update the configuration before starting the service.
 		n.state.Services.Multipath.Config = newState.Config
 
 		// Enable or reconfigure the service if requested.
