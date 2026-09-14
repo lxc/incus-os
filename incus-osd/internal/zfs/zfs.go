@@ -585,7 +585,7 @@ func UpdateZpool(ctx context.Context, newConfig api.SystemStoragePool) error {
 	}
 
 	// Cannot change pool alignment.
-	if currentConfig.Alignment != newConfig.Alignment {
+	if newConfig.Alignment != 0 && currentConfig.Alignment != newConfig.Alignment {
 		return errors.New("cannot change pool alignment after creation")
 	}
 
