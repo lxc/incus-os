@@ -579,6 +579,7 @@ type cmdGenericShow struct {
 	endpoint    string
 	entity      string
 	entityShort string
+	postFunc    func(data json.RawMessage)
 
 	flagFormat string
 }
@@ -703,6 +704,10 @@ func (c *cmdGenericShow) run(cmd *cobra.Command, args []string) error {
 	}
 
 	_, _ = fmt.Printf("%s", data) //nolint:forbidigo
+
+	if c.postFunc != nil {
+		c.postFunc(resp.Metadata)
+	}
 
 	return nil
 }
