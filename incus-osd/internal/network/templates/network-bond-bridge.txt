@@ -15,7 +15,9 @@ MTUBytes={{.MTU}}
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 {{- end}}
-{{- if ne .Type "bridge"}}
+{{- if eq .Type "bridge"}}
+IPv4ReversePathFilter=no
+{{- else}}
 Bridge={{.Bridge}}
   {{- range .VLANTags}}
 
