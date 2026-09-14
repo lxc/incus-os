@@ -1,8 +1,14 @@
 package cli
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+
 	cli "github.com/lxc/incus/v7/shared/cmd"
 	"github.com/spf13/cobra"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // IncusOS system command.
@@ -317,7 +323,26 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		}
 
 		// Show.
-		showCmd := cmdGenericShow{os: c.os, endpoint: "system/" + sub.name}
+
+		// Define a custom post-function for the "security" sub-command that will
+		// display a note about marking encryption keys as retrieved if they have
+		// not already been marked as such.
+		f := func(data json.RawMessage) {
+			var sec api.SystemSecurity
+
+			err := json.Unmarshal(data, &sec)
+			if err == nil {
+				if !sec.State.EncryptionRecoveryKeysRetrieved {
+					_, _ = fmt.Fprintf(os.Stderr, "\nNOTE: Once you have securely recorded the recovery keys, run\n      `%s admin os system security retrieved` to mark that they have\n      been manually retrieved.\n", os.Args[0])
+				}
+			}
+		}
+
+		if sub.name != "security" {
+			f = nil
+		}
+
+		showCmd := cmdGenericShow{os: c.os, endpoint: "system/" + sub.name, postFunc: f}
 		subCmd.AddCommand(showCmd.command())
 
 		// Info.
