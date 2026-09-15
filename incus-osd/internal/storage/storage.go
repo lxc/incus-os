@@ -92,7 +92,13 @@ type zpoolStatusPartialParse struct {
 				Vdevs      map[string]struct {
 					zpoolTrimStats
 
-					State string `json:"state"`
+					VdevType string `json:"vdev_type"`
+					State    string `json:"state"`
+					Vdevs    map[string]struct {
+						zpoolTrimStats
+
+						State string `json:"state"`
+					} `json:"vdevs,omitempty"`
 				} `json:"vdevs,omitempty"`
 			} `json:"vdevs"`
 		} `json:"vdevs"`
@@ -500,10 +506,21 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 			}
 
 			for memberVdevName, memberVdev := range vdev.Vdevs {
-				if memberVdev.State == "ONLINE" {
-					zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+memberVdevName)
-				} else {
-					zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], "/dev/disk/by-id/"+memberVdevName)
+				switch memberVdev.VdevType {
+				case "replacing", "spare":
+					for submemberVdevName, submemberVdev := range memberVdev.Vdevs {
+						if submemberVdev.State == "ONLINE" {
+							zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+submemberVdevName)
+						} else {
+							zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], "/dev/disk/by-id/"+submemberVdevName)
+						}
+					}
+				default:
+					if memberVdev.State == "ONLINE" {
+						zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+memberVdevName)
+					} else {
+						zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], "/dev/disk/by-id/"+memberVdevName)
+					}
 				}
 			}
 		}
