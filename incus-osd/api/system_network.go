@@ -159,8 +159,9 @@ type SystemNetworkWireguardPeer struct {
 
 // SystemNetworkRoute defines a route.
 type SystemNetworkRoute struct {
-	To  string `json:"to"  yaml:"to"`
-	Via string `json:"via" yaml:"via"`
+	To     string `json:"to"               yaml:"to"`
+	Via    string `json:"via"              yaml:"via"`
+	OnLink bool   `json:"onlink,omitempty" yaml:"onlink,omitempty"`
 }
 
 // SystemNetworkDNS defines DNS configuration options.
