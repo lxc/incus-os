@@ -51,7 +51,12 @@ func validateInterfaces(ctx context.Context, interfaces []api.SystemNetworkInter
 		}
 
 		for routeIndex, route := range iface.Routes {
-			err := validateAddressWithCIDR(route.To)
+			err := validateOnLinkRoute(route)
+			if err != nil {
+				return fmt.Errorf("interface %d route %d 'OnLink' %s", index, routeIndex, err.Error())
+			}
+
+			err = validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("interface %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -123,7 +128,12 @@ func validateBonds(ctx context.Context, bonds []api.SystemNetworkBond, requireVa
 		}
 
 		for routeIndex, route := range bond.Routes {
-			err := validateAddressWithCIDR(route.To)
+			err := validateOnLinkRoute(route)
+			if err != nil {
+				return fmt.Errorf("bond %d route %d 'OnLink' %s", index, routeIndex, err.Error())
+			}
+
+			err = validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("bond %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -250,7 +260,12 @@ func validateVLANs(cfg *api.SystemNetworkConfig) error {
 		}
 
 		for routeIndex, route := range vlan.Routes {
-			err := validateAddressWithCIDR(route.To)
+			err := validateOnLinkRoute(route)
+			if err != nil {
+				return fmt.Errorf("vlan %d route %d 'OnLink' %s", index, routeIndex, err.Error())
+			}
+
+			err = validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("vlan %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -308,7 +323,12 @@ func validateWireguard(cfg *api.SystemNetworkConfig) error {
 		}
 
 		for routeIndex, route := range wg.Routes {
-			err := validateAddressWithCIDR(route.To)
+			err := validateOnLinkRoute(route)
+			if err != nil {
+				return fmt.Errorf("wireguard %d route %d 'OnLink' %s", index, routeIndex, err.Error())
+			}
+
+			err = validateAddressWithCIDR(route.To)
 			if err != nil {
 				return fmt.Errorf("wireguard %d route %d 'To' %s", index, routeIndex, err.Error())
 			}
@@ -498,6 +518,21 @@ func validateAddress(address string) error {
 	addressishRegex := regexp.MustCompile(`^[.:[:xdigit:]]+$`)
 	if !addressishRegex.MatchString(address) {
 		return fmt.Errorf("invalid IP address '%s'", address)
+	}
+
+	return nil
+}
+
+func validateOnLinkRoute(route api.SystemNetworkRoute) error {
+	if !route.OnLink {
+		return nil
+	}
+
+	if route.Via == "" {
+		return errors.New("requires 'Via'")
+	}
+	if route.Via == "dhcp4" || route.Via == "dhcp6" || route.Via == "slaac" {
+		return fmt.Errorf("cannot use dynamic gateway %q", route.Via)
 	}
 
 	return nil

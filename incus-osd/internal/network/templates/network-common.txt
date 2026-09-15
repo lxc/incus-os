@@ -93,5 +93,8 @@ Gateway=_ipv6ra
 {{- else}}
 Gateway={{.Via}}
 {{- end}}
+{{- if .OnLink}}
+GatewayOnLink=yes
+{{- end}}
 Destination={{.To}}
 {{end}}

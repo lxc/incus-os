@@ -512,6 +512,30 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 	}
 }
 
+func parseRoutes(ctx context.Context, iface string) ([]api.SystemNetworkRoute, error) {
+	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
+	if err != nil {
+		return nil, err
+	}
+
+	return parseRouteCommandOutput(output), nil
+}
+
+func parseRouteCommandOutput(output string) []api.SystemNetworkRoute {
+	routes := []api.SystemNetworkRoute{}
+	routeRegex := regexp.MustCompile(`(?m)^(.+) via (.+) proto.*$`)
+
+	for _, routeMatch := range routeRegex.FindAllStringSubmatch(output, -1) {
+		routes = append(routes, api.SystemNetworkRoute{
+			To:     routeMatch[1],
+			Via:    routeMatch[2],
+			OnLink: slices.Contains(strings.Fields(routeMatch[0]), "onlink"),
+		})
+	}
+
+	return routes
+}
+
 // getWireguardState runs various commands to gather wireguard state for a specific wireguard interface.
 func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInterfaceState, error) {
 	// Get IPs for the interface.
@@ -521,24 +545,14 @@ func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInte
 	}
 
 	// Get routes for the interface.
-	routes := []api.SystemNetworkRoute{}
-	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
-
-	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
+	routes, err := parseRoutes(ctx, iface)
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
-	for _, r := range routeRegex.FindAllStringSubmatch(output, -1) {
-		routes = append(routes, api.SystemNetworkRoute{
-			To:  r[1],
-			Via: r[2],
-		})
-	}
-
 	// Get various details from networkctl. It would be better to use the json output
 	// option, but that doesn't include everything we're interested in.
-	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
@@ -743,24 +757,14 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 	}
 
 	// Get routes for the interface.
-	routes := []api.SystemNetworkRoute{}
-	routeRegex := regexp.MustCompile(`(.+) via (.+) proto`)
-
-	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
+	routes, err := parseRoutes(ctx, iface)
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
 
-	for _, r := range routeRegex.FindAllStringSubmatch(output, -1) {
-		routes = append(routes, api.SystemNetworkRoute{
-			To:  r[1],
-			Via: r[2],
-		})
-	}
-
 	// Get various details from networkctl. It would be better to use the json output
 	// option, but that doesn't include everything we're interested in.
-	output, err = subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
+	output, err := subprocess.RunCommandContext(ctx, "networkctl", "status", "-s", resolveBridge(iface))
 	if err != nil {
 		return api.SystemNetworkInterfaceState{}, err
 	}
