@@ -754,6 +754,9 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkRoute:
         properties:
+            onlink:
+                type: boolean
+                x-go-name: OnLink
             to:
                 type: string
                 x-go-name: To
