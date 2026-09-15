@@ -44,8 +44,12 @@ bonds:
     routes:
       - to: 0.0.0.0/0
         via: 10.0.100.1
+        onlink: true
       - to: ::/0
         via: fd40:1234:1234:100::1
+        onlink: true
+      - to: 192.0.2.0/24
+        via: 10.0.100.2
     members:
       - AA:BB:CC:DD:EE:03
       - AA:BB:CC:DD:EE:04
@@ -299,6 +303,53 @@ interfaces:
     hwaddr: 10:66:6a:b0:5f:02
 `
 
+var badNetworkdConfig8 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+    routes:
+      - to: 0.0.0.0/0
+        onlink: true
+`
+
+var badNetworkdConfig9 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+    routes:
+      - to: 0.0.0.0/0
+        via: dhcp4
+        onlink: true
+`
+
+var badNetworkdConfig10 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+    routes:
+      - to: 0.0.0.0/0
+        via: dhcp6
+        onlink: true
+`
+
+var badNetworkdConfig11 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+    routes:
+      - to: 0.0.0.0/0
+        via: slaac
+        onlink: true
+`
+
 func TestBadNetworkConfig(t *testing.T) {
 	t.Parallel()
 
@@ -371,6 +422,44 @@ func TestBadNetworkConfig(t *testing.T) {
 		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "duplicate MAC address: 10:66:6a:b0:5f:02")
 	}
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig8), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 route 0 'OnLink' requires 'Via'")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig9), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 route 0 'OnLink' cannot use dynamic gateway \"dhcp4\"")
+	}
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig10), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 route 0 'OnLink' cannot use dynamic gateway \"dhcp6\"")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig11), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 route 0 'OnLink' cannot use dynamic gateway \"slaac\"")
+	}
 }
 
 func TestNetworkConfigMarshalling(t *testing.T) {
@@ -400,7 +489,9 @@ func TestNetworkConfigMarshalling(t *testing.T) {
 		require.Equal(t, "management", cfg.Bonds[0].Name)
 		require.Equal(t, 8750, cfg.Bonds[0].MTU)
 		require.Empty(t, cfg.Bonds[0].Hwaddr)
-		require.Len(t, cfg.Bonds[0].Routes, 2)
+		require.Len(t, cfg.Bonds[0].Routes, 3)
+		require.True(t, cfg.Bonds[0].Routes[0].OnLink)
+		require.False(t, cfg.Bonds[0].Routes[2].OnLink)
 		require.Len(t, cfg.Bonds[0].Members, 2)
 		require.Equal(t, "AA:BB:CC:DD:EE:03", cfg.Bonds[0].Members[0])
 		require.Len(t, cfg.VLANs, 1)
@@ -747,7 +838,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "21-_bmanagement-dev1.network", cfgs[9].Name)
 	require.Equal(t, "[Match]\nName=_paabbccddee04\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[9].Contents)
 	require.Equal(t, "21-_vmanagement.network", cfgs[10].Name)
-	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\nMTUBytes=8750\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=uplink\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.0.100.1\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nDestination=::/0\n\n", cfgs[10].Contents)
+	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\nMTUBytes=8750\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=uplink\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.0.100.1\nGatewayOnLink=yes\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nGatewayOnLink=yes\nDestination=::/0\n\n[Route]\nGateway=10.0.100.2\nDestination=192.0.2.0/24\n\n", cfgs[10].Contents)
 	require.Equal(t, "21-_iaabbccddee03.network", cfgs[11].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee03\n\n[Link]\nMTUBytes=9000\n\n[Network]\nBridge=management\n\n[BridgeVLAN]\nVLAN=100\n\n[BridgeVLAN]\nVLAN=1234\n", cfgs[11].Contents)
 	require.Equal(t, "21-_bmanagement.network", cfgs[12].Name)
