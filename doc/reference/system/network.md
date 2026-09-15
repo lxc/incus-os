@@ -115,6 +115,23 @@ config:
     - "10.234.136.1"
 ```
 
+When the gateway is outside the configured address prefix, set `onlink` to `true` to mark the gateway as directly reachable through the interface:
+
+```yaml
+config:
+  interfaces:
+  - name: "enp5s0"
+    hwaddr: "enp5s0"
+    addresses:
+    - "203.0.113.10/32"
+    routes:
+    - to: "0.0.0.0/0"
+      via: "198.51.100.1"
+      onlink: true
+```
+
+This generates a `GatewayOnLink=yes` route for `systemd-networkd`.
+
 #### Automatic roll back of network configuration
 
 When applying a complex network configuration update, it can be useful to automatically roll back the changes if something goes wrong. IncusOS supports this via the `confirmation_timeout` configuration field.
