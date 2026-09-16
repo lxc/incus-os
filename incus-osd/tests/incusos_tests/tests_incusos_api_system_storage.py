@@ -103,7 +103,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+            if "drive_recovery_keys" in result["metadata"]["state"]:
                 raise IncusOSException("unexpectedly got a drive recovery key")
 
             # Can't import an unencrypted drive
@@ -139,7 +139,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+            if "drive_recovery_keys" not in result["metadata"]["state"] or "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
                 raise IncusOSException("missing expected drive encryption key")
 
             # Wipe the drive and ensure it is no longer reported as encrypted
@@ -167,7 +167,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+            if "drive_recovery_keys" in result["metadata"]["state"]:
                 raise IncusOSException("unexpectedly got a drive recovery key after wiping drive")
 
             # Test importing an already-encrypted drive.
@@ -184,7 +184,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+            if "drive_recovery_keys" not in result["metadata"]["state"] or "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
                 raise IncusOSException("missing expected drive encryption key")
 
             if result["metadata"]["state"]["drive_recovery_keys"]["scsi-0QEMU_QEMU_HARDDISK_incus_disk1"] != result["metadata"]["state"]["pool_recovery_keys"]["local"]:
