@@ -835,23 +835,6 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			if err != nil {
 				return err
 			}
-
-			if zpoolName == "local" && zpoolType == "zfs-raid1" {
-				actualDevOld = strings.TrimSuffix(actualDevOld, "-part11")
-			}
-
-			// Don't attempt to wipe a device that doesn't physically exist.
-			_, err = os.Stat(actualDevOld)
-			if err == nil {
-				// Sleep briefly to allow the zpool state to update so the replaced drive no
-				// longer appears as a member.
-				time.Sleep(500 * time.Millisecond)
-
-				err = storage.WipeDrive(ctx, actualDevOld, false)
-				if err != nil {
-					return err
-				}
-			}
 		}
 	}
 

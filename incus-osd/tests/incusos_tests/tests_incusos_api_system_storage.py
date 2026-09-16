@@ -103,7 +103,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+            if "drive_recovery_keys" in result["metadata"]["state"]:
                 raise IncusOSException("unexpectedly got a drive recovery key")
 
             # Can't import an unencrypted drive
@@ -139,7 +139,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+            if "drive_recovery_keys" not in result["metadata"]["state"] or "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
                 raise IncusOSException("missing expected drive encryption key")
 
             # Wipe the drive and ensure it is no longer reported as encrypted
@@ -167,7 +167,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if len(result["metadata"]["state"]["drive_recovery_keys"]) != 0:
+            if "drive_recovery_keys" in result["metadata"]["state"]:
                 raise IncusOSException("unexpectedly got a drive recovery key after wiping drive")
 
             # Test importing an already-encrypted drive.
@@ -184,7 +184,7 @@ def TestIncusOSAPISystemStorageLUKSRawDevice(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-            if "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
+            if "drive_recovery_keys" not in result["metadata"]["state"] or "scsi-0QEMU_QEMU_HARDDISK_incus_disk1" not in result["metadata"]["state"]["drive_recovery_keys"]:
                 raise IncusOSException("missing expected drive encryption key")
 
             if result["metadata"]["state"]["drive_recovery_keys"]["scsi-0QEMU_QEMU_HARDDISK_incus_disk1"] != result["metadata"]["state"]["pool_recovery_keys"]["local"]:
@@ -1154,3 +1154,132 @@ def TestIncusOSAPISystemStoragePoolSpecialDevice(install_image):
                                 result = vm.APIRequest("/1.0/system/storage/:delete-pool", method="POST", body="""{"name":"mypool"}""")
                                 if result["status_code"] != 200:
                                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+def TestIncusOSAPISystemStoragePoolFailedDevice(install_image):
+    test_name = "incusos-api-system-storage-pool-failed-device"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img1:
+        with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img2:
+            with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img3:
+                with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img4:
+                    disk_img1.truncate(10*1024*1024*1024)
+                    disk_img2.truncate(10*1024*1024*1024)
+                    disk_img3.truncate(10*1024*1024*1024)
+                    disk_img4.truncate(10*1024*1024*1024)
+
+                    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+                        vm.AddDevice("disk1", "disk", "source="+disk_img1.name)
+                        vm.AddDevice("disk2", "disk", "source="+disk_img2.name)
+                        vm.AddDevice("disk3", "disk", "source="+disk_img3.name)
+
+                        vm.WaitSystemReady(os_version)
+
+                        # Create a basic raidz2 pool
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz2","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3"]}]}}""")
+                        if result["status_code"] != 200:
+                            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                        # Get the current storage state.
+                        result = vm.APIRequest("/1.0/system/storage")
+                        if result["status_code"] != 200:
+                            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                        if len(result["metadata"]["config"]["pools"]) != 2:
+                            raise IncusOSException("expected two storage pools")
+
+                        poolState = result["metadata"]["config"]["pools"][0]
+                        if poolState["name"] != "mypool":
+                            poolState = result["metadata"]["config"]["pools"][1]
+
+                        if poolState["type"] != "zfs-raidz2":
+                            raise IncusOSException("'mypool' type isn't zfs-raidz2")
+
+                        if poolState["state"] != "ONLINE":
+                            raise IncusOSException("'mypool' state isn't ONLINE")
+
+                        if len(poolState["devices"]) != 3:
+                            raise IncusOSException("expected exactly three devices for 'mypool' pool")
+
+                        # Stop the VM, remove one drive and add a new drive.
+                        vm.StopVM()
+                        vm.RemoveDevice("disk3")
+                        vm.AddDevice("disk4", "disk", "source="+disk_img4.name)
+                        vm.StartVM()
+
+                        vm.WaitAgentRunning()
+                        vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
+
+                        # Get the updated storage state.
+                        result = vm.APIRequest("/1.0/system/storage")
+                        if result["status_code"] != 200:
+                            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                        if len(result["metadata"]["config"]["pools"]) != 2:
+                            raise IncusOSException("expected two storage pools")
+
+                        poolState = result["metadata"]["config"]["pools"][0]
+                        if poolState["name"] != "mypool":
+                            poolState = result["metadata"]["config"]["pools"][1]
+
+                        if poolState["type"] != "zfs-raidz2":
+                            raise IncusOSException("'mypool' type isn't zfs-raidz2")
+
+                        if poolState["state"] != "DEGRADED":
+                            raise IncusOSException("'mypool' state isn't DEGRADED")
+
+                        if len(poolState["devices"]) != 2:
+                            raise IncusOSException("expected exactly two devices for 'mypool' pool")
+
+                        if "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3" in poolState["devices"]:
+                            raise IncusOSException("scsi-0QEMU_QEMU_HARDDISK_incus_disk3 incorrectly reported as a member of pool 'mypool'")
+
+                        if "devices_degraded" not in poolState or len(poolState["devices_degraded"]) != 1:
+                            raise IncusOSException("expected exactly one degraded device for 'mypool' pool")
+
+                        if poolState["devices_degraded"][0] != "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3":
+                            raise IncusOSException("incorrect degraded device for pool 'mypool': " + poolState["devices_degraded"][0])
+
+                        # Replace the failed (missing) drive.
+                        result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"mypool","type":"zfs-raidz2","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4"]}]}}""")
+                        if result["status_code"] != 200:
+                            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                        # Sleep 15 seconds to allow the resilver to finish.
+                        # Ideally we could write a lot of dummy data to the zpool, then inspect state during the resilver,
+                        # but because of variations in test environments it's not easy to reliability do this without a ton
+                        # of extra work.
+                        time.sleep(15)
+
+                        result = vm.APIRequest("/1.0/system/storage")
+                        if result["status_code"] != 200:
+                            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                        if len(result["metadata"]["config"]["pools"]) != 2:
+                            raise IncusOSException("expected two storage pools")
+
+                        poolState = result["metadata"]["config"]["pools"][0]
+                        if poolState["name"] != "mypool":
+                            poolState = result["metadata"]["config"]["pools"][1]
+
+                        if poolState["type"] != "zfs-raidz2":
+                            raise IncusOSException("'mypool' type isn't zfs-raidz2")
+
+                        if poolState["state"] != "ONLINE":
+                            raise IncusOSException("'mypool' state isn't ONLINE")
+
+                        if len(poolState["devices"]) != 3:
+                            raise IncusOSException("expected exactly three devices for 'mypool' pool")
+
+                        if "devices_degraded" in poolState:
+                            raise IncusOSException("expected no degraded devices for 'mypool' pool")
+
+                        if "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk3" in poolState["devices"]:
+                            raise IncusOSException("missing device in 'mypool' pool incorrectly reported as a member")
+
+                        if "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4" not in poolState["devices"]:
+                            raise IncusOSException("new device in 'mypool' pool not reported as a member")
