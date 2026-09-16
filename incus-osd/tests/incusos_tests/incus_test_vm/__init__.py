@@ -82,9 +82,28 @@ class IncusTestVM:
         subprocess.run(["incus", "config", "device", "set", self.vm_name, device, prop], capture_output=True, check=True)
 
     def StartVM(self, timeout=60):
-        """Start the VM and wait up to 60 seconds by default for the command to return."""
+        """Start the VM and wait up to 60 seconds by default for the VM to enter a running state."""
 
-        subprocess.run(["incus", "start", self.vm_name], capture_output=True, check=True, timeout=timeout)
+        start = time.time()
+
+        # Sometimes under heavy load, running `incus start` returns without actually starting the VM. So, run a start loop
+        # until the VM state is actually reported as running.
+        while time.time() - start < timeout:
+            result = subprocess.run(["incus", "start", self.vm_name], capture_output=True)
+
+            if "The instance is already running" in result.stderr.decode("utf-8"):
+                return
+
+            # Sleep a second and then check that the VM is actually running
+            time.sleep(1)
+
+            result = subprocess.run(["incus", "list", "-f", "compact,noheader", "-c", "nsS", self.vm_name], capture_output=True, check=True)
+            if "RUNNING" in result.stdout.decode("utf-8"):
+                return
+
+            time.sleep(5)
+
+        raise IncusOSException("timed out waiting for VM to start")
 
     def StopVM(self, timeout=120, force=False):
         """Stop the VM and wait up to 120 seconds by default for the command to return."""
