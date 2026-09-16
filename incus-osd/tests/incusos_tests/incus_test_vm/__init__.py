@@ -138,10 +138,30 @@ class IncusTestVM:
         self.WaitExpectedLog("incus-osd", "Downloading application update application="+application+" channel="+channel+" version="+os_version)
         self.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
-    def WaitAgentRunning(self, timeout=420):
+    def WaitAgentRunning(self, timeout=300):
         """Wait for the Incus agent to start in the VM."""
 
-        subprocess.run(["incus", "wait", self.vm_name, "agent", "--timeout", str(timeout)], capture_output=True, check=True)
+        num_checks = 4
+
+        # While waiting for the incus-agent to start, periodically check if the VM is in an error
+        # state. It looks like the EDK2 firmware rarely fails to boot the EFI image, which then
+        # results in an error state of the VM itself that should be reported differently.
+        for i in range(num_checks):
+            try:
+                subprocess.run(["incus", "wait", self.vm_name, "agent", "--timeout", str(int(timeout/num_checks))], capture_output=True, check=True)
+            except:
+                # Check if the VM is in an error or stopped state
+                result = subprocess.run(["incus", "list", "-f", "compact,noheader", "-c", "nsS", self.vm_name], capture_output=True, check=True)
+                if "ERROR" in result.stdout.decode("utf-8"):
+                    consoleLog = subprocess.run(["incus", "console", "--show-log", self.vm_name], capture_output=True, check=True)
+
+                    raise IncusOSException("incus-agent isn't running: VM is in an error state", re.sub(r'[\x00-\x1f]', '', consoleLog.stdout.decode("utf-8")).split("\n"))
+                elif "STOPPED" in result.stdout.decode("utf-8"):
+                    raise IncusOSException("incus-agent isn't running: VM is in an unexpected stopped state")
+            else:
+                return
+
+        raise IncusOSException("timed out waiting for incus-agent to start")
 
     def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
