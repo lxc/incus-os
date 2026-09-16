@@ -98,6 +98,9 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
+            # Sleep 15 seconds to allow the resilver to finish.
+            time.sleep(15)
+
             # Get the updated storage state
             result = vm.APIRequest("/1.0/system/storage")
             if result["status_code"] != 200:
@@ -148,6 +151,9 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID0(install_image):
             result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid0","devices":["","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            # Sleep 15 seconds to allow the resilver to finish.
+            time.sleep(15)
 
             # Get the updated storage state
             result = vm.APIRequest("/1.0/system/storage")
@@ -249,6 +255,9 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
+                # Sleep 15 seconds to allow the resilver to finish.
+                time.sleep(15)
+
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
                 if result["status_code"] != 200:
@@ -305,6 +314,9 @@ def TestIncusOSAPISystemStorageLocalPoolExpandRAID1(install_image):
                 result = vm.APIRequest("/1.0/system/storage", method="PUT", body="""{"config":{"scrub_schedule": "0 4 * * 0", "trim_schedule": "0 4 * * 6", "pools":[{"name":"local","type":"zfs-raid1","devices":["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk2","/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part11"]}]}}""")
                 if result["status_code"] != 200:
                     raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+                # Sleep 15 seconds to allow the resilver to finish.
+                time.sleep(15)
 
                 # Get the updated storage state.
                 result = vm.APIRequest("/1.0/system/storage")
