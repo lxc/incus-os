@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -93,9 +94,12 @@ func doQuery(do func(remoteName string, req *http.Request) (*http.Response, erro
 
 	defer func() { _ = resp.Body.Close() }()
 
-	// Handle raw responses.
-	contentType := resp.Header.Get("Content-Type")
-	if contentType == "application/octet-stream" || contentType == "application/gzip" {
+	// Handle raw responses. We cannot just use resp.Header.Get("Content-Type") to get
+	// the response's Content-Type, since it returns only the first value. But incus-osd
+	// changes the Content-Type from application/json to application/gzip prior to switching
+	// to returning a compressed application or OS backup. Apparently some behavior changed
+	// in Go 1.26, as the simpler approach used to work as expected.
+	if slices.Contains(resp.Header["Content-Type"], "application/octet-stream") || slices.Contains(resp.Header["Content-Type"], "application/gzip") {
 		if outData == nil {
 			outData = os.Stdout
 		}
