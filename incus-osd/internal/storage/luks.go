@@ -217,3 +217,21 @@ func lockDrive(ctx context.Context, devPath string) error {
 
 	return nil
 }
+
+// luksKeyName returns the key name for the first by-id path with a key file, keys are named after the path used to encrypt.
+func luksKeyName(paths ...string) string {
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+
+		name := filepath.Base(path)
+
+		_, err := os.Stat("/var/lib/incus-os/keys/luks." + name + ".key")
+		if err == nil {
+			return name
+		}
+	}
+
+	return ""
+}
