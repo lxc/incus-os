@@ -551,8 +551,9 @@ func hwaddrExists(hwaddr string) error {
 
 	found := false
 
+	// Also match the permanent address, bond members have theirs rewritten.
 	for _, iface := range ifaces {
-		if iface.Attrs().HardwareAddr.String() == strings.ToLower(hwaddr) {
+		if iface.Attrs().HardwareAddr.String() == strings.ToLower(hwaddr) || iface.Attrs().PermHWAddr.String() == strings.ToLower(hwaddr) {
 			found = true
 
 			break
