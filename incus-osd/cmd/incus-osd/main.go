@@ -1171,10 +1171,26 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 			return err
 		}
 
-		// Restart incus-agent.
-		err = systemd.RestartUnit(ctx, "incus-agent.service")
-		if err != nil {
-			return err
+		// Restart incus-agent; occasionally there's an error restarting
+		// the agent, so try up to three times before giving up.
+		var agentError error
+		for range 3 {
+			agentError = systemd.RestartUnit(ctx, "incus-agent.service")
+			if agentError == nil {
+				break
+			}
+
+			time.Sleep(5 * time.Second)
+		}
+
+		if agentError != nil {
+			// If we failed to start the incus agent, attempt to get any logs.
+			output, logErr := subprocess.RunCommandContext(ctx, "journalctl", "_COMM=incus-agent", "-I", "-o", "cat", "-u", "incus-agent")
+			if logErr != nil {
+				return errors.New("failed to restart incus-agent, and unable to get any relevant journal logs")
+			}
+
+			return errors.New("failed to restart incus-agent:\n" + output)
 		}
 	}
 
