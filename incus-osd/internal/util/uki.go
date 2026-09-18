@@ -36,10 +36,12 @@ func GetUKIVersions() (UKIVersions, error) {
 	// renamed (see https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/#details for further details), so
 	// pull out the 12-digit version which will be unique, then do a readdir to find the UKI image
 	// we need to examine.
-	versionRegex := regexp.MustCompile(`^.+_(\d{12}).+efi$`)
+	// This logic can be simplified after December 2026 as the logic for using UKI profiles prevents
+	// boot counting logic from actually running.
+	versionRegex := regexp.MustCompile(`^.+_(\d{12}).+efi(@.+)?$`)
 
 	versionGroup := versionRegex.FindStringSubmatch(ukiName)
-	if len(versionGroup) != 2 {
+	if len(versionGroup) != 3 {
 		return ret, errors.New("unable to determine version from EFI variable LoaderEntrySelected ('" + ukiName + "')")
 	}
 
