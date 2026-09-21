@@ -72,3 +72,22 @@ func GetUKIVersions() (UKIVersions, error) {
 
 	return ret, nil
 }
+
+// GetCurrentUKIProfile inspects the kernel's command line to determine which UKI profile was
+// booted. Unfortunately there doesn't seem to be any cleaner way to get this information.
+func GetCurrentUKIProfile() (string, error) {
+	cmdline, err := os.ReadFile("/proc/cmdline")
+	if err != nil {
+		return "", err
+	}
+
+	profileRegex := regexp.MustCompile(`incusos.profile=(.+)`)
+	profileGroup := profileRegex.FindStringSubmatch(string(cmdline))
+
+	// If the regex doesn't match any profile, we booted the default "main" UKI profile.
+	if len(profileGroup) != 2 {
+		return "main", nil
+	}
+
+	return profileGroup[1], nil
+}

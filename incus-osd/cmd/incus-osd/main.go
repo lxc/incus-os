@@ -653,7 +653,13 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		machineID = "UNKNOWN"
 	}
 
-	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"))
+	// Get the UKI profile that has booted.
+	ukiProfile, err := util.GetCurrentUKIProfile()
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"), "uki-profile", ukiProfile)
 
 	if mode != "production" && mode != "dev" {
 		return errors.New("currently unsupported operating mode")
