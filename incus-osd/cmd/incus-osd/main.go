@@ -665,6 +665,15 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return errors.New("currently unsupported operating mode")
 	}
 
+	// Set the next boot ID as the management daemon starts. We do this now rather than attempting to
+	// do so as part of the shutdown/reboot logic because an externally-triggered power cycle (such as a
+	// physical power button being pressed) may not permit us to properly set the underlying EFI variable
+	// since systemd will already be tearing down the system.
+	err = util.SetNextBootID(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Create this channel early, so we don't block trying to trigger the fallback HTTPS listener.
 	// We can't move the channel processing loop here, because it depends on having a provider (and
 	// therefore potentially a network) properly configured.

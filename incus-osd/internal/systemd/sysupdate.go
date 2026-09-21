@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // ErrReleaseNotFound is returned when the os-release file can't be located.
@@ -201,6 +202,12 @@ func ApplySystemUpdate(ctx context.Context, version string) error {
 				return err
 			}
 		}
+	}
+
+	// Update the next boot ID to reflect the newly installed update.
+	err = util.SetNextBootID(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil
