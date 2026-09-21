@@ -1,10 +1,15 @@
 package util
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
+
+	"github.com/lxc/incus/v7/shared/subprocess"
 )
 
 // UKIVersions holds information about the UKI images present under /boot/EFI/Linux/.
@@ -90,4 +95,93 @@ func GetCurrentUKIProfile() (string, error) {
 	}
 
 	return profileGroup[1], nil
+}
+
+// SetNextBootID determines the UKI image and profile that we should attempt to boot by
+// default the next time the system starts. This helps ensure the system consistently uses
+// the same UKI profile, which may influence kernel defaults or other system behavior.
+func SetNextBootID(ctx context.Context) error {
+	rebootID, err := getNextBootID(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = subprocess.RunCommandContext(ctx, "bootctl", "set-oneshot", rebootID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getNextBootID(ctx context.Context) (string, error) {
+	type bootctlEntry struct {
+		Type string `json:"type"`
+		ID   string `json:"id"`
+	}
+
+	entries := []bootctlEntry{}
+
+	// Get a list of all available boot targets.
+	output, err := subprocess.RunCommandContext(ctx, "bootctl", "list", "--json=short")
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal([]byte(output), &entries)
+	if err != nil {
+		return "", err
+	}
+
+	targets := []string{}
+	targetRegex := regexp.MustCompile(`.*_\d{12}\.efi`)
+
+	for _, entry := range entries {
+		if entry.Type != "type2" {
+			continue
+		}
+
+		if entry.ID != "" && targetRegex.FindString(entry.ID) != "" {
+			targets = append(targets, entry.ID)
+		}
+	}
+
+	// Ensure targets are sorted in reverse order, which will put the newest version first.
+	slices.Sort(targets)
+	slices.Reverse(targets)
+
+	// Get the current UKI profile.
+	profile, err := GetCurrentUKIProfile()
+	if err != nil {
+		return "", err
+	}
+
+	// Search for the first target that has the same profile.
+	for _, target := range targets {
+		if strings.HasSuffix(target, ".efi@"+profile) {
+			return target, nil
+		}
+	}
+
+	// Handle a legacy system that predates UKI profiles.
+	// This check can be removed after December 2026.
+	if profile == "main" {
+		for _, target := range targets {
+			if strings.HasSuffix(target, ".efi") {
+				return target, nil
+			}
+		}
+	}
+
+	// We're unable to determine a boot target that matches our current profile.
+	// This shouldn't happen, unless a profile is retired. In this case, return the
+	// first UKI with the "main" profile, as that should hopefully be a sane choice.
+	for _, target := range targets {
+		if strings.HasSuffix(target, ".efi@main") {
+			return target, nil
+		}
+	}
+
+	// Shouldn't ever be able to reach this error.
+	return "", errors.New("unable to identify a potential next boot UKI")
 }
