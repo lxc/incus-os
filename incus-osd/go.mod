@@ -3,8 +3,8 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.7
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.2
-	github.com/FuturFusion/openfga-sync v0.0.0-20260903230144-37a8eb10ac73
+	github.com/FuturFusion/migration-manager v0.7.3
+	github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1
 	github.com/FuturFusion/operations-center v0.9.0
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
@@ -50,7 +50,7 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/flosch/pongo2/v6 v6.1.0 // indirect
 	github.com/fvbommel/sortorder v1.2.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3 // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.3.0 // indirect
 	github.com/olekukonko/ll v0.1.8 // indirect
-	github.com/olekukonko/tablewriter v1.1.4 // indirect
+	github.com/olekukonko/tablewriter v1.1.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
@@ -96,7 +96,7 @@ require (
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	github.com/zitadel/oidc/v3 v3.49.6 // indirect
+	github.com/zitadel/oidc/v3 v3.51.3 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect

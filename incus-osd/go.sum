@@ -3,10 +3,10 @@ filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6/go.mod h1:8o94RPi1/7XTJvwPpRSzSUedZrtlirdB3r9Z20bi2f8=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/FuturFusion/migration-manager v0.7.2 h1:F2J74zkXm6Lsu2bfLIFBPGOe25/+mT8DMMAPsrzdEyw=
-github.com/FuturFusion/migration-manager v0.7.2/go.mod h1:66zNiPVGWOHOL1WWoE4gmdHyr2lU9HL8Q+l8fT/3bQk=
-github.com/FuturFusion/openfga-sync v0.0.0-20260903230144-37a8eb10ac73 h1:mSJHRybogBqce8mqsyrMcBoO52VP5pDkO7I43my86xQ=
-github.com/FuturFusion/openfga-sync v0.0.0-20260903230144-37a8eb10ac73/go.mod h1:mk74DKK7jzS6KYCHFzZX19j1Mcg47m4iBJuaNlGYVSA=
+github.com/FuturFusion/migration-manager v0.7.3 h1:HswHNESB86ntabln2vlPM3wHVKv/yBJyrScO/7TEQJ0=
+github.com/FuturFusion/migration-manager v0.7.3/go.mod h1:66zNiPVGWOHOL1WWoE4gmdHyr2lU9HL8Q+l8fT/3bQk=
+github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1 h1:kQ3minZxXVKWr6Q1iiKaTwh/MIbNAlEtzMt3CLEwyeQ=
+github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1/go.mod h1:mk74DKK7jzS6KYCHFzZX19j1Mcg47m4iBJuaNlGYVSA=
 github.com/FuturFusion/operations-center v0.9.0 h1:c5s8I7tnAp9F+qIyIXX0PpEyy1dhy6qrNcHtCx4BzPA=
 github.com/FuturFusion/operations-center v0.9.0/go.mod h1:nIXoGtnquaX3R+wN+RYv6eHjNTgSltXkv+jz3bi3NV4=
 github.com/apex/log v1.9.0 h1:FHtw/xuaM8AgmvDDTI9fiwoAL25Sq2cxojnZICUU8l0=
@@ -57,8 +57,8 @@ github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7z
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fvbommel/sortorder v1.2.0 h1:TRIiRiGX+djh3Yf4FVxmWmAcYfIr5dH0NbzJWOSAWZk=
 github.com/fvbommel/sortorder v1.2.0/go.mod h1:LbhO04ijZIeUuvz9B9BkI/qYrpZZEn1gWhxv4QjUKVs=
-github.com/fxamacker/cbor/v2 v2.9.3 h1:oQBnFATpNdY8gJHTndDDv5Xl4QqNaz51G5LLEPhng3Q=
-github.com/fxamacker/cbor/v2 v2.9.3/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
+github.com/fxamacker/cbor/v2 v2.9.4 h1:xwjVlxEMR3S605oUlgBjKLTTeGFciYPGYCtF/35LKGo=
+github.com/fxamacker/cbor/v2 v2.9.4/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/gdamore/tcell/v2 v2.13.10 h1:Afs3JKt83HnhuUKdZ3MnxUgOqQRWftj5JyDqv1LLynA=
@@ -165,8 +165,8 @@ github.com/olekukonko/errors v1.3.0 h1:teJvgLGUEqMzBUms+Dj3/3szNqCG/Jdw9iDbum8fR
 github.com/olekukonko/errors v1.3.0/go.mod h1:ppzxA5jBKcO1vIpCXQ9ZqgDh8iwODz6OXIGKU8r5m4Y=
 github.com/olekukonko/ll v0.1.8 h1:ysHCJRGHYKzmBSdz9w5AySztx7lG8SQY+naTGYUbsz8=
 github.com/olekukonko/ll v0.1.8/go.mod h1:RPRC6UcscfFZgjo1nulkfMH5IM0QAYim0LfnMvUuozw=
-github.com/olekukonko/tablewriter v1.1.4 h1:ORUMI3dXbMnRlRggJX3+q7OzQFDdvgbN9nVWj1drm6I=
-github.com/olekukonko/tablewriter v1.1.4/go.mod h1:+kedxuyTtgoZLwif3P1Em4hARJs+mVnzKxmsCL/C5RY=
+github.com/olekukonko/tablewriter v1.1.5 h1:4LoZSfMySpMQY3PT8RWJsJeuEuMIoo9xGRgvmqjg6IQ=
+github.com/olekukonko/tablewriter v1.1.5/go.mod h1:+kedxuyTtgoZLwif3P1Em4hARJs+mVnzKxmsCL/C5RY=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
@@ -253,8 +253,8 @@ github.com/xrash/smetrics v0.0.0-20170218160415-a3153f7040e9/go.mod h1:N3UwUGtsr
 github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 h1:FnBeRrxr7OU4VvAzt5X7s6266i6cSVkkFPS0TuXWbIg=
 github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342/go.mod h1:Ohn+xnUBiLI6FVj/9LpzZWtj1/D6lUovWYBkxHVV3aM=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zitadel/oidc/v3 v3.49.6 h1:FMoasVXsHK3xvA1bcDrjGsc5ppJ1MQ4eW51j4oj+584=
-github.com/zitadel/oidc/v3 v3.49.6/go.mod h1:KQmYte+zOePAeVwR3LM153dxWBC9orWZAIa4w9r1ZhU=
+github.com/zitadel/oidc/v3 v3.51.3 h1:jkEQ2k60amW6vwvzMwrGO7mw7vGxNp6BSsEH0AH6Gas=
+github.com/zitadel/oidc/v3 v3.51.3/go.mod h1:KQmYte+zOePAeVwR3LM153dxWBC9orWZAIa4w9r1ZhU=
 github.com/zitadel/schema v1.3.2 h1:gfJvt7dOMfTmxzhscZ9KkapKo3Nei3B6cAxjav+lyjI=
 github.com/zitadel/schema v1.3.2/go.mod h1:IZmdfF9Wu62Zu6tJJTH3UsArevs3Y4smfJIj3L8fzxw=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
