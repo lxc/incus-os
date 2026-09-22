@@ -71,7 +71,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20260910",
+        "version": "20260916",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -101,7 +101,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20260910",
+        "version": "20260916",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -137,7 +137,7 @@
         ]
     },
     "migration-manager": {
-        "version": "v0.7.2",
+        "version": "v0.7.3",
         "repo": "https://github.com/FuturFusion/migration-manager.git",
         "build_targets": [
             [
@@ -176,7 +176,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.78.1",
+        "version": "v0.80.0-canary.pr-7535.1",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -196,7 +196,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.20.0",
+        "version": "v1.21.0",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -216,7 +216,7 @@
         ]
     },
     "openfga-sync": {
-        "version": "37a8eb10ac73c710e46e839caa9f9f16b143c15b",
+        "version": "ea6c912630c18df907dcdc09ec6b4a2c6f9aa493",
         "repo": "https://github.com/FuturFusion/openfga-sync.git",
         "build_targets": [
             [
