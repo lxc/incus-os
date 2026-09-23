@@ -56,29 +56,34 @@ func TestCrontabValidation(t *testing.T) {
 			expected: nil,
 		},
 		{
+			name:     "Valid duration",
+			crontab:  "6h0m0s",
+			expected: nil,
+		},
+		{
 			name:     "Too few fields",
 			crontab:  "0 0 * *",
-			expected: ErrInvalidCronTab,
+			expected: ErrInvalidSchedule,
 		},
 		{
 			name:     "Too many fields",
 			crontab:  "0 0 * * * *",
-			expected: ErrInvalidCronTab,
+			expected: ErrInvalidSchedule,
 		},
 		{
 			name:     "Non-numeric characters",
 			crontab:  "a b c d e",
-			expected: ErrInvalidCronTab,
+			expected: ErrInvalidSchedule,
 		},
 		{
 			name:     "Empty string",
 			crontab:  "",
-			expected: ErrInvalidCronTab,
+			expected: ErrInvalidSchedule,
 		},
 		{
 			name:     "Only whitespace",
 			crontab:  "     ",
-			expected: ErrInvalidCronTab,
+			expected: ErrInvalidSchedule,
 		},
 	}
 

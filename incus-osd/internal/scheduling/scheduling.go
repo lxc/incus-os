@@ -22,8 +22,8 @@ type Scheduler struct {
 // JobFunc represents the type of function that executes a scheduled job.
 type JobFunc func(context.Context) error
 
-// ErrInvalidCronTab is returned when an invalid crontab expression is provided.
-var ErrInvalidCronTab = errors.New("invalid crontab expression")
+// ErrInvalidSchedule is returned when an invalid schedule expression is provided.
+var ErrInvalidSchedule = errors.New("invalid schedule expression")
 
 // NewScheduler creates a new Scheduler.
 func NewScheduler() (Scheduler, error) {
@@ -41,20 +41,31 @@ func NewScheduler() (Scheduler, error) {
 // RegisterJob registers a job in the Scheduler.
 //
 // If the job does not exist, it is created. If it already exists, it is updated.
-func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) error {
+func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc) error {
+	var jobDef gocron.JobDefinition
+
 	cron := gocron.NewDefaultCron(false)
 
-	// Validate scrub schedule expression.
-	err := cron.IsValid(crontab, time.UTC, time.Now())
-	if err != nil {
-		return ErrInvalidCronTab
+	// Create a JobDefinition based on the format of the provided schedule
+	// parameter. Attempt to parse as a crontab, and if unsuccessful
+	// attempt to parse as a time.Duration.
+	err := cron.IsValid(schedule, time.UTC, time.Now())
+	if err == nil {
+		jobDef = gocron.CronJob(schedule, false)
+	} else {
+		duration, err := time.ParseDuration(schedule)
+		if err != nil {
+			return ErrInvalidSchedule
+		}
+
+		jobDef = gocron.DurationJob(duration)
 	}
 
 	id, ok := s.jobs[name]
 	if ok {
 		_, err := s.scheduler.Update(
 			id,
-			gocron.CronJob(crontab, false),
+			jobDef,
 			gocron.NewTask(wrapJob(name, jobFunc)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
@@ -63,7 +74,7 @@ func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) e
 		}
 	} else {
 		job, err := s.scheduler.NewJob(
-			gocron.CronJob(crontab, false),
+			jobDef,
 			gocron.NewTask(wrapJob(name, jobFunc)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
