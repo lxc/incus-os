@@ -973,13 +973,13 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 func registerJobs(s *state.State) error {
 	// Register the ZFS scrub job.
-	err := jobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools)
+	err := jobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools, nil)
 	if err != nil {
 		return err
 	}
 
 	// Register the ZFS trim job.
-	err = jobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools)
+	err = jobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools, nil)
 	if err != nil {
 		return err
 	}

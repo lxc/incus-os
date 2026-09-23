@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // JobName represents the name of a periodic job.
@@ -20,7 +22,7 @@ type Scheduler struct {
 }
 
 // JobFunc represents the type of function that executes a scheduled job.
-type JobFunc func(context.Context) error
+type JobFunc func(context.Context, *state.State) error
 
 // ErrInvalidSchedule is returned when an invalid schedule expression is provided.
 var ErrInvalidSchedule = errors.New("invalid schedule expression")
@@ -41,7 +43,7 @@ func NewScheduler() (Scheduler, error) {
 // RegisterJob registers a job in the Scheduler.
 //
 // If the job does not exist, it is created. If it already exists, it is updated.
-func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc) error {
+func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc, ss *state.State) error {
 	var jobDef gocron.JobDefinition
 
 	cron := gocron.NewDefaultCron(false)
@@ -66,7 +68,7 @@ func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc) 
 		_, err := s.scheduler.Update(
 			id,
 			jobDef,
-			gocron.NewTask(wrapJob(name, jobFunc)),
+			gocron.NewTask(wrapJob(name, jobFunc, ss)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
 		if err != nil {
@@ -75,7 +77,7 @@ func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc) 
 	} else {
 		job, err := s.scheduler.NewJob(
 			jobDef,
-			gocron.NewTask(wrapJob(name, jobFunc)),
+			gocron.NewTask(wrapJob(name, jobFunc, ss)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
 		if err != nil {
@@ -115,7 +117,7 @@ func (s *Scheduler) Shutdown() error {
 	return s.scheduler.Shutdown()
 }
 
-func wrapJob(name JobName, jobFunc JobFunc) func(context.Context) {
+func wrapJob(name JobName, jobFunc JobFunc, s *state.State) func(context.Context) {
 	return func(ctx context.Context) {
 		select {
 		// If the context is already cancelled, don't start the job.
@@ -125,7 +127,7 @@ func wrapJob(name JobName, jobFunc JobFunc) func(context.Context) {
 		default:
 			slog.InfoContext(ctx, "Executing periodic job", slog.String("job", string(name)))
 
-			err := jobFunc(ctx)
+			err := jobFunc(ctx, s)
 			if err != nil {
 				slog.ErrorContext(ctx, "Error running periodic job", slog.String("job", string(name)), slog.Any("error", err))
 			}
