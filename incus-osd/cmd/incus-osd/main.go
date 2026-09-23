@@ -33,6 +33,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
@@ -49,6 +50,8 @@ var (
 	varPath = "/var/lib/incus-os/"
 	runPath = "/run/incus-os/"
 )
+
+var jobScheduler scheduling.Scheduler
 
 func main() {
 	ctx := context.Background()
@@ -84,6 +87,12 @@ func main() {
 	s, err := state.LoadOrCreate(filepath.Join(varPath, "state.txt"))
 	if err != nil {
 		tui.EarlyError("unable to load state file: "+err.Error(), osName)
+		os.Exit(1)
+	}
+
+	jobScheduler, err = scheduling.NewScheduler()
+	if err != nil {
+		tui.EarlyError("unable to create scheduler: "+err.Error(), osName)
 		os.Exit(1)
 	}
 
@@ -301,7 +310,7 @@ func run(ctx context.Context, s *state.State) error {
 	}
 
 	// Start the API.
-	server, err := rest.NewServer(ctx, s, unixListener)
+	server, err := rest.NewServer(ctx, unixListener, s, &jobScheduler)
 	if err != nil {
 		return err
 	}
@@ -348,7 +357,7 @@ func shutdown(ctx context.Context, s *state.State) error {
 	modal.Update("System is shutting down")
 
 	// Shutdown the job scheduler.
-	err = s.JobScheduler.Shutdown()
+	err = jobScheduler.Shutdown()
 	if err != nil {
 		return err
 	}
@@ -883,7 +892,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}
 
 	// Start the job scheduler.
-	s.JobScheduler.Start()
+	jobScheduler.Start()
 
 	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan bool, 1)
@@ -964,13 +973,13 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 func registerJobs(s *state.State) error {
 	// Register the ZFS scrub job.
-	err := s.JobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools)
+	err := jobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools)
 	if err != nil {
 		return err
 	}
 
 	// Register the ZFS trim job.
-	err = s.JobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools)
+	err = jobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools)
 	if err != nil {
 		return err
 	}
@@ -1250,7 +1259,7 @@ func startFallbackListener(ctx context.Context, s *state.State) error {
 	}
 
 	// Start the fallback HTTPS server.
-	server, err := rest.NewServer(ctx, s, util.NewFancyTLSListener(tcpListener, *serverCert))
+	server, err := rest.NewServer(ctx, util.NewFancyTLSListener(tcpListener, *serverCert), s, &jobScheduler)
 	if err != nil {
 		return err
 	}
