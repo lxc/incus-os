@@ -176,7 +176,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.80.0-canary.pr-7535.1",
+        "version": "v0.79.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
