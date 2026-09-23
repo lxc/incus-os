@@ -5,10 +5,7 @@ import (
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
-	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
-	"github.com/lxc/incus-os/incus-osd/internal/tui"
-	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
 // swagger:operation GET /1.0/system/update system system_get_update
@@ -150,51 +147,17 @@ func (s *Server) apiSystemUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trigger a normal OS and application update check.
-	if !check.OSOnly {
-		s.state.TriggerUpdate <- true
-
-		_ = response.EmptySyncResponse.Render(w)
-
-		return
+	// Pick between a full update check and an OS-only one.
+	trigger := s.state.TriggerUpdate
+	if check.OSOnly {
+		trigger = s.state.TriggerOSOnlyUpdate
 	}
 
-	// Only trigger an OS update check.
-
-	// Get the TUI.
-	t, err := tui.GetTUI(nil)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
+	// Non-blocking send so the request returns immediately even if a check is already pending.
+	select {
+	case trigger <- true:
+	default:
 	}
-
-	// Get the provider.
-	p, err := providers.Load(r.Context(), s.state, false)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Clear the provider cache since this is a manual request.
-	err = p.ClearCache(r.Context())
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Check for an OS update.
-	newInstalledOSVersion, err := update.CheckAndDownloadUpdate(r.Context(), s.state, t, p, update.TypeOS, "", false, false)
-	if err != nil {
-		_ = response.InternalError(err).Render(w)
-
-		return
-	}
-
-	// Display a post-update message, if needed.
-	update.HandlePostUpdateMessage(s.state, t, newInstalledOSVersion)
 
 	_ = response.EmptySyncResponse.Render(w)
 }
