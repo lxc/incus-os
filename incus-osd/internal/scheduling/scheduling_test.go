@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 func TestSchedulerStartup(t *testing.T) {
@@ -23,20 +25,20 @@ func TestSchedulerUsage(t *testing.T) {
 
 	// Register the first job.
 	firstJob := JobName("first_job")
-	err = scheduler.RegisterJob(firstJob, "* * * * *", func(_ context.Context) error { return nil })
+	err = scheduler.RegisterJob(firstJob, "* * * * *", func(_ context.Context, _ *state.State) error { return nil }, nil)
 	require.NoError(t, err)
 	require.Len(t, scheduler.jobs, 1)
 	require.Contains(t, scheduler.jobs, firstJob)
 
 	// Register the second job.
 	secondJob := JobName("second_job")
-	err = scheduler.RegisterJob(secondJob, "*/5 * * * *", func(_ context.Context) error { return nil })
+	err = scheduler.RegisterJob(secondJob, "*/5 * * * *", func(_ context.Context, _ *state.State) error { return nil }, nil)
 	require.NoError(t, err)
 	require.Len(t, scheduler.jobs, 2)
 	require.Contains(t, scheduler.jobs, secondJob)
 
 	// Update the first job.
-	err = scheduler.RegisterJob(firstJob, "0 2 * * 1", func(_ context.Context) error { return nil })
+	err = scheduler.RegisterJob(firstJob, "0 2 * * 1", func(_ context.Context, _ *state.State) error { return nil }, nil)
 	require.NoError(t, err)
 	require.Len(t, scheduler.jobs, 2)
 	require.Contains(t, scheduler.jobs, firstJob)
@@ -94,7 +96,7 @@ func TestCrontabValidation(t *testing.T) {
 			scheduler, err := NewScheduler()
 			require.NoError(t, err)
 
-			got := scheduler.RegisterJob(JobName("test"), tc.crontab, func(_ context.Context) error { return nil })
+			got := scheduler.RegisterJob(JobName("test"), tc.crontab, func(_ context.Context, _ *state.State) error { return nil }, nil)
 			require.Equal(t, tc.expected, got, tc.name)
 		})
 	}
