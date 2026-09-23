@@ -88,6 +88,23 @@ func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc) 
 	return nil
 }
 
+// RemoveJob removes a job from the Scheduler.
+func (s *Scheduler) RemoveJob(name JobName) error {
+	id, ok := s.jobs[name]
+	if !ok {
+		return errors.New("specified job isn't currently scheduled")
+	}
+
+	err := s.scheduler.RemoveJob(id)
+	if err != nil {
+		return err
+	}
+
+	delete(s.jobs, name)
+
+	return nil
+}
+
 // Start starts the scheduler and its registered jobs.
 func (s *Scheduler) Start() {
 	s.scheduler.Start()
