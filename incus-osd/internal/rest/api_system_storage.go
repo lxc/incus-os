@@ -116,8 +116,8 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// Apply new schedule to the job scheduler.
 		err = s.state.JobScheduler.RegisterJob(zfs.PoolScrubJob, storageStruct.Config.ScrubSchedule, zfs.ScrubAllPools)
 		if err != nil {
-			if errors.Is(err, scheduling.ErrInvalidCronTab) {
-				_ = response.BadRequest(errors.New("invalid cron expression provided for scrub schedule")).Render(w)
+			if errors.Is(err, scheduling.ErrInvalidSchedule) {
+				_ = response.BadRequest(errors.New("invalid expression provided for scrub schedule")).Render(w)
 
 				return
 			}
@@ -133,8 +133,8 @@ func (s *Server) apiSystemStorage(w http.ResponseWriter, r *http.Request) {
 		// Apply new trim schedule to the job scheduler.
 		err = s.state.JobScheduler.RegisterJob(zfs.PoolTrimJob, storageStruct.Config.TrimSchedule, zfs.TrimAllPools)
 		if err != nil {
-			if errors.Is(err, scheduling.ErrInvalidCronTab) {
-				_ = response.BadRequest(errors.New("invalid cron expression provided for trim schedule")).Render(w)
+			if errors.Is(err, scheduling.ErrInvalidSchedule) {
+				_ = response.BadRequest(errors.New("invalid expression provided for trim schedule")).Render(w)
 
 				return
 			}
