@@ -226,6 +226,40 @@ func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartu
 	}
 }
 
+// CheckOSUpdate wraps common logic used when manually checking for an OS update only.
+func CheckOSUpdate(ctx context.Context, s *state.State, p providers.Provider) {
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to get TUI application: "+err.Error())
+
+		return
+	}
+
+	// Save when we last performed an update check.
+	s.System.Update.State.LastCheck = time.Now()
+	s.System.Update.State.Status = "Running update check"
+
+	// Clear the provider cache since this is a manual request.
+	err = p.ClearCache(ctx)
+	if err != nil {
+		s.System.Update.State.Status = "Failed to clear provider cache"
+		slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+
+		return
+	}
+
+	// Check for the latest OS update.
+	newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", false, false)
+	if err != nil {
+		s.System.Update.State.Status = "Failed to check for OS updates"
+		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+		return
+	}
+
+	HandlePostUpdateMessage(s, t, newInstalledOSVersion)
+}
+
 // InstallUpdateApp wraps common logic used when manually installing or updating an application.
 func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool, forceApplyUpdate bool) error {
 	// Get the TUI.

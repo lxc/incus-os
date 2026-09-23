@@ -46,6 +46,7 @@ type State struct {
 	TriggerShutdown         chan bool `json:"-"`
 	TriggerSuspend          chan bool `json:"-"`
 	TriggerUpdate           chan bool `json:"-"`
+	TriggerOSOnlyUpdate     chan bool `json:"-"`
 	TriggerFallbackListener chan bool `json:"-"`
 
 	SecureBoot          SecureBoot `json:"secure_boot"`

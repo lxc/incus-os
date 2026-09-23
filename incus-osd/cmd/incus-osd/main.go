@@ -875,6 +875,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	s.TriggerShutdown = make(chan bool, 1)
 	s.TriggerSuspend = make(chan bool, 1)
 	s.TriggerUpdate = make(chan bool, 1)
+	s.TriggerOSOnlyUpdate = make(chan bool, 1)
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, unix.SIGTERM)
 
@@ -902,6 +903,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 			goto waitSignal
 		case <-s.TriggerUpdate:
 			update.Checker(ctx, s, p, false, true)
+
+			goto waitSignal
+		case <-s.TriggerOSOnlyUpdate:
+			update.CheckOSUpdate(ctx, s, p)
 
 			goto waitSignal
 		case <-s.TriggerFallbackListener:
