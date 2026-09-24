@@ -285,7 +285,7 @@ func (s *Server) apiSystemSecurityTPMRebind(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err := secureboot.ForceUpdatePCRBindings(r.Context(), s.state.OS.Name, s.state.OS.RunningRelease)
+	err := secureboot.ForceUpdatePCRBindings(r.Context(), s.state)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

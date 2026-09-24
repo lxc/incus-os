@@ -30,7 +30,7 @@ import (
 // a recovery-type situation, such as when the system had to be booted with a recovery passphrase.
 //
 // Immediately after a successful reset, the system will be rebooted.
-func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string) error {
+func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
@@ -72,7 +72,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	// Extract the signing certificate from the UKI we're running from.
-	ukiCert, err := getPublicKeyFromUKI(fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", osName, osVersion))
+	ukiCert, err := getPublicKeyFromUKI(fmt.Sprintf("/boot/EFI/Linux/%s_%s.efi", s.OS.Name, s.OS.RunningRelease))
 	if err != nil {
 		return err
 	}
@@ -170,10 +170,7 @@ func ForceUpdatePCRBindings(ctx context.Context, osName string, osVersion string
 	}
 
 	// Once complete, immediately reboot the system which should then auto-unlock.
-	_, err = subprocess.RunCommandContext(ctx, "systemctl", "reboot")
-	if err != nil {
-		return err
-	}
+	s.TriggerReboot <- true
 
 	return nil
 }
