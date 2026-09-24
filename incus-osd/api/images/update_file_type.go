@@ -52,13 +52,13 @@ var UpdateFileTypes = map[UpdateFileType]struct{}{
 	UpdateFileTypeApplication:              {},
 }
 
-func (u *UpdateFileType) String() string {
-	return string(*u)
+func (u UpdateFileType) String() string {
+	return string(u)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (u *UpdateFileType) MarshalText() ([]byte, error) {
-	return []byte(*u), nil
+func (u UpdateFileType) MarshalText() ([]byte, error) {
+	return []byte(u), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.

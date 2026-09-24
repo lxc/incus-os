@@ -653,10 +653,25 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		machineID = "UNKNOWN"
 	}
 
-	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"))
+	// Get the UKI profile that has booted.
+	ukiProfile, err := util.GetCurrentUKIProfile()
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "System is starting up", "mode", mode, "version", s.OS.RunningRelease, "machine-id", strings.TrimSuffix(machineID, "\n"), "uki-profile", ukiProfile)
 
 	if mode != "production" && mode != "dev" {
 		return errors.New("currently unsupported operating mode")
+	}
+
+	// Set the next boot ID as the management daemon starts. We do this now rather than attempting to
+	// do so as part of the shutdown/reboot logic because an externally-triggered power cycle (such as a
+	// physical power button being pressed) may not permit us to properly set the underlying EFI variable
+	// since systemd will already be tearing down the system.
+	err = util.SetNextBootID(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Create this channel early, so we don't block trying to trigger the fallback HTTPS listener.

@@ -31,7 +31,7 @@ type ServiceCephState struct {
 				Message string `json:"message" yaml:"message"`
 				Count   int    `json:"count"   yaml:"count"`
 			} `json:"summary" yaml:"summary"`
-			Muted bool `json:"muted" yaml:"muted"`
+			Muted bool `json:"muted"   yaml:"muted"`
 		} `json:"checks,omitempty" yaml:"checks,omitempty"`
 	} `json:"health,omitempty"         yaml:"health,omitempty"`
 	ElectionEpoch int      `json:"election_epoch,omitempty" yaml:"election_epoch,omitempty"`

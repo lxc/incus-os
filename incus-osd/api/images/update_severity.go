@@ -29,13 +29,13 @@ var UpdateSeverities = map[UpdateSeverity]struct{}{
 	UpdateSeverityCritical: {},
 }
 
-func (u *UpdateSeverity) String() string {
-	return string(*u)
+func (u UpdateSeverity) String() string {
+	return string(u)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (u *UpdateSeverity) MarshalText() ([]byte, error) {
-	return []byte(*u), nil
+func (u UpdateSeverity) MarshalText() ([]byte, error) {
+	return []byte(u), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
