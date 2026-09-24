@@ -21,13 +21,13 @@ var UpdateFileArchitectures = map[UpdateFileArchitecture]struct{}{
 	UpdateFileArchitecture64BitARM:  {},
 }
 
-func (u *UpdateFileArchitecture) String() string {
-	return string(*u)
+func (u UpdateFileArchitecture) String() string {
+	return string(u)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (u *UpdateFileArchitecture) MarshalText() ([]byte, error) {
-	return []byte(*u), nil
+func (u UpdateFileArchitecture) MarshalText() ([]byte, error) {
+	return []byte(u), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.

@@ -45,13 +45,13 @@ var UpdateFileComponents = map[UpdateFileComponent]struct{}{
 	UpdateFileComponentOperationsCenter: {},
 }
 
-func (u *UpdateFileComponent) String() string {
-	return string(*u)
+func (u UpdateFileComponent) String() string {
+	return string(u)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-func (u *UpdateFileComponent) MarshalText() ([]byte, error) {
-	return []byte(*u), nil
+func (u UpdateFileComponent) MarshalText() ([]byte, error) {
+	return []byte(u), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
