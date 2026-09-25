@@ -86,7 +86,7 @@ func GetCurrentUKIProfile() (string, error) {
 		return "", err
 	}
 
-	profileRegex := regexp.MustCompile(`incusos.profile=(.+)`)
+	profileRegex := regexp.MustCompile(`incusos.profile=(\S+)`)
 	profileGroup := profileRegex.FindStringSubmatch(string(cmdline))
 
 	// If the regex doesn't match any profile, we booted the default "main" UKI profile.
