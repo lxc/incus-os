@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // JobName represents the name of a periodic job.
@@ -20,10 +22,10 @@ type Scheduler struct {
 }
 
 // JobFunc represents the type of function that executes a scheduled job.
-type JobFunc func(context.Context) error
+type JobFunc func(context.Context, *state.State) error
 
-// ErrInvalidCronTab is returned when an invalid crontab expression is provided.
-var ErrInvalidCronTab = errors.New("invalid crontab expression")
+// ErrInvalidSchedule is returned when an invalid schedule expression is provided.
+var ErrInvalidSchedule = errors.New("invalid schedule expression")
 
 // NewScheduler creates a new Scheduler.
 func NewScheduler() (Scheduler, error) {
@@ -41,21 +43,32 @@ func NewScheduler() (Scheduler, error) {
 // RegisterJob registers a job in the Scheduler.
 //
 // If the job does not exist, it is created. If it already exists, it is updated.
-func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) error {
+func (s *Scheduler) RegisterJob(name JobName, schedule string, jobFunc JobFunc, ss *state.State) error {
+	var jobDef gocron.JobDefinition
+
 	cron := gocron.NewDefaultCron(false)
 
-	// Validate scrub schedule expression.
-	err := cron.IsValid(crontab, time.UTC, time.Now())
-	if err != nil {
-		return ErrInvalidCronTab
+	// Create a JobDefinition based on the format of the provided schedule
+	// parameter. Attempt to parse as a crontab, and if unsuccessful
+	// attempt to parse as a time.Duration.
+	err := cron.IsValid(schedule, time.UTC, time.Now())
+	if err == nil {
+		jobDef = gocron.CronJob(schedule, false)
+	} else {
+		duration, err := time.ParseDuration(schedule)
+		if err != nil {
+			return ErrInvalidSchedule
+		}
+
+		jobDef = gocron.DurationJob(duration)
 	}
 
 	id, ok := s.jobs[name]
 	if ok {
 		_, err := s.scheduler.Update(
 			id,
-			gocron.CronJob(crontab, false),
-			gocron.NewTask(wrapJob(name, jobFunc)),
+			jobDef,
+			gocron.NewTask(wrapJob(name, jobFunc, ss)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
 		if err != nil {
@@ -63,8 +76,8 @@ func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) e
 		}
 	} else {
 		job, err := s.scheduler.NewJob(
-			gocron.CronJob(crontab, false),
-			gocron.NewTask(wrapJob(name, jobFunc)),
+			jobDef,
+			gocron.NewTask(wrapJob(name, jobFunc, ss)),
 			gocron.WithSingletonMode(gocron.LimitModeReschedule),
 		)
 		if err != nil {
@@ -73,6 +86,23 @@ func (s *Scheduler) RegisterJob(name JobName, crontab string, jobFunc JobFunc) e
 
 		s.jobs[name] = job.ID()
 	}
+
+	return nil
+}
+
+// RemoveJob removes a job from the Scheduler.
+func (s *Scheduler) RemoveJob(name JobName) error {
+	id, ok := s.jobs[name]
+	if !ok {
+		return errors.New("specified job isn't currently scheduled")
+	}
+
+	err := s.scheduler.RemoveJob(id)
+	if err != nil {
+		return err
+	}
+
+	delete(s.jobs, name)
 
 	return nil
 }
@@ -87,7 +117,7 @@ func (s *Scheduler) Shutdown() error {
 	return s.scheduler.Shutdown()
 }
 
-func wrapJob(name JobName, jobFunc JobFunc) func(context.Context) {
+func wrapJob(name JobName, jobFunc JobFunc, s *state.State) func(context.Context) {
 	return func(ctx context.Context) {
 		select {
 		// If the context is already cancelled, don't start the job.
@@ -97,7 +127,7 @@ func wrapJob(name JobName, jobFunc JobFunc) func(context.Context) {
 		default:
 			slog.InfoContext(ctx, "Executing periodic job", slog.String("job", string(name)))
 
-			err := jobFunc(ctx)
+			err := jobFunc(ctx, s)
 			if err != nil {
 				slog.ErrorContext(ctx, "Error running periodic job", slog.String("job", string(name)), slog.Any("error", err))
 			}

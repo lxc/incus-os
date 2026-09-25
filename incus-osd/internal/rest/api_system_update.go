@@ -2,10 +2,13 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
 
 // swagger:operation GET /1.0/system/update system system_get_update
@@ -87,6 +90,31 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 			_ = response.BadRequest(err).Render(w)
 
 			return
+		}
+
+		// Set the new update check frequency.
+		if newConfig.Config.CheckFrequency != s.state.System.Update.Config.CheckFrequency { //nolint:nestif
+			if newConfig.Config.CheckFrequency != "never" {
+				err := s.jobScheduler.RegisterJob(update.UpdateCheckJob, newConfig.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s.state)
+				if err != nil {
+					if errors.Is(err, scheduling.ErrInvalidSchedule) {
+						_ = response.BadRequest(errors.New("invalid expression provided for update schedule")).Render(w)
+
+						return
+					}
+
+					_ = response.InternalError(err).Render(w)
+
+					return
+				}
+			} else {
+				err := s.jobScheduler.RemoveJob(update.UpdateCheckJob)
+				if err != nil {
+					_ = response.BadRequest(err).Render(w)
+
+					return
+				}
+			}
 		}
 
 		// Apply the updated configuration.
