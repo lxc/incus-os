@@ -27,6 +27,8 @@ type SystemUpdateState struct {
 	LastCheck   time.Time `json:"last_check"   yaml:"last_check"` // In system's timezone.
 	Status      string    `json:"status"       yaml:"status"`
 	NeedsReboot bool      `json:"needs_reboot" yaml:"needs_reboot"`
+
+	PendingMaintenanceWindowCheck bool `json:"-"`
 }
 
 // SystemUpdateMaintenanceWindow defines a maintenance window for when it is acceptable to check for and apply updates.
