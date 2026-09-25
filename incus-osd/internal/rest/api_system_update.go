@@ -93,7 +93,7 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Set the new update check frequency.
-		if newConfig.Config.CheckFrequency != s.state.System.Update.Config.CheckFrequency {
+		if newConfig.Config.CheckFrequency != s.state.System.Update.Config.CheckFrequency { //nolint:nestif
 			if newConfig.Config.CheckFrequency != "never" {
 				err := s.jobScheduler.RegisterJob(update.UpdateCheckJob, newConfig.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s.state)
 				if err != nil {

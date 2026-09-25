@@ -12,6 +12,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -19,292 +20,238 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
-// Checker utilizes the given provider to check for Secure Boot, OS, and application updates.
-func Checker(ctx context.Context, s *state.State, p providers.Provider, isStartupCheck bool, isUserRequested bool) { //nolint:revive
-	t, err := tui.GetTUI(nil)
-	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get TUI application: "+err.Error())
+const (
+	// UpdateCheckJob represents the job to check for system updates.
+	UpdateCheckJob scheduling.JobName = "update_check"
+)
 
-		return
-	}
-
-	for {
-		// Determine if a primary application is installed or not.
-		primaryApplication, err := applications.GetPrimary(ctx, s, false)
-		if err != nil && !errors.Is(err, applications.ErrNoPrimary) {
-			s.System.Update.State.Status = "Failed to check if a primary application is installed"
-			slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+// CheckRespectMaintenanceWindows runs a full (applications and OS) update check
+// respecting any defined maintenance windows. Typically this should be called
+// automatically by the daemon scheduler.
+func CheckRespectMaintenanceWindows(ctx context.Context, s *state.State) error {
+	// Check if we are within a defined maintenance window.
+	// FIXME: This changes behavior. Prior, we would sleep min(duration, next maintenance window)
+	//        but now we only run the check on a fixed schedule. This may cause IncusOS to
+	//        skip maintenance windows if the duration is larger than the smallest maintenance window.
+	inMaintenanceWindow := len(s.System.Update.Config.MaintenanceWindows) == 0
+	for _, window := range s.System.Update.Config.MaintenanceWindows {
+		if window.IsCurrentlyActive() {
+			inMaintenanceWindow = true
 
 			break
 		}
-
-		// If updates are disabled, skip for an hour.
-		if !isUserRequested && s.System.Update.Config.CheckFrequency == "never" {
-			// Only respect the request to disable update checks if a primary application is installed.
-			// If not, we can find ourselves in a situation where IncusOS boots but is inaccessible
-			// because no primary application is running, and IncusOS would never attempt to install one.
-			if primaryApplication != nil {
-				if isStartupCheck {
-					break
-				}
-
-				time.Sleep(time.Hour)
-
-				continue
-			}
-		}
-
-		// Sleep at the top of each loop, except if we're performing a startup or manual check.
-		if !isStartupCheck && !isUserRequested {
-			timeSinceCheck := time.Since(s.System.Update.State.LastCheck)
-			rawFrequency := s.System.Update.Config.CheckFrequency
-
-			// If no primary application is installed and the check frequency is never, override
-			// that value to six hours. Once a primary application is successfully installed,
-			// we will honor the request to disable update checks.
-			if primaryApplication == nil && rawFrequency == "never" {
-				rawFrequency = "6h"
-			}
-
-			frequency, err := time.ParseDuration(rawFrequency)
-			if err != nil {
-				// Shouldn't be possible, we validate on update.
-				s.System.Update.State.Status = "Failed to parse update frequency"
-				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
-
-				break
-			}
-
-			if frequency < 0 {
-				// Shouldn't be possible, we validate on update.
-				s.System.Update.State.Status = "Update frequency must be a positive value"
-				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", "Update frequency must be a positive value")
-
-				break
-			}
-
-			// If any maintenance windows are defined, limit the time to sleep to be a minimum
-			// of the configured check frequency and the start of the next maintenance window,
-			// whichever is shorter.
-			for _, window := range s.System.Update.Config.MaintenanceWindows {
-				if window.TimeUntilActive() > 0 && window.TimeUntilActive() < frequency {
-					frequency = window.TimeUntilActive()
-				}
-			}
-
-			if timeSinceCheck < frequency {
-				// Add one minute to the calculated sleep to protect against an edge case
-				// where we try to do an update check right at the start of a maintenance window.
-				time.Sleep(frequency - timeSinceCheck + 1*time.Minute)
-			}
-		}
-
-		// Save when we last performed an update check.
-		s.System.Update.State.LastCheck = time.Now()
-		s.System.Update.State.Status = "Running update check"
-
-		// Check maintenance window, except if we're performing a startup or manual check.
-		if !isStartupCheck && !isUserRequested {
-			// Check that we are within a defined maintenance window.
-			inMaintenanceWindow := len(s.System.Update.Config.MaintenanceWindows) == 0
-			for _, window := range s.System.Update.Config.MaintenanceWindows {
-				if window.IsCurrentlyActive() {
-					inMaintenanceWindow = true
-
-					break
-				}
-			}
-
-			if !inMaintenanceWindow {
-				s.System.Update.State.Status = "Skipping update check outside of maintenance window(s)"
-				slog.InfoContext(ctx, s.System.Update.State.Status)
-
-				continue
-			}
-		}
-
-		// If user requested, clear cache.
-		if isUserRequested {
-			err := p.ClearCache(ctx)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to clear provider cache"
-				slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
-
-				break
-			}
-		}
-
-		// Check for and apply any Secure Boot key updates before performing any OS or application updates.
-		// Only check if Secure Boot is enabled.
-		if !s.SecureBootDisabled {
-			_, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", isStartupCheck, false)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-				if isStartupCheck || isUserRequested {
-					break
-				}
-
-				continue
-			}
-		}
-
-		// Determine what applications to install.
-		toInstall, err := applications.GetInstallApplications(ctx, s)
-		if err != nil {
-			s.System.Update.State.Status = err.Error()
-			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-			if isStartupCheck || isUserRequested {
-				break
-			}
-
-			continue
-		}
-
-		// Check for application updates.
-		appsUpdated := map[string]string{}
-
-		for _, appName := range toInstall {
-			newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, isStartupCheck, false)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to check for application updates"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-				break
-			}
-
-			if newAppVersion != "" {
-				appsUpdated[appName] = newAppVersion
-			}
-		}
-
-		// Apply the system extensions.
-		if len(appsUpdated) > 0 {
-			slog.DebugContext(ctx, "Refreshing system extensions")
-
-			err := applications.RefreshExtensions(ctx, s)
-			if err != nil {
-				s.System.Update.State.Status = "Failed to refresh system extensions"
-				showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-				if isStartupCheck || isUserRequested {
-					break
-				}
-
-				continue
-			}
-		}
-
-		// Check for the latest OS update.
-		newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", isStartupCheck, false)
-		if err != nil {
-			s.System.Update.State.Status = "Failed to check for OS updates"
-			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
-
-			if isStartupCheck || isUserRequested {
-				break
-			}
-
-			continue
-		}
-
-		// Notify the applications that they need to update/restart.
-		if !isStartupCheck {
-			for appName, appVersion := range appsUpdated {
-				_ = reloadApplication(ctx, s, appName, appVersion)
-			}
-		}
-
-		HandlePostUpdateMessage(s, t, newInstalledOSVersion)
-
-		if isStartupCheck || isUserRequested {
-			// If running a one-time update, we're done.
-			break
-		}
 	}
+
+	if !inMaintenanceWindow {
+		s.System.Update.State.Status = "Skipping update check outside of maintenance window(s)"
+		slog.InfoContext(ctx, s.System.Update.State.Status)
+
+		return nil
+	}
+
+	return Check(ctx, s)
 }
 
-// CheckOSUpdate wraps common logic used when manually checking for an OS update only.
-func CheckOSUpdate(ctx context.Context, s *state.State, p providers.Provider) {
-	t, err := tui.GetTUI(nil)
+// Check runs a full (applications and OS) update check regardless of any defined
+// maintenance windows. Typically this should be called  as the system starts up.
+func Check(ctx context.Context, s *state.State) error {
+	err := CheckSecureBoot(ctx, s, false, false)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to get TUI application: "+err.Error())
+		return err
+	}
 
-		return
+	err = CheckApplications(ctx, s, nil, false, false)
+	if err != nil {
+		return err
+	}
+
+	err = CheckOS(ctx, s, false, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckWithEmptyCache runs a full (applications and OS) update check regardless
+// of any defined maintenance windows. The provider's cache is forceably cleared
+// to ensure the very latest updates are available. Typically this should one be
+// called in response to a user specifically requesting an update check.
+func CheckWithEmptyCache(ctx context.Context, s *state.State) error {
+	err := CheckSecureBoot(ctx, s, true, false)
+	if err != nil {
+		return err
+	}
+
+	err = CheckApplications(ctx, s, nil, true, false)
+	if err != nil {
+		return err
+	}
+
+	err = CheckOS(ctx, s, true, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckSecureBoot checks for an available Secure Boot update.
+func CheckSecureBoot(ctx context.Context, s *state.State, clearCache bool, forceApplyUpdate bool) error {
+	// Only check for updates if Secure Boot is enabled.
+	if s.SecureBootDisabled {
+		return nil
+	}
+
+	p, t, err := updateCommonPrep(ctx, s, clearCache)
+	if err != nil {
+		return err
 	}
 
 	// Save when we last performed an update check.
 	s.System.Update.State.LastCheck = time.Now()
-	s.System.Update.State.Status = "Running update check"
+	s.System.Update.State.Status = "Checking for Secure Boot updates"
 
-	// Clear the provider cache since this is a manual request.
-	err = p.ClearCache(ctx)
+	// Check for and apply any Secure Boot key updates before performing any OS or application updates.
+	_, err = checkAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", forceApplyUpdate)
 	if err != nil {
-		s.System.Update.State.Status = "Failed to clear provider cache"
-		slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+		s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
+		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
-		return
+		return err
 	}
 
+	dismissUpdateModal(t)
+
+	s.System.Update.State.Status = "Secure Boot update check completed"
+
+	return nil
+}
+
+// CheckApplications checks a specified list of applications for any available updates and will install
+// any application not currently installed. If no applications are specified, all currently installed
+// applications will be checked.
+func CheckApplications(ctx context.Context, s *state.State, toInstall []string, clearCache bool, forceApplyUpdate bool) error {
+	p, t, err := updateCommonPrep(ctx, s, clearCache)
+	if err != nil {
+		return err
+	}
+
+	// Save when we last performed an update check.
+	s.System.Update.State.LastCheck = time.Now()
+	s.System.Update.State.Status = "Checking for application updates"
+
+	if toInstall == nil {
+		// When no specific application(s) are specified, default to checking
+		// for updates each currently installed application.
+		toInstall, err = applications.GetInstallApplications(ctx, s)
+		if err != nil {
+			s.System.Update.State.Status = err.Error()
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			return err
+		}
+	}
+
+	// Check for application updates.
+	appsUpdated := map[string]string{}
+
+	for _, appName := range toInstall {
+		newAppVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, forceApplyUpdate)
+		if err != nil {
+			s.System.Update.State.Status = "Failed to check for update for application '" + appName + "'"
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			continue
+		}
+
+		if newAppVersion != "" {
+			appsUpdated[appName] = newAppVersion
+		}
+	}
+
+	dismissUpdateModal(t)
+
+	// Refresh extensions and reload applications if any have been updated or freshly installed.
+	if len(appsUpdated) > 0 {
+		// Apply the system extensions.
+		slog.DebugContext(ctx, "Refreshing system extensions")
+
+		err := applications.RefreshExtensions(ctx, s)
+		if err != nil {
+			s.System.Update.State.Status = "Failed to refresh system extensions"
+			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			return err
+		}
+
+		// If this check isn't run during initial system startup, notify the applications that
+		// they need to update/restart.
+		if s.OS.SystemIsReady {
+			for appName, appVersion := range appsUpdated {
+				err := reloadApplication(ctx, s, appName, appVersion)
+				if err != nil {
+					s.System.Update.State.Status = "Failed to reload application '" + appName + "'"
+					showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+				}
+			}
+		}
+	}
+
+	s.System.Update.State.Status = "Application update check completed"
+
+	return nil
+}
+
+// CheckOS checks for an available OS update.
+func CheckOS(ctx context.Context, s *state.State, clearCache bool, forceApplyUpdate bool) error {
+	p, t, err := updateCommonPrep(ctx, s, clearCache)
+	if err != nil {
+		return err
+	}
+
+	// Save when we last performed an update check.
+	s.System.Update.State.LastCheck = time.Now()
+	s.System.Update.State.Status = "Checking for OS updates"
+
 	// Check for the latest OS update.
-	newInstalledOSVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeOS, "", false, false)
+	newInstalledOSVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeOS, "", forceApplyUpdate)
 	if err != nil {
 		s.System.Update.State.Status = "Failed to check for OS updates"
 		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
 
-		return
+		return err
 	}
 
-	HandlePostUpdateMessage(s, t, newInstalledOSVersion)
+	dismissUpdateModal(t)
+
+	s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
+
+	return nil
 }
 
-// InstallUpdateApp wraps common logic used when manually installing or updating an application.
-func InstallUpdateApp(ctx context.Context, s *state.State, appName string, clearCache bool, forceApplyUpdate bool) error {
-	// Get the TUI.
-	t, err := tui.GetTUI(nil)
-	if err != nil {
-		return err
-	}
-
-	// Get the provider.
+func updateCommonPrep(ctx context.Context, s *state.State, clearCache bool) (providers.Provider, *tui.TUI, error) {
 	p, err := providers.Load(ctx, s, false)
 	if err != nil {
-		return err
+		return nil, nil, err
+	}
+
+	t, err := tui.GetTUI(nil)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if clearCache {
-		// Clear the provider cache to get the latest available version for an update.
 		err := p.ClearCache(ctx)
 		if err != nil {
-			return err
+			s.System.Update.State.Status = "Failed to clear provider cache"
+			slog.ErrorContext(ctx, s.System.Update.State.Status, "err", err.Error())
+
+			return nil, nil, err
 		}
 	}
 
-	// Attempt to download the application.
-	newAppVersion, err := CheckAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, false, forceApplyUpdate)
-	if err != nil {
-		return err
-	}
-
-	// If the application was freshly installed or updated, refresh the sysext images and trigger the application's update method.
-	if newAppVersion != "" {
-		// Display a post-update message.
-		HandlePostUpdateMessage(s, t, "")
-
-		err := applications.RefreshExtensions(ctx, s)
-		if err != nil {
-			return err
-		}
-
-		err = reloadApplication(ctx, s, appName, newAppVersion)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return p, t, nil
 }
 
 // reloadApplication wraps common logic used when starting/updating an application after it is updated.
@@ -377,23 +324,8 @@ func rebootSystem(ctx context.Context, s *state.State) error {
 	return nil
 }
 
-// HandlePostUpdateMessage takes care of displaying either a reboot message if needed, or ensuring
-// that the update modal is dismissed.
-func HandlePostUpdateMessage(s *state.State, t *tui.TUI, osVersion string) {
-	if osVersion != "" {
-		s.System.Update.State.Status = s.OS.Name + " has been updated to version " + osVersion
-	} else {
-		s.System.Update.State.Status = "Update check completed"
-	}
-
-	updateModal := t.GetModal("update")
-	if updateModal != nil {
-		updateModal.Done()
-	}
-}
-
-// CheckAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
-func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, isStartupCheck bool, forceApplyUpdate bool) (string, error) {
+// checkAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
+func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, forceApplyUpdate bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
@@ -479,8 +411,8 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 			return "", err
 		}
 
-		return applyUpdate(ctx, s, t, update, appName, isStartupCheck)
-	} else if isStartupCheck {
+		return applyUpdate(ctx, s, t, update, appName)
+	} else if !s.OS.SystemIsReady {
 		if ut == TypeApplication {
 			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "channel", s.System.Update.Config.Channel, "version", update.Version())
 		} else {
@@ -491,7 +423,7 @@ func CheckAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	return "", nil
 }
 
-func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string, isStartupCheck bool) (string, error) {
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string) (string, error) {
 	updateModal := t.GetModal("update")
 
 	if t.GetModal("update") == nil {
@@ -552,7 +484,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 			s.System.Update.State.NeedsReboot = true
 
-			if isStartupCheck {
+			if !s.OS.SystemIsReady {
 				sbModal := t.GetModal("secureboot-update")
 				if sbModal == nil {
 					sbModal = t.AddModal(s.OS.Name+" SecureBoot Certificate Update", "secureboot-update")
@@ -588,7 +520,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		}
 
 		// Record the new release.
-		if !s.System.Update.Config.AutoReboot && !isStartupCheck {
+		if !s.System.Update.Config.AutoReboot && s.OS.SystemIsReady {
 			// Mark the system as needing a reboot down the line.
 			s.System.Update.State.NeedsReboot = true
 		}
@@ -611,7 +543,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		}
 
 		// Handle reboot if needed.
-		if s.System.Update.Config.AutoReboot || isStartupCheck {
+		if s.System.Update.Config.AutoReboot || !s.OS.SystemIsReady {
 			// The reboot handler notifies the provider itself when going through the regular shutdown sequence.
 			if s.TriggerReboot == nil {
 				err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
@@ -682,6 +614,13 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 	}
 
 	return update.Version(), nil
+}
+
+func dismissUpdateModal(t *tui.TUI) {
+	updateModal := t.GetModal("update")
+	if updateModal != nil {
+		updateModal.Done()
+	}
 }
 
 func showModalError(ctx context.Context, osName string, msg string, err error, p providers.Provider) {

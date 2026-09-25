@@ -849,14 +849,12 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	p, err := providers.Load(ctx, s, false)
-	if err != nil {
-		return err
-	}
-
 	if !delayInitialUpdateCheck {
 		// Perform an initial blocking check for updates before proceeding.
-		update.Checker(ctx, s, p, true, false)
+		err := update.Check(ctx, s)
+		if err != nil {
+			return errors.New("Failed to perform startup update check: " + err.Error())
+		}
 	}
 
 	// Run application startup actions. Must be done after storage pools are loaded.
@@ -865,15 +863,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
-	// Run periodic update checks if we have a working provider.
-	if p != nil {
-		go update.Checker(ctx, s, p, false, false)
-	}
-
 	// Handle registration.
 	if !s.System.Provider.State.Registered {
 		// Reload the provider following application startup (so it can fetch the certificate).
-		p, err = providers.Load(ctx, s, false)
+		p, err := providers.Load(ctx, s, false)
 		if err != nil {
 			return err
 		}
@@ -926,11 +919,17 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 			goto waitSignal
 		case <-s.TriggerUpdate:
-			update.Checker(ctx, s, p, false, true)
+			err := update.CheckWithEmptyCache(ctx, s)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to check for updates", "err", err)
+			}
 
 			goto waitSignal
 		case <-s.TriggerOSOnlyUpdate:
-			update.CheckOSUpdate(ctx, s, p)
+			err := update.CheckOS(ctx, s, true, false)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to check for OS update", "err", err)
+			}
 
 			goto waitSignal
 		case <-s.TriggerFallbackListener:
@@ -964,7 +963,10 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		go func() {
 			time.Sleep(30 * time.Second)
 
-			update.Checker(ctx, s, p, true, false)
+			err := update.Check(ctx, s)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to perform startup update check: "+err.Error())
+			}
 		}()
 	}
 
@@ -972,6 +974,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 }
 
 func registerJobs(s *state.State) error {
+	// Register the system update check job.
+	if s.System.Update.Config.CheckFrequency != "never" {
+		err := jobScheduler.RegisterJob(update.UpdateCheckJob, s.System.Update.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Register the ZFS scrub job.
 	err := jobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools, nil)
 	if err != nil {
@@ -1331,7 +1341,7 @@ func startApplications(ctx context.Context, s *state.State) error {
 
 			slog.WarnContext(ctx, "Application "+app.Name()+" should be installed, but doesn't exist on disk; attempting to re-download")
 
-			err := update.InstallUpdateApp(ctx, s, app.Name(), true, true)
+			err := update.CheckApplications(ctx, s, []string{app.Name()}, true, true)
 			if err != nil {
 				return err
 			}
