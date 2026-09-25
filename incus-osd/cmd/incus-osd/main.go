@@ -853,7 +853,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		// Perform an initial blocking check for updates before proceeding.
 		err := update.Check(ctx, s)
 		if err != nil {
-			return errors.New("Failed to perform startup update check: " + err.Error())
+			slog.ErrorContext(ctx, "Failed to perform startup update check: "+err.Error())
 		}
 	}
 
