@@ -14,9 +14,9 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.1
 	github.com/klauspost/pgzip v1.2.6
-	github.com/lxc/incus/v7 v7.4.0
+	github.com/lxc/incus/v7 v7.5.1
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.15.0
 	github.com/rivo/tview v0.42.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/sys v0.48.0
 	gopkg.in/ini.v1 v1.67.3
 	software.sslmate.com/src/go-pkcs12 v0.7.3
-	tailscale.com v1.102.4
+	tailscale.com v1.102.5
 )
 
 require (
@@ -96,7 +96,7 @@ require (
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	github.com/zitadel/oidc/v3 v3.51.3 // indirect
+	github.com/zitadel/oidc/v3 v3.51.6 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
