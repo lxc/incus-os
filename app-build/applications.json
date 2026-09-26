@@ -284,7 +284,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.4",
+        "version": "v1.102.5",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
