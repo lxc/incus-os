@@ -405,7 +405,7 @@ def TestIncusOSAPIApplicationsIncusUpgrade(install_image):
         if result["status_code"] == 200:
             raise IncusOSException("unexpected success downgrading Incus Feature release to LTS")
 
-        if not re.search(r"unable to replace application 'incus' with 'incus-lts-7.0': current Incus version \(7\.[0-9]+\) is too new to rollback to older LTS branch", result["error"]):
+        if not re.search(r"unable to replace application 'incus' with 'incus-lts-7.0': current Incus version \(7\.\S+\) is too new to rollback to older LTS branch", result["error"]):
             raise IncusOSException("got unexpected error attempting to downgrade Incus: " + result["error"])
 
     test_seed = {
@@ -438,6 +438,9 @@ def TestIncusOSAPIApplicationsIncusUpgrade(install_image):
         vm.WaitExpectedLog("incus-osd", "Preparing to replace Incus application 'incus-lts-7.0' with 'incus'")
         vm.WaitExpectedLog("incus-osd", "Downloading application update application=incus channel=")
         vm.WaitExpectedLog("incus-osd", "Reloading application name=incus version=")
+
+        # Sleep to allow the daemon to start back up.
+        time.sleep(5)
 
         # Verify that the LTS version is gone.
         result = vm.APIRequest("/1.0/applications")
