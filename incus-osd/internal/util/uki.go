@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"os"
 	"regexp"
 	"slices"
@@ -108,6 +109,17 @@ func SetNextBootID(ctx context.Context) error {
 
 	_, err = subprocess.RunCommandContext(ctx, "bootctl", "set-oneshot", rebootID)
 	if err != nil {
+		// Buggy UEFI implementations exist, which cannot write to the LoaderEntryOneShot EFI
+		// variable. In this case, log a warning, rather than outright failing. This will
+		// likely mean that the affected system won't be able to auto-reboot back into the
+		// same non-default UKI profile, and will require manual intervention if a non-default
+		// profile is required.
+		if strings.Contains(err.Error(), "Failed to update EFI variable") {
+			slog.WarnContext(ctx, "Failed to set default boot target, likely due to a buggy UEFI implementation. Automatic selection of a non-default UKI profile many not work on this system.")
+
+			return nil
+		}
+
 		return err
 	}
 
