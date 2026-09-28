@@ -3,6 +3,7 @@ Description=OpenFGA
 Documentation=https://github.com/openfga/openfga
 
 [Service]
+WorkingDirectory=/var/lib/openfga/
 ExecStartPre=mkdir -p /var/lib/openfga/
 ExecStartPre=/usr/local/bin/openfga migrate --datastore-engine=sqlite --datastore-uri=file:///var/lib/openfga/openfga.sqlite
 ExecStart=/usr/local/bin/openfga run --playground-enabled=false --metrics-enabled=false --datastore-engine=sqlite --datastore-uri=file:///var/lib/openfga/openfga.sqlite

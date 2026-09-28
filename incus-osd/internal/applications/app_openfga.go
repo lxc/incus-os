@@ -140,12 +140,6 @@ func (*openfga) GetDependencies() []string {
 
 // Initialize runs first time initialization.
 func (o *openfga) Initialize(ctx context.Context) error {
-	// Ensure the default configuration directory exists.
-	err := os.Mkdir("/etc/openfga/", 0o755)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
 	// Set an initial random authentication token.
 	initialToken := &api.ApplicationOpenFGA{
 		Config: api.ApplicationOpenFGAConfig{
@@ -215,25 +209,6 @@ func (o *openfga) RestoreBackup(archive io.Reader) error {
 	}
 
 	o.state.Applications.OpenFGA.Config.APITokens = cfg.Authn.Preshared.Keys
-
-	// Ensure the default configuration directory exists.
-	err = os.Mkdir("/etc/openfga/", 0o755)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	// Ensure a symlinked configuration file exists where openfga will look for it.
-	_, err = os.Lstat("/etc/openfga/config.yaml")
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-
-		err := os.Symlink("/var/lib/openfga/config.yaml", "/etc/openfga/config.yaml")
-		if err != nil {
-			return err
-		}
-	}
 
 	// Record when the application was restored.
 	now := time.Now()
@@ -443,19 +418,6 @@ func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
 		}
 	}
 
-	// Ensure a symlinked configuration file exists where openfga will look for it.
-	_, err = os.Lstat("/etc/openfga/config.yaml")
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-
-		err := os.Symlink("/var/lib/openfga/config.yaml", "/etc/openfga/config.yaml")
-		if err != nil {
-			return err
-		}
-	}
-
 	// Save the state.
 	err = o.state.Save()
 	if err != nil {
@@ -468,14 +430,8 @@ func (o *openfga) UpdateConfig(ctx context.Context, req any) error {
 
 // WipeLocalData removes local data created by the application.
 func (*openfga) WipeLocalData(ctx context.Context) error {
-	// Remove configuration file symlink.
-	err := os.Remove("/etc/openfga/config.yaml")
-	if err != nil {
-		return err
-	}
-
 	// Unmount the dataset.
-	err = unix.Unmount("/var/lib/openfga/", 0)
+	err := unix.Unmount("/var/lib/openfga/", 0)
 	if err != nil {
 		return err
 	}
