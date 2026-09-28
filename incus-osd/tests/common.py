@@ -90,7 +90,7 @@ def _timed(fn):
         return elapsed, ret
     return _fn
 
-def _run_tests(tests, max_workers=3):
+def _run_tests(tests, max_workers=6):
     num_pass = 0
     num_fail = 0
 
@@ -107,7 +107,8 @@ def _run_tests(tests, max_workers=3):
                 elapsed, _ = future.result()
             except IncusOSException as e:
                 num_fail += 1
-                print("FAIL: %s: %s" % (name, e.args[0]), flush=True)
+                tb = e.__traceback__.tb_next.tb_next.tb_next.tb_next.tb_next
+                print("FAIL: %s (%s:%d): %s" % (name, os.path.basename(tb.tb_frame.f_code.co_filename), tb.tb_lineno, e.args[0]), flush=True)
 
                 if len(e.args) == 2:
                     print("          journalctl entries:", flush=True)
@@ -116,12 +117,14 @@ def _run_tests(tests, max_workers=3):
                             print("          %s" % line, flush=True)
             except subprocess.CalledProcessError as e:
                 num_fail += 1
-                print("FAIL: %s: %s" % (name, e), flush=True)
+                tb = e.__traceback__.tb_next.tb_next.tb_next.tb_next.tb_next
+                print("FAIL: %s (%s:%d): %s" % (name, os.path.basename(tb.tb_frame.f_code.co_filename), tb.tb_lineno, e), flush=True)
                 if e.stderr is not None:
                     print("          %s" % e.stderr.decode("utf-8"), flush=True)
             except Exception as e:
                 num_fail += 1
-                print("FAIL: %s: %s" % (name, e), flush=True)
+                tb = e.__traceback__.tb_next.tb_next.tb_next.tb_next.tb_next
+                print("FAIL: %s (%s:%d): %s" % (name, os.path.basename(tb.tb_frame.f_code.co_filename), tb.tb_lineno, e), flush=True)
             else:
                 num_pass += 1
                 minute, second = divmod(elapsed, 60)
