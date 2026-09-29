@@ -11,7 +11,7 @@ default: build
 
 .PHONY: clean
 clean:
-	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.packages/*.deb
+	sudo -E rm -Rf .cache/ certs/efi/updates/*.tar.gz mkosi.output/ mkosi.tools* mkosi.packages/*.deb
 	sudo -E $(shell command -v mkosi) clean
 
 .PHONY: incus-osd

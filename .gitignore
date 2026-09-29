@@ -1,6 +1,7 @@
 .cache
 debian-tools
 mkosi.output
+mkosi.tools*
 local-image-server
 .mkosi-private
 
