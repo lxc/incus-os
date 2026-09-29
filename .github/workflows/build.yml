@@ -51,7 +51,7 @@ jobs:
 
       - name: Setup mkosi
         run: |
-          pipx install git+https://github.com/systemd/mkosi.git@v25.3
+          pipx install git+https://github.com/systemd/mkosi.git@v27.1
 
       - name: Load the signing keys
         run: |
