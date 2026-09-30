@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // cleanupAllowList lists the paths that are allowed to persist on the root partition.
@@ -60,7 +62,19 @@ func cleanupRoot(root string) error {
 // cleanupTree removes anything under the provided directory that isn't needed by an
 // entry in the allow list.
 func cleanupTree(root string, dir string, firstRun bool) error {
-	entries, err := os.ReadDir(filepath.Join(root, dir))
+	dirPath := filepath.Join(root, dir)
+
+	dirInfo, err := os.Lstat(dirPath)
+	if err != nil {
+		return err
+	}
+
+	dirStat, ok := dirInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return errors.New("unable to stat directory " + dirPath)
+	}
+
+	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return err
 	}
@@ -70,6 +84,18 @@ func cleanupTree(root string, dir string, firstRun bool) error {
 
 		if isAllowed(relPath) {
 			continue
+		}
+
+		// Skip mount points, such as the /usr bind mount, as they aren't part of the root partition.
+		if entry.IsDir() {
+			mounted, err := isMountPoint(filepath.Join(root, relPath), dirStat.Dev)
+			if err != nil {
+				return err
+			}
+
+			if mounted {
+				continue
+			}
 		}
 
 		// Descend into directories which hold allow list entries.
@@ -98,6 +124,21 @@ func cleanupTree(root string, dir string, firstRun bool) error {
 	}
 
 	return nil
+}
+
+// isMountPoint checks if the provided directory lives on a different device than its parent.
+func isMountPoint(path string, parentDev uint64) (bool, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false, err
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return false, errors.New("unable to stat directory " + path)
+	}
+
+	return stat.Dev != parentDev, nil
 }
 
 // moveToDeleted moves the provided path into "/.deleted", preserving its relative path.
