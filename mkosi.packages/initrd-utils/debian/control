@@ -13,6 +13,7 @@ Depends: kpartx,
          pciutils,
          usbutils,
          swtpm-tools,
+         systemd-tpm,
          ${misc:Depends},
          ${shlibs:Depends}
 Description: initrd utilities for IncusOS
