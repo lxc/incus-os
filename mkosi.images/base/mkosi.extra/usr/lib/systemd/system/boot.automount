@@ -7,4 +7,3 @@ Description=EFI System Partition Automount
 Documentation=man:systemd-gpt-auto-generator(8)
 [Automount]
 Where=/boot
-TimeoutIdleSec=120
