@@ -1,0 +1,6 @@
+Enabled: yes
+Types: deb
+URIs: https://download.opensuse.org/repositories/system:/systemd:/stable/Debian_13/
+Suites: /
+Architectures: amd64 arm64
+Signed-By: /etc/apt/keyrings/systemd.asc
