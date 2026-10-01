@@ -16,6 +16,8 @@ import (
 )
 
 // DebugPath defines a hard-coded path to where the debug provider will look for updates.
+// Keeping things in /tmp/ would ensure proper cleanup of update files each boot, but
+// there may not be sufficient space in /tmp/ to store a complete set of update files.
 var DebugPath = "/root/updates/"
 
 // The Debug provider.
