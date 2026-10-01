@@ -1,0 +1,36 @@
+name: Daily tag
+on:
+  schedule:
+  - cron: "0 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  tag:
+    name: Create daily tag
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Create and push tag
+        id: tag
+        run: |
+          TAG=$(./mkosi.version)
+
+          git config user.name "IncusOS daily builds"
+          git config user.email "noreply@linuxcontainers.org"
+          git tag -a "${TAG}" -m "Automatic daily build"
+          git push origin "${TAG}"
+
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      # Tags pushed with the workflow token don't trigger other workflows, so start the build explicitly.
+      - name: Trigger the build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build.yml --ref "${{ steps.tag.outputs.tag }}"
