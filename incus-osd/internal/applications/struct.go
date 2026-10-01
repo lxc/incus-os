@@ -29,6 +29,7 @@ type Application interface { //nolint:interfacebloat
 	Initialize(ctx context.Context) error
 	IsInitialized() bool
 	IsInstalled() bool
+	IsPinned() bool
 	IsPrimary() bool
 	IsRunning(ctx context.Context) bool
 	Name() string
