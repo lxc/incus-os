@@ -1,0 +1,13 @@
+[Unit]
+Description=File System Check on /dev/disk/by-partlabel/esp
+DefaultDependencies=no
+BindsTo=dev-disk-by\x2dpartlabel-esp.device
+After=dev-disk-by\x2dpartlabel-esp.device local-fs-pre.target
+Before=shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=-/usr/lib/systemd/systemd-fsck /dev/disk/by-partlabel/esp
+TimeoutSec=infinity
