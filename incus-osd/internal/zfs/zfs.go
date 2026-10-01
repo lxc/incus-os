@@ -1075,7 +1075,7 @@ func ScrubZpool(ctx context.Context, poolName string) error {
 }
 
 // ScrubAllPools scrubs all pools in the system sequentially, blocking until the scrub is complete.
-func ScrubAllPools(ctx context.Context) error {
+func ScrubAllPools(ctx context.Context, _ *state.State) error {
 	return runOnAllPools(ctx, "scrub", startScrub)
 }
 
@@ -1090,7 +1090,7 @@ func TrimZpool(ctx context.Context, poolName string) error {
 }
 
 // TrimAllPools trims all pools in the system sequentially, blocking until the trim is complete.
-func TrimAllPools(ctx context.Context) error {
+func TrimAllPools(ctx context.Context, _ *state.State) error {
 	return runOnAllPools(ctx, "trim", startTrim)
 }
 

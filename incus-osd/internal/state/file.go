@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-
-	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
 var currentStateVersion = 10
@@ -13,17 +11,10 @@ var currentStateVersion = 10
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
 func LoadOrCreate(path string) (*State, error) {
-	scheduler, err := scheduling.NewScheduler()
-	if err != nil {
-		return nil, err
-	}
-
 	s := State{
 		path: path,
 
 		StateVersion: currentStateVersion,
-
-		JobScheduler: scheduler,
 
 		NetworkConfigurationChannel: make(chan error, 1),
 	}

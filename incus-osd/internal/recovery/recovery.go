@@ -291,15 +291,8 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 		},
 	}
 
-	p, err := providers.Load(ctx, s, false)
-	if err != nil {
-		return err
-	}
-
 	// Trigger an update check.
-	update.Checker(ctx, s, p, true, false)
-
-	return nil
+	return update.Check(ctx, s)
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {

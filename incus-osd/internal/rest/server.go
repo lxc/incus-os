@@ -11,21 +11,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
 
 // Server holds the internal state of the REST API server.
 type Server struct {
-	listener net.Listener
-	state    *state.State
+	jobScheduler *scheduling.Scheduler
+	listener     net.Listener
+	state        *state.State
 }
 
 // NewServer returns a REST API server object.
-func NewServer(_ context.Context, s *state.State, l net.Listener) (*Server, error) {
+func NewServer(_ context.Context, l net.Listener, s *state.State, j *scheduling.Scheduler) (*Server, error) {
 	// Define the struct.
 	server := Server{
-		listener: l,
-		state:    s,
+		jobScheduler: j,
+		listener:     l,
+		state:        s,
 	}
 
 	return &server, nil
