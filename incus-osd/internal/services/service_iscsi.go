@@ -143,14 +143,15 @@ func (n *ISCSI) doStart(ctx context.Context) error {
 
 		systemUUID, err := n.state.SystemUUID()
 		if err == nil {
-			suffix = strings.ReplaceAll(systemUUID, "-", "")[:12]
+			suffix = strings.ReplaceAll(systemUUID, "-", "")
+			suffix = suffix[len(suffix)-12:]
 		} else {
 			machineID, err := n.state.MachineID()
 			if err != nil {
 				return err
 			}
 
-			suffix = machineID[:12]
+			suffix = machineID[len(machineID)-12:]
 		}
 
 		err = os.WriteFile("/etc/iscsi/initiatorname.iscsi", []byte("InitiatorName=iqn.2004-10.org.linuxcontainers:01:"+suffix+"\n"), 0o600)
