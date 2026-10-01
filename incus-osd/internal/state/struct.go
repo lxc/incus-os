@@ -87,6 +87,11 @@ type State struct {
 		Security         api.SystemSecurity         `json:"security"`
 		Update           api.SystemUpdate           `json:"update"`
 		Storage          api.SystemStorage          `json:"storage"`
+
+		// TemporaryProvider is used when we need to load a non-default provider for
+		// use, such as when applying updates via the recovery logic. It is never
+		// persisted to disk.
+		TemporaryProvider *api.SystemProvider `json:"-"`
 	} `json:"system"`
 
 	// Used to handle an edge case of a new network configuration being applied, but
