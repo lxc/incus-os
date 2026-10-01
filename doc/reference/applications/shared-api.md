@@ -36,6 +36,14 @@ Changing application versions are limited to those that are available locally on
 
 If IncusOS is booted into the backup image, it will automatically attempt to re-synchronize application versions to match the older version of IncusOS. Upon rebooting to the non-backup image, application versions will be updated to the latest available versions locally on disk.
 
+## Pinning a specific application version
+
+It is possible to pin an installed application to a specific version. While the pin is enabled, no newer versions of the application will be downloaded.
+
+```{warning}
+When pinned, the application will not receive further bug/security fixes or newer releases.
+```
+
 ## Backing up the application
 
 ```{important}
