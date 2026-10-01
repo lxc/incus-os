@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
-
-	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 type incusCeph struct {
@@ -48,14 +46,6 @@ func (i *incusCeph) SetFriendlyVersion(ctx context.Context) error {
 	return nil
 }
 
-func (*incusCeph) Struct() any {
-	return &api.Application{}
-}
-
-func (*incusCeph) UpdateConfig(_ context.Context, _ any) error {
-	return nil
-}
-
 type incusLinstor struct {
 	common
 }
@@ -92,13 +82,5 @@ func (i *incusLinstor) SetFriendlyVersion(ctx context.Context) error {
 
 	i.appState.FriendlyVersion = strings.Split(s[len(s)-2], " ")[2] + " [" + i.appState.Version + "]"
 
-	return nil
-}
-
-func (*incusLinstor) Struct() any {
-	return &api.Application{}
-}
-
-func (*incusLinstor) UpdateConfig(_ context.Context, _ any) error {
 	return nil
 }

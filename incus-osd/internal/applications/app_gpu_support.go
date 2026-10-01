@@ -9,8 +9,6 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
-
-	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 type gpuSupport struct {
@@ -95,13 +93,5 @@ func (*gpuSupport) Start(ctx context.Context) error {
 		}
 	}
 
-	return nil
-}
-
-func (*gpuSupport) Struct() any {
-	return &api.Application{}
-}
-
-func (*gpuSupport) UpdateConfig(_ context.Context, _ any) error {
 	return nil
 }

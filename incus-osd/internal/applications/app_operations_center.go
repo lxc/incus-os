@@ -434,11 +434,3 @@ func doOCRequest(ctx context.Context, url string, method string, body []byte) ([
 func (oc *operationsCenter) Get(_ context.Context) (any, error) {
 	return oc.state.Applications.OperationsCenter, nil
 }
-
-func (*operationsCenter) Struct() any {
-	return &api.Application{}
-}
-
-func (*operationsCenter) UpdateConfig(_ context.Context, _ any) error {
-	return nil
-}
