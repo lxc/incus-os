@@ -15,7 +15,8 @@ import (
 type common struct {
 	state *state.State
 
-	appState *api.ApplicationState
+	appConfig *api.ApplicationConfig
+	appState  *api.ApplicationState
 }
 
 // Action runs an application-specific action/task.
@@ -104,6 +105,11 @@ func (a *common) Initialize(_ context.Context) error {
 // IsInitialized reports whether the application has been initialized.
 func (a *common) IsInitialized() bool {
 	return a.appState.Initialized
+}
+
+// IsPinned reports if the application version(s) have been pinned.
+func (a *common) IsPinned() bool {
+	return a.appConfig.PinCurrentVersions
 }
 
 // IsPrimary reports if the application is a primary application.
