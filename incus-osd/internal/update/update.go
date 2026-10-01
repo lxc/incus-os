@@ -350,6 +350,13 @@ func rebootSystem(ctx context.Context, s *state.State) error {
 			return err
 		}
 
+		// When rebooting and the trigger channel isn't available, we're likely applying an update
+		// from recovery media. Make sure we cleanup the temporary update files before rebooting.
+		err = os.RemoveAll(providers.DebugPath)
+		if err != nil {
+			return err
+		}
+
 		return systemd.SystemReboot(ctx)
 	}
 
