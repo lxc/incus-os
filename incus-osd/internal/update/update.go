@@ -336,7 +336,27 @@ func reloadApplication(ctx context.Context, s *state.State, appName string, appV
 // are stopped in order. The trigger channel isn't available during recovery or early startup, in
 // which case the system is rebooted directly.
 func rebootSystem(ctx context.Context, s *state.State) error {
+	// Make sure we save current state to disk before rebooting.
+	err := s.Save()
+	if err != nil {
+		return err
+	}
+
 	if s.TriggerReboot == nil {
+		// The normal reboot handler notifies the provider itself when going through the regular
+		// shutdown sequence, but since it's not available we must do so manually.
+		err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
+		if err != nil {
+			return err
+		}
+
+		// When rebooting and the trigger channel isn't available, we're likely applying an update
+		// from recovery media. Make sure we cleanup the temporary update files before rebooting.
+		err = os.RemoveAll(providers.DebugPath)
+		if err != nil {
+			return err
+		}
+
 		return systemd.SystemReboot(ctx)
 	}
 
@@ -520,7 +540,10 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 				time.Sleep(5 * time.Second)
 
-				_ = rebootSystem(ctx, s)
+				err := rebootSystem(ctx, s)
+				if err != nil {
+					return "", err
+				}
 
 				time.Sleep(60 * time.Second) // Prevent further system start up in the half second or so before things reboot.
 			} else {
@@ -569,14 +592,6 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 
 		// Handle reboot if needed.
 		if s.System.Update.Config.AutoReboot || !s.OS.SystemIsReady {
-			// The reboot handler notifies the provider itself when going through the regular shutdown sequence.
-			if s.TriggerReboot == nil {
-				err := providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
-				if err != nil {
-					return "", err
-				}
-			}
-
 			err = rebootSystem(ctx, s)
 			if err != nil {
 				return "", err
