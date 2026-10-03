@@ -38,9 +38,10 @@ func (c *cmdSync) command() *cobra.Command {
 	cmd.Long = formatSection("Description",
 		`Imports new images and cleans up the tree
 
-This will connect to GitHub to retrieve any new image that's missing
-locally, then import them into the default channel (typically "testing")
-and then cleans up any extra image based on retention policy.
+This will connect to GitHub to retrieve the latest image that's missing
+locally and import it into the default channel (typically "testing").
+Daily builds, identified by their tag message, are imported into their
+own channel (typically "daily") instead.
 
 Alternatively, if given an optional path to one or more local zip archives,
 import those builds rather than querying GitHub. This is mostly intended to
@@ -49,6 +50,13 @@ support publishing to private image servers or local development and testing.
 	cmd.RunE = c.run
 
 	return cmd
+}
+
+// release describes a build to import.
+type release struct {
+	name  string
+	daily bool
+	urls  map[string]*url.URL
 }
 
 func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
@@ -78,6 +86,75 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		updateChannel = "testing"
 	}
 
+	dailyChannel := os.Getenv("UPDATE_CHANNEL_DAILY")
+	if dailyChannel == "" {
+		dailyChannel = "daily"
+	}
+
+	// Get the image info.
+	var releases []release
+
+	if len(localReleases) == 0 {
+		releases, err = getLatestReleases(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		local := release{urls: map[string]*url.URL{}}
+
+		// Expect the filename to be "<label>-<version>-<arch>.zip".
+		releaseRegexp := regexp.MustCompile(`.+-(\d+)-(.+)\.zip$`)
+
+		for _, releaseZipName := range localReleases {
+			fields := releaseRegexp.FindStringSubmatch(releaseZipName)
+			if len(fields) != 3 {
+				return errors.New("invalid local archive name '" + releaseZipName + "'")
+			}
+
+			if local.name != "" && local.name != fields[1] {
+				return errors.New("all local archives must have the same release version")
+			}
+
+			local.name = fields[1]
+			local.urls[fields[2]] = &url.URL{
+				Path: releaseZipName,
+			}
+		}
+
+		releases = append(releases, local)
+	}
+
+	imported := false
+
+	for _, rel := range releases {
+		channel := updateChannel
+		if rel.daily {
+			channel = dailyChannel
+		}
+
+		slog.InfoContext(ctx, "Found image", "version", rel.name, "channel", channel)
+
+		done, err := c.importRelease(ctx, targetPath, rel, channel)
+		if err != nil {
+			return err
+		}
+
+		if done {
+			imported = true
+		}
+	}
+
+	if !imported {
+		return nil
+	}
+
+	// Re-generate the index.
+	return generateIndex(ctx, targetPath)
+}
+
+// importRelease imports the release into the target channel, returning false if it was already present.
+func (c *cmdSync) importRelease(ctx context.Context, targetPath string, rel release, channel string) (bool, error) {
+	// Config (optional).
 	updateOrigin := os.Getenv("UPDATE_ORIGIN")
 	if updateOrigin == "" {
 		updateOrigin = "linuxcontainers.org"
@@ -88,63 +165,28 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		updateSeverity = "none"
 	}
 
-	// Get the latest image info.
-	var releaseName string
-
-	var releaseURLs map[string]*url.URL
-
-	if len(localReleases) == 0 {
-		releaseName, releaseURLs, err = getLatestRelease(ctx)
-		if err != nil {
-			return err
-		}
-	} else {
-		releaseURLs = make(map[string]*url.URL)
-
-		// Expect the filename to be "<label>-<version>-<arch>.zip".
-		releaseRegexp := regexp.MustCompile(`.+-(\d+)-(.+)\.zip$`)
-
-		for _, releaseZipName := range localReleases {
-			release := releaseRegexp.FindStringSubmatch(releaseZipName)
-			if len(release) != 3 {
-				return errors.New("invalid local archive name '" + releaseZipName + "'")
-			}
-
-			if releaseName != "" && releaseName != release[1] {
-				return errors.New("all local archives must have the same release version")
-			}
-
-			releaseName = release[1]
-			releaseURLs[release[2]] = &url.URL{
-				Path: releaseZipName,
-			}
-		}
-	}
-
-	slog.InfoContext(ctx, "Found latest image", "version", releaseName)
-
 	// Prepare the update.json.
 	metaUpdate := apiupdate.Update{
 		Format: "1.0",
 
-		Channels:    []string{updateChannel},
+		Channels:    []string{channel},
 		Files:       []apiupdate.UpdateFile{},
 		Origin:      updateOrigin,
 		PublishedAt: time.Now().UTC(),
 		Severity:    apiupdate.UpdateSeverity(updateSeverity),
-		Version:     releaseName,
+		Version:     rel.name,
 	}
 
 	// Create the release folder.
-	err = os.Mkdir(filepath.Join(targetPath, releaseName), 0o755)
+	err := os.Mkdir(filepath.Join(targetPath, rel.name), 0o755)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
-			slog.InfoContext(ctx, "Latest release already imported")
+			slog.InfoContext(ctx, "Release already imported", "version", rel.name)
 
-			return nil
+			return false, nil
 		}
 
-		return err
+		return false, err
 	}
 
 	// Get the image files.
@@ -152,23 +194,23 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 	g := new(errgroup.Group)
 
-	for imageArch, imageURL := range releaseURLs {
+	for imageArch, imageURL := range rel.urls {
 		// Convert the architecture name.
 		archID, err := osarch.ArchitectureID(imageArch)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		archName, err := osarch.ArchitectureName(archID)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		// Download the image.
-		targetPath := filepath.Join(targetPath, releaseName)
+		releasePath := filepath.Join(targetPath, rel.name)
 
 		g.Go(func() error {
-			files, err := c.downloadImage(ctx, archName, imageURL, targetPath)
+			files, err := c.downloadImage(ctx, archName, imageURL, releasePath)
 			if err != nil {
 				return err
 			}
@@ -185,7 +227,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 	err = g.Wait()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Include the SecureBoot update (if present).
@@ -194,7 +236,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		// Open the update tarball.
 		f, err := os.Open(updateSecureboot)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		defer func() { _ = f.Close() }()
@@ -204,9 +246,9 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 		r := io.TeeReader(f, h)
 
 		// Create the target file.
-		w, err := os.Create(filepath.Join(targetPath, releaseName, filepath.Base(updateSecureboot)))
+		w, err := os.Create(filepath.Join(targetPath, rel.name, filepath.Base(updateSecureboot)))
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		defer func() { _ = w.Close() }()
@@ -223,7 +265,7 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 					break
 				}
 
-				return err
+				return false, err
 			}
 		}
 
@@ -238,41 +280,35 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Generate changelog.
-	err = generateChangelog(&metaUpdate, metaUpdate.Channels[0], filepath.Join(targetPath, releaseName))
+	err = generateChangelog(&metaUpdate, channel, filepath.Join(targetPath, rel.name))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Write the update metadata.
-	wr, err := os.Create(filepath.Join(targetPath, releaseName, "update.json"))
+	wr, err := os.Create(filepath.Join(targetPath, rel.name, "update.json"))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	defer func() { _ = wr.Close() }()
 
 	err = json.NewEncoder(wr).Encode(metaUpdate)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	err = wr.Close()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = sign(ctx, filepath.Join(targetPath, releaseName, "update.json"), filepath.Join(targetPath, releaseName, "update.sjson"))
+	err = sign(ctx, filepath.Join(targetPath, rel.name, "update.json"), filepath.Join(targetPath, rel.name, "update.sjson"))
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	// Re-generate the index.
-	err = generateIndex(ctx, args[0])
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return true, nil
 }
 
 func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *url.URL, targetPath string) ([]apiupdate.UpdateFile, error) {
@@ -493,7 +529,8 @@ func extractFile(f *zip.File, target string) (string, int64, error) {
 	return hex.EncodeToString(hash256.Sum(nil)), size, nil
 }
 
-func getLatestRelease(ctx context.Context) (string, map[string]*url.URL, error) {
+// getLatestReleases returns the latest successful regular build and the latest successful daily build.
+func getLatestReleases(ctx context.Context) ([]release, error) {
 	// Config (optional).
 	ghOrganization := os.Getenv("GH_ORGANIZATION")
 	if ghOrganization == "" {
@@ -512,72 +549,116 @@ func getLatestRelease(ctx context.Context) (string, map[string]*url.URL, error) 
 		client = client.WithAuthToken(os.Getenv("GH_TOKEN"))
 	}
 
-	// Get the latest build.
+	// Get the recent builds, newest first.
 	runs, _, err := client.Actions.ListRepositoryWorkflowRuns(ctx, ghOrganization, ghRepository, &ghapi.ListWorkflowRunsOptions{
-		Event:               "push",
 		Status:              "completed",
 		ExcludePullRequests: true,
+		ListOptions:         ghapi.ListOptions{PerPage: 50},
 	})
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	var latestRun *ghapi.WorkflowRun
+	var regular, daily *ghapi.WorkflowRun
 
 	for _, run := range runs.WorkflowRuns {
-		if *run.Repository.FullName != ghOrganization+"/"+ghRepository {
+		if run.GetRepository().GetFullName() != ghOrganization+"/"+ghRepository {
 			continue
 		}
 
-		if *run.Conclusion != "success" {
+		if run.GetConclusion() != "success" || run.GetName() != "Build" {
 			continue
 		}
 
-		if *run.Name != "Build" {
+		// Builds are either triggered by a tag push or dispatched on a tag by the daily tag workflow.
+		if run.GetEvent() != "push" && run.GetEvent() != "workflow_dispatch" {
 			continue
 		}
 
-		latestRun = run
-
-		break
-	}
-
-	if latestRun == nil {
-		return "", nil, errors.New("couldn't find any matching run")
-	}
-
-	releaseName := *latestRun.HeadBranch
-
-	// Get the image file.
-	artifacts, _, err := client.Actions.ListWorkflowRunArtifacts(ctx, ghOrganization, ghRepository, *latestRun.ID, nil)
-	if err != nil {
-		return "", nil, err
-	}
-
-	images := map[string]*url.URL{}
-
-	for _, artifact := range artifacts.Artifacts {
-		if !strings.HasPrefix(*artifact.Name, "image-") {
-			continue
-		}
-
-		fields := strings.SplitN(*artifact.Name, "-", 2)
-		if len(fields) != 2 {
-			continue
-		}
-
-		_, ok := images[fields[1]]
-		if ok {
-			continue
-		}
-
-		u, _, err := client.Actions.DownloadArtifact(ctx, ghOrganization, ghRepository, *artifact.ID, 10)
+		isDaily, err := isDailyBuild(ctx, client, ghOrganization, ghRepository, run.GetHeadBranch())
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 
-		images[fields[1]] = u
+		if isDaily && daily == nil {
+			daily = run
+		} else if !isDaily && regular == nil {
+			regular = run
+		}
+
+		if regular != nil && daily != nil {
+			break
+		}
 	}
 
-	return releaseName, images, nil
+	if regular == nil && daily == nil {
+		return nil, errors.New("couldn't find any matching run")
+	}
+
+	releases := []release{}
+
+	for _, run := range []*ghapi.WorkflowRun{regular, daily} {
+		if run == nil {
+			continue
+		}
+
+		// Get the image files.
+		artifacts, _, err := client.Actions.ListWorkflowRunArtifacts(ctx, ghOrganization, ghRepository, run.GetID(), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		rel := release{
+			name:  run.GetHeadBranch(),
+			daily: run == daily,
+			urls:  map[string]*url.URL{},
+		}
+
+		for _, artifact := range artifacts.Artifacts {
+			if !strings.HasPrefix(artifact.GetName(), "image-") {
+				continue
+			}
+
+			fields := strings.SplitN(artifact.GetName(), "-", 2)
+			if len(fields) != 2 {
+				continue
+			}
+
+			_, ok := rel.urls[fields[1]]
+			if ok {
+				continue
+			}
+
+			u, _, err := client.Actions.DownloadArtifact(ctx, ghOrganization, ghRepository, artifact.GetID(), 10)
+			if err != nil {
+				return nil, err
+			}
+
+			rel.urls[fields[1]] = u
+		}
+
+		releases = append(releases, rel)
+	}
+
+	return releases, nil
+}
+
+// isDailyBuild checks whether the tag is an annotated tag created by the daily tag workflow.
+func isDailyBuild(ctx context.Context, client *ghapi.Client, ghOrganization string, ghRepository string, tagName string) (bool, error) {
+	ref, _, err := client.Git.GetRef(ctx, ghOrganization, ghRepository, "tags/"+tagName)
+	if err != nil {
+		return false, err
+	}
+
+	// Lightweight tags point straight at the commit.
+	if ref.GetObject().GetType() != "tag" {
+		return false, nil
+	}
+
+	tag, _, err := client.Git.GetTag(ctx, ghOrganization, ghRepository, ref.GetObject().GetSHA())
+	if err != nil {
+		return false, err
+	}
+
+	return strings.HasPrefix(tag.GetMessage(), "Automatic daily build"), nil
 }
