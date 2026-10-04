@@ -15,6 +15,36 @@ type cmdAdminOS struct {
 	flagTarget string
 }
 
+// remoteUsage returns the usage prefix for the optional remote argument.
+func (c *cmdAdminOS) remoteUsage() string {
+	if !c.args.SupportsRemote {
+		return ""
+	}
+
+	return "[<remote>:]"
+}
+
+// remoteArg checks the arguments of a command taking only an optional remote and returns the remote name.
+func (c *cmdAdminOS) remoteArg(cmd *cobra.Command, args []string) (string, bool, error) {
+	maxArgs := 0
+	if c.args.SupportsRemote {
+		maxArgs = 1
+	}
+
+	exit, err := cli.CheckArgs(cmd, args, 0, maxArgs)
+	if exit {
+		return "", true, err
+	}
+
+	if len(args) == 0 {
+		return "", false, nil
+	}
+
+	remote, _ := parseRemote(args[0])
+
+	return remote, false, nil
+}
+
 func (c *cmdAdminOS) command() *cobra.Command {
 	cmd := &cobra.Command{}
 	cmd.Use = cli.Usage("os")
