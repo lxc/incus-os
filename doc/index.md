@@ -70,10 +70,11 @@ images, handle updates and take care of things like first boot
 partitioning and TPM backed disk encryption.
 
 ## Updates and release cadence
-We currently maintain two update channels for IncusOS:
+We currently maintain three update channels for IncusOS:
 
 - stable
 - testing
+- daily
 
 All installations default to the `stable` channel which typically sees
 at least one weekly update to pick up the latest stable bug fix release
@@ -81,6 +82,8 @@ of the Linux kernel as well as any relevant security issues.
 
 The `testing` channel sees much more frequent builds, typically once a
 day.
+
+The `daily` channel gets fully automated and untested daily images.
 
 IncusOS systems default to checking for updates every 6 hours and will
 automatically update Incus itself with a very short API downtime (no

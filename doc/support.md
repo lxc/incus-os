@@ -11,7 +11,7 @@ A new stable release is tagged at least once a week to pick up the latest bug fi
 When reporting an issue, please first ensure that your system is running the latest stable release.
 
 ```{note}
-The use of other update channels like `testing` isn't supported and should be limited to development and debugging use on non-critical systems.
+The use of other update channels like `daily` or `testing` isn't supported and should be limited to development and debugging use on non-critical systems.
 ```
 
 ## Support and community
