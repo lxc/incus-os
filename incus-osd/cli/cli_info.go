@@ -22,7 +22,7 @@ type cmdAdminOSInfo struct {
 
 func (c *cmdAdminOSInfo) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("info")
+	cmd.Use = cli.Usage("info", c.os.remoteUsage())
 	cmd.Short = "Show system information"
 
 	cmd.Long = cli.FormatSection("Description", "Show system information")
@@ -58,15 +58,9 @@ func (c *cmdAdminOSInfo) get(remote string, endpoint string, data any) error {
 
 func (c *cmdAdminOSInfo) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	remote, exit, err := c.os.remoteArg(cmd, args)
 	if exit {
 		return err
-	}
-
-	// Parse remote.
-	remote := ""
-	if len(args) > 0 {
-		remote, _ = parseRemote(args[0])
 	}
 
 	// Get the general system information.

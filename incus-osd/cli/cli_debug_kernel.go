@@ -19,7 +19,7 @@ type cmdAdminOSDebugKernel struct {
 
 func (c *cmdAdminOSDebugKernel) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("kernel")
+	cmd.Use = cli.Usage("kernel", c.os.remoteUsage())
 	cmd.Short = "Show kernel debug information"
 
 	cmd.Long = cli.FormatSection("Description", "Show kernel debug information")
@@ -34,15 +34,9 @@ func (c *cmdAdminOSDebugKernel) command() *cobra.Command {
 
 func (c *cmdAdminOSDebugKernel) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	remote, exit, err := c.os.remoteArg(cmd, args)
 	if exit {
 		return err
-	}
-
-	// Parse remote.
-	remote := ""
-	if len(args) > 0 {
-		remote, _ = parseRemote(args[0])
 	}
 
 	// Prepare the URL.

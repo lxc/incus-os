@@ -57,7 +57,7 @@ type cmdAdminOSDebugLog struct {
 
 func (c *cmdAdminOSDebugLog) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("log")
+	cmd.Use = cli.Usage("log", c.os.remoteUsage())
 	cmd.Short = "Get debug log"
 
 	cmd.Long = cli.FormatSection("Description", "Get debug log")
@@ -78,15 +78,9 @@ func (c *cmdAdminOSDebugLog) command() *cobra.Command {
 
 func (c *cmdAdminOSDebugLog) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	remote, exit, err := c.os.remoteArg(cmd, args)
 	if exit {
 		return err
-	}
-
-	// Parse remote.
-	remote := ""
-	if len(args) > 0 {
-		remote, _ = parseRemote(args[0])
 	}
 
 	// Prepare the URL.
@@ -189,7 +183,7 @@ type cmdAdminOSDebugProcesses struct {
 
 func (c *cmdAdminOSDebugProcesses) command() *cobra.Command {
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage("processes")
+	cmd.Use = cli.Usage("processes", c.os.remoteUsage())
 	cmd.Short = "Get the system processes"
 
 	cmd.Long = cli.FormatSection("Description", "Get the system processes")
@@ -204,15 +198,9 @@ func (c *cmdAdminOSDebugProcesses) command() *cobra.Command {
 
 func (c *cmdAdminOSDebugProcesses) run(cmd *cobra.Command, args []string) error {
 	// Quick checks.
-	exit, err := cli.CheckArgs(cmd, args, 0, 1)
+	remote, exit, err := c.os.remoteArg(cmd, args)
 	if exit {
 		return err
-	}
-
-	// Parse remote.
-	remote := ""
-	if len(args) > 0 {
-		remote, _ = parseRemote(args[0])
 	}
 
 	// Prepare the URL.

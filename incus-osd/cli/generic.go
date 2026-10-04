@@ -538,7 +538,7 @@ func (c *cmdGenericInfo) command() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{}
-	cmd.Use = cli.Usage(name)
+	cmd.Use = cli.Usage(name, c.os.remoteUsage())
 	cmd.Short = description
 	cmd.Long = cli.FormatSection("Description", description)
 
@@ -552,7 +552,7 @@ func (c *cmdGenericInfo) command() *cobra.Command {
 }
 
 func (c *cmdGenericInfo) run(cmd *cobra.Command, args []string) error {
-	exit, err := cli.CheckArgs(cmd, args, 0, 0)
+	remote, exit, err := c.os.remoteArg(cmd, args)
 	if exit {
 		return err
 	}
@@ -562,7 +562,7 @@ func (c *cmdGenericInfo) run(cmd *cobra.Command, args []string) error {
 		apiURL += "?target=" + c.os.flagTarget
 	}
 
-	resp, _, err := doQuery(c.os.args.DoHTTP, "", "GET", apiURL, nil, nil, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "GET", apiURL, nil, nil, "")
 	if err != nil {
 		return err
 	}
