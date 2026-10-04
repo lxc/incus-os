@@ -176,7 +176,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.79.0",
+        "version": "v0.80.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -234,7 +234,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.12.6",
+        "version": "v1.13.1",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -284,7 +284,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.102.5",
+        "version": "v1.104.0",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
