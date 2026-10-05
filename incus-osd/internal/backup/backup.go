@@ -339,9 +339,20 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 
 	havePrimaryApp := false
 
-	newApps, err := applications.GetInstalled(ctx, newState)
-	if err != nil {
-		return err
+	// List the applications from the backup state; their versions may not exist on disk any more.
+	newApps := []applications.Application{}
+
+	for _, appName := range applications.Supported {
+		app, err := applications.Load(ctx, newState, appName)
+		if err != nil {
+			return err
+		}
+
+		if app.Version() == "" {
+			continue
+		}
+
+		newApps = append(newApps, app)
 	}
 
 	for _, newApp := range newApps {
