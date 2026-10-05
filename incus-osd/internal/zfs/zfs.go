@@ -95,6 +95,7 @@ func LoadPools(ctx context.Context, s *state.State) error {
 				if pool.Name == "local" {
 					localZpool.Alignment = pool.Alignment
 					localZpool.AllowMixedDevSizes = pool.AllowMixedDevSizes
+					localZpool.ReserveSystemSpace = pool.ReserveSystemSpace
 
 					if pool.Type != "" {
 						if pool.Type != "zfs-raid0" && pool.Type != "zfs-raid1" {
@@ -113,6 +114,29 @@ func LoadPools(ctx context.Context, s *state.State) error {
 					}
 
 					break
+				}
+			}
+
+			// Partition the second device like the system drive, if requested.
+			if localZpool.ReserveSystemSpace {
+				if localZpool.Type != "zfs-raid1" {
+					return errors.New("reserve_system_space from storage seed requires a zfs-raid1 local pool")
+				}
+
+				for i, device := range localZpool.Devices {
+					if device == "/dev/disk/by-partlabel/local-data" {
+						continue
+					}
+
+					deviceID, err := storage.DeviceToID(ctx, device, false)
+					if err != nil {
+						return err
+					}
+
+					localZpool.Devices[i], err = partitionLocalPoolDevice(ctx, deviceID)
+					if err != nil {
+						return err
+					}
 				}
 			}
 

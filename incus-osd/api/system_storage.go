@@ -38,6 +38,8 @@ type SystemStoragePool struct {
 	Type string `json:"type" yaml:"type"`
 	// If true, allow creation of a pool with devices of different sizes.
 	AllowMixedDevSizes bool `json:"allow_mixed_dev_sizes,omitempty" yaml:"allow_mixed_dev_sizes,omitempty"`
+	// If true, partition the second device of the "local" pool like the system drive, keeping the space for the system partitions free in front of it. Can only be specified when initially creating the pool.
+	ReserveSystemSpace bool `json:"reserve_system_space,omitempty" yaml:"reserve_system_space,omitempty"`
 	// Optionally, configure the sector alignment size for the pool; defaults to 4096 byte sectors.
 	// Must be a power of two. Can only be specified when initially creating the pool.
 	Alignment int `json:"alignment,omitempty" yaml:"alignment,omitempty"`

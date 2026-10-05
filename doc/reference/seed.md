@@ -197,8 +197,11 @@ The structure used is the [storage API struct](https://github.com/lxc/incus-os/b
 
 - `pools`: Define one or more additional pools to automatically create on first boot.
   The `local` pool is special; any configuration values other than alignment, allowing mixed
-  size devices, setting a pool type of `zfs-raid0` or `zfs-raid1`, or optionally specifying a
-  second drive in addition to `/dev/disk/by-partlabel/local-data` will be ignored.
+  size devices, reserving system space, setting a pool type of `zfs-raid0` or `zfs-raid1`, or
+  optionally specifying a second drive in addition to `/dev/disk/by-partlabel/local-data` will
+  be ignored. With `reserve_system_space: true` and a `zfs-raid1` pool, the second drive is
+  partitioned like the system drive, keeping the space for the system partitions free in
+  front of the data partition, exactly as when adding the drive through the storage API.
 
 ### `update.{json,yml,yaml}`
 This file provides update configuration for the system.
