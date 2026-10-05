@@ -757,8 +757,8 @@ func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePoo
 // attempt to partition the second device in a similar fashion so the two underlying
 // devices are the same size.
 func partitionLocalPoolDevice(ctx context.Context, device string) (string, error) {
-	// Create the partition at the correct offset
-	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", device)
+	// Create the partition at the correct offset, ending on a 4KiB boundary like systemd-repart does.
+	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-a", "8", "-I", "-n", "11:69826560:", device)
 	if err != nil {
 		return "", err
 	}
