@@ -707,39 +707,21 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		return err
 	}
 
-	// Check if the target device already has a partition table.
-	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
-	if err != nil {
-		// If the device has no main partition table, but does have a backup, assume it's been
-		// partially wiped with something like `dd if=/dev/zero of=/dev/sda ...` and proceed with install.
-		if !strings.Contains(err.Error(), "Caution: invalid main GPT header, but valid backup; regenerating main header") {
-			return err
+	if i.config.RecoverSystemDrive {
+		if i.config.ForceInstall {
+			return errors.New("`RecoverSystemDrive` and `ForceInstall` from install configuration are mutually exclusive")
 		}
 
-		// Set ForceInstall to true in this case since the install should continue.
-		i.config.ForceInstall = true
-	}
-
-	if !strings.Contains(output, "Creating new GPT entries in memory") && !i.config.ForceInstall {
-		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDeviceID)
-	}
-
-	// At this point, the target device either has no GPT table, or we will be force-installing over any existing data.
-
-	// Zap any existing GPT table on the target device.
-	if i.config.ForceInstall {
-		// Don't check return status, since sgdisk always returns an error if there's a mismatch
-		// between the main and backup GPT tables.
-		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
-	}
-
-	// Before starting the install, wipe the target device.
-	slog.InfoContext(ctx, "Wiping target drive, this may take a while")
-	modal.Update("Wiping target drive, this may take a while.")
-
-	err = storage.WipeDrive(ctx, targetDeviceID, false)
-	if err != nil {
-		return err
+		// Keep the existing "local" pool member partition and install into the free space in front of it.
+		err = checkRecoverTarget(ctx, targetDevice, targetDeviceID)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = prepareTarget(ctx, i.config, modal, targetDevice, targetDeviceID)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Turn off swap and unmount /boot.
@@ -762,7 +744,7 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 		actualSourceDevice = cdromDevice
 	}
 
-	output, err = subprocess.RunCommandContext(ctx, "sgdisk", "-i", "9", actualSourceDevice)
+	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-i", "9", actualSourceDevice)
 	if err != nil {
 		return err
 	}
@@ -968,6 +950,114 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 	_, err = f.Write([]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// prepareTarget checks the target device for an existing partition table and wipes it.
+func prepareTarget(ctx context.Context, config *apiseed.Install, modal *tui.Modal, targetDevice string, targetDeviceID string) error {
+	// Check if the target device already has a partition table.
+	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-v", targetDevice)
+	if err != nil {
+		// If the device has no main partition table, but does have a backup, assume it's been
+		// partially wiped with something like `dd if=/dev/zero of=/dev/sda ...` and proceed with install.
+		if !strings.Contains(err.Error(), "Caution: invalid main GPT header, but valid backup; regenerating main header") {
+			return err
+		}
+
+		// Set ForceInstall to true in this case since the install should continue.
+		config.ForceInstall = true
+	}
+
+	if !strings.Contains(output, "Creating new GPT entries in memory") && !config.ForceInstall {
+		return fmt.Errorf("a partition table already exists on device '%s', and `ForceInstall` from install configuration isn't true", targetDeviceID)
+	}
+
+	// At this point, the target device either has no GPT table, or we will be force-installing over any existing data.
+
+	// Zap any existing GPT table on the target device.
+	if config.ForceInstall {
+		// Don't check return status, since sgdisk always returns an error if there's a mismatch
+		// between the main and backup GPT tables.
+		_, _ = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", targetDevice)
+	}
+
+	// Before starting the install, wipe the target device.
+	slog.InfoContext(ctx, "Wiping target drive, this may take a while")
+	modal.Update("Wiping target drive, this may take a while.")
+
+	err = storage.WipeDrive(ctx, targetDeviceID, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkRecoverTarget verifies the target only holds a "local" pool member partition, with the system space free in front of it.
+func checkRecoverTarget(ctx context.Context, targetDevice string, targetDeviceID string) error {
+	output, err := subprocess.RunCommandContext(ctx, "sgdisk", "-p", targetDevice)
+	if err != nil {
+		return err
+	}
+
+	sectorSize := 512
+	partitions := []string{}
+
+	for line := range strings.SplitSeq(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+
+		// Example: "Sector size (logical/physical): 512/512 bytes".
+		if strings.HasPrefix(line, "Sector size") {
+			sectorSize, err = strconv.Atoi(strings.Split(fields[3], "/")[0])
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		_, err := strconv.Atoi(fields[0])
+		if err != nil {
+			continue
+		}
+
+		partitions = append(partitions, line)
+	}
+
+	if len(partitions) != 1 {
+		return fmt.Errorf("target device '%s' must only contain the 'local' pool member partition when `RecoverSystemDrive` is true, found %d partitions", targetDeviceID, len(partitions))
+	}
+
+	// The member partition is created by partitionLocalPoolDevice() as partition 11 at the system drive offset.
+	fields := strings.Fields(partitions[0])
+	if fields[0] != "11" || fields[1] != "69826560" {
+		return fmt.Errorf("target device '%s' doesn't contain a 'local' pool member partition at the expected offset", targetDeviceID)
+	}
+
+	// systemd-repart refuses to create the system partitions if the member partition doesn't end on a 4KiB boundary.
+	end, err := strconv.Atoi(fields[2])
+	if err != nil {
+		return err
+	}
+
+	if (end+1)%(4096/sectorSize) != 0 {
+		return fmt.Errorf("partition 11 on target device '%s' doesn't end on a 4KiB boundary (created by an older release), systemd-repart would refuse it", targetDeviceID)
+	}
+
+	// The partition must be a member of the "local" pool.
+	output, err = subprocess.RunCommandContext(ctx, "lsblk", "-n", "-o", "FSTYPE,LABEL", targetDevice+GetPartitionPrefix(targetDevice)+"11")
+	if err != nil {
+		return err
+	}
+
+	fields = strings.Fields(output)
+	if len(fields) != 2 || fields[0] != "zfs_member" || fields[1] != "local" {
+		return fmt.Errorf("partition 11 on target device '%s' isn't a member of the 'local' storage pool", targetDeviceID)
 	}
 
 	return nil

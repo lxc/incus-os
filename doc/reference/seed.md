@@ -43,6 +43,15 @@ The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus
 - `force_reboot`: If true, reboot after install without waiting for removal of
   install media.
 
+- `recover_system_drive`: If true, install onto a drive that already holds the second
+  member of a `zfs-raid1` `local` pool. The drive must contain only that member partition,
+  as created by IncusOS, with the space for the system partitions free in front of it; the
+  partition must end on a 4KiB boundary (members created by older releases don't) and must
+  be a member of the `local` pool. The drive is not wiped: the system partitions are written
+  into the free space and the pool member is kept. Use this to recover a dead system drive
+  onto the surviving member. Select the drive with `target`; cannot be combined with
+  `force_install`.
+
 - `security`: An optional struct to enable IncusOS to run in a degraded security
   state. WARNING: This shouldn't be set unless you know exactly what you are doing
   and understand the security implications.
@@ -55,6 +64,15 @@ The structure is defined in [`api/seed/install.go`](https://github.com/lxc/incus
    - `max_size`: Maximum size of the install disk, such as 1TiB
    - `min_size`: Minimum size of the install disk, such as 100GiB
    - `sort_order`: Optional, either "largest" or "smallest"; if defined, sort potential targets by their capacity and pick the first one
+
+The seed partition of the install media can also carry `backup-system.tar.gz` (a
+[system backup](system/backup.md)) and `backup-application-<name>.tar.gz` (an application
+backup, for example `backup-application-incus.tar.gz`), typically together with
+`recover_system_drive`. The first boot restores the system backup: it writes the state and
+the pool key, then reboots. The next boot imports the `local` pool with that key (the pool
+stays degraded until the missing member is replaced through the storage API) and restores
+the application backups. Each file is removed from the seed after use. The backups are only
+read from the tar archive in the seed partition, not from an external `SEED_DATA` partition.
 
 ### `applications.{json,yml,yaml}`
 This file defines what applications should be installed after IncusOS is up and

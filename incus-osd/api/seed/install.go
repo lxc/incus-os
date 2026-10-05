@@ -7,6 +7,7 @@ type Install struct {
 	ForceInstall             bool             `json:"force_install"                        yaml:"force_install"`                        // If true, ignore any existing data on target install disk.
 	ForceInstallConfirmation string           `json:"force_install_confirmation,omitempty" yaml:"force_install_confirmation,omitempty"` // An optional value used to confirm re-installation of IncusOS.
 	ForceReboot              bool             `json:"force_reboot"                         yaml:"force_reboot"`                         // If true, reboot the system automatically upon completion rather than waiting for the install media to be removed.
+	RecoverSystemDrive       bool             `json:"recover_system_drive"                 yaml:"recover_system_drive"`                 // If true, the target must only hold a "local" pool member partition; keep it and install into the free space in front of it.
 	Security                 *InstallSecurity `json:"security,omitempty"                   yaml:"security,omitempty"`                   // Optional install options to allow IncusOS to run in a degraded security state.
 	Target                   *InstallTarget   `json:"target"                               yaml:"target"`                               // Optional selector for the target install disk; if not set, expect a single drive to be present.
 }

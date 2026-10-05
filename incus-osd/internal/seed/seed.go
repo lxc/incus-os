@@ -99,6 +99,78 @@ func CleanupPostInstall(ctx context.Context, targetSeedPartition string) error {
 	return nil
 }
 
+// GetFile returns the raw contents of a file from the seed-data partition.
+func GetFile(filename string) ([]byte, error) {
+	f, err := os.Open("/dev/disk/by-partlabel/seed-data")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrNoSeedPartition
+		}
+
+		return nil, err
+	}
+
+	defer f.Close()
+
+	// Check if seed-data is a tarball.
+	header := make([]byte, 263)
+
+	n, err := f.Read(header)
+	if err != nil {
+		return nil, err
+	}
+
+	if n != 263 || !bytes.Equal(header[257:262], []byte{'u', 's', 't', 'a', 'r'}) {
+		return nil, ErrNoSeedData
+	}
+
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Search the tarball for the file.
+	tr := tar.NewReader(f)
+
+	for {
+		hdr, err := tr.Next()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil, ErrNoSeedSection
+			}
+
+			return nil, err
+		}
+
+		if strings.TrimPrefix(hdr.Name, "./") == filename {
+			return io.ReadAll(tr)
+		}
+	}
+}
+
+// DeleteFile removes a file from the seed-data partition.
+func DeleteFile(ctx context.Context, filename string) error {
+	// Some invocations of tar prefix files with "./", so delete both spellings.
+	for _, name := range []string{filename, "./" + filename} {
+		_, err := subprocess.RunCommandContext(ctx, "tar", "-f", "/dev/disk/by-partlabel/seed-data", "--delete", name)
+		if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("tar: %s: Not found in archive", name)) {
+			return err
+		}
+	}
+
+	// Verify the file is gone, otherwise it would be applied again on every boot.
+	_, err := GetFile(filename)
+	if err == nil {
+		return errors.New("unable to remove " + filename + " from the seed")
+	}
+
+	if !IsMissing(err) {
+		return err
+	}
+
+	return nil
+}
+
 // getSeedPath defines the path to the expected seed configuration. It will first search for any
 // disk with a "SEED_DATA" label, which would be externally provided by the user. If not found,
 // defaults to the "seed-data" partition that exists on install media.
