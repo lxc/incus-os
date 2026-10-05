@@ -3,11 +3,11 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.7
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.3
+	github.com/FuturFusion/migration-manager v0.7.4
 	github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1
 	github.com/FuturFusion/operations-center v0.9.0
 	github.com/cavaliergopher/cpio v1.0.1
-	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29
+	github.com/foxboron/go-uefi v0.0.0-20261004203234-c7f1f57bdc6e
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
@@ -106,7 +106,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/exp v0.0.0-20261005173118-76772065c9b0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
