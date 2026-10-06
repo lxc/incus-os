@@ -146,7 +146,9 @@ test: publish-local-update start-local-image-server
 	incus config set test-incus-os systemd.credential.fully-enable-incus-agent=true
 
 	# Wait for installation to complete
-	incus start test-incus-os --console
+	incus start test-incus-os
+	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the console is released before self-reboot
+	incus console test-incus-os
 	@sleep 5 # Wait for VM self-reboot
 	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the VM performs a full reset after the install completes
 	incus console test-incus-os
@@ -194,7 +196,9 @@ test-iso: publish-local-update start-local-image-server
 	incus config set test-incus-os systemd.credential.fully-enable-incus-agent=true
 
 	# Wait for installation to complete
-	incus start test-incus-os --console
+	incus start test-incus-os
+	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the console is released before self-reboot
+	incus console test-incus-os
 	@sleep 5 # Wait for VM self-reboot
 	incus config set test-incus-os volatile.vm.needs_reset=true # Ensure the VM performs a full reset after the install completes
 	incus console test-incus-os
