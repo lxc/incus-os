@@ -112,7 +112,7 @@ def TestBaselineUpgradeApplicationOnly(install_image):
 
         # Prepare to install an older version of the incus app via the recovery mechanism.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", os_version)
+            util._manual_download_application(tmp_dir, ["incus"], os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_img:
                 # Create a vfat partition labeled RESCUE_DATA and copy the updates.

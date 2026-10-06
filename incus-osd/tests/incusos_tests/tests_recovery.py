@@ -18,7 +18,7 @@ def TestRecoveryUpdateFromUSB(install_image):
 
         # Apply the updates from a USB stick.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", os_version)
+            util._manual_download_application(tmp_dir, ["incus"], os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_img:
                 # Create a vfat partition labeled RESCUE_DATA and copy the updates.
@@ -45,7 +45,7 @@ def TestRecoveryUpdateFromISO(install_image):
 
         # Apply the updates from an ISO image.
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
-            util._manual_download_application(tmp_dir, "incus", os_version)
+            util._manual_download_application(tmp_dir, ["incus"], os_version)
 
             with tempfile.NamedTemporaryFile(dir=os.getcwd()) as recovery_iso:
                 # Create an ISO labeled RESCUE_DATA containing the updates.

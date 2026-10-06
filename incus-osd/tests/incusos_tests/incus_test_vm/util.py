@@ -113,7 +113,7 @@ def _prepare_test_image(image, seed):
     parts = basename.split("_")
     return test_image, parts[0], parts[1].replace(ext, ""), client_cert_name
 
-def _manual_download_application(directory, name, version):
+def _manual_download_application(directory, apps, version):
     IMAGES_SERVER = os.getenv("IMAGES_SERVER", "https://images.linuxcontainers.org")
 
     os.mkdir(directory+"/update")
@@ -130,7 +130,7 @@ def _manual_download_application(directory, name, version):
             if updateFile["architecture"] != "x86_64":
                 continue
 
-            if updateFile["type"] != "application" or updateFile["component"] != name:
+            if updateFile["type"] != "application" or updateFile["component"] not in apps:
                 continue
 
             urllib.request.urlretrieve(IMAGES_SERVER + "/os/"+version+"/"+updateFile["filename"], directory+"/update/"+updateFile["filename"])
