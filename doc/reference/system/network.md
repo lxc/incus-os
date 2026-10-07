@@ -42,6 +42,8 @@ The following top-level network configuration options can be set:
 
 * `confirmation_timeout`: If defined, will trigger an automatic roll back of the network configuration unless a followup confirmation command is received before the timeout expires.
 
+* `default_confirmation_timeout`: Default value for `confirmation_timeout`. This will be used if no `confirmation_timeout` provided.
+
 * `interfaces`: Zero or more interfaces that should be configured for the system.
 
 * `bonds`: Zero or more bonds that should be configured for the system.
@@ -152,6 +154,25 @@ config:
 ```
 
 After applying the network configuration, if IncusOS remains reachable on the network as expected, run `incus admin os system network confirm` before five minutes elapses to confirm and save the new configuration. If something went wrong and IncusOS is no longer available on the network, simply wait the five minutes and IncusOS will re-configure itself with the prior configuration that had been working.
+
+If we want a default confirmation timeout value without having to provide `confirmation_timeout` every single time, we can use the following configuration:
+
+```yaml
+config:
+  default_confirmation_timeout: 5m
+  interfaces:
+  - addresses:
+    - dhcp4
+    hwaddr: 10:66:6a:f1:49:aa
+    name: enp5s0
+    required_for_online: "ipv4"
+  time:
+    timezone: UTC
+```
+
+Note that the `default_confirmation_timeout` will be effective *next time* you make changes to the network configuration and if there is `default_confirmation_timeout` set for the running configuration, the running state value will be honored and the `default_confirmation_timeout` will be honored next time.
+
+Leaving this value out removes the `default_confirmation_timeout`.
 
 #### VLANs
 
