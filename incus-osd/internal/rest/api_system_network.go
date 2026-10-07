@@ -129,6 +129,8 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 		var confirmationTimeout time.Duration
 
+		var defaultConfirmationTimeout time.Duration
+
 		// If a confirmation timeout is provided, make sure it is valid.
 		if newConfig.Config.ConfirmationTimeout != "" {
 			confirmationTimeout, err = time.ParseDuration(newConfig.Config.ConfirmationTimeout)
@@ -146,6 +148,34 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 
 			// Clear the configuration timeout after parsing it, so it's not reported back via an API call.
 			newConfig.Config.ConfirmationTimeout = ""
+		}
+
+		// If a default confirmation timeout is provided, make sure it is valid.
+		if newConfig.Config.DefaultConfirmationTimeout != "" {
+			defaultConfirmationTimeout, err = time.ParseDuration(newConfig.Config.DefaultConfirmationTimeout)
+			if err != nil {
+				_ = response.BadRequest(errors.New("invalid default confirmation timeout provided: " + err.Error())).Render(w)
+
+				return
+			}
+
+			if defaultConfirmationTimeout <= 0 {
+				_ = response.BadRequest(errors.New("default confirmation timeout must be greater than zero")).Render(w)
+
+				return
+			}
+		}
+
+		// If no confirmation timeout provided but a default confirmation timeout is present in the running config.
+		if confirmationTimeout == 0 && s.state.System.Network.Config.DefaultConfirmationTimeout != "" {
+			defaultConfirmationTimeout, err = time.ParseDuration(s.state.System.Network.Config.DefaultConfirmationTimeout)
+			if err != nil || defaultConfirmationTimeout <= 0 {
+				_ = response.InternalError(errors.New("invalid internal value saved for 'DefaultConfirmationTimeout'")).Render(w)
+
+				return
+			}
+
+			confirmationTimeout = defaultConfirmationTimeout
 		}
 
 		// If a confirmation timeout is defined, start a background function that will roll back changes
@@ -176,7 +206,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				case <-time.After(confirmationTimeout):
-					// At this point, the user-provided timeout has elapsed and the changes were not confirmed,
+					// At this point, the confirmation timeout has elapsed and the changes were not confirmed,
 					// so we need to roll the changes back.
 					slog.WarnContext(ctx, "Timeout expired, rolling back network configuration to prior known-good state")
 
@@ -196,7 +226,7 @@ func (s *Server) apiSystemNetwork(w http.ResponseWriter, r *http.Request) {
 			}(context.Background())
 		}
 
-		// By default we allow 30 seconds for the network configuration to apply. But if a user-provided
+		// By default we allow 30 seconds for the network configuration to apply. But if a
 		// confirmation timeout is defined and less than 30 seconds, cap the application timeout to that value.
 		applyTimeout := 30 * time.Second
 		if confirmationTimeout != 0 && confirmationTimeout < applyTimeout {
