@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -209,6 +210,39 @@ func (n *ISCSI) doStart(ctx context.Context) error {
 		_, err = subprocess.RunCommandContext(ctx, "iscsiadm", "-m", "node", "-T", target.Target, "-p", portal, "--login")
 		if err != nil {
 			return err
+		}
+
+		// Wait for the device symlink to appear. We must wait before reporting the iSCSI service as successfully started so
+		// that a slow attachment doesn't cause later services or applications to fail when expecting the iSCSI device to exist.
+		foundTarget := false
+
+	outer:
+		for range 10 {
+			links, err := os.ReadDir("/dev/disk/by-path/")
+			if err != nil {
+				return err
+			}
+
+			for _, link := range links {
+				if strings.HasPrefix(link.Name(), "ip-") && strings.Contains(link.Name(), target.Target) {
+					tgt, err := os.Readlink("/dev/disk/by-path/" + link.Name())
+					if err != nil {
+						return err
+					}
+
+					if strings.HasPrefix(tgt, "../../sd") {
+						foundTarget = true
+
+						break outer
+					}
+				}
+			}
+
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		if !foundTarget {
+			slog.WarnContext(ctx, "iSCSI target '"+target.Target+"' failed to appear within 5 seconds")
 		}
 	}
 
