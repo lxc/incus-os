@@ -439,6 +439,13 @@ definitions:
                     specified timeout has elapsed unless those changes are confirmed before then.
                 type: string
                 x-go-name: ConfirmationTimeout
+            default_confirmation_timeout:
+                description: |-
+                    If defined and no confirmation timeout provided, automatically roll
+                    back the new network changes after the specified timeout has elapsed unless those
+                    changes are confirmed before then.
+                type: string
+                x-go-name: DefaultConfirmationTimeout
             dns:
                 $ref: '#/definitions/SystemNetworkDNS'
             interfaces:
