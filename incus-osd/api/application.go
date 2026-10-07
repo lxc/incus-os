@@ -5,7 +5,10 @@ import (
 )
 
 // ApplicationConfig represents additional configuration for a generic application.
-type ApplicationConfig struct{}
+type ApplicationConfig struct {
+	// When set to true, no newer versions of the application will be downloaded.
+	PinCurrentVersions bool `json:"pin_current_versions" yaml:"pin_current_versions"`
+}
 
 // ApplicationState represents the state of a generic application.
 type ApplicationState struct {

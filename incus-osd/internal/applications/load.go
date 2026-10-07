@@ -30,23 +30,23 @@ func Load(_ context.Context, s *state.State, name string) (Application, error) {
 
 	switch name {
 	case "debug":
-		app = &debug{common: common{state: s, appState: &s.Applications.Debug.State}}
+		app = &debug{common: common{state: s, appConfig: &s.Applications.Debug.Config, appState: &s.Applications.Debug.State}}
 	case "gpu-support":
-		app = &gpuSupport{common: common{state: s, appState: &s.Applications.GPUSupport.State}}
+		app = &gpuSupport{common: common{state: s, appConfig: &s.Applications.GPUSupport.Config, appState: &s.Applications.GPUSupport.State}}
 	case incusVersionStable:
-		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionStable}
+		app = &incus{common: common{state: s, appConfig: &s.Applications.Incus.Config.ApplicationConfig, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionStable}
 	case incusVersionLTS70:
-		app = &incus{common: common{state: s, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionLTS70}
+		app = &incus{common: common{state: s, appConfig: &s.Applications.Incus.Config.ApplicationConfig, appState: &s.Applications.Incus.State.ApplicationState}, incusVersion: incusVersionLTS70}
 	case "incus-ceph":
-		app = &incusCeph{common: common{state: s, appState: &s.Applications.IncusCeph.State}}
+		app = &incusCeph{common: common{state: s, appConfig: &s.Applications.IncusCeph.Config, appState: &s.Applications.IncusCeph.State}}
 	case "incus-linstor":
-		app = &incusLinstor{common: common{state: s, appState: &s.Applications.IncusLinstor.State}}
+		app = &incusLinstor{common: common{state: s, appConfig: &s.Applications.IncusLinstor.Config, appState: &s.Applications.IncusLinstor.State}}
 	case "migration-manager":
-		app = &migrationManager{common: common{state: s, appState: &s.Applications.MigrationManager.State}}
+		app = &migrationManager{common: common{state: s, appConfig: &s.Applications.MigrationManager.Config, appState: &s.Applications.MigrationManager.State}}
 	case "openfga":
-		app = &openfga{common: common{state: s, appState: &s.Applications.OpenFGA.State.ApplicationState}}
+		app = &openfga{common: common{state: s, appConfig: &s.Applications.OpenFGA.Config.ApplicationConfig, appState: &s.Applications.OpenFGA.State.ApplicationState}}
 	case "operations-center":
-		app = &operationsCenter{common: common{state: s, appState: &s.Applications.OperationsCenter.State}}
+		app = &operationsCenter{common: common{state: s, appConfig: &s.Applications.OperationsCenter.Config, appState: &s.Applications.OperationsCenter.State}}
 	default:
 		return nil, errors.New("unknown application '" + name + "'")
 	}

@@ -374,11 +374,27 @@ func (s *Server) apiApplicationsEndpoint(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		err = app.UpdateConfig(r.Context(), dest)
-		if err != nil {
-			_ = response.InternalError(err).Render(w)
+		// Apply the configuration update.
+		if app.IsPrimary() {
+			// If we're updating the primary application's configuration, run in its own gofunc
+			// to allow the HTTP request time to properly return without causing an EOF on the client-side.
+			go func() { //nolint:contextcheck,gosec
+				time.Sleep(1 * time.Second)
 
-			return
+				ctx := context.Background() // Must use our own context here.
+
+				err := app.UpdateConfig(ctx, dest)
+				if err != nil {
+					slog.ErrorContext(ctx, "Failed to update configuration for application '"+name+"'", "error", err)
+				}
+			}()
+		} else {
+			err = app.UpdateConfig(r.Context(), dest)
+			if err != nil {
+				_ = response.InternalError(err).Render(w)
+
+				return
+			}
 		}
 
 		_ = response.EmptySyncResponse.Render(w)
@@ -552,7 +568,7 @@ func (s *Server) apiApplicationsDebug(w http.ResponseWriter, r *http.Request) {
 //	    $ref: "#/responses/NotFound"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -577,19 +593,28 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Do the factory reset. Run in a gofunc with its own context so the calling HTTP
-	// request can cleanly return to the client in the cases when we're resetting
-	// a primary application.
-	go func() { //nolint:contextcheck,gosec
-		time.Sleep(1 * time.Second)
+	// Do the factory reset.
+	if app.IsPrimary() {
+		// If we're resetting the primary application, run in its own gofunc to allow the HTTP
+		// request time to properly return without causing an EOF on the client-side.
+		go func() { //nolint:contextcheck,gosec
+			time.Sleep(1 * time.Second)
 
-		ctx := context.Background() // Must use our own context here.
+			ctx := context.Background() // Must use our own context here.
 
-		err := app.FactoryReset(ctx)
+			err := app.FactoryReset(ctx)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed to perform factory reset of application '"+name+"'", "error", err)
+			}
+		}()
+	} else {
+		err = app.FactoryReset(r.Context())
 		if err != nil {
-			slog.WarnContext(ctx, "Failed to perform factory reset of application '"+name+"'", "error", err)
+			_ = response.InternalError(err).Render(w)
+
+			return
 		}
-	}()
+	}
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -616,7 +641,7 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 //	    $ref: "#/responses/NotFound"
 //	  "500":
 //	    $ref: "#/responses/InternalServerError"
-func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) {
+func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) { //nolint:dupl
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -641,19 +666,28 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Trigger the restart. Run in its own gofunc to allow the HTTP request time
-	// to properly return without causing an EOF on the client-side if the primary
-	// application is restarted.
-	go func() { //nolint:contextcheck,gosec
-		time.Sleep(1 * time.Second)
+	// Trigger the restart.
+	if app.IsPrimary() {
+		// If we're restarting the primary application, run in its own gofunc to allow the HTTP
+		// request time to properly return without causing an EOF on the client-side.
+		go func() { //nolint:contextcheck,gosec
+			time.Sleep(1 * time.Second)
 
-		ctx := context.Background() // Must use our own context here.
+			ctx := context.Background() // Must use our own context here.
 
-		err := app.Restart(ctx)
+			err := app.Restart(ctx)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+			}
+		}()
+	} else {
+		err = app.Restart(r.Context())
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+			_ = response.InternalError(err).Render(w)
+
+			return
 		}
-	}()
+	}
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -939,19 +973,28 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check for and apply application update. Run in its own gofunc to allow the
-	// HTTP request time to properly return without causing an EOF on the client-side
-	// if the primary application is restarted.
-	go func() { //nolint:contextcheck,gosec
-		time.Sleep(1 * time.Second)
+	// Check for and apply application update.
+	if app.IsPrimary() {
+		// If we're updating the primary application, run in its own gofunc to allow the HTTP
+		// request time to properly return without causing an EOF on the client-side.
+		go func() { //nolint:contextcheck,gosec
+			time.Sleep(1 * time.Second)
 
-		ctx := context.Background() // Must use our own context here.
+			ctx := context.Background() // Must use our own context here.
 
-		err := update.CheckApplications(ctx, s.state, []string{name}, true, false)
+			err := update.CheckApplications(ctx, s.state, []string{name}, true, false)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
+			}
+		}()
+	} else {
+		err = update.CheckApplications(r.Context(), s.state, []string{name}, true, false)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
+			_ = response.InternalError(err).Render(w)
+
+			return
 		}
-	}()
+	}
 
 	_ = response.EmptySyncResponse.Render(w)
 }
@@ -1047,19 +1090,28 @@ func (s *Server) apiApplicationsSwitchVersion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Restart the application. Run in its own gofunc to allow the HTTP request time
-	// to properly return without causing an EOF on the client-side if the primary
-	// application is restarted.
-	go func() { //nolint:contextcheck,gosec
-		time.Sleep(1 * time.Second)
+	// Restart the application
+	if app.IsPrimary() {
+		// If we're restarting the primary application, run in its own gofunc to allow the HTTP
+		// request time to properly return without causing an EOF on the client-side.
+		go func() { //nolint:contextcheck,gosec
+			time.Sleep(1 * time.Second)
 
-		ctx := context.Background() // Must use our own context here.
+			ctx := context.Background() // Must use our own context here.
 
-		err := app.Restart(ctx)
+			err := app.Restart(ctx)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+			}
+		}()
+	} else {
+		err = app.Restart(r.Context())
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to restart application '"+name+"'", "error", err)
+			_ = response.InternalError(err).Render(w)
+
+			return
 		}
-	}()
+	}
 
 	_ = response.EmptySyncResponse.Render(w)
 }

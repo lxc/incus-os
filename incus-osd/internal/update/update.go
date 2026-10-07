@@ -419,6 +419,12 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 			return "", err
 		}
 
+		if app.IsPinned() {
+			slog.InfoContext(ctx, "Skipping application update because version pinning is enabled", "app", appName)
+
+			return "", nil
+		}
+
 		updateNeeded = update.Version() != app.Version()
 
 		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {

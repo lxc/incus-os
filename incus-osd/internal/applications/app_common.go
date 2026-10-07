@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 
@@ -15,7 +16,8 @@ import (
 type common struct {
 	state *state.State
 
-	appState *api.ApplicationState
+	appConfig *api.ApplicationConfig
+	appState  *api.ApplicationState
 }
 
 // Action runs an application-specific action/task.
@@ -106,6 +108,11 @@ func (a *common) IsInitialized() bool {
 	return a.appState.Initialized
 }
 
+// IsPinned reports if the application version(s) have been pinned.
+func (a *common) IsPinned() bool {
+	return a.appConfig.PinCurrentVersions
+}
+
 // IsPrimary reports if the application is a primary application.
 func (*common) IsPrimary() bool {
 	return false
@@ -155,6 +162,11 @@ func (*common) Stop(_ context.Context) error {
 	return nil
 }
 
+// Struct returns a struct that holds the application's config and state.
+func (*common) Struct() any {
+	return &api.Application{}
+}
+
 // SwitchVersion attempts to change the configured version of the application. If no version is specified,
 // try to rollback to the prior available version of the application, if available.
 //
@@ -192,6 +204,20 @@ func (a *common) SwitchVersion(newVersion string) error {
 // Update triggers a partial application restart after an update.
 func (*common) Update(_ context.Context) error {
 	return nil
+}
+
+// UpdateConfig updates an application's configuration.
+func (a *common) UpdateConfig(_ context.Context, req any) error {
+	newState, ok := req.(*api.Application)
+	if !ok {
+		return fmt.Errorf("request type \"%T\" isn't expected Application", req)
+	}
+
+	// Update the configuration.
+	*a.appConfig = newState.Config
+
+	// Save the state.
+	return a.state.Save()
 }
 
 // WipeLocalData removes local data created by the application.
