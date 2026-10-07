@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vishvananda/netlink"
 
@@ -366,6 +367,23 @@ func validateWireguard(cfg *api.SystemNetworkConfig) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func validateDefaultConfirmationTimeout(cfg *api.SystemNetworkConfig) error {
+	if cfg.DefaultConfirmationTimeout == "" {
+		return nil
+	}
+
+	timeout, err := time.ParseDuration(cfg.DefaultConfirmationTimeout)
+	if err != nil {
+		return fmt.Errorf("invalid default confirmation timeout provided: %w", err)
+	}
+
+	if timeout <= 0 {
+		return errors.New("default confirmation timeout must be greater than zero")
 	}
 
 	return nil
