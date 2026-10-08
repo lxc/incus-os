@@ -34,6 +34,11 @@ type SystemNetworkConfig struct {
 	// specified timeout has elapsed unless those changes are confirmed before then.
 	ConfirmationTimeout string `json:"confirmation_timeout,omitempty" yaml:"confirmation_timeout,omitempty"`
 
+	// If defined and no confirmation timeout provided, automatically roll
+	// back the new network changes after the specified timeout has elapsed unless those
+	// changes are confirmed before then.
+	DefaultConfirmationTimeout string `json:"default_confirmation_timeout,omitempty" yaml:"default_confirmation_timeout,omitempty"`
+
 	DNS   *SystemNetworkDNS   `json:"dns,omitempty"   yaml:"dns,omitempty"`
 	Time  *SystemNetworkTime  `json:"time,omitempty"  yaml:"time,omitempty"`
 	Proxy *SystemNetworkProxy `json:"proxy,omitempty" yaml:"proxy,omitempty"`

@@ -315,6 +315,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		return err
 	}
 
+	err = validateDefaultConfirmationTimeout(networkCfg)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
