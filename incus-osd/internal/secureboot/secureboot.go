@@ -268,7 +268,7 @@ func ValidatePEBinaries() error { //nolint:revive
 	}
 
 	// Get a list of trusted certificates.
-	trustedCerts, _, err := GetCertificatesAndHashesFromVar("db")
+	trustedCerts, trustedHashes, err := GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ outer:
 
 						peProperlySigned := false
 
-						// Second check: PE is properly signed by a trusted certificate.
+						// Second check: PE is properly signed by a trusted certificate or matches a manually enrolled hash.
 						for _, cert := range trustedCerts {
 							_, err := authenticodeContents.Verify(cert)
 							if err == nil {
@@ -406,7 +406,41 @@ outer:
 						}
 
 						if !peProperlySigned {
-							return errors.New("PE binary " + peName + " not signed by any trusted certificate")
+						inner:
+							for _, hash := range trustedHashes {
+								switch len(hash) {
+								case 20:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA1)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 32:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA256)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 48:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA384)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 64:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA512)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								default:
+									// Ignore any other hash lengths, as they are either invalid or unsupported.
+								}
+							}
+						}
+
+						if !peProperlySigned {
+							return errors.New("PE binary " + peName + " is not signed by any trusted certificate, and doesn't match any manually enrolled hash")
 						}
 
 						atLeastOnePEBinaryVerified = true
