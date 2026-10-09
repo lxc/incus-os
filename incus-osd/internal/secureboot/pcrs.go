@@ -424,7 +424,19 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 
 	va, err := tcg.ParseUEFIVariableAuthority(v)
 	if err != nil {
-		return nil, err
+		// The vast majority of the time each variable authority from the TPM event log will be a proper
+		// certificate. However, when the a hash of a PE binary (usually an option ROM needed for a GPU
+		// or NIC) has been manually enrolled, the contents will be a 16 byte GUID followed by the raw
+		// contents of the PE binary's hash. In this case, return the current buffer back unchanged.
+		//
+		// There's really no way for us to validate if the hash from the TPM event log is correct or not,
+		// so we'll just have to trust that the system administrator has properly setup their SecureBoot
+		// environment.
+		if err.Error() == "x509: malformed certificate" && (len(v.VariableData) == 36 || len(v.VariableData) == 48 || len(v.VariableData) == 64 || len(v.VariableData) == 80) {
+			return rawBuf, nil
+		}
+
+		return nil, errors.New("unable to parse UEFI Variable Authority from PCR7 TPM event log: " + err.Error())
 	}
 
 	if len(va.Certs) != 1 {
