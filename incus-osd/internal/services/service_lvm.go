@@ -201,6 +201,7 @@ func (n *LVM) configure(_ context.Context) error {
 		return err
 	}
 
+	// Metadata archiving is disabled as /etc/lvm is wiped on every boot and the archive otherwise grows unbounded.
 	lvmlocal := fmt.Sprintf(`global {
 	use_lvmlockd = 1
 }
@@ -211,6 +212,10 @@ local {
 
 devices {
 	filter = [ "r|/dev/zd*|/dev/rbd*|/dev/nbd*|" ]
+}
+
+backup {
+	archive = 0
 }
 `, n.state.Services.LVM.Config.SystemID)
 
