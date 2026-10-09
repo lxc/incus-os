@@ -7,6 +7,8 @@ In addition, a `daily` channel is also available which features completely autom
 
 When an OS update is installed, IncusOS will display a message on the console that a reboot is required to finish applying the update. It will also report this via the REST API update state when queried.
 
+Application updates are applied immediately while OS updates only take effect on reboot. Systems are expected to be updated and rebooted regularly, as applications may stop working if the running OS is more than three months older than the applications.
+
 ## Configuration options
 
 Configuration fields are defined in the [`SystemUpdateConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_update.go).

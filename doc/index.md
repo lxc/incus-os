@@ -88,7 +88,9 @@ The `daily` channel gets fully automated and untested daily images.
 IncusOS systems default to checking for updates every 6 hours and will
 automatically update Incus itself with a very short API downtime (no
 impact to running instances) and will stage any OS update to be booted
-upon reboot.
+upon reboot. Systems are expected to be rebooted regularly, as
+applications may stop working if the running OS is more than three
+months older than the applications.
 
 Configuration options are available to change the update frequency or
 disable automatic updates altogether as well as specifying scheduled
