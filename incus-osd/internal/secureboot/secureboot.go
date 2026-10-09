@@ -238,7 +238,7 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 	ret := []api.SystemSecuritySecureBootCertificate{}
 
 	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
-		certs, err := GetCertificatesFromVar(varName)
+		certs, _, err := GetCertificatesAndHashesFromVar(varName)
 		if err != nil {
 			continue
 		}
@@ -268,7 +268,7 @@ func ValidatePEBinaries() error { //nolint:revive
 	}
 
 	// Get a list of trusted certificates.
-	trustedCerts, err := GetCertificatesFromVar("db")
+	trustedCerts, _, err := GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return err
 	}
@@ -446,7 +446,7 @@ func validatePKICertificate(cert []byte) error {
 		return bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), cert)
 	}
 
-	dbCerts, err := GetCertificatesFromVar("db")
+	dbCerts, _, err := GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return err
 	}
@@ -463,7 +463,7 @@ func validatePKICertificate(cert []byte) error {
 		return errors.New("new UKI signed with certificate that has expired, refusing to continue")
 	}
 
-	dbxCerts, err := GetCertificatesFromVar("dbx")
+	dbxCerts, _, err := GetCertificatesAndHashesFromVar("dbx")
 	if err != nil {
 		return err
 	}

@@ -471,7 +471,7 @@ func computeExpectedVariableAuthority(rawBuf []byte) ([]byte, error) {
 
 	// There was a mismatch between the EFI stub's certificate and the certificate in the event log.
 	// Try to get the expected certificate from the db.
-	certs, err := GetCertificatesFromVar("db")
+	certs, _, err := GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return nil, err
 	}

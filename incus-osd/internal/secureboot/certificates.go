@@ -30,28 +30,29 @@ var (
 // parseEfiSignatureList is largely copied from tcg.parseEfiSignatureList(). It is modified to
 // return additional information needed for each certificate and not to fail if a certificate
 // fails to parse.
-func parseEfiSignatureList(b []byte) ([]parsedSignatureList, error) {
+func parseEfiSignatureList(b []byte) ([]parsedSignatureList, [][]byte, error) {
 	if len(b) < 28 {
 		// Being passed an empty signature list here appears to be valid
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	signatures := efiSignatureList{}
 	buf := bytes.NewReader(b)
 	certificates := []parsedSignatureList{}
+	hashes := [][]byte{}
 
 	for buf.Len() > 0 {
 		err := binary.Read(buf, binary.LittleEndian, &signatures.Header)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if signatures.Header.SignatureHeaderSize > maxDataLen {
-			return nil, fmt.Errorf("signature header too large: %d > %d", signatures.Header.SignatureHeaderSize, maxDataLen)
+			return nil, nil, fmt.Errorf("signature header too large: %d > %d", signatures.Header.SignatureHeaderSize, maxDataLen)
 		}
 
 		if signatures.Header.SignatureListSize > maxDataLen {
-			return nil, fmt.Errorf("signature list too large: %d > %d", signatures.Header.SignatureListSize, maxDataLen)
+			return nil, nil, fmt.Errorf("signature list too large: %d > %d", signatures.Header.SignatureListSize, maxDataLen)
 		}
 
 		signatureType := signatures.Header.SignatureType
@@ -63,12 +64,12 @@ func parseEfiSignatureList(b []byte) ([]parsedSignatureList, error) {
 
 				err := binary.Read(buf, binary.LittleEndian, &signature.SignatureOwner)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				err = binary.Read(buf, binary.LittleEndian, &signature.SignatureData)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				cert, err := x509.ParseCertificate(signature.SignatureData)
@@ -88,23 +89,23 @@ func parseEfiSignatureList(b []byte) ([]parsedSignatureList, error) {
 
 				err := binary.Read(buf, binary.LittleEndian, &signature.SignatureOwner)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				err = binary.Read(buf, binary.LittleEndian, &signature.SignatureData)
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
 				// For certificate fingerprints, SignatureData consists of the hash of the certificate's
 				// "To-Be-Signed", followed by an EFI_TIME (16 bytes) that indicates the time of revocation.
 				// These entries only make sense in the dbx EFI variable. IncusOS doesn't make use of
-				// hashes of dbx certificates, so nothing is done with the data we've just read.
-
+				// hashes of dbx certificates, so nothing is done with this data.
+				//
 				// For EFI binary hashes, SignatureData consists of the hash of an EFI binary that should
-				// be whitelisted if in the db EFI variable, and blacklisted if in the dbx variable.
-				// IncusOS doesn't make use of EFI binary hashes, so nothing is done with the data we've
-				// just read.
+				// be whitelisted if present in the db EFI variable, and blacklisted if present in the dbx
+				// variable.
+				hashes = append(hashes, signature.SignatureData)
 
 				sigOffset += signatures.Header.SignatureSize
 			}
@@ -113,9 +114,9 @@ func parseEfiSignatureList(b []byte) ([]parsedSignatureList, error) {
 		}
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return certificates, nil
+	return certificates, hashes, nil
 }

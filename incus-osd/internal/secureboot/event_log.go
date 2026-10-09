@@ -374,7 +374,7 @@ func getSigningCertBytes(contents []byte) ([]byte, error) {
 		return nil, errors.New("/run/systemd/tpm2-pcr-public-key.pem is not an RSA public key")
 	}
 
-	certList, err := parseEfiSignatureList(contents)
+	certList, _, err := parseEfiSignatureList(contents)
 	if err != nil {
 		return nil, err
 	}

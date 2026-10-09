@@ -25,27 +25,29 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
-// GetCertificatesFromVar returns a list of certificates currently in a given EFI variable.
-func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
+// GetCertificatesAndHashesFromVar returns a list of certificates and hashes currently in a given EFI variable.
+func GetCertificatesAndHashesFromVar(varName string) ([]*x509.Certificate, [][]byte, error) {
 	var certs []*x509.Certificate
+
+	var hashes [][]byte
 
 	// Determine Secure Boot state.
 	sbEnabled, err := Enabled()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if sbEnabled {
 		// In normal operation, Secure Boot will be enabled and we can
-		// directly fetch certificates from a trusted EFI variable.
+		// directly fetch certificates and hashes from a trusted EFI variable.
 		val, err := util.ReadEFIVariable(varName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		certList, err := parseEfiSignatureList(val)
+		certList, h, err := parseEfiSignatureList(val)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// Check for and report if any certificate failed to parse.
@@ -58,6 +60,9 @@ func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
 
 			certs = append(certs, certInfo.cert)
 		}
+
+		// Pass through any hashes that have been manually enrolled by the system administrator.
+		hashes = h
 	} else {
 		// When Secure Boot is disabled, rely on any certificates baked into the IncusOS daemon.
 		// Since the executable is part of the usr-verity image, it is read-only and the verity
@@ -65,7 +70,7 @@ func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
 		// the TPM event log. Therefore it should to be relatively safe to trust the contents.
 		embeddedCerts, err := incusoscerts.GetEmbeddedCertificates()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		switch varName {
@@ -78,7 +83,7 @@ func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
 		case "dbx":
 			certs = embeddedCerts.SecureBootCertificates.DBX
 		default:
-			return nil, errors.New("unable to get SecureBoot certificates from daemon for variable " + varName)
+			return nil, nil, errors.New("unable to get SecureBoot certificates from daemon for variable " + varName)
 		}
 	}
 
@@ -100,7 +105,7 @@ func GetCertificatesFromVar(varName string) ([]*x509.Certificate, error) {
 		}
 	}
 
-	return certs, nil
+	return certs, hashes, nil
 }
 
 // UpdateSecureBootCerts takes a given tar archive and applies any SecureBoot KEK, db, or dbx
@@ -202,7 +207,7 @@ func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error)
 }
 
 func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[string][]byte) (bool, error) {
-	existingCerts, err := GetCertificatesFromVar(varName)
+	existingCerts, _, err := GetCertificatesAndHashesFromVar(varName)
 	if err != nil {
 		return false, fmt.Errorf("failed to read EFI variable %q: %w", varName, err)
 	}
@@ -364,7 +369,7 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	headerSize := binary.LittleEndian.Uint32(buf[16:20])
 	offset := 16 + headerSize
 
-	certList, err := parseEfiSignatureList(buf[offset:])
+	certList, _, err := parseEfiSignatureList(buf[offset:])
 	if err != nil {
 		return err
 	} else if len(certList) != 1 {
