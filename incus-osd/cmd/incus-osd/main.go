@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/backup"
 	"github.com/lxc/incus-os/incus-osd/internal/install"
 	"github.com/lxc/incus-os/incus-osd/internal/kernel"
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
@@ -249,6 +251,72 @@ func firstBootActions(ctx context.Context, s *state.State) error {
 	return setTimezone(ctx)
 }
 
+// applySeedBackups restores the system and application backups carried by the seed, if present.
+func applySeedBackups(ctx context.Context, s *state.State) error {
+	// Restore the system backup first; this imports the local pool with its key and reboots.
+	content, err := seed.GetFile("backup-system.tar.gz")
+	if err != nil && !seed.IsMissing(err) {
+		return err
+	}
+
+	if err == nil {
+		slog.InfoContext(ctx, "Restoring the system backup from the seed")
+
+		// Remove the backup from the seed first, so it is only ever applied once.
+		err = seed.DeleteFile(ctx, "backup-system.tar.gz")
+		if err != nil {
+			return err
+		}
+
+		err = backup.ApplyOSBackup(ctx, s, bytes.NewReader(content), nil)
+		if err != nil {
+			return err
+		}
+
+		// Sleep until the system reboots so we don't report the system as ready.
+		time.Sleep(10 * time.Second)
+
+		return nil
+	}
+
+	// Restore any application backups.
+	for _, appName := range applications.Supported {
+		filename := "backup-application-" + appName + ".tar.gz"
+
+		content, err := seed.GetFile(filename)
+		if err != nil && !seed.IsMissing(err) {
+			return err
+		}
+
+		if err != nil {
+			continue
+		}
+
+		app, err := applications.Load(ctx, s, appName)
+		if err != nil {
+			return err
+		}
+
+		if !app.IsInstalled() {
+			continue
+		}
+
+		slog.InfoContext(ctx, "Restoring the "+appName+" application backup from the seed")
+
+		err = seed.DeleteFile(ctx, filename)
+		if err != nil {
+			return err
+		}
+
+		err = app.RestoreBackup(bytes.NewReader(content))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func run(ctx context.Context, s *state.State) error {
 	// Verify that the system meets minimum requirements for running IncusOS.
 	err := install.CheckSystemRequirements(ctx)
@@ -324,6 +392,12 @@ func run(ctx context.Context, s *state.State) error {
 
 	// Run startup tasks.
 	err = startup(ctx, s)
+	if err != nil {
+		return err
+	}
+
+	// Restore any backups carried by the seed when recovering onto a "local" pool member.
+	err = applySeedBackups(ctx, s)
 	if err != nil {
 		return err
 	}

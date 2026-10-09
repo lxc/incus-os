@@ -1289,6 +1289,10 @@ definitions:
                 format: int64
                 type: integer
                 x-go-name: RawPoolSizeInBytes
+            reserve_system_space:
+                description: If true, partition the second device of the "local" pool like the system drive, keeping the space for the system partitions free in front of it. Can only be specified when initially creating the pool.
+                type: boolean
+                x-go-name: ReserveSystemSpace
             special:
                 $ref: '#/definitions/SystemStoragePoolSpecial'
             special_degraded:
