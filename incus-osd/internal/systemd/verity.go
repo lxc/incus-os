@@ -22,7 +22,7 @@ type veritySignatureMetadata struct {
 
 func getTrustedVerityCertificate(ctx context.Context, certificateFingerprint string) (*x509.Certificate, error) {
 	// Get db Secure Boot certificates.
-	certs, err := secureboot.GetCertificatesFromVar("db")
+	certs, _, err := secureboot.GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return nil, err
 	}

@@ -90,7 +90,7 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 		return err
 	}
 
-	err = validatePKICertificate(newCert)
+	err = checkUKIValidity(ukiFile, newCert)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func ListCertificates() []api.SystemSecuritySecureBootCertificate {
 	ret := []api.SystemSecuritySecureBootCertificate{}
 
 	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
-		certs, err := GetCertificatesFromVar(varName)
+		certs, _, err := GetCertificatesAndHashesFromVar(varName)
 		if err != nil {
 			continue
 		}
@@ -268,7 +268,7 @@ func ValidatePEBinaries() error { //nolint:revive
 	}
 
 	// Get a list of trusted certificates.
-	trustedCerts, err := GetCertificatesFromVar("db")
+	trustedCerts, trustedHashes, err := GetCertificatesAndHashesFromVar("db")
 	if err != nil {
 		return err
 	}
@@ -395,7 +395,7 @@ outer:
 
 						peProperlySigned := false
 
-						// Second check: PE is properly signed by a trusted certificate.
+						// Second check: PE is properly signed by a trusted certificate or matches a manually enrolled hash.
 						for _, cert := range trustedCerts {
 							_, err := authenticodeContents.Verify(cert)
 							if err == nil {
@@ -406,7 +406,41 @@ outer:
 						}
 
 						if !peProperlySigned {
-							return errors.New("PE binary " + peName + " not signed by any trusted certificate")
+						inner:
+							for _, hash := range trustedHashes {
+								switch len(hash) {
+								case 20:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA1)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 32:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA256)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 48:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA384)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								case 64:
+									if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA512)) { //nolint:revive
+										peProperlySigned = true
+
+										break inner
+									}
+								default:
+									// Ignore any other hash lengths, as they are either invalid or unsupported.
+								}
+							}
+						}
+
+						if !peProperlySigned {
+							return errors.New("PE binary " + peName + " is not signed by any trusted certificate, and doesn't match any manually enrolled hash")
 						}
 
 						atLeastOnePEBinaryVerified = true
@@ -426,12 +460,13 @@ outer:
 	return nil
 }
 
-// validatePKICertificate makes sure the certificate obtained from a potential new UKI
-// is listed in the Secure Boot db, isn't in dbx, and is valid based on the current
-// system time. (Secure Boot can't rely on time being correct; once up and running
-// that's a reasonable assumption, but nothing security critical depends on this. Mostly
-// it's just another easy check to help ensure we only install valid UKIs.)
-func validatePKICertificate(cert []byte) error {
+// checkUKIValidity makes sure the potential new UKI uses a certificate or matches a hash
+// from the Secure Boot db, isn't in dbx, and if relying on a certificate signature that the
+// certificate is valid based on the current system time. (Secure Boot can't rely on time
+// being correct; once up and running that's a reasonable assumption, but nothing security
+// critical depends on this. Mostly it's just another easy check to help ensure we only
+// install valid UKIs.)
+func checkUKIValidity(ukiFile string, cert []byte) error {
 	certEqualityFunc := func(c *x509.Certificate) bool {
 		publicKeyDer, err := x509.MarshalPKIXPublicKey(c.PublicKey)
 		if err != nil {
@@ -446,9 +481,100 @@ func validatePKICertificate(cert []byte) error {
 		return bytes.Equal(pem.EncodeToMemory(&publicKeyBlock), cert)
 	}
 
-	dbCerts, err := GetCertificatesFromVar("db")
+	// Check for revoked certificates or hashes first.
+	dbxCerts, dbxHashes, err := GetCertificatesAndHashesFromVar("dbx")
 	if err != nil {
 		return err
+	}
+
+	if len(dbxHashes) > 0 {
+		// Open the UKI from disk and compute its authenticode.
+		f, err := os.Open(ukiFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close() //nolint:revive
+
+		authenticodeContents, err := authenticode.Parse(f)
+		if err != nil {
+			return err
+		}
+
+		// For each hash provided from the dbx SecureBoot variable, see if it matches
+		// the authenticode for the UKI. If so, return an error since the system will
+		// never allow it to boot.
+		for _, hash := range dbxHashes {
+			switch len(hash) {
+			case 20:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA1)) {
+					return errors.New("new UKI matches hash value from dbx, refusing to continue")
+				}
+			case 32:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA256)) {
+					return errors.New("new UKI matches hash value from dbx, refusing to continue")
+				}
+			case 48:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA384)) {
+					return errors.New("new UKI matches hash value from dbx, refusing to continue")
+				}
+			case 64:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA512)) {
+					return errors.New("new UKI matches hash value from dbx, refusing to continue")
+				}
+			default:
+				// Ignore any other hash lengths, as they are either invalid or unsupported.
+			}
+		}
+	}
+
+	if slices.ContainsFunc(dbxCerts, certEqualityFunc) {
+		return errors.New("new UKI signed with revoked Secure Boot certificate, refusing to continue")
+	}
+
+	// Check whitelisted certificates or hashes second.
+	dbCerts, dbHashes, err := GetCertificatesAndHashesFromVar("db")
+	if err != nil {
+		return err
+	}
+
+	if len(dbHashes) > 0 {
+		// Open the UKI from disk and compute its authenticode.
+		f, err := os.Open(ukiFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close() //nolint:revive
+
+		authenticodeContents, err := authenticode.Parse(f)
+		if err != nil {
+			return err
+		}
+
+		// For each hash provided from the db SecureBoot variable, see if it matches
+		// the authenticode for the UKI. If so, we don't have to check its signing
+		// certificate, since the system will always allow it to boot.
+		for _, hash := range dbHashes {
+			switch len(hash) {
+			case 20:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA1)) {
+					return nil
+				}
+			case 32:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA256)) {
+					return nil
+				}
+			case 48:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA384)) {
+					return nil
+				}
+			case 64:
+				if bytes.Equal(hash, authenticodeContents.Hash(crypto.SHA512)) {
+					return nil
+				}
+			default:
+				// Ignore any other hash lengths, as they are either invalid or unsupported.
+			}
+		}
 	}
 
 	dbIndex := slices.IndexFunc(dbCerts, certEqualityFunc)
@@ -461,15 +587,6 @@ func validatePKICertificate(cert []byte) error {
 		return errors.New("new UKI signed with certificate that is not yet valid, refusing to continue")
 	} else if time.Now().After(dbCerts[dbIndex].NotAfter) {
 		return errors.New("new UKI signed with certificate that has expired, refusing to continue")
-	}
-
-	dbxCerts, err := GetCertificatesFromVar("dbx")
-	if err != nil {
-		return err
-	}
-
-	if slices.ContainsFunc(dbxCerts, certEqualityFunc) {
-		return errors.New("new UKI signed with revoked Secure Boot certificate, refusing to continue")
 	}
 
 	return nil
