@@ -192,7 +192,8 @@ type SystemStorageEncrypt struct {
 //
 // swagger:model
 type SystemStoragePoolKey struct {
-	Name          string `json:"name"           yaml:"name"`
-	Type          string `json:"type"           yaml:"type"`
-	EncryptionKey string `json:"encryption_key" yaml:"encryption_key"`
+	Name          string `json:"name"            yaml:"name"`
+	Type          string `json:"type"            yaml:"type"`
+	EncryptionKey string `json:"encryption_key"  yaml:"encryption_key"`
+	Force         bool   `json:"force,omitempty" yaml:"force,omitempty"`
 }
