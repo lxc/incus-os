@@ -956,12 +956,19 @@ func GetZpoolEncryptionKeys() (map[string]string, error) {
 // After importing an encrypted pool, it will write the key to disk and then use it
 // to unlock the pool. Unencrypted pools are imported, but are not managed by IncusOS
 // and must be manually imported after each system boot.
-func ImportExistingPool(ctx context.Context, pool string, key string) error {
+func ImportExistingPool(ctx context.Context, pool string, key string, force bool) error {
 	reverter := revert.New()
 	defer reverter.Fail()
 
 	// Import the existing pool.
-	_, err := subprocess.RunCommandContext(ctx, "zpool", "import", pool)
+	args := []string{"import"}
+	if force {
+		args = append(args, "-f")
+	}
+
+	args = append(args, pool)
+
+	_, err := subprocess.RunCommandContext(ctx, "zpool", args...)
 	if err != nil {
 		return err
 	}

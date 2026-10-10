@@ -401,7 +401,7 @@ func (s *Server) apiSystemStorageImportPool(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = zfs.ImportExistingPool(r.Context(), poolStruct.Name, poolStruct.EncryptionKey)
+	err = zfs.ImportExistingPool(r.Context(), poolStruct.Name, poolStruct.EncryptionKey, poolStruct.Force)
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
