@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -211,7 +212,7 @@ func (oc *operationsCenter) Initialize(ctx context.Context) error {
 	}
 
 	{
-		if *ocSeed.Preseed.SystemSettings != (ocapi.SettingsPut{}) {
+		if !reflect.DeepEqual(*ocSeed.Preseed.SystemSettings, ocapi.SettingsPut{}) {
 			contentJSON, err := json.Marshal(ocSeed.Preseed.SystemSettings)
 			if err != nil {
 				return err
