@@ -116,6 +116,25 @@ func LoadPools(ctx context.Context, s *state.State) error {
 				}
 			}
 
+			// Partition the second device of a mirrored pool like the system drive, as the storage API does.
+			if localZpool.Type == "zfs-raid1" {
+				for i, device := range localZpool.Devices {
+					if device == "/dev/disk/by-partlabel/local-data" {
+						continue
+					}
+
+					deviceID, err := storage.DeviceToID(ctx, device, false)
+					if err != nil {
+						return err
+					}
+
+					localZpool.Devices[i], err = partitionLocalPoolDevice(ctx, deviceID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			// Create the local pool.
 			err = CreateZpool(ctx, localZpool, s)
 			if err != nil {
