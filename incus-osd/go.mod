@@ -3,9 +3,9 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.7
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.4
+	github.com/FuturFusion/migration-manager v0.7.5-0.20261010004822-a7faf960ff02
 	github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1
-	github.com/FuturFusion/operations-center v0.9.0
+	github.com/FuturFusion/operations-center v0.10.1
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20261004203234-c7f1f57bdc6e
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -14,9 +14,9 @@ require (
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.20.1
+	github.com/klauspost/compress v1.20.3
 	github.com/klauspost/pgzip v1.2.7
-	github.com/lxc/incus/v7 v7.5.1
+	github.com/lxc/incus/v7 v7.5.2-0.20261009231636-5335c4d72175
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
 	github.com/pires/go-proxyproto v0.15.0
 	github.com/rivo/tview v0.42.0
@@ -26,10 +26,10 @@ require (
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	github.com/vishvananda/netlink v1.3.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
-	golang.org/x/sync v0.23.0
-	golang.org/x/sys v0.48.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/sys v0.49.0
 	gopkg.in/ini.v1 v1.67.3
-	software.sslmate.com/src/go-pkcs12 v0.7.3
+	software.sslmate.com/src/go-pkcs12 v0.7.4
 	tailscale.com v1.102.5
 )
 
@@ -49,8 +49,8 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/flosch/pongo2/v6 v6.1.0 // indirect
-	github.com/fvbommel/sortorder v1.2.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
+	github.com/fvbommel/sortorder v1.2.1 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.6 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3 // indirect
@@ -67,15 +67,15 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-runewidth v0.0.30 // indirect
+	github.com/mattn/go-runewidth v0.0.31 // indirect
 	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.2.1 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.3.0 // indirect
-	github.com/olekukonko/ll v0.1.8 // indirect
+	github.com/olekukonko/ll v0.1.9 // indirect
 	github.com/olekukonko/tablewriter v1.1.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
@@ -96,7 +96,7 @@ require (
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
-	github.com/zitadel/oidc/v3 v3.51.11 // indirect
+	github.com/zitadel/oidc/v3 v3.51.14 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
@@ -105,11 +105,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/exp v0.0.0-20261005173118-76772065c9b0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/exp v0.0.0-20261011100332-faecfb24eb49 // indirect
+	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
