@@ -124,6 +124,7 @@ RSA
 Ryzen
 Scaleway
 SLAAC
+SMBIOS
 SSD
 struct
 structs
