@@ -43,15 +43,11 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	// Get the state of the TPM as recorded in the UEFI variable.
-	tpmStateContents, err := util.ReadEFIVariable("IncusOSTPMState")
+	// Check if the TPM was able to unlock things automatically in the initrd.
+	tpmStateIsGood, err := util.TPMAutoUnlocked()
 	if err != nil {
 		return err
 	}
-
-	// If there are four bytes in the UEFI variable and the last is zero, that means the TPM
-	// was able to unlock things automatically in the initrd.
-	tpmStateIsGood := len(tpmStateContents) == 4 && tpmStateContents[3] == 0
 
 	if tpmStateIsGood {
 		return errors.New("refusing to reset TPM encryption bindings because current state can unlock all volumes")
@@ -59,14 +55,19 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 
 	// WARNING: here be dragons as we're going to be blindly trusting inputs that in theory could be attacker-controlled.
 
-	// Get the current PCR4 and PCR7 values directly from the TPM. Don't bother replaying the event log and computing the
-	// values, since they should be the same.
+	// Get the current PCR4, PCR7 and PCR12 values directly from the TPM. Don't bother replaying the event log and
+	// computing the values, since they should be the same.
 	pcr4, err := ReadPCR("4")
 	if err != nil {
 		return err
 	}
 
 	pcr7, err := ReadPCR("7")
+	if err != nil {
+		return err
+	}
+
+	pcr12, err := ReadPCR("12")
 	if err != nil {
 		return err
 	}
@@ -84,14 +85,11 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 	}
 
 	// Finally, we're ready to update the TPM bindings for each LUKS volume.
-	pcr4String := hex.EncodeToString(pcr4)
-	pcr7String := hex.EncodeToString(pcr7)
+	pcrBindingArg := pcrBindingArgument(nil, pcr7, nil)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
-
-	// When Secure Boot is disabled, we also bind to PCR4.
+	// When Secure Boot is disabled, we also bind to PCR4 and PCR12.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + pcr4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+		pcrBindingArg = pcrBindingArgument(pcr4, pcr7, pcr12)
 	}
 
 	// Handle an edge case where the system boots with a recovery passphrase, but hasn't yet been
@@ -139,7 +137,7 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 				return err
 			}
 
-			pcrRandomBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(randomPCR) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+			pcrRandomBindingArg := pcrBindingArgument(nil, randomPCR, nil)
 
 			if luksKey == "" {
 				// Set a bad PCR policy.
@@ -173,6 +171,24 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 	s.TriggerReboot <- true
 
 	return nil
+}
+
+// pcrBindingArgument returns the systemd-cryptenroll PCR policy argument for the given values.
+// PCR4 and PCR12 are only part of the policy when Secure Boot is disabled and may be nil otherwise.
+func pcrBindingArgument(pcr4 []byte, pcr7 []byte, pcr12 []byte) string {
+	arg := "--tpm2-pcrs="
+
+	if pcr4 != nil {
+		arg += "4:sha256=" + hex.EncodeToString(pcr4) + "+"
+	}
+
+	arg += "7:sha256=" + hex.EncodeToString(pcr7)
+
+	if pcr12 != nil {
+		arg += "+12:sha256=" + hex.EncodeToString(pcr12)
+	}
+
+	return arg + "+15:sha256=" + strings.Repeat("0", 64)
 }
 
 // ReadPCR returns the current PCR value from the TPM.

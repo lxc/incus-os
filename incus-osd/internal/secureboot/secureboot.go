@@ -120,14 +120,16 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 		return err
 	}
 
-	newPCR4String := hex.EncodeToString(newPCR4)
-	newPCR7String := hex.EncodeToString(newPCR7)
+	pcrBindingArg := pcrBindingArgument(nil, newPCR7, nil)
 
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
-
-	// When Secure Boot is disabled, we also bind to PCR4.
+	// When Secure Boot is disabled, we also bind to PCR4 and PCR12.
 	if !sbEnabled {
-		pcrBindingArg = "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + newPCR7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+		pcr12, err := ReadPCR("12")
+		if err != nil {
+			return err
+		}
+
+		pcrBindingArg = pcrBindingArgument(newPCR4, newPCR7, pcr12)
 	}
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
@@ -146,12 +148,16 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 }
 
 // UpdatePCR4Binding updates all LUKS encryption bindings to use the newly computed PCR4
-// value in addition to PCR7 when the UKI is updated.
+// value in addition to PCR7 and PCR12 when the UKI is updated.
 //
 // Generally, this code should only be used when IncusOS is running with Secure Boot disabled
 // and we rely on the additional binding of PCR4 in this degraded security state. Because PCR4
 // is different for each UKI, this forces the use of a recovery passphrase if booting an older
 // version of IncusOS, so use of PCR4 is limited just to instances with Secure Boot disabled.
+//
+// Without Secure Boot, systemd-stub also accepts a kernel command line from the boot loader,
+// which is only measured into PCR12. Binding PCR12 to its current value ensures the TPM won't
+// unlock the volumes when booting the expected UKI with a modified command line.
 //
 // Additionally, because PCR4 changes for each UKI, we must rely on a recovery passphrase to
 // update the TPM bindings. This is important because if we depend on the TPM to bind new
@@ -179,22 +185,24 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 		return err
 	}
 
-	// PCR7 won't change when the UKI is updated.
+	// PCR7 and PCR12 won't change when the UKI is updated.
 	pcr7, err := ReadPCR("7")
 	if err != nil {
 		return err
 	}
 
-	// Update the LUKS-encrypted volumes to use the new PCR4 value.
-	newPCR4String := hex.EncodeToString(newPCR4)
-	pcr7String := hex.EncodeToString(pcr7)
+	pcr12, err := ReadPCR("12")
+	if err != nil {
+		return err
+	}
 
+	// Update the LUKS-encrypted volumes to use the new PCR4 value.
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
 		return err
 	}
 
-	pcrBindingArg := "--tpm2-pcrs=4:sha256=" + newPCR4String + "+7:sha256=" + pcr7String + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+	pcrBindingArg := pcrBindingArgument(newPCR4, pcr7, pcr12)
 
 	for name, volume := range luksVolumes {
 		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)

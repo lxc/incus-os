@@ -328,7 +328,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	}
 
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
-	pcrBindingArg := "--tpm2-pcrs=7:sha256=" + hex.EncodeToString(newPCR7) + "+15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+	pcrBindingArg := pcrBindingArgument(nil, newPCR7, nil)
 
 	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
 	if err != nil {
