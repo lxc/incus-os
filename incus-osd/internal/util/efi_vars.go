@@ -8,6 +8,17 @@ import (
 	"os"
 )
 
+// TPMAutoUnlocked returns whether the TPM unlocked the LUKS volumes in the initrd on this boot,
+// as recorded in the IncusOSTPMState EFI variable (four bytes, the last being zero on success).
+func TPMAutoUnlocked() (bool, error) {
+	tpmStateContents, err := ReadEFIVariable("IncusOSTPMState")
+	if err != nil {
+		return false, err
+	}
+
+	return len(tpmStateContents) == 4 && tpmStateContents[3] == 0, nil
+}
+
 // ReadEFIVariable returns the current value, if any, of the specified EFI variable.
 func ReadEFIVariable(variableName string) ([]byte, error) {
 	// Determine which file to open.
