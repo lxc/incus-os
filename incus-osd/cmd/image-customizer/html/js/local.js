@@ -1,3 +1,5 @@
+var certificateURLs = [];
+
 function certificate() {
     // Send the request.
     fetch("/1.0/certificate", {
@@ -13,20 +15,7 @@ function certificate() {
 
         // Download the various files onto the client.
         const blobCert = new Blob([response.metadata.certificate], {type: 'application/x-pem-file'});
-        const urlCert = window.URL.createObjectURL(blobCert);
-        const aCert = document.createElement("a");
-        aCert.href = urlCert;
-        aCert.download = "client.crt";
-        aCert.click();
-
         const blobKey = new Blob([response.metadata.key], {type: 'application/x-pem-file'});
-        const urlKey = window.URL.createObjectURL(blobKey);
-        const aKey = document.createElement("a");
-        aKey.href = urlKey;
-        aKey.download = "client.key";
-        aKey.click();
-
-
 
         const byteString = window.atob(response.metadata.pfx);
         var bytesPfx = new ArrayBuffer(byteString.length);
@@ -36,14 +25,45 @@ function certificate() {
         }
 
         const blobPfx = new Blob([bytesPfx], {type: 'application/x-pkcs12'});
-        const urlPfx = window.URL.createObjectURL(blobPfx);
-        const aPfx = document.createElement("a");
-        aPfx.href = urlPfx;
-        aPfx.download = "client.pfx";
-        aPfx.click();
 
-        var modalDialog = new bootstrap.Modal(document.getElementById("certificateModal"), {});
-        modalDialog.show();
+        // Release the files from any previously generated certificate.
+        certificateURLs.forEach(url => window.URL.revokeObjectURL(url));
+        certificateURLs = [];
+
+        const files = [
+            [blobCert, "certificateLinkCrt"],
+            [blobKey, "certificateLinkKey"],
+            [blobPfx, "certificateLinkPfx"],
+        ];
+
+        const links = files.map(function(file) {
+            const url = window.URL.createObjectURL(file[0]);
+            certificateURLs.push(url);
+
+            const link = document.getElementById(file[1]);
+            link.href = url;
+
+            return link;
+        });
+
+        // Download staggered as Safari drops back-to-back programmatic downloads.
+        const startDownloads = function() {
+            links.forEach(function(link, i) {
+                setTimeout(function() {
+                    link.click();
+                }, i * 500);
+            });
+        };
+
+        // Wait for the modal to be visible, unless it's already showing from a previous generation.
+        const modalElement = document.getElementById("certificateModal");
+        if (modalElement.classList.contains("show")) {
+            startDownloads();
+        } else {
+            modalElement.addEventListener("shown.bs.modal", startDownloads, {once: true});
+        }
+
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
     });
 }
 
