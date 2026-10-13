@@ -916,6 +916,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Start the job scheduler.
 	jobScheduler.Start()
 
+	// Export SMART metrics now rather than waiting for the first scheduled run.
+	go func() {
+		err := storage.WriteSMARTMetrics(ctx)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed to export SMART metrics: "+err.Error())
+		}
+	}()
+
 	// Set up handler for daemon actions.
 	s.TriggerReboot = make(chan bool, 1)
 	s.TriggerShutdown = make(chan bool, 1)
@@ -1019,6 +1027,14 @@ func registerJobs(s *state.State) error {
 
 	// Register the ZFS trim job.
 	err = jobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools, nil)
+	if err != nil {
+		return err
+	}
+
+	// Register the SMART metrics export job.
+	err = jobScheduler.RegisterJob(storage.SMARTMetricsJob, "15m", func(ctx context.Context, _ *state.State) error {
+		return storage.WriteSMARTMetrics(ctx)
+	}, nil)
 	if err != nil {
 		return err
 	}
