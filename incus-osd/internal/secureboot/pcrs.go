@@ -223,28 +223,6 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 
 				// Iterate through the device paths for this event, until we get to the actual PE binary.
 				for _, dev := range devPaths {
-					// EFI Vendor-defined data
-					if dev.Type == tcg.MediaDevice && dev.Subtype == 3 {
-						// When SeucreBoot is disabled, systemd makes an additional PCR4 measurement of the .linux section
-						// from the UKI.
-						if bytes.Equal(systemdStubGUID[:], dev.Data) {
-							buf, err := computeVmlinuzAuthenticodeHash(newUkiImage)
-							if err != nil {
-								return nil, err
-							}
-
-							// Extend the PCR4 value.
-							actualPCR4Buf, err = extendPCRValue(actualPCR4Buf, buf, false)
-							if err != nil {
-								return nil, err
-							}
-
-							foundPE = true
-
-							break
-						}
-					}
-
 					// EFI File Path
 					if dev.Type == tcg.MediaDevice && dev.Subtype == 4 {
 						peName, err := util.UTF16ToString(dev.Data)
