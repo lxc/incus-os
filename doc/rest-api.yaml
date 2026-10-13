@@ -1321,6 +1321,9 @@ definitions:
             encryption_key:
                 type: string
                 x-go-name: EncryptionKey
+            force:
+                type: boolean
+                x-go-name: Force
             name:
                 type: string
                 x-go-name: Name

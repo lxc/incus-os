@@ -31,6 +31,13 @@ def TestIncusOSAPISystemStorageImportPool(install_image):
 
             vm.WaitExpectedLog("incus-osd", "Unencrypted storage pool 'mypool' has been imported")
 
+            # Test importing a pool with force
+            vm.RunCommand("zpool", "export", "mypool")
+
+            result = vm.APIRequest("/1.0/system/storage/:import-pool", method="POST", body="""{"name":"mypool","type":"zfs","force":true}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
             # Can't import an encrypted pool that doesn't use a raw key
             vm.RunCommand("zpool", "export", "mypool")
             vm.RunCommand("sgdisk", "-Z", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1")

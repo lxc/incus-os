@@ -202,6 +202,12 @@ When importing an existing encrypted storage pool, IncusOS needs to be informed 
 incus admin os system storage import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A="}'
 ```
 
+If the storage pool was previously used on another system or was not cleanly exported, you can add `"force":true` to force the import:
+
+```
+incus admin os system storage import-storage-pool -d '{"name":"mypool","type":"zfs","encryption_key":"THp6YZ33zwAEXiCWU71/l7tY8uWouKB5TSr/uKXCj2A=","force":true}'
+```
+
 ```{warning}
 IncusOS can import an unencrypted ZFS storage pool, but this is **strongly** discouraged. Use of unencrypted storage risks accidental leakage of sensitive data from an encrypted pool to an unencrypted one.
 
