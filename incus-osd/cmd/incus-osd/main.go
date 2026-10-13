@@ -540,6 +540,35 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
+	// With Secure Boot disabled, existing installs also need to be bound to PCR12. This is only done when
+	// the TPM unlocked the volumes on this boot, as the current PCR values are then known to be trusted.
+	// New installs and updates handle PCR12 themselves, this migration logic can be removed after January 2027.
+	if s.SecureBootDisabled {
+		isBoundPCR12, err := storage.LUKSBoundToPCR(ctx, luksVolumes["root"], 12)
+		if err != nil {
+			return err
+		}
+
+		tpmAutoUnlocked, err := util.TPMAutoUnlocked()
+		if err != nil {
+			return err
+		}
+
+		if !isBoundPCR12 && tpmAutoUnlocked {
+			slog.InfoContext(ctx, "Adding PCR12 to LUKS TPM PCR bindings, this may take a few seconds")
+
+			ukiVersions, err := util.GetUKIVersions()
+			if err != nil {
+				return err
+			}
+
+			err = secureboot.UpdatePCR4Binding(ctx, ukiVersions.CurrentFilepath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Enable swap, if present. Swap isn't normally activated until after exiting the initrd, and because we're not able to
 	// rely on the TPM to automatically unlock that partition, systemd cannot enable swap for us during system boot.
 	_, err = os.Stat("/dev/mapper/swap")

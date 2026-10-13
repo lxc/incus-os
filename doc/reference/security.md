@@ -69,7 +69,7 @@ KEK, db, and dbx updates are signed offline and then made available via a Provid
 - Each `.auth` file is signed by a KEK certificate already enrolled on the machine IncusOS is running on. If the file is tampered with, enrollment will fail, so there is no special need to protect or checksum received updates.
 
 ## Use of TPM PCRs
-IncusOS relies on four PCRs (4, 7, 11 & 15) to bind disk encryption keys.
+IncusOS relies on five PCRs (4, 7, 11, 12 & 15) to bind disk encryption keys.
 
 ### PCR 4
 
@@ -102,6 +102,18 @@ IncusOS only ever needs to worry about re-binding PCR 11 when the Secure Boot ke
 - Replace the existing `systemd-boot` UEFI stub with a newly signed one from the pending OS update. `systemd-sysupdate` doesn't typically update the `systemd-boot` stub, but we need to ensure it's updated to a version signed by the new key.
 - Changing the signature on the `systemd-boot` stub will affect the PCR 7 value at next boot, so follow the steps outlined above to predict the new PCR 7 value.
 - Re-bind the TPM PCR 11 policies with the new signing certificate and predicted PCR 7 value. Doing this invalidates the current TPM state, so we must rely on a recovery key known to IncusOS to update the LUKS header. The update is performed in as an atomic process as possible, to prevent having the LUKS header in a state where it doesn't have a TPM enrolled.
+
+### PCR 12
+
+```{note}
+PCR 12 is only used on IncusOS systems where Secure Boot is disabled.
+```
+
+PCR 12 is populated by `systemd-boot` and `systemd-stub` with the kernel command line passed by the boot loader, extra kernel command line arguments passed through SMBIOS, the selected UKI profile and any add-on files, credentials or extension images picked up from the ESP next to the UKI. System credentials passed through SMBIOS are measured into PCR 1 and don't affect PCR 12. On a normal IncusOS boot, nothing is passed this way and PCR 12 remains at its initial value (all zeros).
+
+When Secure Boot is enabled, `systemd-stub` ignores any command line provided by the boot loader because the UKI already contains one. When Secure Boot is disabled, that protection doesn't apply and a modified boot entry on the (unencrypted) ESP could boot the genuine UKI with an altered kernel command line without affecting PCRs 4, 7 or 11. Binding PCR 12 to its expected value closes this gap: a command line that differs from the one built into the UKI causes an additional PCR 12 measurement and the TPM refuses to unlock the encrypted disks.
+
+PCR 12 is expected to keep the same value from one boot to the next. The expected value is read from the TPM whenever the PCR 4 binding is updated, and existing installs are automatically migrated to also bind PCR 12 on their first boot of an IncusOS version supporting it. Passing extra kernel command line arguments to a virtual machine through SMBIOS will change PCR 12 and require entering the recovery passphrase on the next boot. The same happens when booting a different UKI profile, as `systemd-stub` measures the selected profile into PCR 12. In both cases, the TPM bindings must then be [reset](system/security.md) to match the new value.
 
 ### PCR 15
 PCR 15 is populated by systemd at various points during the boot process with system identity events, such as when the LUKS root volume is unlocked, the machine ID, and basic information about the root (`/`) file system. IncusOS binds its encryption to an uninitialized PCR 15 (all zeros), which allows for automatic decryption by the TPM in the initrd only. As part of opening the LUKS root volume in the initrd, systemd extends PCR 15 which changes its value. This prevents the TPM from unlocking the LUKS volume again once the system has booted.

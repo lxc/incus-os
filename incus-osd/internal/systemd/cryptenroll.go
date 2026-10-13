@@ -209,15 +209,11 @@ func ListEncryptedVolumes(ctx context.Context) ([]api.SystemSecurityEncryptedVol
 		return ret, err
 	}
 
-	// Get the state of the TPM as recorded in the UEFI variable.
-	tpmStateContents, err := util.ReadEFIVariable("IncusOSTPMState")
+	// Check if the TPM was able to unlock things automatically in the initrd.
+	tpmStateIsGood, err := util.TPMAutoUnlocked()
 	if err != nil {
 		return ret, err
 	}
-
-	// If there are four bytes in the UEFI variable and the last is zero, that means the TPM
-	// was able to unlock things automatically in the initrd.
-	tpmStateIsGood := len(tpmStateContents) == 4 && tpmStateContents[3] == 0
 
 	for volumeName := range luksVolumes {
 		// First, check if the volume is mapped, and therefore unlocked.
