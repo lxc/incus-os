@@ -235,6 +235,10 @@ jobs:
 
           incus exec test-incus-os -- grep $RELEASE /usr/lib/os-release
 
+          # Secure Boot is enabled through key enrollment on first boot, so the volumes should be bound to PCR 7 and 15 only.
+          incus exec test-incus-os -- sh -c 'bootctl status | grep -q "Secure Boot: enabled"'
+          incus exec test-incus-os -- sh -c 'cryptsetup luksDump --dump-json-metadata $(readlink -f /dev/disk/by-partlabel/swap | sed "s/9$/10/") | tr -d " \n\t" | grep -q "\"tpm2-pcrs\":\[7,15\]"'
+
   documentation:
     name: Documentation
     runs-on: ubuntu-24.04
