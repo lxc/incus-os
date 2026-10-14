@@ -768,9 +768,12 @@ func (*Server) apiSystemStorageTrimPool(w http.ResponseWriter, r *http.Request) 
 	// Trim the pool.
 	err = zfs.TrimZpool(r.Context(), config.Name)
 	if err != nil {
-		if errors.Is(err, storage.ErrTrimAlreadyInProgress) {
+		switch {
+		case errors.Is(err, storage.ErrTrimAlreadyInProgress):
 			_ = response.Conflict(err).Render(w)
-		} else {
+		case errors.Is(err, storage.ErrTrimNotSupported):
+			_ = response.BadRequest(err).Render(w)
+		default:
 			_ = response.InternalError(err).Render(w)
 		}
 

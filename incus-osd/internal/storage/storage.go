@@ -55,6 +55,9 @@ var zpoolToTrimStateMap = map[string]api.SystemStoragePoolTrimState{
 // ErrTrimAlreadyInProgress is returned if a trim is requested for a pool that already has one in progress.
 var ErrTrimAlreadyInProgress = errors.New("trim already in progress")
 
+// ErrTrimNotSupported is returned if a trim is requested for a pool whose devices don't support it.
+var ErrTrimNotSupported = errors.New("trim not supported by any pool device")
+
 // zpoolTrimStats holds the per-vdev trim statistics reported by "zpool status -t".
 type zpoolTrimStats struct {
 	TrimState  string `json:"trim_state"`
@@ -789,9 +792,16 @@ func calculateTrimStatus(leaves []zpoolTrimStats) *api.SystemStoragePoolTrimStat
 	status := &api.SystemStoragePoolTrimStatus{}
 	trimmed := 0
 	toTrim := 0
+	supported := 0
 
 	for _, leaf := range leaves {
-		if leaf.TrimNotSup != 0 || leaf.TrimState == "" || leaf.TrimState == "UNTRIMMED" {
+		if leaf.TrimNotSup != 0 {
+			continue
+		}
+
+		supported++
+
+		if leaf.TrimState == "" || leaf.TrimState == "UNTRIMMED" {
 			continue
 		}
 
@@ -808,6 +818,13 @@ func calculateTrimStatus(leaves []zpoolTrimStats) *api.SystemStoragePoolTrimStat
 		if int64(leaf.TrimTime) > status.LastActionTime.Unix() {
 			status.LastActionTime = time.Unix(int64(leaf.TrimTime), 0)
 		}
+	}
+
+	// Report pools where no device can be trimmed.
+	if len(leaves) > 0 && supported == 0 {
+		status.State = api.SystemStoragePoolTrimUnsupported
+
+		return status
 	}
 
 	if len(states) == 0 {

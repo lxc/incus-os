@@ -117,6 +117,8 @@ const (
 	SystemStoragePoolTrimCanceled SystemStoragePoolTrimState = "CANCELED"
 	// SystemStoragePoolTrimFinished represents that the trim has finished.
 	SystemStoragePoolTrimFinished SystemStoragePoolTrimState = "FINISHED"
+	// SystemStoragePoolTrimUnsupported represents that none of the pool devices support trim.
+	SystemStoragePoolTrimUnsupported SystemStoragePoolTrimState = "UNSUPPORTED"
 )
 
 // SystemStoragePoolTrimStatus represents the status of a trim in a pool.

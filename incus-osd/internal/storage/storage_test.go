@@ -96,6 +96,16 @@ func TestCalculateTrimStatus(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "all unsupported",
+			leaves: []zpoolTrimStats{
+				{TrimState: "UNTRIMMED", TrimNotSup: 1},
+				{TrimState: "COMPLETE", TrimNotSup: 1},
+			},
+			want: &api.SystemStoragePoolTrimStatus{
+				State: api.SystemStoragePoolTrimUnsupported,
+			},
+		},
+		{
 			name: "all complete",
 			leaves: []zpoolTrimStats{
 				{TrimState: "COMPLETE", Trimmed: 100, ToTrim: 100, TrimTime: 1000},
