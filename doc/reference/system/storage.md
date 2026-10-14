@@ -6,7 +6,7 @@ When creating a storage pool, IncusOS can use local devices, or remote devices m
 
 To maintain data integrity, IncusOS automatically performs a weekly scrub of all storage pools in the system. The scrub schedule defaults to Sunday at 04:00, but can be configured by the user. It is also possible to manually trigger a scrub of any given pool.
 
-To keep SSD write performance and endurance from degrading, IncusOS also performs a weekly trim (discard of unused blocks) of all storage pools. The trim schedule defaults to Saturday at 04:00, but can be configured by the user. It is also possible to manually trigger a trim of any given pool.
+To keep SSD write performance and endurance from degrading, IncusOS also performs a weekly trim (discard of unused blocks) of all storage pools. The trim schedule defaults to Saturday at 04:00, but can be configured by the user. It is also possible to manually trigger a trim of any given pool. Pools whose devices don't support trim, such as spinning disks, report an `UNSUPPORTED` trim state and are skipped.
 
 It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
