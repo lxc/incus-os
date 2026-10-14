@@ -105,7 +105,7 @@ func (p *images) Register(ctx context.Context) error {
 	}
 
 	if p.token != "" { //nolint:nestif
-		// Prevent concurent registration attempts.
+		// Prevent concurrent registration attempts.
 		// The image provider triggers Register on load, so it's
 		// possible/likely that we get two concurrent registration attempts during
 		// first boot.

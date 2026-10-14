@@ -67,13 +67,6 @@ func CheckRunRecovery(ctx context.Context, s *state.State) error {
 	}
 	defer unix.Unmount(mountDir, 0)
 
-	// Workaround for recovery running on first boot when no provider has been set yet.
-	if s.System.Provider.Config.Name == "" {
-		s.System.Provider.Config.Name = "images"
-
-		defer func() { s.System.Provider.Config.Name = "" }()
-	}
-
 	// Run the hotfix script, if any.
 	err = runHotfix(ctx, mountDir)
 	if err != nil {
@@ -279,17 +272,15 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 		return err
 	}
 
-	// Stash the current provider state and configuration. We'll be forcing the system to use the debug provider,
-	// and once we're done we want to restore the actual provider configuration.
-	currentProvider := s.System.Provider
-
-	defer func() { s.System.Provider = currentProvider }()
-
-	s.System.Provider = api.SystemProvider{
+	// Configure a temporary provider.
+	s.System.TemporaryProvider = &api.SystemProvider{
 		Config: api.SystemProviderConfig{
 			Name: "debug",
 		},
 	}
+
+	// Clear the temporary provider after applying any updates.
+	defer func() { s.System.TemporaryProvider = nil }()
 
 	// Trigger an update check.
 	return update.Check(ctx, s)

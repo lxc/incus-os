@@ -14,7 +14,12 @@ import (
 func Load(ctx context.Context, s *state.State, ignoreSignedJSON bool) (Provider, error) {
 	var p Provider
 
-	switch s.System.Provider.Config.Name {
+	config := s.System.Provider.Config
+	if s.System.TemporaryProvider != nil {
+		config = s.System.TemporaryProvider.Config
+	}
+
+	switch config.Name {
 	case "debug":
 		// Setup the debug provider.
 		p = &debug{
@@ -35,7 +40,7 @@ func Load(ctx context.Context, s *state.State, ignoreSignedJSON bool) (Provider,
 		}
 
 	default:
-		return nil, fmt.Errorf("unknown provider %q", s.System.Provider.Config.Name)
+		return nil, fmt.Errorf("unknown provider %q", config.Name)
 	}
 
 	err := p.load(ctx)
