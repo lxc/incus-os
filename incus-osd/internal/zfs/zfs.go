@@ -1121,6 +1121,10 @@ func startTrim(ctx context.Context, pool api.SystemStoragePool) error {
 		return storage.ErrTrimAlreadyInProgress
 	}
 
+	if pool.LastTrim != nil && pool.LastTrim.State == api.SystemStoragePoolTrimUnsupported {
+		return storage.ErrTrimNotSupported
+	}
+
 	_, err := subprocess.RunCommandContext(ctx, "zpool", "trim", pool.Name)
 	if err != nil {
 		return err
@@ -1162,6 +1166,12 @@ func runOnAllPools(ctx context.Context, activity string, start func(context.Cont
 		slog.InfoContext(ctx, "Starting pool activity", slog.String("activity", activity), slog.String("pool", pool.Name))
 
 		err = start(ctx, pool)
+		if errors.Is(err, storage.ErrTrimNotSupported) {
+			slog.InfoContext(ctx, "Skipping pool activity", slog.String("activity", activity), slog.String("pool", pool.Name), slog.Any("reason", err))
+
+			continue
+		}
+
 		if err != nil {
 			slog.WarnContext(ctx, "Unable to start pool activity", slog.String("activity", activity), slog.String("pool", pool.Name), slog.Any("error", err))
 
