@@ -47,6 +47,39 @@ definitions:
         title: DebugKernelModule represents a loaded kernel module.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugReport:
+        properties:
+            media_type:
+                type: string
+                x-go-name: MediaType
+            metrics:
+                items:
+                    $ref: '#/definitions/DebugReportMetric'
+                type: array
+                x-go-name: Metrics
+            timestamp:
+                type: string
+                x-go-name: Timestamp
+        title: DebugReport represents a systemd-report report.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugReportMetric:
+        properties:
+            fields:
+                additionalProperties: {}
+                type: object
+                x-go-name: Fields
+            name:
+                type: string
+                x-go-name: Name
+            object:
+                type: string
+                x-go-name: Object
+            value:
+                x-go-name: Value
+        title: DebugReportMetric represents a single metric from a systemd-report report.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemFallbackListener:
         description: |-
             SystemFallbackListener defines a struct to configure the fallback HTTPS listener that will
@@ -2266,6 +2299,46 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Get process list
+            tags:
+                - debug
+    /1.0/debug/report:
+        get:
+            description: Return a systemd-report report of system metrics, optionally filtering by metric family.
+            operationId: debug_get_report
+            parameters:
+                - collectionFormat: multi
+                  description: Limit metrics to the specified metric families or prefixes, may be repeated
+                  in: query
+                  items:
+                    type: string
+                  name: match
+                  type: array
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: System metrics report
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/DebugReport'
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get system metrics report
             tags:
                 - debug
     /1.0/debug/secureboot:

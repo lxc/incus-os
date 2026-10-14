@@ -19,6 +19,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
+	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
 
 // swagger:operation GET /1.0/debug debug debug_get
@@ -70,7 +71,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"kernel", "log", "processes", ":run-script", "secureboot"} {
+	for _, debug := range []string{"kernel", "log", "processes", "report", ":run-script", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}
@@ -320,6 +321,73 @@ func (*Server) apiDebugProcesses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = response.SyncResponse(true, output).Render(w)
+}
+
+// swagger:operation GET /1.0/debug/report debug debug_get_report
+//
+//	Get system metrics report
+//
+//	Return a systemd-report report of system metrics, optionally filtering by metric family.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: query
+//	    name: match
+//	    description: Limit metrics to the specified metric families or prefixes, may be repeated
+//	    required: false
+//	    type: array
+//	    items:
+//	      type: string
+//	    collectionFormat: multi
+//	responses:
+//	  "200":
+//	    description: System metrics report
+//	    schema:
+//	      type: object
+//	      description: Sync response
+//	      properties:
+//	        type:
+//	          description: Response type
+//	          example: sync
+//	          type: string
+//	        status:
+//	          type: string
+//	          description: Status description
+//	          example: Success
+//	        status_code:
+//	          type: integer
+//	          description: Status code
+//	          example: 200
+//	        metadata:
+//	          $ref: "#/definitions/DebugReport"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiDebugReport(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	err := r.ParseForm() // #nosec G120
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	report, err := systemd.GenerateReport(r.Context(), r.Form["match"])
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.SyncResponse(true, report).Render(w)
 }
 
 // swagger:operation GET /1.0/debug/secureboot debug debug_secureboot_get

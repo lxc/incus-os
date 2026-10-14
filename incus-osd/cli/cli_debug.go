@@ -33,6 +33,10 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	processesCmd := cmdAdminOSDebugProcesses{os: c.os}
 	cmd.AddCommand(processesCmd.command())
 
+	// Report.
+	reportCmd := cmdAdminOSDebugReport{os: c.os}
+	cmd.AddCommand(reportCmd.command())
+
 	// Secure boot.
 	secureBootCmd := cmdAdminOSDebugSecureBoot{os: c.os}
 	cmd.AddCommand(secureBootCmd.command())

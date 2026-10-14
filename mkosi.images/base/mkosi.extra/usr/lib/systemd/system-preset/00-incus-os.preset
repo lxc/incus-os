@@ -30,6 +30,10 @@ disable systemd-journal-remote.service
 disable systemd-journal-remote.socket
 disable systemd-journal-upload.service
 disable systemd-netlogd.service
+disable systemd-report.socket
+disable systemd-report-sign-plain.socket
+disable systemd-report-sign-tpm2.socket
+disable systemd-report-sign-tsm.socket
 disable systemd-sysupdate-reboot.service
 disable systemd-sysupdate-reboot.timer
 disable systemd-sysupdate.service
