@@ -199,6 +199,7 @@ class IncusTestVM:
 
     def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False, use_os_proxy=True):
         """Perform a HTTP REST API call, and return the result."""
+
         args = []
         cmd_input = None
 
@@ -250,7 +251,30 @@ class IncusTestVM:
 
     def RunCommand(self, *cmd, capture_output=True, check=True):
         """Run a given command within the VM."""
+
         return subprocess.run(["incus", "exec", self.vm_name, "--", *cmd], capture_output=capture_output, check=check)
+
+    def CheckPCRBindings(self, device, secureboot_disabled=False):
+        """Helper that checks a VM's PCR bindings match what is expected."""
+
+        result = self.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/" + device + "-part9")
+        swap_result = str(result.stdout) + str(result.stderr)
+
+        result = self.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/" + device + "-part10")
+        root_result = str(result.stdout) + str(result.stderr)
+
+        if secureboot_disabled:
+            if "tpm2-hash-pcrs:   4+7+12+15" not in swap_result or "tpm2-pubkey-pcrs: 11" not in swap_result:
+                raise IncusOSException("LUKS swap partition not properly bound to PCRs 4+7+11+12+15")
+
+            if "tpm2-hash-pcrs:   4+7+12+15" not in root_result or "tpm2-pubkey-pcrs: 11" not in root_result:
+                raise IncusOSException("LUKS root partition not properly bound to PCRs 4+7+11+12+15")
+        else:
+            if "tpm2-hash-pcrs:   7+15" not in swap_result or "tpm2-pubkey-pcrs: 11" not in swap_result:
+                raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
+
+            if "tpm2-hash-pcrs:   7+15" not in root_result or "tpm2-pubkey-pcrs: 11" not in root_result:
+                raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
 
 class IncusTestNetwork:
     def __init__(self, dns_mode="managed", mtu=1500):

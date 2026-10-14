@@ -36,13 +36,7 @@ def TestInstallUseSWTPM(install_image):
             raise IncusOSException("PCR15 isn't initialized")
 
         # Verify that LUKS encryption is bound to PCRs 7+11+15
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part9")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
-
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root-part10")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
+        vm.CheckPCRBindings("scsi-0QEMU_QEMU_HARDDISK_incus_root")
 
         # Verify the security endpoint reflects swtpm is in use
         result = vm.APIRequest("/1.0/system/security")
