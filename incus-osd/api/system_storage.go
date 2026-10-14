@@ -154,6 +154,7 @@ type SystemStorageDriveSMART struct {
 	Error   string `json:"error,omitempty" yaml:"error,omitempty"`
 
 	PowerOnHours       int `json:"power_on_hours,omitempty"      yaml:"power_on_hours,omitempty"`
+	TemperatureCelsius int `json:"temperature_celsius,omitempty" yaml:"temperature_celsius,omitempty"`
 	DataUnitsRead      int `json:"data_units_read,omitempty"     yaml:"data_units_read,omitempty"`
 	DataUnitsWritten   int `json:"data_units_written,omitempty"  yaml:"data_units_written,omitempty"`
 	AvailableSpare     int `json:"available_spare,omitempty"     yaml:"available_spare,omitempty"`

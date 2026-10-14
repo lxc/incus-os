@@ -1197,6 +1197,10 @@ definitions:
                 format: int64
                 type: integer
                 x-go-name: SeekErrorRate
+            temperature_celsius:
+                format: int64
+                type: integer
+                x-go-name: TemperatureCelsius
         title: SystemStorageDriveSMART defines a struct to return basic SMART information about a specific device.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api

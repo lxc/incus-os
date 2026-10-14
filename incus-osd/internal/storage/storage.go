@@ -182,6 +182,9 @@ type smartOutput struct {
 	PowerOnTime struct {
 		Hours int `json:"hours"`
 	} `json:"power_on_time"`
+	Temperature struct {
+		Current int `json:"current"`
+	} `json:"temperature"`
 	NVMESmartHealthInformationLog struct {
 		DataUnitsRead    int `json:"data_units_read"`
 		DataUnitsWritten int `json:"data_units_written"`
@@ -1019,6 +1022,10 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, []api.SystemSt
 
 			if smart.PowerOnTime.Hours > 0 {
 				smartStatus.PowerOnHours = smart.PowerOnTime.Hours
+			}
+
+			if smart.Temperature.Current > 0 {
+				smartStatus.TemperatureCelsius = smart.Temperature.Current
 			}
 
 			// NVME handling.
