@@ -16,12 +16,27 @@ def TestIncusOSAPIDebug(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]) != 5:
-            raise IncusOSException("expected five debug endpoints")
+        if len(result["metadata"]) != 6:
+            raise IncusOSException("expected six debug endpoints")
 
-        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/processes", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
+        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/processes", "/1.0/debug/report", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
+
+        # Test system metrics report.
+        result = vm.APIRequest("/1.0/debug/report?match=io.systemd.Basic")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["media_type"] != "application/vnd.io.systemd.report":
+            raise IncusOSException("unexpected report media type: " + result["metadata"]["media_type"])
+
+        metrics = {m["name"]: m["value"] for m in result["metadata"]["metrics"]}
+        if metrics.get("io.systemd.Basic.OSRelease.NAME") != os_name:
+            raise IncusOSException("missing or unexpected OS name metric in report")
+
+        if any(not m["name"].startswith("io.systemd.Basic") for m in result["metadata"]["metrics"]):
+            raise IncusOSException("report contains metrics outside of the requested family")
 
         # Test journal retrieval.
         result = vm.APIRequest("/1.0/debug/log?unit=incus-osd")
