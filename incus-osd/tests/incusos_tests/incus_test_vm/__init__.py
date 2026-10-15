@@ -92,7 +92,8 @@ class IncusTestVM:
 
         # Sometimes under heavy load, running `incus start` returns without actually starting the VM. So, run a start loop
         # until the VM state is actually reported as running.
-        while time.time() - start < timeout:
+        duration = time.time() - start
+        while duration < timeout:
             result = subprocess.run(["incus", "start", self.vm_name], capture_output=True)
 
             if "The instance is already running" in result.stderr.decode("utf-8"):
@@ -107,7 +108,7 @@ class IncusTestVM:
 
             time.sleep(5)
 
-        raise IncusOSException("timed out waiting for VM to start")
+        raise IncusOSException(f"timed out after {duration:.2f} seconds waiting for VM to start")
 
     def StopVM(self, timeout=120, force=False):
         """Stop the VM and wait up to 120 seconds by default for the command to return."""
@@ -165,7 +166,7 @@ class IncusTestVM:
             else:
                 return
 
-        raise IncusOSException("timed out waiting for incus-agent to start")
+        raise IncusOSException(f"timed out after {timeout} seconds waiting for incus-agent to start")
 
     def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
@@ -184,8 +185,9 @@ class IncusTestVM:
                 if log in str(result.stdout):
                     return None
 
-            if time.time() - start > timeout:
-                raise IncusOSException(f"timed out waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
+            duration = time.time() - start
+            if duration > timeout:
+                raise IncusOSException(f"timed out after {duration:.2f} seconds waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
 
             time.sleep(1)
 
