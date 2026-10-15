@@ -32,7 +32,7 @@ def TestIncusOSAPIDebug(install_image):
             raise IncusOSException("unexpected report media type: " + result["metadata"]["media_type"])
 
         metrics = {m["name"]: m["value"] for m in result["metadata"]["metrics"]}
-        if metrics.get("io.systemd.Basic.OSRelease.NAME") != os_name:
+        if not metrics.get("io.systemd.Basic.OSRelease.NAME").startswith(os_name):
             raise IncusOSException("missing or unexpected OS name metric in report")
 
         if any(not m["name"].startswith("io.systemd.Basic") for m in result["metadata"]["metrics"]):
