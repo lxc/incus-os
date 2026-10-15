@@ -347,6 +347,40 @@ func CleanupRootPartition(ctx context.Context) error {
 	return nil
 }
 
+// RescanSCSIBuses asks every SCSI host to scan for new devices and refreshes the existing ones.
+func RescanSCSIBuses(ctx context.Context) error {
+	// Scan for new devices on every SCSI host.
+	hosts, err := filepath.Glob("/sys/class/scsi_host/host*/scan")
+	if err != nil {
+		return err
+	}
+
+	for _, host := range hosts {
+		err := os.WriteFile(host, []byte("- - -"), 0o644)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Refresh existing devices to pick up capacity changes.
+	devices, err := filepath.Glob("/sys/class/scsi_device/*/device/rescan")
+	if err != nil {
+		return err
+	}
+
+	for _, device := range devices {
+		err := os.WriteFile(device, []byte("1"), 0o644)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Wait for udev to process any new devices.
+	_, err = subprocess.RunCommandContext(ctx, "udevadm", "settle")
+
+	return err
+}
+
 // DeviceToID takes a device path like /dev/sda and determines its "by-id" mapping, for example /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_root.
 func DeviceToID(ctx context.Context, device string, physical bool) (string, error) {
 	if device == "" {

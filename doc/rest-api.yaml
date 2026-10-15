@@ -3468,6 +3468,20 @@ paths:
             summary: Import an existing storage pool
             tags:
                 - system
+    /1.0/system/storage/:rescan-scsi:
+        post:
+            description: Asks every SCSI host to scan for new devices and refreshes the existing ones, picking up newly mapped LUNs.
+            operationId: system_post_storage_rescan_scsi
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Rescan the SCSI buses
+            tags:
+                - system
     /1.0/system/storage/:scrub-pool:
         post:
             consumes:

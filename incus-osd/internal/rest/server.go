@@ -97,6 +97,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/system/storage/:wipe-drive", s.apiSystemStorageWipeDrive)
 	router.HandleFunc("/1.0/system/storage/:scrub-pool", s.apiSystemStorageScrubPool)
 	router.HandleFunc("/1.0/system/storage/:trim-pool", s.apiSystemStorageTrimPool)
+	router.HandleFunc("/1.0/system/storage/:rescan-scsi", s.apiSystemStorageRescanSCSI)
 	router.HandleFunc("/1.0/system/update", s.apiSystemUpdate)
 	router.HandleFunc("/1.0/system/update/:check", s.apiSystemUpdateCheck)
 

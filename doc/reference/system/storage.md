@@ -194,6 +194,14 @@ Wipe drive `scsi-0QEMU_QEMU_HARDDISK_incus_disk`, which must be specified by its
 
 By default, wiping a drive will attempt to use `blkdiscard` to quickly wipe a drive. However, for drives that do not support this operation, or to explicitly zero the entire device, you can include the `"secure_wipe":true` parameter when issuing the wipe command. Be aware that for large, spinning disks this may take a significant amount of time to complete.
 
+## Detecting new SCSI devices
+
+Newly mapped SCSI devices are not always detected automatically. Ask every SCSI host to scan for new devices and refresh the existing ones by running
+
+```
+incus admin os system storage rescan-scsi
+```
+
 ## Importing an existing pool
 
 When importing an existing encrypted storage pool, IncusOS needs to be informed of its encryption key before the data can be made available. Because there is no way to prompt for an encryption passphrase, only ZFS pools using a raw encryption key can be imported. Specify the raw base64 encoded encryption key when importing storage pool `mypool` by running
