@@ -1290,3 +1290,32 @@ def TestIncusOSAPISystemStoragePoolFailedDevice(install_image):
 
                         if "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk4" not in poolState["devices"]:
                             raise IncusOSException("new device in 'mypool' pool not reported as a member")
+
+def TestIncusOSAPISystemStorageRescanSCSI(install_image):
+    test_name = "incusos-api-system-storage-rescan-scsi"
+    test_seed = {
+        "install.json": """{"target":{"id":"scsi-0QEMU_QEMU_HARDDISK_incus_root"}}""",
+    }
+
+    test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
+
+    with tempfile.NamedTemporaryFile(dir=os.getcwd()) as disk_img:
+        disk_img.truncate(10*1024*1024*1024)
+
+        with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+            vm.WaitSystemReady(os_version)
+
+            # Hot-add a drive and rescan the SCSI buses.
+            vm.AddDevice("disk1", "disk", "source="+disk_img.name)
+
+            result = vm.APIRequest("/1.0/system/storage/:rescan-scsi", method="POST")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            # The new drive should now be reported.
+            result = vm.APIRequest("/1.0/system/storage")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            if not any(drive["id"] == "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_disk1" for drive in result["metadata"]["state"]["drives"]):
+                raise IncusOSException("hot-added drive not reported after rescan")
