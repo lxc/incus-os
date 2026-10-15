@@ -961,3 +961,37 @@ func (*Server) apiSystemStorageCleanupRoot(w http.ResponseWriter, r *http.Reques
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/storage/:rescan-scsi system system_post_storage_rescan_scsi
+//
+//	Rescan the SCSI buses
+//
+//	Asks every SCSI host to scan for new devices and refreshes the existing ones, picking up newly mapped LUNs.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (*Server) apiSystemStorageRescanSCSI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Rescan the SCSI buses.
+	err := storage.RescanSCSIBuses(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
