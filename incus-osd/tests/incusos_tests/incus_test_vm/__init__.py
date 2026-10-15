@@ -12,13 +12,14 @@ class IncusOSException(Exception):
     pass
 
 class IncusTestVM:
-    def __init__(self, os_name, vm_name_base, install_image, client_cert_file, root_size="50GiB", readonly_install_image="false"):
+    def __init__(self, os_name, vm_name_base, install_image, client_cert_file, root_size="50GiB", readonly_install_image="false", install_io_bus=None):
         self.os_name = os_name
         self.vm_name = vm_name_base + "-" + util._get_random_string()
         self.vm_ip = None
         self.root_size = root_size
         self.install_image = install_image
         self.readonly_install_image = readonly_install_image
+        self.install_io_bus = install_io_bus
         self.is_raw_image = self.install_image.endswith(".img")
         self.client_cert_file = client_cert_file
         self.isos = []
@@ -32,8 +33,11 @@ class IncusTestVM:
         subprocess.run(["incus", "init", "--empty", "--vm", self.vm_name, "-c", "security.secureboot=false", "-c", "limits.cpu=2", "-c", "limits.memory=4GiB", "-d", "root,size="+self.root_size], capture_output=True, check=True)
         self.AddDevice("vtpm", "tpm")
 
+        # Raw images default to the USB bus, ISOs to the default CD-ROM bus.
         if self.is_raw_image:
-            self.AddDevice("boot-media", "disk", "source="+self.install_image, "io.bus=usb", "boot.priority=10", "readonly=" + self.readonly_install_image)
+            self.AddDevice("boot-media", "disk", "source="+self.install_image, "io.bus=" + (self.install_io_bus or "usb"), "boot.priority=10", "readonly=" + self.readonly_install_image)
+        elif self.install_io_bus:
+            self.AddDevice("boot-media", "disk", "pool=default", "source="+self.vm_name+".iso", "io.bus=" + self.install_io_bus, "boot.priority=10")
         else:
             self.AddDevice("boot-media", "disk", "pool=default", "source="+self.vm_name+".iso", "boot.priority=10")
 

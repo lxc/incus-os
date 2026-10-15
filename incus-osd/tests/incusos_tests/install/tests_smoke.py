@@ -79,10 +79,10 @@ def TestBaselineInstallNVME(install_image):
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, install_io_bus="usb") as vm:
         vm.SetDeviceProperty("root", "io.bus=nvme")
 
-        vm.WaitSystemReady(os_version, source="/dev/disk/by-id/(usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0|scsi-0QEMU_QEMU_CD-ROM_incus_boot--media)", target="/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_root")
+        vm.WaitSystemReady(os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_(HARDDISK|CD-ROM)_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_root")
 
         # Shouldn't see any mention of a TPM or SecureBoot degraded security state
         vm.LogDoesntContain("incus-osd", "Degraded security state: no physical TPM found, using swtpm")
@@ -105,7 +105,7 @@ def TestBaselineInstallNVMEReadonlyImage(install_image):
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
 
-    with IncusTestVM(os_name, test_name, test_image, client_cert_name, readonly_install_image="true") as vm:
+    with IncusTestVM(os_name, test_name, test_image, client_cert_name, readonly_install_image="true", install_io_bus="usb") as vm:
         vm.SetDeviceProperty("root", "io.bus=nvme")
 
         vm.WaitSystemReady(os_version, source="/dev/disk/by-id/usb-QEMU_QEMU_HARDDISK_1-0000:00:01.0:00.6-4-0:0", target="/dev/disk/by-id/nvme-QEMU_NVMe_Ctrl_incus_root")

@@ -109,6 +109,7 @@ build: inject-system-certs incus-osd flasher-tool generate-manifests image-publi
 
 	# For some reason getting the image name via $(shell ...) is always empty here?
 	sudo ./scripts/inject-secure-boot-vars.sh `ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1`
+	sudo ./scripts/inject-random-seed.sh `ls mkosi.output/${OSNAME}_*.raw | grep -v usr | grep -v esp | sort | tail -1`
 
 .PHONY: build-iso
 build-iso: build
