@@ -285,7 +285,15 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					hasData:     true,
 				}
 
-				return []*cobra.Command{cleanupRootCmd.command(), createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command(), trimPoolCmd.command()}
+				// Rescan SCSI buses.
+				rescanSCSICmd := cmdGenericRun{
+					os:          c.os,
+					action:      "rescan-scsi",
+					description: "Rescan the SCSI buses for new devices",
+					endpoint:    "system/storage",
+				}
+
+				return []*cobra.Command{cleanupRootCmd.command(), createVolumeCmd.command(), deletePoolCmd.command(), deleteVolumeCmd.command(), encryptDriveCmd.command(), importEncryptedDriveCmd.command(), importPoolCmd.command(), wipeDriveCmd.command(), scrubPoolCmd.command(), trimPoolCmd.command(), rescanSCSICmd.command()}
 			},
 		},
 		{
