@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -878,6 +879,13 @@ func (i *Install) performInstall(ctx context.Context, modal *tui.Modal, sourceDe
 
 	_, err = subprocess.RunCommandContext(ctx, "sh", "-c", "cp -ar /tmp/sourceESP/* /tmp/targetESP/")
 	if err != nil {
+		return err
+	}
+
+	// The install media ships a read-only random seed so systemd-boot never writes to it, as some
+	// firmwares then fail to boot. Drop it so systemd-boot manages a fresh seed on the installed ESP.
+	err = os.Remove("/tmp/targetESP/loader/random-seed")
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 
