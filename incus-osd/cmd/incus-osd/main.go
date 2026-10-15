@@ -780,7 +780,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		return err
 	}
 
-	err = network.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, s.OS.SuccessfulBoot, providers.Notify, delayInitialUpdateCheck)
+	err = network.ApplyNetworkConfiguration(ctx, s, s.System.Network.Config, 30*time.Second, true, providers.Notify, delayInitialUpdateCheck)
 	if err != nil {
 		return err
 	}
