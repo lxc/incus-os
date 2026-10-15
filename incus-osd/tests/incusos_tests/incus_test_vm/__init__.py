@@ -244,12 +244,28 @@ class IncusTestVM:
             args.append("-H")
             args.append("Content-Type: "+ content_type)
 
-        result = subprocess.run(args, input=cmd_input, capture_output=True, check=True)
+        tries = 0
+        while True:
+            try:
+                result = subprocess.run(args, input=cmd_input, capture_output=True, check=True)
+            except subprocess.CalledProcessError as e:
+                # If curl exits with connection refused (7) or receive error (56), sleep three seconds
+                # and then try again, for up to 30 seconds. Sometimes under heavy load it can take a
+                # little while before the API endpoint we're waiting for becomes available, and we shouldn't
+                # immediately fail the test if it takes a try or two to perform the request.
+                if e.returncode == 7 or e.returncode == 56:
+                    tries += 1
+                    if tries > 10:
+                        raise
 
-        if not return_raw_content:
-            return json.loads(result.stdout)
-        else:
-            return result.stdout
+                    time.sleep(3)
+            except:
+                raise
+            else:
+                if not return_raw_content:
+                    return json.loads(result.stdout)
+                else:
+                    return result.stdout
 
     def RunCommand(self, *cmd, capture_output=True, check=True):
         """Run a given command within the VM."""
