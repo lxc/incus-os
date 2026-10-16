@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
@@ -220,6 +221,7 @@ func (n *LVM) configure(_ context.Context) error {
 	// Metadata archiving is disabled as /etc/lvm is wiped on every boot and the archive otherwise grows unbounded.
 	lvmlocal := fmt.Sprintf(`global {
 	use_lvmlockd = 1
+	lvmlockctl_kill_command = "%s"
 }
 
 local {
@@ -233,7 +235,7 @@ devices {
 backup {
 	archive = 0
 }
-`, n.state.Services.LVM.Config.SystemID)
+`, lvmKillCommand, n.state.Services.LVM.Config.SystemID)
 
 	err = os.WriteFile("/etc/lvm/lvmlocal.conf", []byte(lvmlocal), 0o600)
 	if err != nil {
@@ -280,7 +282,13 @@ func (*LVM) lockStart(ctx context.Context, vgs ...string) error {
 // LVMLockspaceJob is the name of the scheduled lockspace check.
 const LVMLockspaceJob scheduling.JobName = "lvm_lockspace_check"
 
-var lvmKilledVGRegexp = regexp.MustCompile(`^VG (\S+) lock (?:skipped|failed): storage failed for sanlock leases$`)
+// lvmKillCommand is the script lvmlockctl --kill runs to notify us of a lost lockspace.
+const lvmKillCommand = "/usr/lib/incus-os/lvmlockctl-kill"
+
+var (
+	lvmKilledVGRegexp = regexp.MustCompile(`^VG (\S+) lock (?:skipped|failed): storage failed for sanlock leases$`)
+	lvmRecoveryMu     sync.Mutex
+)
 
 // CheckLockspaces recovers shared VGs whose sanlock lockspace was lost or never started.
 func CheckLockspaces(ctx context.Context, s *state.State) error {
@@ -297,10 +305,52 @@ func CheckLockspaces(ctx context.Context, s *state.State) error {
 	return lvm.recoverLockspaces(ctx)
 }
 
+// LockspaceLost is called by the lvmlockctl kill command and recovers the lockspaces in the background.
+func LockspaceLost(ctx context.Context, s *state.State, vg string) error {
+	srv, err := Load(ctx, s, "lvm")
+	if err != nil {
+		return err
+	}
+
+	lvm, ok := srv.(*LVM)
+	if !ok || !lvm.state.Services.LVM.Config.Enabled {
+		return errors.New("LVM isn't currently enabled")
+	}
+
+	slog.WarnContext(ctx, "LVM lockspace lost its lease, recovering once storage is back", "vg", vg)
+
+	go lvm.recoverLockspacesRetry(context.WithoutCancel(ctx))
+
+	return nil
+}
+
+// recoverLockspacesRetry runs the lockspace recovery until it succeeds, the VG commands block or fail while storage is down.
+func (n *LVM) recoverLockspacesRetry(ctx context.Context) {
+	var err error
+
+	for range 60 {
+		err = n.recoverLockspaces(ctx)
+		if err == nil {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+	}
+
+	slog.ErrorContext(ctx, "Failed recovering LVM lockspaces", "err", err)
+}
+
 // recoverLockspaces drops killed lockspaces and starts every shared VG that has none.
 // Active LVs of a killed lockspace are relocked with the mode they held; if any lock can't be
 // re-acquired, another host may own the LV, so the system is rebooted rather than left writing.
 func (n *LVM) recoverLockspaces(ctx context.Context) error {
+	lvmRecoveryMu.Lock()
+	defer lvmRecoveryMu.Unlock()
+
 	type vgsRaw struct {
 		Report []struct {
 			VG []struct {

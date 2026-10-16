@@ -10,7 +10,40 @@ import (
 	"github.com/lxc/incus-os/incus-osd/certs"
 	"github.com/lxc/incus-os/incus-osd/internal/auth"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/services"
 )
+
+func (s *Server) apiInternalServicesLVMLockspaceLost(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Header.Get("X-IncusOS-Proxy") != "" {
+		_ = response.Forbidden(nil).Render(w)
+
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	vg := r.URL.Query().Get("vg")
+	if vg == "" {
+		_ = response.BadRequest(errors.New("no volume group provided")).Render(w)
+
+		return
+	}
+
+	err := services.LockspaceLost(r.Context(), s.state, vg)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
 
 func (*Server) apiInternalTUI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
