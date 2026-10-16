@@ -223,7 +223,7 @@ func (n *NVME) Start(ctx context.Context) error {
 				// Attempt to connect to the subsystem (wait up to 5s).
 				for range 10 {
 					_, err = subprocess.RunCommandContext(ctxTimeout, "nvme", append([]string{"connect", "--nqn=" + target.NQN}, connection...)...)
-					if err == nil {
+					if err == nil || strings.Contains(err.Error(), "already connected") {
 						connected = true
 
 						break
