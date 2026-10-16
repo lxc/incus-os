@@ -1,0 +1,12 @@
+[Unit]
+Description=Remount /run with noexec
+DefaultDependencies=no
+ConditionPathIsMountPoint=/run
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mount -o remount,noexec /run
+
+[Install]
+WantedBy=sysinit.target
