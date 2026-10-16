@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"regexp"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 )
@@ -256,4 +260,178 @@ func (*LVM) lockStart(ctx context.Context, vgs ...string) error {
 	}
 
 	return err
+}
+
+// LVMLockspaceJob is the name of the scheduled lockspace check.
+const LVMLockspaceJob scheduling.JobName = "lvm_lockspace_check"
+
+var lvmKilledVGRegexp = regexp.MustCompile(`^VG (\S+) lock (?:skipped|failed): storage failed for sanlock leases$`)
+
+// CheckLockspaces recovers shared VGs whose sanlock lockspace was lost or never started.
+func CheckLockspaces(ctx context.Context, s *state.State) error {
+	srv, err := Load(ctx, s, "lvm")
+	if err != nil {
+		return err
+	}
+
+	lvm, ok := srv.(*LVM)
+	if !ok || !lvm.state.Services.LVM.Config.Enabled {
+		return nil
+	}
+
+	return lvm.recoverLockspaces(ctx)
+}
+
+// recoverLockspaces drops killed lockspaces and starts every shared VG that has none.
+func (n *LVM) recoverLockspaces(ctx context.Context) error {
+	type vgsRaw struct {
+		Report []struct {
+			VG []struct {
+				VGName     string `json:"vg_name"`
+				VGLockType string `json:"vg_lock_type"`
+			} `json:"vg"`
+		} `json:"report"`
+		Log []api.ServiceLVMLog `json:"log"`
+	}
+
+	vgsOutput, err := subprocess.RunCommandContext(ctx, "vgs", "--reportformat", "json_std", "-o", "vg_name,vg_lock_type")
+	if err != nil {
+		return err
+	}
+
+	vgs := vgsRaw{}
+
+	err = json.Unmarshal([]byte(vgsOutput), &vgs)
+	if err != nil {
+		return err
+	}
+
+	shared := []string{}
+
+	for _, report := range vgs.Report {
+		for _, vg := range report.VG {
+			if vg.VGLockType == "sanlock" {
+				shared = append(shared, vg.VGName)
+			}
+		}
+	}
+
+	if len(shared) == 0 {
+		return nil
+	}
+
+	// A killed lockspace (sanlock lease lost) is only cleared by dropping it.
+	killed := lvmKilledVGs(vgs.Log)
+	for _, vg := range killed {
+		slog.WarnContext(ctx, "Dropping lost LVM lockspace", "vg", vg)
+
+		_, err = subprocess.RunCommandContext(ctx, "lvmlockctl", "--drop", vg)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed dropping LVM lockspace", "vg", vg, "err", err)
+		}
+	}
+
+	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
+	if err != nil {
+		return err
+	}
+
+	started := lvmStartedLockspaces(infoOutput)
+
+	// A dropped lockspace may still be listed while lvmlockd removes it.
+	for _, vg := range killed {
+		delete(started, vg)
+	}
+
+	for _, vg := range shared {
+		if started[vg] {
+			continue
+		}
+
+		slog.WarnContext(ctx, "Starting LVM lockspace", "vg", vg)
+
+		err = n.lockStart(ctx, vg)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed starting LVM lockspace", "vg", vg, "err", err)
+
+			continue
+		}
+
+		// LVs left active by a killed lockspace have no lock anymore, take them again.
+		if slices.Contains(killed, vg) {
+			n.relockActiveLVs(ctx, vg)
+		}
+	}
+
+	return nil
+}
+
+// relockActiveLVs re-acquires the shared lock of every active LV in the VG.
+func (*LVM) relockActiveLVs(ctx context.Context, vg string) {
+	type lvsRaw struct {
+		Report []struct {
+			LV []struct {
+				LVName string `json:"lv_name"`
+			} `json:"lv"`
+		} `json:"report"`
+	}
+
+	lvsOutput, err := subprocess.RunCommandContext(ctx, "lvs", "--reportformat", "json_std", "-o", "lv_name", "-S", "lv_active=active", vg)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed listing active LVs", "vg", vg, "err", err)
+
+		return
+	}
+
+	lvs := lvsRaw{}
+
+	err = json.Unmarshal([]byte(lvsOutput), &lvs)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed parsing active LVs", "vg", vg, "err", err)
+
+		return
+	}
+
+	for _, report := range lvs.Report {
+		for _, lv := range report.LV {
+			_, err = subprocess.RunCommandContext(ctx, "lvchange", "--activate", "sy", "--ignoreactivationskip", vg+"/"+lv.LVName)
+			if err != nil {
+				slog.WarnContext(ctx, "Failed re-locking active LV", "vg", vg, "lv", lv.LVName, "err", err)
+			}
+		}
+	}
+}
+
+// lvmKilledVGs returns the VGs whose lockspace lvmlockd reports as killed.
+func lvmKilledVGs(logs []api.ServiceLVMLog) []string {
+	vgs := []string{}
+
+	for _, entry := range logs {
+		match := lvmKilledVGRegexp.FindStringSubmatch(entry.LogMessage)
+		if match == nil {
+			continue
+		}
+
+		if !slices.Contains(vgs, match[1]) {
+			vgs = append(vgs, match[1])
+		}
+	}
+
+	return vgs
+}
+
+// lvmStartedLockspaces parses "lvmlockctl --info" into the set of VGs with a started lockspace.
+func lvmStartedLockspaces(output string) map[string]bool {
+	started := map[string]bool{}
+
+	for line := range strings.SplitSeq(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 3 || fields[0] != "LS" {
+			continue
+		}
+
+		started[strings.TrimPrefix(fields[2], "lvm_")] = true
+	}
+
+	return started
 }
