@@ -152,6 +152,12 @@ func ApplySystemUpdate(ctx context.Context, version string) error {
 		return err
 	}
 
+	// Drop any pcrlock credentials so they don't end up measured into PCR12 on the next boot.
+	_, err = secureboot.RemovePCRLockCredentials()
+	if err != nil {
+		return err
+	}
+
 	// Check if the Secure Boot key has changed; if it has apply the necessary updates.
 	secureBootKeyChanged, err := secureboot.UKIHasDifferentSecureBootCertificate(newUKIFile)
 	if err != nil {

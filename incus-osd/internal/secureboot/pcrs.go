@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -55,8 +56,8 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 
 	// WARNING: here be dragons as we're going to be blindly trusting inputs that in theory could be attacker-controlled.
 
-	// Get the current PCR4, PCR7 and PCR12 values directly from the TPM. Don't bother replaying the event log and
-	// computing the values, since they should be the same.
+	// Get the current PCR4 and PCR7 values directly from the TPM. Don't bother replaying the event log and
+	// computing the values, since they should be the same. PCR12 is replayed to drop any removed credentials.
 	pcr4, err := ReadPCR("4")
 	if err != nil {
 		return err
@@ -67,7 +68,12 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 		return err
 	}
 
-	pcr12, err := ReadPCR("12")
+	eventLog, err := GetValidatedTPMEventLog()
+	if err != nil {
+		return err
+	}
+
+	pcr12, err := computeNewPCR12Value(eventLog)
 	if err != nil {
 		return err
 	}
@@ -306,6 +312,74 @@ func computeNewPCR4Value(eventLog []tcg.Event, newUkiImage string) ([]byte, erro
 	}
 
 	return actualPCR4Buf, nil
+}
+
+// espCredentialsDir is where systemd-stub picks up global credentials to measure into PCR12.
+const espCredentialsDir = "/boot/loader/credentials" //nolint:gosec
+
+// RemovePCRLockCredentials deletes any systemd-pcrlock policy credentials from the ESP.
+// IncusOS doesn't use pcrlock policies, but systemd-sysupdate used to trigger their generation
+// after an update. systemd-stub measures the credentials into PCR12, breaking the TPM bindings
+// on systems without Secure Boot. Returns true if any credential was removed.
+func RemovePCRLockCredentials() (bool, error) {
+	entries, err := os.ReadDir(espCredentialsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	removed := false
+
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), "pcrlock.") || !strings.HasSuffix(entry.Name(), ".cred") {
+			continue
+		}
+
+		err := os.Remove(filepath.Join(espCredentialsDir, entry.Name()))
+		if err != nil {
+			return removed, err
+		}
+
+		removed = true
+	}
+
+	return removed, nil
+}
+
+// computeNewPCR12Value replays the PCR12 event log, leaving out the measurement of the global
+// credentials when the ESP no longer holds any, so the result matches the next boot.
+func computeNewPCR12Value(eventLog []tcg.Event) ([]byte, error) {
+	entries, err := os.ReadDir(espCredentialsDir)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	skipGlobalCredentials := len(entries) == 0
+
+	pcr12 := make([]byte, 32)
+
+	for _, e := range eventLog {
+		if e.Index != 12 {
+			continue
+		}
+
+		if skipGlobalCredentials && e.Type == tcg.Ipl {
+			description, err := util.UTF16ToString(e.Data)
+			if err == nil && strings.HasPrefix(description, "Global credentials") {
+				continue
+			}
+		}
+
+		pcr12, err = extendPCRValue(pcr12, e.ReplayedDigest(), false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return pcr12, nil
 }
 
 func computeVmlinuzAuthenticodeHash(ukiFile string) ([]byte, error) {

@@ -124,7 +124,7 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 
 	// When Secure Boot is disabled, we also bind to PCR4 and PCR12.
 	if !sbEnabled {
-		pcr12, err := ReadPCR("12")
+		pcr12, err := computeNewPCR12Value(eventLog)
 		if err != nil {
 			return err
 		}
@@ -156,7 +156,7 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 // version of IncusOS, so use of PCR4 is limited just to instances with Secure Boot disabled.
 //
 // Without Secure Boot, systemd-stub also accepts a kernel command line from the boot loader,
-// which is only measured into PCR12. Binding PCR12 to its current value ensures the TPM won't
+// which is only measured into PCR12. Binding PCR12 to its expected value ensures the TPM won't
 // unlock the volumes when booting the expected UKI with a modified command line.
 //
 // Additionally, because PCR4 changes for each UKI, we must rely on a recovery passphrase to
@@ -185,13 +185,14 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 		return err
 	}
 
-	// PCR7 and PCR12 won't change when the UKI is updated.
+	// PCR7 won't change when the UKI is updated.
 	pcr7, err := ReadPCR("7")
 	if err != nil {
 		return err
 	}
 
-	pcr12, err := ReadPCR("12")
+	// PCR12 only changes when credentials are removed from the ESP.
+	pcr12, err := computeNewPCR12Value(eventLog)
 	if err != nil {
 		return err
 	}
