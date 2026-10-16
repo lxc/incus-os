@@ -215,6 +215,17 @@ func (n *Multipath) Start(ctx context.Context) error {
 		return err
 	}
 
+	err = os.MkdirAll("/etc/multipath/conf.d", 0o700)
+	if err != nil {
+		return err
+	}
+
+	// Queue I/O while all paths are down, the lock manager fences the host if storage never returns.
+	err = os.WriteFile("/etc/multipath/conf.d/incus-os.conf", []byte("overrides {\n\tno_path_retry queue\n}\n"), 0o600)
+	if err != nil {
+		return err
+	}
+
 	// Create or reset the WWID list.
 	f, err := os.Create("/etc/multipath/wwids")
 	if err != nil {
