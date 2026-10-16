@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run by lvmlockctl --kill when a shared VG loses its sanlock lease.
+# Exits non-zero so lvmlockctl doesn't drop the lockspace while the LVs are in use, incus-osd does it once storage is back.
+curl -s -X POST --unix-socket /run/incus-os/unix.socket "http://localhost/internal/services/lvm/:lockspace-lost?vg=${1}"
+exit 1
