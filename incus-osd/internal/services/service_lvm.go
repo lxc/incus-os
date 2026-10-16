@@ -292,6 +292,8 @@ func CheckLockspaces(ctx context.Context, s *state.State) error {
 }
 
 // recoverLockspaces drops killed lockspaces and starts every shared VG that has none.
+// Active LVs of a killed lockspace are relocked with the mode they held; if any lock can't be
+// re-acquired, another host may own the LV, so the system is rebooted rather than left writing.
 func (n *LVM) recoverLockspaces(ctx context.Context) error {
 	type vgsRaw struct {
 		Report []struct {
@@ -329,31 +331,54 @@ func (n *LVM) recoverLockspaces(ctx context.Context) error {
 		return nil
 	}
 
-	// A killed lockspace (sanlock lease lost) is only cleared by dropping it.
+	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
+	if err != nil {
+		return err
+	}
+
+	lockspaces := lvmLockspaces(infoOutput)
+
 	killed := lvmKilledVGs(vgs.Log)
+	if len(killed) > 0 {
+		sanlockOutput, err := subprocess.RunCommandContext(ctx, "sanlock", "client", "status")
+		if err != nil {
+			return err
+		}
+
+		sanlockLockspaces := sanlockLockspaces(sanlockOutput)
+
+		for _, vg := range killed {
+			// Without the host lease, other hosts may already own our LVs: stop writing.
+			if !sanlockLockspaces[vg] {
+				slog.ErrorContext(ctx, "LVM lockspace lost with its sanlock lease, resetting to protect shared storage", "vg", vg)
+
+				n.fence()
+
+				return nil
+			}
+		}
+	}
+
+	// A killed lockspace (sanlock lease lost) is only cleared by dropping it.
+	heldLocks := map[string]map[string]string{}
+
 	for _, vg := range killed {
+		heldLocks[vg] = lockspaces[vg]
+
 		slog.WarnContext(ctx, "Dropping lost LVM lockspace", "vg", vg)
 
 		_, err = subprocess.RunCommandContext(ctx, "lvmlockctl", "--drop", vg)
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed dropping LVM lockspace", "vg", vg, "err", err)
 		}
-	}
 
-	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
-	if err != nil {
-		return err
-	}
-
-	started := lvmStartedLockspaces(infoOutput)
-
-	// A dropped lockspace may still be listed while lvmlockd removes it.
-	for _, vg := range killed {
-		delete(started, vg)
+		// A dropped lockspace may still be listed while lvmlockd removes it.
+		delete(lockspaces, vg)
 	}
 
 	for _, vg := range shared {
-		if started[vg] {
+		_, started := lockspaces[vg]
+		if started {
 			continue
 		}
 
@@ -368,47 +393,78 @@ func (n *LVM) recoverLockspaces(ctx context.Context) error {
 
 		// LVs left active by a killed lockspace have no lock anymore, take them again.
 		if slices.Contains(killed, vg) {
-			n.relockActiveLVs(ctx, vg)
+			err = n.relockActiveLVs(ctx, vg, heldLocks[vg])
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed re-locking active LVs, resetting to protect shared storage", "vg", vg, "err", err)
+
+				n.fence()
+
+				return nil
+			}
 		}
 	}
 
 	return nil
 }
 
-// relockActiveLVs re-acquires the shared lock of every active LV in the VG.
-func (*LVM) relockActiveLVs(ctx context.Context, vg string) {
+// fence resets the system immediately like the sanlock watchdog would, a clean reboot could keep writing for a long time.
+func (*LVM) fence() {
+	_ = os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
+}
+
+// relockActiveLVs re-acquires the lock of every active LV in the VG with the mode it previously held.
+func (*LVM) relockActiveLVs(ctx context.Context, vg string, modes map[string]string) error {
 	type lvsRaw struct {
 		Report []struct {
 			LV []struct {
 				LVName string `json:"lv_name"`
+				LVUUID string `json:"lv_uuid"`
 			} `json:"lv"`
 		} `json:"report"`
 	}
 
-	lvsOutput, err := subprocess.RunCommandContext(ctx, "lvs", "--reportformat", "json_std", "-o", "lv_name", "-S", "lv_active=active", vg)
+	lvsOutput, err := subprocess.RunCommandContext(ctx, "lvs", "--reportformat", "json_std", "-o", "lv_name,lv_uuid", "-S", "lv_active=active", vg)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed listing active LVs", "vg", vg, "err", err)
-
-		return
+		return err
 	}
 
 	lvs := lvsRaw{}
 
 	err = json.Unmarshal([]byte(lvsOutput), &lvs)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed parsing active LVs", "vg", vg, "err", err)
-
-		return
+		return err
 	}
 
 	for _, report := range lvs.Report {
 		for _, lv := range report.LV {
-			_, err = subprocess.RunCommandContext(ctx, "lvchange", "--activate", "sy", "--ignoreactivationskip", vg+"/"+lv.LVName)
-			if err != nil {
-				slog.WarnContext(ctx, "Failed re-locking active LV", "vg", vg, "lv", lv.LVName, "err", err)
+			// Incus activates instance volumes exclusively, so that's the default for an unknown lock.
+			activations := []string{"ey", "sy"}
+
+			switch modes[lv.LVUUID] {
+			case "ex":
+				activations = []string{"ey"}
+			case "sh":
+				activations = []string{"sy"}
+			default:
+				slog.WarnContext(ctx, "Unknown previous lock mode for active LV", "vg", vg, "lv", lv.LVName)
+			}
+
+			for i, activation := range activations {
+				_, err = subprocess.RunCommandContext(ctx, "lvchange", "--activate", activation, "--ignoreactivationskip", vg+"/"+lv.LVName)
+				if err == nil {
+					slog.InfoContext(ctx, "Re-locked active LV", "vg", vg, "lv", lv.LVName, "mode", activation)
+
+					break
+				}
+
+				if i == len(activations)-1 {
+					return fmt.Errorf("failed re-locking %s/%s: %w", vg, lv.LVName, err)
+				}
 			}
 		}
 	}
+
+	return nil
 }
 
 // lvmKilledVGs returns the VGs whose lockspace lvmlockd reports as killed.
@@ -429,18 +485,46 @@ func lvmKilledVGs(logs []api.ServiceLVMLog) []string {
 	return vgs
 }
 
-// lvmStartedLockspaces parses "lvmlockctl --info" into the set of VGs with a started lockspace.
-func lvmStartedLockspaces(output string) map[string]bool {
-	started := map[string]bool{}
+// lvmLockspaces parses "lvmlockctl --info" into the started lockspaces and the LV locks (uuid to mode) each holds.
+func lvmLockspaces(output string) map[string]map[string]string {
+	lockspaces := map[string]map[string]string{}
+	current := ""
 
 	for line := range strings.SplitSeq(output, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 3 || fields[0] != "LS" {
+
+		switch {
+		case len(fields) >= 3 && fields[0] == "LS":
+			current = strings.TrimPrefix(fields[2], "lvm_")
+			lockspaces[current] = map[string]string{}
+		case len(fields) == 4 && fields[0] == "LK" && fields[1] == "LV" && current != "":
+			lockspaces[current][fields[3]] = fields[2]
+		case len(fields) > 0 && fields[0] == "VG":
+			current = ""
+		default:
+		}
+	}
+
+	return lockspaces
+}
+
+// sanlockLockspaces parses "sanlock client status" into the set of VGs whose lockspace sanlock still holds.
+func sanlockLockspaces(output string) map[string]bool {
+	lockspaces := map[string]bool{}
+
+	for line := range strings.SplitSeq(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 || fields[0] != "s" {
 			continue
 		}
 
-		started[strings.TrimPrefix(fields[2], "lvm_")] = true
+		name, _, _ := strings.Cut(fields[1], ":")
+
+		vg, ok := strings.CutPrefix(name, "lvm_")
+		if ok {
+			lockspaces[vg] = true
+		}
 	}
 
-	return started
+	return lockspaces
 }
