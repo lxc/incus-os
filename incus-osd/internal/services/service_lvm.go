@@ -181,8 +181,14 @@ func (n *LVM) Reset(ctx context.Context) error {
 		return errors.New("LVM isn't currently enabled")
 	}
 
-	// Kill all relevant units.
-	err := systemd.KillUnit(ctx, "SIGKILL", "lvmlockd.service", "sanlock.service", "wdmd.service")
+	// Kill the lock managers.
+	err := systemd.KillUnit(ctx, "SIGKILL", "lvmlockd.service", "sanlock.service")
+	if err != nil {
+		return err
+	}
+
+	// Stop wdmd cleanly, an unclean close leaves the watchdog armed and resets the system.
+	err = systemd.StopUnit(ctx, "wdmd.service")
 	if err != nil {
 		return err
 	}
