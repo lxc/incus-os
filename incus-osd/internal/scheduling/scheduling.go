@@ -125,7 +125,7 @@ func wrapJob(name JobName, jobFunc JobFunc, s *state.State) func(context.Context
 			return
 
 		default:
-			slog.InfoContext(ctx, "Executing periodic job", slog.String("job", string(name)))
+			slog.DebugContext(ctx, "Executing periodic job", slog.String("job", string(name)))
 
 			err := jobFunc(ctx, s)
 			if err != nil {
