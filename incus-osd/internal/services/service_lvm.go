@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/lxc/incus/v7/shared/subprocess"
 
@@ -157,12 +159,7 @@ func (n *LVM) Start(ctx context.Context) error {
 	}
 
 	// Start the lock manager.
-	_, err = subprocess.RunCommandContext(ctx, "vgchange", "--lock-start")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return n.lockStart(ctx)
 }
 
 // Reset will forcefully reset the service.
@@ -232,4 +229,31 @@ backup {
 	}
 
 	return nil
+}
+
+// lockStart starts the lockspaces, retrying while lvmlockd and sanlock finish coming up.
+func (*LVM) lockStart(ctx context.Context, vgs ...string) error {
+	var err error
+
+	args := append([]string{"--lock-start"}, vgs...)
+
+	for range 30 {
+		_, err = subprocess.RunCommandContext(ctx, "vgchange", args...)
+		if err == nil {
+			return nil
+		}
+
+		// Only the lock manager not being reachable yet is worth waiting for.
+		if !strings.Contains(err.Error(), "is not running") && !strings.Contains(err.Error(), "did not find one running") {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+
+	return err
 }
