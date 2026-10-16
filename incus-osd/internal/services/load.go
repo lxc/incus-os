@@ -5,8 +5,17 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 )
+
+// jobScheduler runs the periodic jobs of the services that need one.
+var jobScheduler *scheduling.Scheduler
+
+// SetScheduler provides the job scheduler used by the services.
+func SetScheduler(s *scheduling.Scheduler) {
+	jobScheduler = s
+}
 
 // Supported returns the list of all valid services for this system.
 // The list is sorted in recommended startup order to handle service dependencies.

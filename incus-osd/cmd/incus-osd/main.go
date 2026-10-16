@@ -96,6 +96,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	services.SetScheduler(&jobScheduler)
+
 	// Configure console devices with custom baud rates, if defined.
 	err = configureConsoleDevices(ctx, s)
 	if err != nil {

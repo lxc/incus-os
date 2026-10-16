@@ -129,6 +129,9 @@ func (n *LVM) Stop(ctx context.Context) error {
 		return nil
 	}
 
+	// Stop the lockspace check.
+	_ = jobScheduler.RemoveJob(LVMLockspaceJob)
+
 	// Stop the lock manager.
 	_, err := subprocess.RunCommandContext(ctx, "vgchange", "--lock-stop")
 	if err != nil {
@@ -163,7 +166,13 @@ func (n *LVM) Start(ctx context.Context) error {
 	}
 
 	// Start the lock manager.
-	return n.lockStart(ctx)
+	err = n.lockStart(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Check the lockspaces periodically.
+	return jobScheduler.RegisterJob(LVMLockspaceJob, "1m", CheckLockspaces, n.state)
 }
 
 // Reset will forcefully reset the service.
