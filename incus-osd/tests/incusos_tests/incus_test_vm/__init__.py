@@ -92,7 +92,8 @@ class IncusTestVM:
 
         # Sometimes under heavy load, running `incus start` returns without actually starting the VM. So, run a start loop
         # until the VM state is actually reported as running.
-        while time.time() - start < timeout:
+        duration = time.time() - start
+        while duration < timeout:
             result = subprocess.run(["incus", "start", self.vm_name], capture_output=True)
 
             if "The instance is already running" in result.stderr.decode("utf-8"):
@@ -107,7 +108,7 @@ class IncusTestVM:
 
             time.sleep(5)
 
-        raise IncusOSException("timed out waiting for VM to start")
+        raise IncusOSException(f"timed out after {duration:.2f} seconds waiting for VM to start")
 
     def StopVM(self, timeout=120, force=False):
         """Stop the VM and wait up to 120 seconds by default for the command to return."""
@@ -165,7 +166,7 @@ class IncusTestVM:
             else:
                 return
 
-        raise IncusOSException("timed out waiting for incus-agent to start")
+        raise IncusOSException(f"timed out after {timeout} seconds waiting for incus-agent to start")
 
     def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
@@ -184,8 +185,9 @@ class IncusTestVM:
                 if log in str(result.stdout):
                     return None
 
-            if time.time() - start > timeout:
-                raise IncusOSException(f"timed out waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
+            duration = time.time() - start
+            if duration > timeout:
+                raise IncusOSException(f"timed out after {duration:.2f} seconds waiting for log entry '{log}' to appear", result.stdout.decode("utf-8").split("\n"))
 
             time.sleep(1)
 
@@ -199,6 +201,7 @@ class IncusTestVM:
 
     def APIRequest(self, path, method="GET", body=None, content_type=None, return_raw_content=False, use_unix_socket=False, use_os_proxy=True):
         """Perform a HTTP REST API call, and return the result."""
+
         args = []
         cmd_input = None
 
@@ -241,16 +244,55 @@ class IncusTestVM:
             args.append("-H")
             args.append("Content-Type: "+ content_type)
 
-        result = subprocess.run(args, input=cmd_input, capture_output=True, check=True)
+        tries = 0
+        while True:
+            try:
+                result = subprocess.run(args, input=cmd_input, capture_output=True, check=True)
+            except subprocess.CalledProcessError as e:
+                # If curl exits with connection refused (7) or receive error (56), sleep three seconds
+                # and then try again, for up to 30 seconds. Sometimes under heavy load it can take a
+                # little while before the API endpoint we're waiting for becomes available, and we shouldn't
+                # immediately fail the test if it takes a try or two to perform the request.
+                if e.returncode == 7 or e.returncode == 56:
+                    tries += 1
+                    if tries > 10:
+                        raise
 
-        if not return_raw_content:
-            return json.loads(result.stdout)
-        else:
-            return result.stdout
+                    time.sleep(3)
+            except:
+                raise
+            else:
+                if not return_raw_content:
+                    return json.loads(result.stdout)
+                else:
+                    return result.stdout
 
     def RunCommand(self, *cmd, capture_output=True, check=True):
         """Run a given command within the VM."""
+
         return subprocess.run(["incus", "exec", self.vm_name, "--", *cmd], capture_output=capture_output, check=check)
+
+    def CheckPCRBindings(self, device, secureboot_disabled=False):
+        """Helper that checks a VM's PCR bindings match what is expected."""
+
+        result = self.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/" + device + "-part9")
+        swap_result = str(result.stdout) + str(result.stderr)
+
+        result = self.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/" + device + "-part10")
+        root_result = str(result.stdout) + str(result.stderr)
+
+        if secureboot_disabled:
+            if "tpm2-hash-pcrs:   4+7+12+15" not in swap_result or "tpm2-pubkey-pcrs: 11" not in swap_result:
+                raise IncusOSException("LUKS swap partition not properly bound to PCRs 4+7+11+12+15")
+
+            if "tpm2-hash-pcrs:   4+7+12+15" not in root_result or "tpm2-pubkey-pcrs: 11" not in root_result:
+                raise IncusOSException("LUKS root partition not properly bound to PCRs 4+7+11+12+15")
+        else:
+            if "tpm2-hash-pcrs:   7+15" not in swap_result or "tpm2-pubkey-pcrs: 11" not in swap_result:
+                raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
+
+            if "tpm2-hash-pcrs:   7+15" not in root_result or "tpm2-pubkey-pcrs: 11" not in root_result:
+                raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
 
 class IncusTestNetwork:
     def __init__(self, dns_mode="managed", mtu=1500):

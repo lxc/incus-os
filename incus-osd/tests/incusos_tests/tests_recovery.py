@@ -74,6 +74,7 @@ def _installStartChecks(vm, os_name, os_version):
     vm.WaitExpectedLog("incus-osd", "Auto-generating encryption recovery key, this may take a few seconds")
     vm.WaitExpectedLog("incus-osd", "Upgrading LUKS TPM PCR bindings, this may take a few seconds")
     vm.WaitExpectedLog("incus-osd", "Bringing up the network")
+    vm.WaitExpectedLog("incus-osd", "DNS check failed, system may have trouble resolving hostnames")
     vm.WaitExpectedLog("incus-osd", "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
     vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 

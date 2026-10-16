@@ -30,13 +30,7 @@ def TestIncusOSLive(install_image):
         vm.LogDoesntContain("incus-osd", "Degraded security state: Secure Boot is disabled")
 
         # Verify that LUKS encryption is bound to PCRs 7+11+15
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part9")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
-
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part10")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
+        vm.CheckPCRBindings("scsi-0QEMU_QEMU_HARDDISK_incus_live--image")
 
 def TestIncusOSLiveSWTPM(install_image):
     test_name = "incusos-live-swtpm"
@@ -88,13 +82,7 @@ def TestIncusOSLiveSWTPM(install_image):
             raise IncusOSException("PCR15 isn't initialized")
 
         # Verify that LUKS encryption is bound to PCRs 7+11+15
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part9")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS swap partition not properly bound to PCRs 7+11+15")
-
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part10")
-        if "tpm2-hash-pcrs:   7+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS root partition not properly bound to PCRs 7+11+15")
+        vm.CheckPCRBindings("scsi-0QEMU_QEMU_HARDDISK_incus_live--image")
 
 def TestIncusOSLiveNoSecureBoot(install_image):
     test_name = "incusos-live-no-secure-boot"
@@ -120,10 +108,4 @@ def TestIncusOSLiveNoSecureBoot(install_image):
         vm.WaitExpectedLog("incus-osd", "System is ready version="+os_version)
 
         # Verify that LUKS encryption is bound to PCRs 4+7+11+12+15
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part9")
-        if "tpm2-hash-pcrs:   4+7+12+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS swap partition not properly bound to PCRs 4+7+11+12+15")
-
-        result = vm.RunCommand("cryptsetup", "luksDump", "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_live--image-part10")
-        if "tpm2-hash-pcrs:   4+7+12+15" not in str(result.stdout) or "tpm2-pubkey-pcrs: 11" not in str(result.stdout):
-            raise IncusOSException("LUKS root partition not properly bound to PCRs 4+7+11+12+15")
+        vm.CheckPCRBindings("scsi-0QEMU_QEMU_HARDDISK_incus_live--image", secureboot_disabled=True)
