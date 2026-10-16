@@ -208,7 +208,7 @@ func (n *ISCSI) doStart(ctx context.Context) error {
 
 		// Login to the target.
 		_, err = subprocess.RunCommandContext(ctx, "iscsiadm", "-m", "node", "-T", target.Target, "-p", portal, "--login")
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "already present") {
 			return err
 		}
 
