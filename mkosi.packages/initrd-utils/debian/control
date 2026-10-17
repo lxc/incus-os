@@ -9,6 +9,7 @@ Package: initrd-utils
 Architecture: any
 Replaces: base-files
 Depends: kpartx,
+         lshw,
          multipath-tools,
          pciutils,
          usbutils,
