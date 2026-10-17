@@ -43,6 +43,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/internal/auth/:generate-registration", s.apiInternalRegistration)
 	router.HandleFunc("/internal/auth/:generate-token", s.apiInternalToken)
 	router.HandleFunc("/internal/secureboot", s.apiInternalSecureBoot)
+	router.HandleFunc("/internal/services/lvm/:lockspace-lost", s.apiInternalServicesLVMLockspaceLost)
 	router.HandleFunc("/internal/tui/:write-message", s.apiInternalTUI)
 	router.HandleFunc("/1.0", s.apiRoot10)
 	router.HandleFunc("/1.0/applications", s.apiApplications)
