@@ -3,6 +3,7 @@ initrd-boot-message.sh        usr/bin/
 initrd-debug-info.sh          usr/bin/
 initrd-finalize-luks-state.sh usr/bin/
 initrd-fsck-root.sh           usr/bin/
+initrd-hwinfo.sh              usr/bin/
 initrd-multipath.sh           usr/bin/
 initrd-multipath-partition.sh usr/bin/
 initrd-recovery-key.sh        usr/bin/
@@ -12,6 +13,7 @@ initrd-boot-message.service        usr/lib/systemd/system/
 initrd-cleanup-root.service        usr/lib/systemd/system/
 initrd-debug-info.service          usr/lib/systemd/system/
 initrd-finalize-luks-state.service usr/lib/systemd/system/
+initrd-hwinfo.service              usr/lib/systemd/system/
 initrd-multipath.service           usr/lib/systemd/system/
 initrd-multipath-partition.service usr/lib/systemd/system/
 initrd-recovery-key.service        usr/lib/systemd/system/
