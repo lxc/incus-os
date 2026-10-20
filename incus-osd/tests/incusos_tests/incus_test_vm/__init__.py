@@ -259,6 +259,8 @@ class IncusTestVM:
                         raise
 
                     time.sleep(3)
+                else:
+                    raise
             except:
                 raise
             else:

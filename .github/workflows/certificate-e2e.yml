@@ -61,6 +61,7 @@ jobs:
 
           echo "initializing incus with dir backend"
           incus admin init --auto --storage-backend=dir
+          incus profile set default security.nesting=true
 
       - name: Build local test images
         run: |
