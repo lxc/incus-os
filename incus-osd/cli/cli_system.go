@@ -53,6 +53,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		action:      "poweroff",
 		description: "Power off the system",
 		endpoint:    "system",
+		hasData:     true,
 		confirm:     "power off the system",
 	}
 	cmd.AddCommand(poweroffCmd.command())
@@ -63,6 +64,7 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 		action:      "reboot",
 		description: "Reboot the system",
 		endpoint:    "system",
+		hasData:     true,
 		confirm:     "reboot the system",
 	}
 	cmd.AddCommand(rebootCmd.command())

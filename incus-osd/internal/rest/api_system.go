@@ -1,10 +1,13 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // swagger:operation GET /1.0/system system system_get
@@ -69,16 +72,55 @@ func (*Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 //	Powers off the system.
 //
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: version
+//	    description: Optionally, specify next system boot version
+//	    required: false
+//	    schema:
+//	      $ref: "#/definitions/SystemNextBootVersion"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemPoweroff(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	version := &api.SystemNextBootVersion{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(version)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	switch version.NextBootVersion {
+	case "current":
+		err = util.SetNextBootID(r.Context(), util.BootIDCurrent)
+	case "oldest":
+		err = util.SetNextBootID(r.Context(), util.BootIDOldest)
+	default:
+		err = util.SetNextBootID(r.Context(), util.BootIDNewest)
+	}
+
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}
@@ -95,16 +137,55 @@ func (s *Server) apiSystemPoweroff(w http.ResponseWriter, r *http.Request) {
 //	Reboots the system.
 //
 //	---
+//	consumes:
+//	  - application/json
 //	produces:
 //	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: version
+//	    description: Optionally, specify next system boot version
+//	    required: false
+//	    schema:
+//	      $ref: "#/definitions/SystemNextBootVersion"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
 func (s *Server) apiSystemReboot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
 		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	version := &api.SystemNextBootVersion{}
+
+	counter := &countWrapper{ReadCloser: r.Body}
+
+	err := json.NewDecoder(counter).Decode(version)
+	if err != nil && counter.n > 0 {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	switch version.NextBootVersion {
+	case "current":
+		err = util.SetNextBootID(r.Context(), util.BootIDCurrent)
+	case "oldest":
+		err = util.SetNextBootID(r.Context(), util.BootIDOldest)
+	default:
+		err = util.SetNextBootID(r.Context(), util.BootIDNewest)
+	}
+
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
 
 		return
 	}

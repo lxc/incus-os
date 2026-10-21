@@ -1008,6 +1008,18 @@ definitions:
         title: SystemNetworkWireguardState holds state information about a specific wireguard interface.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNextBootVersion:
+        properties:
+            next_boot_version:
+                description: |-
+                    If not specified or "newest", the system will attempt to boot into the newest installed OS version.
+                    Values of "current" or "oldest" will change the boot target to reboot into the same version or
+                    the prior installed version.
+                type: string
+                x-go-name: NextBootVersion
+        title: SystemNextBootVersion defines a struct that is used to specify what version of IncusOS to boot the next time the system starts.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemProvider:
         properties:
             config:
@@ -2759,25 +2771,49 @@ paths:
                 - system
     /1.0/system/:poweroff:
         post:
+            consumes:
+                - application/json
             description: Powers off the system.
             operationId: system_post_poweroff
+            parameters:
+                - description: Optionally, specify next system boot version
+                  in: body
+                  name: version
+                  schema:
+                    $ref: '#/definitions/SystemNextBootVersion'
             produces:
                 - application/json
             responses:
                 "200":
                     $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
             summary: Power off the system
             tags:
                 - system
     /1.0/system/:reboot:
         post:
+            consumes:
+                - application/json
             description: Reboots the system.
             operationId: system_post_reboot
+            parameters:
+                - description: Optionally, specify next system boot version
+                  in: body
+                  name: version
+                  schema:
+                    $ref: '#/definitions/SystemNextBootVersion'
             produces:
                 - application/json
             responses:
                 "200":
                     $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
             summary: Reboot the system
             tags:
                 - system
