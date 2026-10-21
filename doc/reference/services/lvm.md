@@ -12,6 +12,15 @@ The following configuration options can be set:
 
 * `system_id`: A cluster-unique host identifier.
 
+## Debugging
+
+When the service is enabled, the full physical volume, volume group and logical volume reports can be retrieved through the `/1.0/debug/lvm` API endpoint or with `incus admin os debug lvm`.
+The command shows a summary of each report, use `--format json` or `--format yaml` to get the full reports.
+
+The reports are read from the on-disk LVM metadata only, without taking any lock, so they remain available while the lock manager is unavailable.
+As a result, the device status fields (such as whether a logical volume is active) aren't populated and the attribute strings show `X` in their place.
+All sizes are reported in bytes.
+
 ## Lock loss and fencing
 
 Clustered LVM protects shared volumes with `sanlock` leases stored on the shared storage itself.
