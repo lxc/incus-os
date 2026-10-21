@@ -60,6 +60,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/debug", s.apiDebug)
 	router.HandleFunc("/1.0/debug/kernel", s.apiDebugKernel)
 	router.HandleFunc("/1.0/debug/log", s.apiDebugLog)
+	router.HandleFunc("/1.0/debug/lvm", s.apiDebugLVM)
 	router.HandleFunc("/1.0/debug/processes", s.apiDebugProcesses)
 	router.HandleFunc("/1.0/debug/report", s.apiDebugReport)
 	router.HandleFunc("/1.0/debug/:run-script", s.apiDebugRunScript)
