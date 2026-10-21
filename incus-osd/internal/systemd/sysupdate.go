@@ -211,7 +211,7 @@ func ApplySystemUpdate(ctx context.Context, version string) error {
 	}
 
 	// Update the next boot ID to reflect the newly installed update.
-	err = util.SetNextBootID(ctx)
+	err = util.SetNextBootID(ctx, util.BootIDNewest)
 	if err != nil {
 		return err
 	}

@@ -21,6 +21,16 @@ type UKIVersions struct {
 	OtherFilepath   string
 }
 
+// BootID is a custom type used by SetNextBootID().
+type BootID int
+
+// Define constants for use when setting the next boot ID.
+const (
+	BootIDNewest  BootID = 0
+	BootIDCurrent BootID = 1
+	BootIDOldest  BootID = 2
+)
+
 // GetUKIVersions returns the version and file path for the currently running UKI. If a second
 // UKI is present, its information will also be returned. This second UKI may be a prior version
 // of IncusOS or an update that is pending a system reboot.
@@ -101,8 +111,8 @@ func GetCurrentUKIProfile() (string, error) {
 // SetNextBootID determines the UKI image and profile that we should attempt to boot by
 // default the next time the system starts. This helps ensure the system consistently uses
 // the same UKI profile, which may influence kernel defaults or other system behavior.
-func SetNextBootID(ctx context.Context) error {
-	rebootID, err := getNextBootID(ctx)
+func SetNextBootID(ctx context.Context, bootID BootID) error {
+	rebootID, err := getNextBootID(ctx, bootID)
 	if err != nil {
 		return err
 	}
@@ -126,7 +136,7 @@ func SetNextBootID(ctx context.Context) error {
 	return nil
 }
 
-func getNextBootID(ctx context.Context) (string, error) {
+func getNextBootID(ctx context.Context, bootID BootID) (string, error) {
 	type bootctlEntry struct {
 		Type string `json:"type"`
 		ID   string `json:"id"`
@@ -158,9 +168,26 @@ func getNextBootID(ctx context.Context) (string, error) {
 		}
 	}
 
-	// Ensure targets are sorted in reverse order, which will put the newest version first.
+	// Ensure the targets are sorted; by default this will put the oldest version first.
 	slices.Sort(targets)
-	slices.Reverse(targets)
+
+	idPrefix := ""
+
+	switch bootID { //nolint:revive
+	case BootIDNewest:
+		// Reverse the targets, which will put the newest version first.
+		slices.Reverse(targets)
+	case BootIDCurrent:
+		// Determine the currently booted UKI version, then use that to populate the ID prefix used below.
+		v, err := GetUKIVersions()
+		if err != nil {
+			return "", err
+		}
+
+		idPrefix = v.CurrentVersion
+	case BootIDOldest:
+		// Nothing to do.
+	}
 
 	// Get the current UKI profile.
 	profile, err := GetCurrentUKIProfile()
@@ -170,7 +197,7 @@ func getNextBootID(ctx context.Context) (string, error) {
 
 	// Search for the first target that has the same profile.
 	for _, target := range targets {
-		if strings.HasSuffix(target, ".efi@"+profile) {
+		if strings.HasSuffix(target, idPrefix+".efi@"+profile) {
 			return target, nil
 		}
 	}
@@ -179,7 +206,7 @@ func getNextBootID(ctx context.Context) (string, error) {
 	// This check can be removed after December 2026.
 	if profile == "main" {
 		for _, target := range targets {
-			if strings.HasSuffix(target, ".efi") {
+			if strings.HasSuffix(target, idPrefix+".efi") {
 				return target, nil
 			}
 		}
@@ -189,7 +216,7 @@ func getNextBootID(ctx context.Context) (string, error) {
 	// This shouldn't happen, unless a profile is retired. In this case, return the
 	// first UKI with the "main" profile, as that should hopefully be a sane choice.
 	for _, target := range targets {
-		if strings.HasSuffix(target, ".efi@main") {
+		if strings.HasSuffix(target, idPrefix+".efi@main") {
 			return target, nil
 		}
 	}

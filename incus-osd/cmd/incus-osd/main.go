@@ -716,7 +716,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// do so as part of the shutdown/reboot logic because an externally-triggered power cycle (such as a
 	// physical power button being pressed) may not permit us to properly set the underlying EFI variable
 	// since systemd will already be tearing down the system.
-	err = util.SetNextBootID(ctx)
+	err = util.SetNextBootID(ctx, util.BootIDNewest)
 	if err != nil {
 		return err
 	}
