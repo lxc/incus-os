@@ -29,6 +29,10 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	logCmd := cmdAdminOSDebugLog{os: c.os}
 	cmd.AddCommand(logCmd.command())
 
+	// LVM.
+	lvmCmd := cmdAdminOSDebugLVM{os: c.os}
+	cmd.AddCommand(lvmCmd.command())
+
 	// Processes.
 	processesCmd := cmdAdminOSDebugProcesses{os: c.os}
 	cmd.AddCommand(processesCmd.command())
