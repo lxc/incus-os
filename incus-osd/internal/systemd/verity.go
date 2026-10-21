@@ -1,23 +1,79 @@
 package systemd
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"io"
+	"os"
 
+	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/smallstep/pkcs7"
 
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 type veritySignatureMetadata struct {
 	RootHash               string `json:"rootHash"`               //nolint:tagliatelle
 	CertificateFingerprint string `json:"certificateFingerprint"` //nolint:tagliatelle
 	Signature              string `json:"signature"`
+}
+
+// UsrVerityCheckJob is the name of the periodic /usr-verity check job.
+const UsrVerityCheckJob string = "usr_verity_check"
+
+// CheckUsrVerity verifies the /usr-verity partition(s) for the current system.
+// Because the system is already booted, we don't bother re-checking the signature
+// of the /usr-verity partition(s).
+func CheckUsrVerity(ctx context.Context, osName string) error {
+	// Get currently installed versions.
+	ukis, err := util.GetUKIVersions()
+	if err != nil {
+		return err
+	}
+
+	versions := []string{ukis.CurrentVersion}
+	if ukis.OtherVersion != "" {
+		versions = append(versions, ukis.OtherVersion)
+	}
+
+	for _, v := range versions {
+		// Open the verity signature partition and get the expected root hash.
+		sigPartition, err := os.Open("/dev/disk/by-partlabel/" + osName + "_" + v + "_verity_sig")
+		if err != nil {
+			return err
+		}
+		defer sigPartition.Close() //nolint:revive
+
+		buf, err := io.ReadAll(sigPartition)
+		if err != nil {
+			return err
+		}
+
+		// Decode the json metadata.
+		metadata := veritySignatureMetadata{}
+		buf = bytes.Trim(buf, "\x00")
+
+		err = json.Unmarshal(buf, &metadata)
+		if err != nil {
+			return err
+		}
+
+		// Verify the /usr-verity partition.
+		_, err = subprocess.RunCommandContext(ctx, "veritysetup", "verify", "/dev/disk/by-partlabel/"+osName+"_"+v, "/dev/disk/by-partlabel/"+osName+"_"+v+"_verity", metadata.RootHash)
+		if err != nil {
+			return errors.New("encountered errors verifying /usr-verity partition for " + osName + " version " + v)
+		}
+	}
+
+	return nil
 }
 
 func getTrustedVerityCertificate(ctx context.Context, certificateFingerprint string) (*x509.Certificate, error) {

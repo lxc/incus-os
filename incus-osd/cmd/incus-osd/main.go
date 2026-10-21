@@ -1048,6 +1048,14 @@ func registerJobs(s *state.State) error {
 		return err
 	}
 
+	// Register the /usr-verity check job.
+	err = jobScheduler.RegisterJob(scheduling.JobName(systemd.UsrVerityCheckJob), "24h", func(ctx context.Context, _ *state.State) error {
+		return systemd.CheckUsrVerity(ctx, s.OS.Name)
+	}, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
