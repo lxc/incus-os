@@ -394,11 +394,11 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 
 	switch ut {
 	case TypeSecureBoot:
-		update, err = p.GetSecureBootCertUpdate(ctx)
+		update, err = p.GetSecureBootCertUpdate(ctx, "")
 	case TypeOS:
-		update, err = p.GetOSUpdate(ctx)
+		update, err = p.GetOSUpdate(ctx, "")
 	case TypeApplication:
-		update, err = p.GetApplicationUpdate(ctx, appName)
+		update, err = p.GetApplicationUpdate(ctx, appName, "")
 	default:
 		return "", errors.New("unrecognized update type '" + ut.String() + "'")
 	}

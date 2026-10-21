@@ -215,9 +215,9 @@ func (*images) Type() string {
 	return "images"
 }
 
-func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
+func (p *images) GetSecureBootCertUpdate(ctx context.Context, version string) (SecureBootCertUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -245,9 +245,9 @@ func (p *images) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpd
 	return &update, nil
 }
 
-func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *images) GetOSUpdate(ctx context.Context, version string) (OSUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +276,9 @@ func (p *images) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *images) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
+func (p *images) GetApplicationUpdate(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func (p *images) load(ctx context.Context) error {
 	return nil
 }
 
-func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error) {
+func (p *images) checkRelease(ctx context.Context, version string) (*apiupdate.UpdateFull, error) {
 	// Acquire lock.
 	p.releaseMu.Lock()
 	defer p.releaseMu.Unlock()
@@ -468,6 +468,11 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 		} else {
 			// Record that we found the channel in the remote list.
 			channelExists = true
+		}
+
+		// If a specific version is provided, skip any updates with a different version.
+		if version != "" && version != update.Version {
+			continue
 		}
 
 		// Skip any update with no files.

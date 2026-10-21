@@ -207,9 +207,9 @@ func (*operationsCenter) Type() string {
 	return "operations-center"
 }
 
-func (p *operationsCenter) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
+func (p *operationsCenter) GetSecureBootCertUpdate(ctx context.Context, version string) (SecureBootCertUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +237,9 @@ func (p *operationsCenter) GetSecureBootCertUpdate(ctx context.Context) (SecureB
 	return &update, nil
 }
 
-func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *operationsCenter) GetOSUpdate(ctx context.Context, version string) (OSUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -268,9 +268,9 @@ func (p *operationsCenter) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
+func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
 	// Get latest release.
-	latestUpdate, err := p.checkRelease(ctx)
+	latestUpdate, err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -534,7 +534,7 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 	return apiResp, nil
 }
 
-func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterUpdate, error) {
+func (p *operationsCenter) checkRelease(ctx context.Context, version string) (*operationsCenterUpdate, error) {
 	// Acquire lock.
 	p.releaseMu.Lock()
 	defer p.releaseMu.Unlock()
@@ -584,6 +584,11 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 		} else {
 			// Record that we found the channel in the remote list.
 			channelExists = true
+		}
+
+		// If a specific version is provided, skip any updates with a different version.
+		if version != "" && version != update.Version {
+			continue
 		}
 
 		latestUpdate = &update
