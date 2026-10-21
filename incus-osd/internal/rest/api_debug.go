@@ -71,7 +71,7 @@ func (*Server) apiDebug(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, debug := range []string{"kernel", "log", "processes", "report", ":run-script", "secureboot"} {
+	for _, debug := range []string{"kernel", "log", "lvm", "processes", "report", ":run-script", "secureboot"} {
 		debugURL, _ := url.JoinPath(endpoint, debug)
 		urls = append(urls, debugURL)
 	}

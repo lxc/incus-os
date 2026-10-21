@@ -7,6 +7,7 @@ import (
 
 // Service represents a system service.
 type Service interface {
+	Debug(ctx context.Context) (any, error)
 	Get(ctx context.Context) (any, error)
 	Reset(ctx context.Context) error
 	ShouldStart() bool
@@ -18,6 +19,10 @@ type Service interface {
 }
 
 type common struct{}
+
+func (*common) Debug(_ context.Context) (any, error) {
+	return nil, errors.New("debug isn't supported by this service")
+}
 
 func (*common) Reset(_ context.Context) error {
 	return errors.New("reset isn't supported by this service")

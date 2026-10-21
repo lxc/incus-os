@@ -16,12 +16,17 @@ def TestIncusOSAPIDebug(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]) != 6:
-            raise IncusOSException("expected six debug endpoints")
+        if len(result["metadata"]) != 7:
+            raise IncusOSException("expected seven debug endpoints")
 
-        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/processes", "/1.0/debug/report", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
+        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/lvm", "/1.0/debug/processes", "/1.0/debug/report", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
+
+        # The LVM report is only available when the LVM service is enabled.
+        result = vm.APIRequest("/1.0/debug/lvm")
+        if result["error_code"] != 400:
+            raise IncusOSException("expected LVM debug endpoint to be rejected while the service is disabled")
 
         # Test system metrics report.
         result = vm.APIRequest("/1.0/debug/report?match=io.systemd.Basic")
