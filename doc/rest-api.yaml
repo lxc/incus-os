@@ -12,6 +12,20 @@ definitions:
         title: ApplicationAction defines a generic struct that can be used when triggering an application-specific action.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    ApplicationInstall:
+        properties:
+            force_reinstall:
+                type: boolean
+                x-go-name: ForceReinstall
+            force_version:
+                type: string
+                x-go-name: ForceVersion
+            name:
+                type: string
+                x-go-name: Name
+        title: ApplicationInstall defines a struct that is used when installing an application.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     DebugKernel:
         properties:
             architecture:
@@ -1757,9 +1771,7 @@ paths:
                   name: application
                   required: true
                   schema:
-                    example:
-                        name: gpu-support
-                    type: object
+                    $ref: '#/definitions/ApplicationInstall'
             produces:
                 - application/json
             responses:
@@ -2825,6 +2837,24 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Reboot the system
+            tags:
+                - system
+    /1.0/system/:reinstall-inactive-os:
+        post:
+            description: |-
+                Triggers a reinstall of the inactive A/B /usr-verity partitions used by IncusOS. It is not possible to
+                reinstall the currently running version of IncusOS.
+            operationId: system_post_reinstall_inactive_os
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Reinstall the inactive version of IncusOS.
             tags:
                 - system
     /1.0/system/:restore:
