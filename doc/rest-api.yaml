@@ -47,6 +47,29 @@ definitions:
         title: DebugKernelModule represents a loaded kernel module.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugLVM:
+        properties:
+            lvs:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: LVs
+            pvs:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: PVs
+            vgs:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: VGs
+        title: DebugLVM represents LVM debug information for the system.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     DebugReport:
         properties:
             media_type:
@@ -2264,6 +2287,46 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Get systemd journal entries
+            tags:
+                - debug
+    /1.0/debug/lvm:
+        get:
+            description: |-
+                Return the full physical volume, volume group and logical volume reports.
+
+                The reports are read from the on-disk LVM metadata only, without taking any lock, so device status fields aren't populated.
+                All sizes are in bytes.
+
+                This endpoint is only available when the LVM service is enabled.
+            operationId: debug_get_lvm
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: LVM debug information
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/DebugLVM'
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get LVM debug information
             tags:
                 - debug
     /1.0/debug/processes:
