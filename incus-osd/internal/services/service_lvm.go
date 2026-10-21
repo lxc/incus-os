@@ -28,6 +28,39 @@ type LVM struct {
 	state *state.State
 }
 
+// Debug returns the full PV, VG and LV reports read from the on-disk metadata.
+func (n *LVM) Debug(ctx context.Context) (any, error) {
+	info := &api.DebugLVM{}
+
+	reports := []struct {
+		command string
+		key     string
+		fields  string
+		dest    *[]map[string]any
+	}{
+		{"pvs", "pv", "pv_all,vg_name,vg_uuid", &info.PVs},
+		{"vgs", "vg", "vg_all", &info.VGs},
+		{"lvs", "lv", "lv_all,vg_name,vg_uuid", &info.LVs},
+	}
+
+	// Read-only mode takes no lock and only reads the on-disk metadata.
+	for _, report := range reports {
+		output, err := subprocess.RunCommandContext(ctx, report.command, "--readonly", "--reportformat", "json_std", "--units", "b", "--nosuffix", "-o", report.fields)
+		if err != nil {
+			return nil, err
+		}
+
+		rows, err := n.reportRows(output, report.key)
+		if err != nil {
+			return nil, err
+		}
+
+		*report.dest = rows
+	}
+
+	return info, nil
+}
+
 // Get returns the current service state.
 func (n *LVM) Get(ctx context.Context) (any, error) {
 	// Get PV state.
@@ -521,6 +554,26 @@ func (*LVM) relockActiveLVs(ctx context.Context, vg string, modes map[string]str
 	}
 
 	return nil
+}
+
+// reportRows extracts the rows of the named report from json_std output.
+func (*LVM) reportRows(output string, key string) ([]map[string]any, error) {
+	raw := struct {
+		Report []map[string][]map[string]any `json:"report"`
+	}{}
+
+	err := json.Unmarshal([]byte(output), &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	rows := []map[string]any{}
+
+	for _, report := range raw.Report {
+		rows = append(rows, report[key]...)
+	}
+
+	return rows, nil
 }
 
 // lvmKilledVGs returns the VGs whose lockspace lvmlockd reports as killed.
