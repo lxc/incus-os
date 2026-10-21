@@ -906,7 +906,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 	if !delayInitialUpdateCheck && !skipInitialUpdateCheck {
 		// Perform an initial blocking check for updates before proceeding.
-		err := update.Check(ctx, s)
+		err := update.Check(ctx, s, "")
 		if err != nil {
 			slog.ErrorContext(ctx, "Failed to perform startup update check: "+err.Error())
 		}
@@ -982,14 +982,14 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 
 			goto waitSignal
 		case <-s.TriggerUpdate:
-			err := update.CheckWithEmptyCache(ctx, s)
+			err := update.CheckWithEmptyCache(ctx, s, "")
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to check for updates", "err", err)
 			}
 
 			goto waitSignal
 		case <-s.TriggerOSOnlyUpdate:
-			err := update.CheckOS(ctx, s, true, false)
+			err := update.CheckOS(ctx, s, "", true, false)
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to check for OS update", "err", err)
 			}
@@ -1026,7 +1026,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		go func() {
 			time.Sleep(30 * time.Second)
 
-			err := update.Check(ctx, s)
+			err := update.Check(ctx, s, "")
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to perform startup update check: "+err.Error())
 			}
@@ -1420,7 +1420,7 @@ func startApplications(ctx context.Context, s *state.State) error {
 
 			slog.WarnContext(ctx, "Application "+app.Name()+" should be installed, but doesn't exist on disk; attempting to re-download")
 
-			err := update.CheckApplications(ctx, s, []string{app.Name()}, true, true)
+			err := update.CheckApplications(ctx, s, []string{app.Name()}, "", true, true)
 			if err != nil {
 				return err
 			}
