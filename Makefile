@@ -262,7 +262,7 @@ test-update-sb-keys:
 update-gomod:
 	cd incus-osd && go get -t -v -u ./...
 	cd incus-osd && go get tailscale.com@v1.102.5
-	cd incus-osd && go mod tidy --go=1.26.7
+	cd incus-osd && go mod tidy --go=1.26.9
 	cd incus-osd && go get toolchain@none
 
 .PHONY: update-app-versions
