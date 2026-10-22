@@ -8,11 +8,10 @@ import (
 	"strings"
 
 	"github.com/lxc/incus-os/incus-osd/api"
-	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 )
 
 // SMARTMetricsJob is the name of the periodic SMART metrics export job.
-const SMARTMetricsJob scheduling.JobName = "smart_metrics"
+const SMARTMetricsJob string = "smart_metrics"
 
 // smartMetricsPath is where the node_exporter textfile collector picks up SMART metrics.
 const smartMetricsPath = "/var/lib/prometheus/node-exporter/smartmon.prom"

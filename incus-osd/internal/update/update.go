@@ -12,7 +12,6 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
-	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/secureboot"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -22,7 +21,7 @@ import (
 
 const (
 	// UpdateCheckJob represents the job to check for system updates.
-	UpdateCheckJob scheduling.JobName = "update_check"
+	UpdateCheckJob string = "update_check"
 )
 
 // CheckRespectMaintenanceWindows runs a full (applications and OS) update check

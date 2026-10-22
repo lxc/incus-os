@@ -19,7 +19,6 @@ import (
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/api"
-	"github.com/lxc/incus-os/incus-osd/internal/scheduling"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/storage"
@@ -28,9 +27,9 @@ import (
 
 const (
 	// PoolScrubJob represents the job to scrub all storage pools.
-	PoolScrubJob scheduling.JobName = "pool_scrub"
+	PoolScrubJob string = "pool_scrub"
 	// PoolTrimJob represents the job to trim all storage pools.
-	PoolTrimJob scheduling.JobName = "pool_trim"
+	PoolTrimJob string = "pool_trim"
 )
 
 var supportedPoolTypes = []string{"zfs-raid0", "zfs-raid1", "zfs-raid10", "zfs-raidz1", "zfs-raidz2", "zfs-raidz3"}

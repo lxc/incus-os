@@ -95,7 +95,7 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 		// Set the new update check frequency.
 		if newConfig.Config.CheckFrequency != s.state.System.Update.Config.CheckFrequency { //nolint:nestif
 			if newConfig.Config.CheckFrequency != "never" {
-				err := s.jobScheduler.RegisterJob(update.UpdateCheckJob, newConfig.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s.state)
+				err := s.jobScheduler.RegisterJob(scheduling.JobName(update.UpdateCheckJob), newConfig.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s.state)
 				if err != nil {
 					if errors.Is(err, scheduling.ErrInvalidSchedule) {
 						_ = response.BadRequest(errors.New("invalid expression provided for update schedule")).Render(w)
@@ -108,7 +108,7 @@ func (s *Server) apiSystemUpdate(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			} else {
-				err := s.jobScheduler.RemoveJob(update.UpdateCheckJob)
+				err := s.jobScheduler.RemoveJob(scheduling.JobName(update.UpdateCheckJob))
 				if err != nil {
 					_ = response.BadRequest(err).Render(w)
 
