@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
 
 // JobName represents the name of a periodic job.
@@ -129,6 +130,18 @@ func wrapJob(name JobName, jobFunc JobFunc, s *state.State) func(context.Context
 
 			err := jobFunc(ctx, s)
 			if err != nil {
+				// Attempt to display the error in a modal popup.
+				t, tuiErr := tui.GetTUI(nil)
+				if tuiErr == nil {
+					m := t.GetModal("periodic-job-error")
+
+					if m == nil {
+						m = t.AddModal("Periodic Job Error", "periodic-job-error")
+					}
+
+					m.Update("[red]Error[white] Error running periodic job '" + string(name) + "':\n" + err.Error())
+				}
+
 				slog.ErrorContext(ctx, "Error running periodic job", slog.String("job", string(name)), slog.Any("error", err))
 			}
 		}
