@@ -1022,27 +1022,35 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 func registerJobs(s *state.State) error {
 	// Register the system update check job.
 	if s.System.Update.Config.CheckFrequency != "never" {
-		err := jobScheduler.RegisterJob(update.UpdateCheckJob, s.System.Update.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s)
+		err := jobScheduler.RegisterJob(scheduling.JobName(update.UpdateCheckJob), s.System.Update.Config.CheckFrequency, update.CheckRespectMaintenanceWindows, s)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Register the ZFS scrub job.
-	err := jobScheduler.RegisterJob(zfs.PoolScrubJob, s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools, nil)
+	err := jobScheduler.RegisterJob(scheduling.JobName(zfs.PoolScrubJob), s.System.Storage.Config.ScrubSchedule, zfs.ScrubAllPools, nil)
 	if err != nil {
 		return err
 	}
 
 	// Register the ZFS trim job.
-	err = jobScheduler.RegisterJob(zfs.PoolTrimJob, s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools, nil)
+	err = jobScheduler.RegisterJob(scheduling.JobName(zfs.PoolTrimJob), s.System.Storage.Config.TrimSchedule, zfs.TrimAllPools, nil)
 	if err != nil {
 		return err
 	}
 
 	// Register the SMART metrics export job.
-	err = jobScheduler.RegisterJob(storage.SMARTMetricsJob, "15m", func(ctx context.Context, _ *state.State) error {
+	err = jobScheduler.RegisterJob(scheduling.JobName(storage.SMARTMetricsJob), "15m", func(ctx context.Context, _ *state.State) error {
 		return storage.WriteSMARTMetrics(ctx)
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	// Register the /usr-verity check job.
+	err = jobScheduler.RegisterJob(scheduling.JobName(systemd.UsrVerityCheckJob), "24h", func(ctx context.Context, _ *state.State) error {
+		return systemd.CheckUsrVerity(ctx, s.OS.Name)
 	}, nil)
 	if err != nil {
 		return err
