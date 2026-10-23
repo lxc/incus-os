@@ -1,6 +1,6 @@
 # Update
 
-IncusOS will check the configured [provider](providers.md) for stable updates at each boot and then by default every six hours thereafter. When an update is available, IncusOS will download it, update/restart any applications, and stage the OS update for next boot. Occasionally a Secure Boot key update may also be published, which will be automatically applied before any other available updates.
+IncusOS will check the configured [provider](providers.md) for stable updates at each boot and then by default every six hours thereafter, unless `check_frequency` is set to `never`. When an update is available, IncusOS will download it, update/restart any applications, and stage the OS update for next boot. Occasionally a Secure Boot key update may also be published, which will be automatically applied before any other available updates.
 
 Updates to the `stable` channel are normally published once a week to pick up the latest stable bug fix release of the Linux kernel as well as any relevant security issues, while the `testing` channel may see more frequent updates as new features are developed. It is generally recommended to remain on the `stable` channel.
 In addition, a `daily` channel is also available which features completely automated and untested daily builds, those should only be used by developers.
