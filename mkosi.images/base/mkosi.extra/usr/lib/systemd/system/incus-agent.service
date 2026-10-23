@@ -2,6 +2,8 @@
 Description=Incus - agent
 Documentation=https://linuxcontainers.org/incus/docs/main/
 Before=multi-user.target cloud-init.target cloud-init.service cloud-init-local.service
+After=systemd-tmpfiles-setup.service
+Requires=systemd-tmpfiles-setup.service
 DefaultDependencies=no
 
 [Service]
