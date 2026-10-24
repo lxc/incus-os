@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sync"
 	"unicode/utf16"
 
 	"github.com/google/go-eventlog/register"
@@ -318,8 +319,24 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ukiSectionDigests caches the digest of each UKI PE section, as hashing the large sections is slow on small systems.
+var (
+	ukiSectionDigests   = map[string][32]byte{}
+	ukiSectionDigestsMu sync.Mutex
+)
+
 // ukiSectionDigest returns the SHA256 digest of the given PE section of a UKI.
 func ukiSectionDigest(ukiFile string, name string) ([32]byte, error) {
+	ukiSectionDigestsMu.Lock()
+	defer ukiSectionDigestsMu.Unlock()
+
+	key := ukiFile + ":" + name
+
+	digest, ok := ukiSectionDigests[key]
+	if ok {
+		return digest, nil
+	}
+
 	peFile, err := pe.Open(ukiFile)
 	if err != nil {
 		return [32]byte{}, err
@@ -337,7 +354,10 @@ func ukiSectionDigest(ukiFile string, name string) ([32]byte, error) {
 		return [32]byte{}, err
 	}
 
-	return sha256.Sum256(contents[0:peSection.VirtualSize]), nil
+	digest = sha256.Sum256(contents[0:peSection.VirtualSize])
+	ukiSectionDigests[key] = digest
+
+	return digest, nil
 }
 
 func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
