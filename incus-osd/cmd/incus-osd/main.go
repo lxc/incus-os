@@ -887,7 +887,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	if !delayInitialUpdateCheck {
+	if !delayInitialUpdateCheck && s.System.Update.Config.CheckFrequency != "never" {
 		// Perform an initial blocking check for updates before proceeding.
 		err := update.Check(ctx, s)
 		if err != nil {
@@ -1004,7 +1004,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		os.Exit(0) //nolint:revive
 	}()
 
-	if delayInitialUpdateCheck {
+	if delayInitialUpdateCheck && s.System.Update.Config.CheckFrequency != "never" {
 		// Queue a delayed initial start update check 30 seconds after the system has started up.
 		go func() {
 			time.Sleep(30 * time.Second)
