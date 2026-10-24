@@ -45,6 +45,7 @@ jobs:
             make \
             mtools \
             parted \
+            pigz \
             pkgconf \
             pipx \
             qemu-utils \
@@ -82,7 +83,7 @@ jobs:
         run: |
           cd upload
           for i in *; do
-            gzip -9 "${i}"
+            pigz -6 "${i}"
           done
 
       - name: Upload binaries to GitHub
