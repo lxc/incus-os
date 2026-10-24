@@ -10,6 +10,10 @@ The following configuration options can be set:
 
 * `blacklist_modules`: A list of one or more kernel modules to blacklist. Typically useful when passing through PCI devices to virtual machines.
 
+* `cpu`: Change CPU-specific settings.
+   * `scaling_governor`: Optional; the CPU frequency scaling governor to use, must be one of the governors supported by the kernel.
+   * `disable_thermal_protection`: Optional; when true, the kernel stops acting on thermal zone trip points and thermal management is left to the firmware. Useful on boards such as the Raspberry Pi 4 where the firmware already throttles the processor but the critical trip point it exposes to the kernel triggers a shutdown.
+
 * `memory`: Change `sysctl` values or other settings that impact the system's memory configuration
    * `persistent_hugepages`: Optional; number of persistent hugepages to allocate.
    * `zram_swap_size`: Optional; a human-readable string such as "4GiB" that defines the size of the zram-backed swap device to create. A value of "0" will disable any existing zram-backed swap that may exist. IncusOS will attempt to immediately apply this change without requiring a reboot.
