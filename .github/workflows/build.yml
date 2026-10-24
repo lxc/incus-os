@@ -108,5 +108,5 @@ jobs:
 
           OSNAME=$(grep "ImageId=" mkosi.conf | cut -d '=' -f 2)
 
-          zip -j ${OSNAME}-${{ github.ref_name }}-${{ matrix.arch }}.zip upload/*
+          zip -0 -j ${OSNAME}-${{ github.ref_name }}-${{ matrix.arch }}.zip upload/*
           scp ${OSNAME}-${{ github.ref_name }}-${{ matrix.arch }}.zip ${{ secrets.UPLOAD_USERNAME }}@${{ secrets.UPLOAD_HOST }}:${{ secrets.UPLOAD_PATH }}
