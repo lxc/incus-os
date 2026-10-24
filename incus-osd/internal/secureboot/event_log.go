@@ -291,25 +291,18 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 				return nil, err
 			}
 
-			// Second entry: the binary contents of the PE section.
-			peFile, err := pe.Open(ukiVersions.CurrentFilepath)
+			// Second entry: the digest of the PE section contents, logged under the section name like systemd-stub does.
+			digest, err := ukiSectionDigest(ukiVersions.CurrentFilepath, e.name)
 			if err != nil {
 				return nil, err
 			}
 
-			defer peFile.Close() //nolint:revive
-
-			peSection := peFile.Section(e.name)
-			if peSection == nil {
-				return nil, errors.New("failed to read PE section '" + e.name + "'")
-			}
-
-			c, err := peSection.Data()
+			err = writeLogEventDigest(&buf, &e, digest, contents)
 			if err != nil {
 				return nil, err
 			}
 
-			contents = c[0:peSection.VirtualSize]
+			continue
 		case tcg.Separator:
 			contents = []byte{0x00, 0x00, 0x00, 0x00}
 		default:
@@ -325,11 +318,37 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ukiSectionDigest returns the SHA256 digest of the given PE section of a UKI.
+func ukiSectionDigest(ukiFile string, name string) ([32]byte, error) {
+	peFile, err := pe.Open(ukiFile)
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	defer peFile.Close()
+
+	peSection := peFile.Section(name)
+	if peSection == nil {
+		return [32]byte{}, errors.New("failed to read PE section '" + name + "'")
+	}
+
+	contents, err := peSection.Data()
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	return sha256.Sum256(contents[0:peSection.VirtualSize]), nil
+}
+
 func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
+	return writeLogEventDigest(buf, e, sha256.Sum256(contents), contents)
+}
+
+func writeLogEventDigest(buf *bytes.Buffer, e *event, digest [32]byte, contents []byte) error {
 	e.header.digests.count = 1
 	e.header.digests.digests = eventDigest{
 		hash:   uint16(register.HashSHA256),
-		digest: sha256.Sum256(contents),
+		digest: digest,
 	}
 
 	e.header.eventSize = uint32(len(contents)) // #nosec G115
