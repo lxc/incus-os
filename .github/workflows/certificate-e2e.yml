@@ -44,6 +44,7 @@ jobs:
             mtools \
             openssl \
             parted \
+            pigz \
             pkgconf \
             pipx \
             python3-requests \
