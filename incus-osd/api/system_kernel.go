@@ -18,7 +18,8 @@ type SystemKernelConfigZFS struct {
 
 // SystemKernelConfigCPU holds CPU-specific kernel configuration.
 type SystemKernelConfigCPU struct {
-	ScalingGovernor string `json:"scaling_governor,omitempty" yaml:"scaling_governor,omitempty"`
+	ScalingGovernor          string `json:"scaling_governor,omitempty"           yaml:"scaling_governor,omitempty"`
+	DisableThermalProtection bool   `json:"disable_thermal_protection,omitempty" yaml:"disable_thermal_protection,omitempty"`
 }
 
 // SystemKernelConfigConsole holds console-specific kernel configuration.
