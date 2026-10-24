@@ -68,6 +68,11 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		if err != nil {
 			return err
 		}
+
+		err = ApplyThermalProtection(!config.CPU.DisableThermalProtection)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -176,6 +181,37 @@ func ApplyCPUScalingGovernor(governor string) error {
 
 	for _, entry := range entries {
 		err := os.WriteFile(entry, []byte(governor+"\n"), 0o644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplyThermalProtection enables or disables the kernel's handling of thermal zone trip points.
+func ApplyThermalProtection(enabled bool) error {
+	mode := "enabled"
+	if !enabled {
+		mode = "disabled"
+	}
+
+	entries, err := filepath.Glob("/sys/class/thermal/thermal_zone*/mode")
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		current, err := os.ReadFile(entry)
+		if err != nil {
+			return err
+		}
+
+		if strings.TrimSpace(string(current)) == mode {
+			continue
+		}
+
+		err = os.WriteFile(entry, []byte(mode+"\n"), 0o644)
 		if err != nil {
 			return err
 		}
