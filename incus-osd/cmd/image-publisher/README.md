@@ -1,3 +1,15 @@
+## Publishing CI builds
+
+The `sync` command queries GitHub for the latest successful regular and daily
+builds and imports their artifacts. When the build workflow is configured with
+an `UPLOAD_HOST`, it instead uploads one `<label>-<version>-<arch>.zip` archive
+per architecture over SSH. Set `UPLOAD_PATH` to that directory to have `sync`
+import the archives from there and delete them once imported.
+
+```
+UPLOAD_PATH=/srv/upload ./incus-osd/image-publisher sync ./mirror/
+```
+
 ## Publishing a local build
 
 Here are the steps that can be taken to publish a local build of IncusOS. The resulting JSON metadata will be

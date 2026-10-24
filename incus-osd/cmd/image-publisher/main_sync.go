@@ -43,6 +43,10 @@ locally and import it into the default channel (typically "testing").
 Daily builds, identified by their tag message, are imported into their
 own channel (typically "daily") instead.
 
+If UPLOAD_PATH is set, the zip archives uploaded by the build workflow are
+imported from that directory instead of the GitHub artifacts and are deleted
+once imported.
+
 Alternatively, if given an optional path to one or more local zip archives,
 import those builds rather than querying GitHub. This is mostly intended to
 support publishing to private image servers or local development and testing.
@@ -51,6 +55,9 @@ support publishing to private image servers or local development and testing.
 
 	return cmd
 }
+
+// archiveNameRegexp matches archive names of the form "<label>-<version>-<arch>.zip".
+var archiveNameRegexp = regexp.MustCompile(`.+-(\d+)-(.+)\.zip$`)
 
 // release describes a build to import.
 type release struct {
@@ -94,19 +101,30 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 	// Get the image info.
 	var releases []release
 
-	if len(localReleases) == 0 {
-		releases, err = getLatestReleases(ctx)
+	uploadPath := ""
+
+	if len(localReleases) == 0 { //nolint:nestif
+		// Archives uploaded by the build workflow take precedence over GitHub artifacts.
+		uploadPath = os.Getenv("UPLOAD_PATH")
+
+		releases, err = getLatestReleases(ctx, uploadPath == "")
 		if err != nil {
 			return err
+		}
+
+		if uploadPath != "" {
+			for i, rel := range releases {
+				releases[i].urls, err = findArchives(uploadPath, rel.name)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	} else {
 		local := release{urls: map[string]*url.URL{}}
 
-		// Expect the filename to be "<label>-<version>-<arch>.zip".
-		releaseRegexp := regexp.MustCompile(`.+-(\d+)-(.+)\.zip$`)
-
 		for _, releaseZipName := range localReleases {
-			fields := releaseRegexp.FindStringSubmatch(releaseZipName)
+			fields := archiveNameRegexp.FindStringSubmatch(releaseZipName)
 			if len(fields) != 3 {
 				return errors.New("invalid local archive name '" + releaseZipName + "'")
 			}
@@ -141,6 +159,20 @@ func (c *cmdSync) run(cmd *cobra.Command, args []string) error {
 
 		if done {
 			imported = true
+		}
+
+		// Remove the archives from the upload directory.
+		if uploadPath == "" {
+			continue
+		}
+
+		for _, archive := range rel.urls {
+			slog.InfoContext(ctx, "Removing archive", "path", archive.Path)
+
+			err = os.Remove(archive.Path)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -187,6 +219,13 @@ func (c *cmdSync) importRelease(ctx context.Context, targetPath string, rel rele
 		}
 
 		return false, err
+	}
+
+	// Leave no empty release behind if the archives haven't arrived yet.
+	if len(rel.urls) == 0 {
+		_ = os.Remove(filepath.Join(targetPath, rel.name))
+
+		return false, errors.New("no archive found for release " + rel.name)
 	}
 
 	// Get the image files.
@@ -367,6 +406,8 @@ func (*cmdSync) downloadImage(ctx context.Context, archName string, releaseURL *
 		return nil, err
 	}
 
+	defer func() { _ = zr.Close() }()
+
 	for _, f := range zr.File {
 		assetName := f.Name
 
@@ -529,8 +570,35 @@ func extractFile(f *zip.File, target string) (string, int64, error) {
 	return hex.EncodeToString(hash256.Sum(nil)), size, nil
 }
 
+// findArchives returns the uploaded archives for the release, keyed by architecture.
+func findArchives(uploadPath string, version string) (map[string]*url.URL, error) {
+	entries, err := filepath.Glob(filepath.Join(uploadPath, "*-"+version+"-*.zip"))
+	if err != nil {
+		return nil, err
+	}
+
+	archives := map[string]*url.URL{}
+
+	for _, entry := range entries {
+		fields := archiveNameRegexp.FindStringSubmatch(filepath.Base(entry))
+		if len(fields) != 3 || fields[1] != version {
+			continue
+		}
+
+		_, ok := archives[fields[2]]
+		if ok {
+			return nil, errors.New("multiple archives found for release " + version + " on " + fields[2])
+		}
+
+		archives[fields[2]] = &url.URL{Path: entry}
+	}
+
+	return archives, nil
+}
+
 // getLatestReleases returns the latest successful regular build and the latest successful daily build.
-func getLatestReleases(ctx context.Context) ([]release, error) {
+// The artifact download URLs are only resolved when withArtifacts is set.
+func getLatestReleases(ctx context.Context, withArtifacts bool) ([]release, error) {
 	// Config (optional).
 	ghOrganization := os.Getenv("GH_ORGANIZATION")
 	if ghOrganization == "" {
@@ -602,16 +670,22 @@ func getLatestReleases(ctx context.Context) ([]release, error) {
 			continue
 		}
 
-		// Get the image files.
-		artifacts, _, err := client.Actions.ListWorkflowRunArtifacts(ctx, ghOrganization, ghRepository, run.GetID(), nil)
-		if err != nil {
-			return nil, err
-		}
-
 		rel := release{
 			name:  run.GetHeadBranch(),
 			daily: run == daily,
 			urls:  map[string]*url.URL{},
+		}
+
+		if !withArtifacts {
+			releases = append(releases, rel)
+
+			continue
+		}
+
+		// Get the image files.
+		artifacts, _, err := client.Actions.ListWorkflowRunArtifacts(ctx, ghOrganization, ghRepository, run.GetID(), nil)
+		if err != nil {
+			return nil, err
 		}
 
 		for _, artifact := range artifacts.Artifacts {
