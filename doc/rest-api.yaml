@@ -175,6 +175,9 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelConfigCPU:
         properties:
+            disable_thermal_protection:
+                type: boolean
+                x-go-name: DisableThermalProtection
             scaling_governor:
                 type: string
                 x-go-name: ScalingGovernor
