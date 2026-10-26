@@ -44,6 +44,13 @@ func TPMStatus() (api.TPMStatus, error) {
 	return api.TPMStatusOK, nil
 }
 
+// TPMDevicePresent returns whether the kernel has registered a TPM device, hardware or vtpm.
+func TPMDevicePresent() bool {
+	_, err := os.Stat("/sys/class/tpm/tpm0")
+
+	return err == nil
+}
+
 // GetSWTPMInUse returns a boolean indicating if a swtpm-backed TPM is running.
 func GetSWTPMInUse() bool {
 	// If a kernel TPM event log exists, that means we have a real TPM.
