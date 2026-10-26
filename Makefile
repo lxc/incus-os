@@ -226,7 +226,7 @@ ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
 
 	(cd upload && for i in *; do pigz -1 "$${i}"; done)
 
-	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
+	zip -0 -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 
 	SIG_KEY=./certs/update-E1.key SIG_CERTIFICATE=./certs/update-E1.crt SIG_CHAIN=./incus-osd/certs/files/update-E1.crt ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
 
@@ -249,7 +249,7 @@ test-update-sb-keys:
 
 	(cd upload && for i in *; do pigz -1 "$${i}"; done)
 
-	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
+	zip -0 -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 	(cd certs/efi/updates/ && tar czf ../../../sb.tar.gz *.auth)
 
 	SIG_KEY=./certs/cas/root-E1.key SIG_CERTIFICATE=./incus-osd/certs/files/root-E1.crt SIG_CHAIN=./mkosi.crt UPDATE_SECUREBOOT=./sb.tar.gz ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
