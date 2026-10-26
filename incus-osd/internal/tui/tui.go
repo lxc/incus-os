@@ -395,6 +395,12 @@ func (t *TUI) getIPAddresses() []string {
 		}
 	}
 
+	for _, w := range t.state.System.Network.Config.Wireguard {
+		if len(w.Addresses) > 0 {
+			appendIPs(w.Name)
+		}
+	}
+
 	return ret
 }
 
