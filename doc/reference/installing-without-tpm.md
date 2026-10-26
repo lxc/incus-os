@@ -20,6 +20,11 @@ It must be reiterated that running IncusOS without a physical TPM weakens the ov
 Any IncusOS system that has ever booted with a software-backed TPM will permanently record this fact and report it via the Security API `system_state_is_trusted` field. IncusOS systems that are not fully trusted may be treated differently by Operations Center or other products that interact with IncusOS via its API.
 ```
 
+## Systems with a TPM
+
+A software TPM is only ever configured when no TPM device is detected. If a TPM device is present but fails its self test, IncusOS reports an error and refuses to start rather than falling back to a software TPM.
+To use a software TPM on such a system, the defective TPM must first be disabled, usually through the firmware settings, or physically unplugged in the case of a discrete module which cannot be disabled.
+
 ## Install seed
 
 When configuring the IncusOS [install seed](./seed.md), set the `security.missing_tpm` field to `true`. This will cause IncusOS to configure a software TPM during installation. This option will only take effect if no physical TPM is detected.
