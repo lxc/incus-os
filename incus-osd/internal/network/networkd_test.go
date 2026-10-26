@@ -352,10 +352,26 @@ interfaces:
 
 var badNetworkdConfig12 = `
 default_confirmation_timeout: 34hsm
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
 `
 
 var badNetworkdConfig13 = `
 default_confirmation_timeout: -12m
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: eth0
+`
+
+var badNetworkdConfig14 = `
+interfaces:
+  - name: eth0
+    hwaddr: eth0
 `
 
 func TestBadNetworkConfig(t *testing.T) {
@@ -487,6 +503,16 @@ func TestBadNetworkConfig(t *testing.T) {
 
 		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "default confirmation timeout must be greater than zero")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig14), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "zero IP addresses are configured")
 	}
 }
 

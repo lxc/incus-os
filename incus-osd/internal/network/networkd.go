@@ -233,9 +233,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		return errors.New("no network configuration provided")
 	}
 
-	// Check that all interface/bond/vlan names and MACs are unique.
+	// Check that all interface/bond/vlan names and MACs are unique and that at least one IP
+	// address has been configured.
 	names := []string{}
 	macs := []string{}
+	numIPs := 0
 
 	for _, iface := range networkCfg.Interfaces {
 		if slices.Contains(names, iface.Name) {
@@ -248,6 +250,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 		names = append(names, iface.Name)
 		macs = append(macs, iface.Hwaddr)
+		numIPs += len(iface.Addresses)
 	}
 
 	for _, bond := range networkCfg.Bonds {
@@ -256,6 +259,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, bond.Name)
+		numIPs += len(bond.Addresses)
 
 		// A bond configuration may not explicitly define a MAC, so only check if one is present.
 		if bond.Hwaddr != "" {
@@ -293,6 +297,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, vlan.Name)
+		numIPs += len(vlan.Addresses)
 	}
 
 	for _, wg := range networkCfg.Wireguard {
@@ -301,6 +306,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, wg.Name)
+		numIPs += len(wg.Addresses)
+	}
+
+	if numIPs == 0 {
+		return errors.New("zero IP addresses are configured")
 	}
 
 	// Some USB NICs have a default name of "enx<MAC>", which is 15 characters long.
