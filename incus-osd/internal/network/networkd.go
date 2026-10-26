@@ -164,27 +164,39 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	// Wait for DNS to be functional.
-	err = waitForDNS(ctx, timeout)
-	if err != nil {
-		if !allowPartialConfig {
+	// Only wait for network services (currently DNS and NTP) to become available if at least one
+	// network device is configured as required to be properly online before considering the system
+	// as has having connectivity (the default).
+	waitForNetworkServices := !allDevicesOptional(networkCfg)
+
+	if waitForNetworkServices {
+		// Wait for DNS to be functional.
+		err := waitForDNS(ctx, timeout)
+		if err != nil {
+			if !allowPartialConfig {
+				return err
+			}
+
+			slog.WarnContext(ctx, "DNS check failed, system may have trouble resolving hostnames")
+		}
+
+		// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+		// the service is disabled by default and only started once we have performed the network (re)configuration.
+		err = systemd.RestartUnit(ctx, "systemd-timesyncd")
+		if err != nil {
 			return err
 		}
 
-		slog.WarnContext(ctx, "DNS check failed, system may have trouble resolving hostnames")
-	}
+		// Wait up to 30 seconds for NTP synchronization, but don't fail if it doesn't happen.
+		err = waitForSystemdTimesyncd(ctx, 30*time.Second)
+		if err != nil {
+			slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
+		}
+	} else {
+		slog.WarnContext(ctx, "All network devices configured with 'RequiredForOnline=no', not waiting for DNS and NTP before continuing system boot")
 
-	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
-	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = systemd.RestartUnit(ctx, "systemd-timesyncd")
-	if err != nil {
-		return err
-	}
-
-	// Wait up to 30 seconds for NTP synchronization, but don't fail if it doesn't happen.
-	err = waitForSystemdTimesyncd(ctx, 30*time.Second)
-	if err != nil {
-		slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
+		// Attempt to start NTP time synchronization, but ignore any error.
+		_ = systemd.StartUnit(ctx, "systemd-timesyncd")
 	}
 
 	// Refresh the state struct.
@@ -221,9 +233,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		return errors.New("no network configuration provided")
 	}
 
-	// Check that all interface/bond/vlan names and MACs are unique.
+	// Check that all interface/bond/vlan names and MACs are unique and that at least one IP
+	// address has been configured.
 	names := []string{}
 	macs := []string{}
+	numIPs := 0
 
 	for _, iface := range networkCfg.Interfaces {
 		if slices.Contains(names, iface.Name) {
@@ -236,6 +250,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 		names = append(names, iface.Name)
 		macs = append(macs, iface.Hwaddr)
+		numIPs += len(iface.Addresses)
 	}
 
 	for _, bond := range networkCfg.Bonds {
@@ -244,6 +259,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, bond.Name)
+		numIPs += len(bond.Addresses)
 
 		// A bond configuration may not explicitly define a MAC, so only check if one is present.
 		if bond.Hwaddr != "" {
@@ -281,6 +297,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, vlan.Name)
+		numIPs += len(vlan.Addresses)
 	}
 
 	for _, wg := range networkCfg.Wireguard {
@@ -289,6 +306,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		}
 
 		names = append(names, wg.Name)
+		numIPs += len(wg.Addresses)
+	}
+
+	if numIPs == 0 {
+		return errors.New("zero IP addresses are configured")
 	}
 
 	// Some USB NICs have a default name of "enx<MAC>", which is 15 characters long.
@@ -520,6 +542,13 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 func parseRoutes(ctx context.Context, iface string) ([]api.SystemNetworkRoute, error) {
 	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
 	if err != nil {
+		// If a network device doesn't (yet) exist, return an empty list of routes.
+		// This may happen if the system is starting up and all network devices have
+		// been marked as optional.
+		if strings.Contains(err.Error(), "Cannot find device") {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -2212,4 +2241,32 @@ func checkWireguardPrivateKeys(ctx context.Context, networkCfg *api.SystemNetwor
 	}
 
 	return nil
+}
+
+func allDevicesOptional(networkCfg *api.SystemNetworkConfig) bool {
+	for _, i := range networkCfg.Interfaces {
+		if i.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, b := range networkCfg.Bonds {
+		if b.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, v := range networkCfg.VLANs {
+		if v.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, w := range networkCfg.Wireguard {
+		if w.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	return true
 }

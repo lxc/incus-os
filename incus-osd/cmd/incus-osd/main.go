@@ -887,7 +887,24 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	if !delayInitialUpdateCheck && s.System.Update.Config.CheckFrequency != "never" {
+	// Honor a system's update check frequency being set to "never", unless no primary application is
+	// installed.
+	skipInitialUpdateCheck := s.System.Update.Config.CheckFrequency == "never"
+
+	_, err = applications.GetPrimary(ctx, s, false)
+	if err != nil {
+		if !errors.Is(err, applications.ErrNoPrimary) {
+			return err
+		}
+
+		if skipInitialUpdateCheck {
+			slog.InfoContext(ctx, "No primary application found, forcing an initial update check even though 'CheckFrequency=never'")
+		}
+
+		skipInitialUpdateCheck = false
+	}
+
+	if !delayInitialUpdateCheck && !skipInitialUpdateCheck {
 		// Perform an initial blocking check for updates before proceeding.
 		err := update.Check(ctx, s)
 		if err != nil {
@@ -1004,7 +1021,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		os.Exit(0) //nolint:revive
 	}()
 
-	if delayInitialUpdateCheck && s.System.Update.Config.CheckFrequency != "never" {
+	if delayInitialUpdateCheck && !skipInitialUpdateCheck {
 		// Queue a delayed initial start update check 30 seconds after the system has started up.
 		go func() {
 			time.Sleep(30 * time.Second)
