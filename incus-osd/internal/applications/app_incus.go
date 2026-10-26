@@ -199,6 +199,10 @@ func (a *incus) GetClientCertificate() (*tls.Certificate, error) {
 
 // GetListenAddress gets the address on which the application's API is listening.
 func (*incus) GetListenAddress(ctx context.Context) (string, error) {
+	// Set a timeout on the call as a socket-activated but failing incusd accepts connections without ever answering.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	// Connect to Incus.
 	c, err := incusclient.ConnectIncusUnixWithContext(ctx, "", nil)
 	if err != nil {

@@ -50,7 +50,10 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 	}
 
 	// Check if a TPM device, either hardware or swtpm, is present and working.
-	_, tpmErr := subprocess.RunCommandContext(ctx, "tpm2_selftest")
+	tpmErr := errors.New("no TPM device found")
+	if secureboot.TPMDevicePresent() {
+		tpmErr = tpmSelfTest(ctx)
+	}
 
 	// Determine if there's a working physical TPM.
 	workingPhysicalTPM := tpmErr == nil && !secureboot.GetSWTPMInUse()
@@ -91,6 +94,11 @@ func CheckSystemRequirements(ctx context.Context) error { //nolint:revive
 
 	// If Secure Boot is enabled, but there's no working TPM, attempt to initialize swtpm for use on next boot.
 	if sbEnabled && tpmErr != nil {
+		// Never fall back to swtpm when a TPM device exists, swtpm wouldn't be started alongside it anyway.
+		if secureboot.TPMDevicePresent() {
+			return errors.New("a TPM device was found but isn't working: " + tpmErr.Error())
+		}
+
 		// Return an error if there's no working TPM and the install seed doesn't allow using swtpm.
 		if installSeed != nil && (installSeed.Security == nil || !installSeed.Security.MissingTPM) {
 			return errors.New("no working TPM found, but install seed doesn't allow for use of swtpm")
@@ -1149,6 +1157,24 @@ func rebootUponDeviceRemoval(device string, forceReboot bool) error {
 	time.Sleep(5 * time.Second)
 
 	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
+}
+
+// tpmSelfTest runs the TPM self test, retrying for a while as some firmware TPMs need time after a cold boot.
+func tpmSelfTest(ctx context.Context) error {
+	var err error
+
+	for range 10 {
+		_, err = subprocess.RunCommandContext(ctx, "tpm2_selftest")
+		if err == nil {
+			return nil
+		}
+
+		slog.WarnContext(ctx, "TPM self test failed, retrying", "err", err)
+
+		time.Sleep(3 * time.Second)
+	}
+
+	return err
 }
 
 // GetPartitionPrefix returns the necessary partition prefix, if any, for a give device.
