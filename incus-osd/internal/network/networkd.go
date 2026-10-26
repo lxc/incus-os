@@ -164,27 +164,39 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	// Wait for DNS to be functional.
-	err = waitForDNS(ctx, timeout)
-	if err != nil {
-		if !allowPartialConfig {
+	// Only wait for network services (currently DNS and NTP) to become available if at least one
+	// network device is configured as required to be properly online before considering the system
+	// as has having connectivity (the default).
+	waitForNetworkServices := !allDevicesOptional(networkCfg)
+
+	if waitForNetworkServices {
+		// Wait for DNS to be functional.
+		err := waitForDNS(ctx, timeout)
+		if err != nil {
+			if !allowPartialConfig {
+				return err
+			}
+
+			slog.WarnContext(ctx, "DNS check failed, system may have trouble resolving hostnames")
+		}
+
+		// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
+		// the service is disabled by default and only started once we have performed the network (re)configuration.
+		err = systemd.RestartUnit(ctx, "systemd-timesyncd")
+		if err != nil {
 			return err
 		}
 
-		slog.WarnContext(ctx, "DNS check failed, system may have trouble resolving hostnames")
-	}
+		// Wait up to 30 seconds for NTP synchronization, but don't fail if it doesn't happen.
+		err = waitForSystemdTimesyncd(ctx, 30*time.Second)
+		if err != nil {
+			slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
+		}
+	} else {
+		slog.WarnContext(ctx, "All network devices configured with 'RequiredForOnline=no', not waiting for DNS and NTP before continuing system boot")
 
-	// (Re)start NTP time synchronization. Since we might be overriding the default fallback NTP servers,
-	// the service is disabled by default and only started once we have performed the network (re)configuration.
-	err = systemd.RestartUnit(ctx, "systemd-timesyncd")
-	if err != nil {
-		return err
-	}
-
-	// Wait up to 30 seconds for NTP synchronization, but don't fail if it doesn't happen.
-	err = waitForSystemdTimesyncd(ctx, 30*time.Second)
-	if err != nil {
-		slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
+		// Attempt to start NTP time synchronization, but ignore any error.
+		_ = systemd.StartUnit(ctx, "systemd-timesyncd")
 	}
 
 	// Refresh the state struct.
@@ -520,6 +532,13 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 func parseRoutes(ctx context.Context, iface string) ([]api.SystemNetworkRoute, error) {
 	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
 	if err != nil {
+		// If a network device doesn't (yet) exist, return an empty list of routes.
+		// This may happen if the system is starting up and all network devices have
+		// been marked as optional.
+		if strings.Contains(err.Error(), "Cannot find device") {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -2212,4 +2231,32 @@ func checkWireguardPrivateKeys(ctx context.Context, networkCfg *api.SystemNetwor
 	}
 
 	return nil
+}
+
+func allDevicesOptional(networkCfg *api.SystemNetworkConfig) bool {
+	for _, i := range networkCfg.Interfaces {
+		if i.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, b := range networkCfg.Bonds {
+		if b.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, v := range networkCfg.VLANs {
+		if v.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	for _, w := range networkCfg.Wireguard {
+		if w.RequiredForOnline != "no" {
+			return false
+		}
+	}
+
+	return true
 }
