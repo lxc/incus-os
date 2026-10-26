@@ -224,7 +224,7 @@ ifeq (,$(wildcard ./local-image-server/${RELEASE}/))
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip
 	./scripts/prepare-upload.sh ${RELEASE}
 
-	(cd upload && for i in *; do gzip -1 "$${i}"; done)
+	(cd upload && for i in *; do pigz -1 "$${i}"; done)
 
 	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 
@@ -247,7 +247,7 @@ test-update-sb-keys:
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip ./sb.tar.gz ./local-image-server/${RELEASE}/
 	./scripts/prepare-upload.sh ${RELEASE}
 
-	(cd upload && for i in *; do gzip -1 "$${i}"; done)
+	(cd upload && for i in *; do pigz -1 "$${i}"; done)
 
 	zip -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 	(cd certs/efi/updates/ && tar czf ../../../sb.tar.gz *.auth)
