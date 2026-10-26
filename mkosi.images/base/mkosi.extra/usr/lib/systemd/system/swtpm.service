@@ -5,6 +5,7 @@ Requires=boot.mount
 Before=cryptsetup.target systemd-cryptsetup@root.service systemd-cryptsetup@swap.service incus-osd.service systemd-repart.service
 DefaultDependencies=no
 ConditionPathExists=/boot/swtpm/
+ConditionPathExists=!/sys/class/tpm/tpm0
 
 [Service]
 Type=exec
