@@ -39,6 +39,11 @@ type SystemNetworkConfig struct {
 	// changes are confirmed before then.
 	DefaultConfirmationTimeout string `json:"default_confirmation_timeout,omitempty" yaml:"default_confirmation_timeout,omitempty"`
 
+	// If true, when bringing up the network don't wait for DNS and NTP to be configured and
+	// available before continuing. Most systems shouldn't need to set this, and when enabled
+	// initial update checks may fail due to being unable to resolve hostnames.
+	IgnoreServiceChecks bool `json:"ignore_service_checks" yaml:"ignore_service_checks"`
+
 	DNS   *SystemNetworkDNS   `json:"dns,omitempty"   yaml:"dns,omitempty"`
 	Time  *SystemNetworkTime  `json:"time,omitempty"  yaml:"time,omitempty"`
 	Proxy *SystemNetworkProxy `json:"proxy,omitempty" yaml:"proxy,omitempty"`

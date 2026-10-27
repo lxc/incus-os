@@ -49,7 +49,7 @@ type expPhysDev struct {
 }
 
 // ApplyNetworkConfiguration instructs systemd-networkd to apply the supplied network configuration.
-func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, allowPartialConfig bool, refresh func(context.Context, *state.State, ocapi.ServerSelfUpdateCause) error, delayRefreshCheck bool) error {
+func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *api.SystemNetworkConfig, timeout time.Duration, isDaemonStartup bool, refresh func(context.Context, *state.State, ocapi.ServerSelfUpdateCause) error, delayRefreshCheck bool) error {
 	if s.System.Network.State.ConfigurationInProcess {
 		return errors.New("a network configuration is already in progress")
 	}
@@ -164,16 +164,13 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 		return err
 	}
 
-	// Only wait for network services (currently DNS and NTP) to become available if at least one
-	// network device is configured as required to be properly online before considering the system
-	// as has having connectivity (the default).
-	waitForNetworkServices := !allDevicesOptional(networkCfg)
-
-	if waitForNetworkServices {
+	// Wait for network services (currently DNS and NTP) to become available unless
+	// IgnoreServiceChecks is set to true in the network configuration.
+	if !networkCfg.IgnoreServiceChecks {
 		// Wait for DNS to be functional.
 		err := waitForDNS(ctx, timeout)
 		if err != nil {
-			if !allowPartialConfig {
+			if !isDaemonStartup {
 				return err
 			}
 
@@ -193,7 +190,7 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 			slog.WarnContext(ctx, "systemd-timesyncd failed to perform NTP synchronization, system time may be incorrect")
 		}
 	} else {
-		slog.WarnContext(ctx, "All network devices configured with 'RequiredForOnline=no', not waiting for DNS and NTP before continuing system boot")
+		slog.WarnContext(ctx, "IgnoreServiceChecks is set to true, not waiting for DNS and NTP before continuing system boot")
 
 		// Attempt to start NTP time synchronization, but ignore any error.
 		_ = systemd.StartUnit(ctx, "systemd-timesyncd")
@@ -2241,32 +2238,4 @@ func checkWireguardPrivateKeys(ctx context.Context, networkCfg *api.SystemNetwor
 	}
 
 	return nil
-}
-
-func allDevicesOptional(networkCfg *api.SystemNetworkConfig) bool {
-	for _, i := range networkCfg.Interfaces {
-		if i.RequiredForOnline != "no" {
-			return false
-		}
-	}
-
-	for _, b := range networkCfg.Bonds {
-		if b.RequiredForOnline != "no" {
-			return false
-		}
-	}
-
-	for _, v := range networkCfg.VLANs {
-		if v.RequiredForOnline != "no" {
-			return false
-		}
-	}
-
-	for _, w := range networkCfg.Wireguard {
-		if w.RequiredForOnline != "no" {
-			return false
-		}
-	}
-
-	return true
 }
