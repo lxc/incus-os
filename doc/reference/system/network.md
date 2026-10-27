@@ -44,6 +44,8 @@ The following top-level network configuration options can be set:
 
 * `default_confirmation_timeout`: Default value for `confirmation_timeout`. This will be used if no `confirmation_timeout` provided.
 
+* `ignore_service_checks`: If true, don't wait for DNS and NTP to be configured and available; most systems shouldn't need to set this.
+
 * `interfaces`: Zero or more interfaces that should be configured for the system.
 
 * `bonds`: Zero or more bonds that should be configured for the system.

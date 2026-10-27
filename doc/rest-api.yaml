@@ -507,6 +507,13 @@ definitions:
                 x-go-name: DefaultConfirmationTimeout
             dns:
                 $ref: '#/definitions/SystemNetworkDNS'
+            ignore_service_checks:
+                description: |-
+                    If true, when bringing up the network don't wait for DNS and NTP to be configured and
+                    available before continuing. Most systems shouldn't need to set this, and when enabled
+                    initial update checks may fail due to being unable to resolve hostnames.
+                type: boolean
+                x-go-name: IgnoreServiceChecks
             interfaces:
                 items:
                     $ref: '#/definitions/SystemNetworkInterface'
