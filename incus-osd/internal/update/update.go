@@ -249,7 +249,11 @@ func CheckOS(ctx context.Context, s *state.State, clearCache bool, forceApplyUpd
 
 	dismissUpdateModal(t)
 
-	s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
+	if newInstalledOSVersion == "" {
+		s.System.Update.State.Status = "OS update check completed"
+	} else {
+		s.System.Update.State.Status = s.OS.Name + " has been updated to version " + newInstalledOSVersion
+	}
 
 	return nil
 }
