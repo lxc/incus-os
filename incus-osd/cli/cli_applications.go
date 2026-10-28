@@ -35,8 +35,8 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 		description: "Add an application",
 		endpoint:    "applications",
 		dataArgs:    []string{"application"},
-		dataFunc: func(args []string) (any, error) {
-			return map[string]string{"name": args[0]}, nil
+		dataFunc: func(args []string) (map[string]any, error) {
+			return map[string]any{"name": args[0]}, nil
 		},
 	}
 	cmd.AddCommand(addCmd.command())
