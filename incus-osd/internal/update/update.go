@@ -460,7 +460,7 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 			return "", err
 		}
 
-		return applyUpdate(ctx, s, t, update, appName)
+		return applyUpdate(ctx, s, t, update, appName, forceApplyUpdate)
 	} else if !s.OS.SystemIsReady {
 		if ut == TypeApplication {
 			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "channel", s.System.Update.Config.Channel, "version", update.Version())
@@ -472,7 +472,7 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	return "", nil
 }
 
-func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string) (string, error) {
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string, forceApplyUpdate bool) (string, error) {
 	updateModal := t.GetModal("update")
 
 	if t.GetModal("update") == nil {
@@ -569,6 +569,12 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		err = systemd.ApplySystemUpdate(ctx, update.Version())
 		if err != nil {
 			return "", err
+		}
+
+		// When forcefully applying an OS update, we're re-installing the inactive A/B side of things.
+		// In this case, there's no need to perform any of the remaining logic, so return early.
+		if forceApplyUpdate {
+			return update.Version(), nil
 		}
 
 		// Record the new release.
