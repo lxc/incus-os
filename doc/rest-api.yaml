@@ -791,6 +791,14 @@ definitions:
         title: SystemNetworkLLDPState holds information about the LLDP state.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemNetworkLink:
+        properties:
+            name:
+                type: string
+                x-go-name: Name
+        title: SystemNetworkLink defines a struct with information on which link to set up or down.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkProxy:
         properties:
             rules:
@@ -3145,6 +3153,56 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Flush the DNS cache
+            tags:
+                - system
+    /1.0/system/network/:link-down:
+        post:
+            consumes:
+                - application/json
+            description: Administratively set down the device backing the specified interface without changing the network configuration.
+            operationId: system_post_network_link_down
+            parameters:
+                - description: The link to set down
+                  in: body
+                  name: link
+                  required: true
+                  schema:
+                    $ref: '#/definitions/SystemNetworkLink'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Set a link down
+            tags:
+                - system
+    /1.0/system/network/:link-up:
+        post:
+            consumes:
+                - application/json
+            description: Administratively set up the device backing the specified interface without changing the network configuration.
+            operationId: system_post_network_link_up
+            parameters:
+                - description: The link to set up
+                  in: body
+                  name: link
+                  required: true
+                  schema:
+                    $ref: '#/definitions/SystemNetworkLink'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Set a link up
             tags:
                 - system
     /1.0/system/provider:
