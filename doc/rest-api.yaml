@@ -562,6 +562,14 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkEthernet:
         properties:
+            advertise:
+                items:
+                    type: string
+                type: array
+                x-go-name: Advertise
+            disable_autoneg:
+                type: boolean
+                x-go-name: DisableAutoneg
             disable_energy_efficient:
                 type: boolean
                 x-go-name: DisableEnergyEfficient
@@ -577,6 +585,9 @@ definitions:
             disable_ipv6_tso:
                 type: boolean
                 x-go-name: DisableIPv6TSO
+            half_duplex:
+                type: boolean
+                x-go-name: HalfDuplex
             rx_buffer_size:
                 type: string
                 x-go-name: RxBufferSize
@@ -586,6 +597,10 @@ definitions:
             rx_mini_buffer_size:
                 type: string
                 x-go-name: RxMiniBufferSize
+            speed:
+                format: int64
+                type: integer
+                x-go-name: Speed
             tx_buffer_size:
                 type: string
                 x-go-name: TxBufferSize
