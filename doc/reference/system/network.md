@@ -315,6 +315,20 @@ To manually flush the DNS cache at any time, run:
 incus admin os system network flush-dns
 ```
 
+#### Link state
+
+The device backing an interface can be set down or up at runtime without touching the network configuration:
+
+```
+incus admin os system network link-down <name>
+incus admin os system network link-up <name>
+```
+
+To be used with caution: setting down the management link used to reach the system's API will cut off remote access to it.
+
+This is useful, for example, to troubleshoot SFP modules that are tricky to get working,
+or to temporarily disable a link without having to change the network configuration.
+
 #### Proxy
 
 Configure a simple anonymous HTTP(S) proxy for IncusOS:
