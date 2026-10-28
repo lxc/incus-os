@@ -416,45 +416,47 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	updateNeeded := false
 
 	// Skip any update that isn't newer than what we are already running.
-	switch ut {
-	case TypeSecureBoot:
-		updateNeeded = update.Version() != s.SecureBoot.Version
+	if !forceApplyUpdate {
+		switch ut {
+		case TypeSecureBoot:
+			updateNeeded = update.Version() != s.SecureBoot.Version
 
-		if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
-			return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+			if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
+				return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		case TypeOS:
+			// If we're running from the backup image don't attempt to re-update to a broken version.
+			if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
+				slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
+
+				return "", nil
+			}
+
+			updateNeeded = update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease
+
+			if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
+				return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		case TypeApplication:
+			app, err := applications.Load(ctx, s, appName)
+			if err != nil {
+				return "", err
+			}
+
+			if app.IsPinned() {
+				slog.InfoContext(ctx, "Skipping application update because version pinning is enabled", "app", appName)
+
+				return "", nil
+			}
+
+			updateNeeded = update.Version() != app.Version()
+
+			if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
+				return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		default:
+			// An invalid update type has been handled previously.
 		}
-	case TypeOS:
-		// If we're running from the backup image don't attempt to re-update to a broken version.
-		if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
-			slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
-
-			return "", nil
-		}
-
-		updateNeeded = update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease
-
-		if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
-			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-	case TypeApplication:
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return "", err
-		}
-
-		if app.IsPinned() {
-			slog.InfoContext(ctx, "Skipping application update because version pinning is enabled", "app", appName)
-
-			return "", nil
-		}
-
-		updateNeeded = update.Version() != app.Version()
-
-		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
-			return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-	default:
-		// An invalid update type has been handled previously.
 	}
 
 	// Apply the update.
