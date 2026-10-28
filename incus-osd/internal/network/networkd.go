@@ -536,6 +536,21 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 	}
 }
 
+// SetLinkState sets the device backing the given interface up or down without modifying the network configuration.
+func SetLinkState(ctx context.Context, iface api.SystemNetworkInterface, up bool) error {
+	action := "down"
+	if up {
+		action = "up"
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "networkctl", action, "_p"+strings.ToLower(strings.ReplaceAll(iface.Hwaddr, ":", "")))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func parseRoutes(ctx context.Context, iface string) ([]api.SystemNetworkRoute, error) {
 	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
 	if err != nil {
