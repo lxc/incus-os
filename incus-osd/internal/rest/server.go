@@ -83,6 +83,8 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/system/network", s.apiSystemNetwork)
 	router.HandleFunc("/1.0/system/network/:confirm", s.apiSystemNetworkConfirm)
 	router.HandleFunc("/1.0/system/network/:flush-dns", s.apiSystemNetworkFlushDNS)
+	router.HandleFunc("/1.0/system/network/:link-down", s.apiSystemNetworkLinkDown)
+	router.HandleFunc("/1.0/system/network/:link-up", s.apiSystemNetworkLinkUp)
 	router.HandleFunc("/1.0/system/provider", s.apiSystemProvider)
 	router.HandleFunc("/1.0/system/resources", s.apiSystemResources)
 	router.HandleFunc("/1.0/system/security", s.apiSystemSecurity)
