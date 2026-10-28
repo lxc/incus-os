@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="icon" href="https://linuxcontainers.org/static/img/favicon.ico"/>
+        <title>{{ .Title }}</title>
+        <style>
+            body {
+                margin: 0;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-size: 1rem;
+                line-height: 1.5;
+                color: #212529;
+                background-color: #fff;
+            }
+
+            nav {
+                background-color: #212529;
+                padding: 0.5rem 0;
+            }
+
+            nav .brand {
+                color: #fff;
+                font-size: 1.25rem;
+                text-decoration: none;
+            }
+
+            .container {
+                max-width: 1140px;
+                margin: 0 auto;
+                padding: 0 0.75rem;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                font-weight: 500;
+                margin: 1.5rem 0 0.5rem 0;
+            }
+
+            p {
+                max-width: 50em;
+            }
+
+            a {
+                color: #0d6efd;
+            }
+
+            table {
+                width: 100%;
+                margin-bottom: 1rem;
+                border-collapse: collapse;
+            }
+
+            th, td {
+                padding: 0.5rem;
+                text-align: left;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            thead th {
+                border-bottom: 2px solid #212529;
+            }
+
+            tbody tr:nth-of-type(odd) {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+            .fingerprint {
+                cursor: help;
+            }
+
+            footer {
+                margin: 2rem 0 1rem 0;
+                padding-top: 1rem;
+                border-top: 1px solid #dee2e6;
+                font-size: 0.875rem;
+                color: #6c757d;
+                display: flex;
+                justify-content: space-between;
+            }
+        </style>
+    </head>
+
+    <body>
+        <nav>
+            <div class="container">
+                <span class="brand">{{ .Title }}</span>
+            </div>
+        </nav>
+
+        <div class="container">
+            <h1>{{ .Title }}</h1>
+            <p>This server hosts the images and updates used by IncusOS systems, which automatically fetch their updates from here. To install a new system, use the <a href="https://incusos-customizer.linuxcontainers.org">IncusOS image customizer</a> to download an image preconfigured for your needs.</p>
+
+            <h1>Channels</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Channel</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>stable</td>
+                        <td>Tested images, this is the channel users are expected to run.</td>
+                    </tr>
+                    <tr>
+                        <td>testing</td>
+                        <td>Candidate images for the stable channel, still undergoing validation and so potentially broken.</td>
+                    </tr>
+                    <tr>
+                        <td>daily</td>
+                        <td>Completely untested automated builds, intended for developers.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h1>Currently available images</h1>
+            <p>The latest image in each channel is shown in bold.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Version</th>
+                        <th>Published</th>
+                        <th>Severity</th>
+                        <th>Channels</th>
+                    </tr>
+                </thead>
+                <tbody>
+{{- range .Updates }}
+                    <tr>
+                        <td><a href="{{ .Version }}/">{{ .Version }}</a></td>
+                        <td>{{ .Published }}</td>
+                        <td>{{ .Severity }}</td>
+                        <td>{{ range $i, $channel := .Channels }}{{ if $i }}, {{ end }}{{ if $channel.Latest }}<b>{{ $channel.Name }}</b>{{ else }}{{ $channel.Name }}{{ end }}{{ end }}</td>
+                    </tr>
+{{- end }}
+                </tbody>
+            </table>
+{{- if .Keys }}
+
+            <h1>Secure Boot keys</h1>
+            <p>The Secure Boot certificates below may need to be manually enrolled in the firmware of systems that don't ship with them. All certificates are available in the <a href="keys/">keys</a> directory.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Fingerprint</th>
+                        <th>PEM</th>
+                        <th>DER</th>
+                    </tr>
+                </thead>
+                <tbody>
+{{- range .Keys }}
+                    <tr>
+                        <td>{{ .Name }}</td>
+                        <td>{{ .Description }}</td>
+                        <td><span class="fingerprint" title="SHA256: {{ .Fingerprint }}">&#128273;</span></td>
+                        <td>{{ if .PEM }}<a href="keys/{{ .PEM }}">{{ .PEM }}</a>{{ end }}</td>
+                        <td>{{ if .DER }}<a href="keys/{{ .DER }}">{{ .DER }}</a>{{ end }}</td>
+                    </tr>
+{{- end }}
+                </tbody>
+            </table>
+{{- end }}
+
+            <footer>
+                <span>Updated at {{ .UpdatedAt }}</span>
+                <span><a href="#">Back to top</a></span>
+            </footer>
+        </div>
+    </body>
+</html>
