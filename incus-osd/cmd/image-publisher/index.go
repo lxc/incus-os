@@ -94,5 +94,5 @@ func generateIndex(ctx context.Context, targetPath string) error {
 		return err
 	}
 
-	return nil
+	return generateHTML(targetPath, metaIndex)
 }

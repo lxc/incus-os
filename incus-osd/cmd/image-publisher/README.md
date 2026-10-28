@@ -1,3 +1,10 @@
+## Server index
+
+Every command that updates `index.json` also regenerates a self-contained
+`index.html` listing the published images, their channels and the Secure
+Boot PK, KEK and DB certificates found in the `keys/` directory. Both PEM
+and DER encoded certificates are picked up, whatever their file extension.
+
 ## Publishing CI builds
 
 The `sync` command queries GitHub for the latest successful regular and daily
