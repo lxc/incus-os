@@ -215,6 +215,13 @@ type SystemNetworkProxyRule struct {
 	Target      string `json:"target"      yaml:"target"`
 }
 
+// SystemNetworkLink defines a struct with information on which link to set up or down.
+//
+// swagger:model
+type SystemNetworkLink struct {
+	Name string `json:"name" yaml:"name"`
+}
+
 // SystemNetworkState holds information about the current network state.
 type SystemNetworkState struct {
 	Interfaces             map[string]SystemNetworkInterfaceState `json:"interfaces"               yaml:"interfaces"`
