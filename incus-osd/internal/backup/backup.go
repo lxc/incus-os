@@ -394,7 +394,7 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		})
 
 		if !exists {
-			err := update.CheckApplications(ctx, s, []string{newApp.Name()}, false, false)
+			err := update.CheckApplications(ctx, s, []string{newApp.Name()}, "", false, false)
 			if err != nil {
 				return err
 			}

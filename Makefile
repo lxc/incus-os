@@ -252,7 +252,7 @@ test-update-sb-keys:
 	zip -0 -j ${OSNAME}-${RELEASE}-${ARCH}.zip upload/*
 	(cd certs/efi/updates/ && tar czf ../../../sb.tar.gz *.auth)
 
-	SIG_KEY=./certs/cas/root-E1.key SIG_CERTIFICATE=./incus-osd/certs/files/root-E1.crt SIG_CHAIN=./mkosi.crt UPDATE_SECUREBOOT=./sb.tar.gz ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
+	SIG_KEY=./certs/update-E1.key SIG_CERTIFICATE=./certs/update-E1.crt SIG_CHAIN=./incus-osd/certs/files/update-E1.crt UPDATE_SECUREBOOT=./sb.tar.gz ./incus-osd/image-publisher sync ./local-image-server/ ./${OSNAME}-${RELEASE}-${ARCH}.zip
 
 	rm -rf ./upload/ ${OSNAME}-*-${ARCH}.zip ./sb.tar.gz
 

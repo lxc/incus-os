@@ -54,9 +54,9 @@ func (*debug) Type() string {
 	return "debug"
 }
 
-func (p *debug) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error) {
+func (p *debug) GetSecureBootCertUpdate(ctx context.Context, version string) (SecureBootCertUpdate, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +87,9 @@ func (p *debug) GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpda
 	return &update, nil
 }
 
-func (p *debug) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
+func (p *debug) GetOSUpdate(ctx context.Context, version string) (OSUpdate, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +120,9 @@ func (p *debug) GetOSUpdate(ctx context.Context) (OSUpdate, error) {
 	return &update, nil
 }
 
-func (p *debug) GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error) {
+func (p *debug) GetApplicationUpdate(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
 	// Get latest release.
-	err := p.checkRelease(ctx)
+	err := p.checkRelease(ctx, version)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (p *debug) GetApplicationUpdate(ctx context.Context, name string) (Applicat
 	foundUpdateFile := false
 
 	for _, asset := range p.releaseAssets {
-		if filepath.Base(asset) == name+".raw" {
+		if filepath.Base(asset) == name+".raw" && strings.Contains(filepath.Base(asset), p.releaseVersion) {
 			foundUpdateFile = true
 
 			break
@@ -161,7 +161,7 @@ func (p *debug) load(_ context.Context) error {
 	return nil
 }
 
-func (p *debug) checkRelease(_ context.Context) error {
+func (p *debug) checkRelease(_ context.Context, version string) error {
 	// Deal with missing path.
 	_, err := os.Lstat(p.path)
 	if err != nil {
@@ -178,7 +178,13 @@ func (p *debug) checkRelease(_ context.Context) error {
 		return err
 	}
 
-	p.releaseVersion = strings.TrimSpace(string(body))
+	// The debug provider only supports a single version at a time.
+	avaiableVersion := strings.TrimSpace(string(body))
+	if version != "" && version != avaiableVersion {
+		return ErrNoUpdateAvailable
+	}
+
+	p.releaseVersion = avaiableVersion
 
 	// Build asset list.
 	assets := []string{}

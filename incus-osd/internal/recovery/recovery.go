@@ -283,7 +283,7 @@ func applyUpdate(ctx context.Context, s *state.State, mountDir string) error {
 	defer func() { s.System.TemporaryProvider = nil }()
 
 	// Trigger an update check.
-	return update.Check(ctx, s)
+	return update.Check(ctx, s, "")
 }
 
 func verifyAndDecompressFile(updateDir string, file apiupdate.UpdateFile) error {

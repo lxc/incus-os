@@ -61,7 +61,7 @@ func CheckRespectMaintenanceWindows(ctx context.Context, s *state.State) error {
 			go func() { //nolint:gosec
 				time.Sleep(sleepDuration)
 
-				err := Check(context.Background(), s) //nolint:contextcheck
+				err := Check(context.Background(), s, "") //nolint:contextcheck
 				if err != nil {
 					slog.ErrorContext(ctx, "Error checking for updates", slog.Any("error", err))
 				}
@@ -73,46 +73,35 @@ func CheckRespectMaintenanceWindows(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
-	return Check(ctx, s)
+	return Check(ctx, s, "")
 }
 
 // Check runs a full (applications and OS) update check regardless of any defined
 // maintenance windows. Typically this should be called  as the system starts up.
-func Check(ctx context.Context, s *state.State) error {
-	err := CheckSecureBoot(ctx, s, false, false)
-	if err != nil {
-		return err
-	}
-
-	err = CheckApplications(ctx, s, nil, false, false)
-	if err != nil {
-		return err
-	}
-
-	err = CheckOS(ctx, s, false, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func Check(ctx context.Context, s *state.State, version string) error {
+	return doCheck(ctx, s, false, version)
 }
 
 // CheckWithEmptyCache runs a full (applications and OS) update check regardless
 // of any defined maintenance windows. The provider's cache is forceably cleared
 // to ensure the very latest updates are available. Typically this should one be
 // called in response to a user specifically requesting an update check.
-func CheckWithEmptyCache(ctx context.Context, s *state.State) error {
-	err := CheckSecureBoot(ctx, s, true, false)
+func CheckWithEmptyCache(ctx context.Context, s *state.State, version string) error {
+	return doCheck(ctx, s, true, version)
+}
+
+func doCheck(ctx context.Context, s *state.State, clearCache bool, version string) error {
+	err := CheckSecureBoot(ctx, s, version, clearCache, false)
 	if err != nil {
 		return err
 	}
 
-	err = CheckApplications(ctx, s, nil, true, false)
+	err = CheckApplications(ctx, s, nil, version, clearCache, false)
 	if err != nil {
 		return err
 	}
 
-	err = CheckOS(ctx, s, true, false)
+	err = CheckOS(ctx, s, version, clearCache, false)
 	if err != nil {
 		return err
 	}
@@ -121,7 +110,7 @@ func CheckWithEmptyCache(ctx context.Context, s *state.State) error {
 }
 
 // CheckSecureBoot checks for an available Secure Boot update.
-func CheckSecureBoot(ctx context.Context, s *state.State, clearCache bool, forceApplyUpdate bool) error {
+func CheckSecureBoot(ctx context.Context, s *state.State, version string, clearCache bool, forceApplyUpdate bool) error {
 	// Only check for updates if Secure Boot is enabled.
 	if s.SecureBootDisabled {
 		return nil
@@ -137,7 +126,7 @@ func CheckSecureBoot(ctx context.Context, s *state.State, clearCache bool, force
 	s.System.Update.State.Status = "Checking for Secure Boot updates"
 
 	// Check for and apply any Secure Boot key updates before performing any OS or application updates.
-	_, err = checkAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", forceApplyUpdate)
+	_, err = checkAndDownloadUpdate(ctx, s, t, p, TypeSecureBoot, "", version, forceApplyUpdate)
 	if err != nil {
 		s.System.Update.State.Status = "Failed to check for Secure Boot key updates"
 		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -155,7 +144,7 @@ func CheckSecureBoot(ctx context.Context, s *state.State, clearCache bool, force
 // CheckApplications checks a specified list of applications for any available updates and will install
 // any application not currently installed. If no applications are specified, all currently installed
 // applications will be checked.
-func CheckApplications(ctx context.Context, s *state.State, toInstall []string, clearCache bool, forceApplyUpdate bool) error {
+func CheckApplications(ctx context.Context, s *state.State, toInstall []string, version string, clearCache bool, forceApplyUpdate bool) error {
 	p, t, err := updateCommonPrep(ctx, s, clearCache)
 	if err != nil {
 		return err
@@ -180,11 +169,15 @@ func CheckApplications(ctx context.Context, s *state.State, toInstall []string, 
 	// Check for application updates.
 	appsUpdated := map[string]string{}
 
+	var retErr error
+
 	for _, appName := range toInstall {
-		newAppVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, forceApplyUpdate)
+		newAppVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeApplication, appName, version, forceApplyUpdate)
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for update for application '" + appName + "'"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			retErr = err
 
 			continue
 		}
@@ -224,11 +217,11 @@ func CheckApplications(ctx context.Context, s *state.State, toInstall []string, 
 
 	s.System.Update.State.Status = "Application update check completed"
 
-	return nil
+	return retErr
 }
 
 // CheckOS checks for an available OS update.
-func CheckOS(ctx context.Context, s *state.State, clearCache bool, forceApplyUpdate bool) error {
+func CheckOS(ctx context.Context, s *state.State, version string, clearCache bool, forceApplyUpdate bool) error {
 	p, t, err := updateCommonPrep(ctx, s, clearCache)
 	if err != nil {
 		return err
@@ -239,7 +232,7 @@ func CheckOS(ctx context.Context, s *state.State, clearCache bool, forceApplyUpd
 	s.System.Update.State.Status = "Checking for OS updates"
 
 	// Check for the latest OS update.
-	newInstalledOSVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeOS, "", forceApplyUpdate)
+	newInstalledOSVersion, err := checkAndDownloadUpdate(ctx, s, t, p, TypeOS, "", version, forceApplyUpdate)
 	if err != nil {
 		s.System.Update.State.Status = "Failed to check for OS updates"
 		showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
@@ -373,7 +366,7 @@ func rebootSystem(ctx context.Context, s *state.State) error {
 }
 
 // checkAndDownloadUpdate performs a check for the specified update, and if found attempts to download it.
-func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, forceApplyUpdate bool) (string, error) {
+func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, ut Type, appName string, version string, forceApplyUpdate bool) (string, error) {
 	s.UpdateMutex.Lock()
 	defer s.UpdateMutex.Unlock()
 
@@ -394,17 +387,17 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 
 	switch ut {
 	case TypeSecureBoot:
-		update, err = p.GetSecureBootCertUpdate(ctx)
+		update, err = p.GetSecureBootCertUpdate(ctx, version)
 	case TypeOS:
-		update, err = p.GetOSUpdate(ctx)
+		update, err = p.GetOSUpdate(ctx, version)
 	case TypeApplication:
-		update, err = p.GetApplicationUpdate(ctx, appName)
+		update, err = p.GetApplicationUpdate(ctx, appName, version)
 	default:
 		return "", errors.New("unrecognized update type '" + ut.String() + "'")
 	}
 
 	if err != nil {
-		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+		if version == "" && errors.Is(err, providers.ErrNoUpdateAvailable) {
 			slog.DebugContext(ctx, ut.String()+" update provider doesn't currently have any update", "channel", s.System.Update.Config.Channel)
 
 			return "", nil
@@ -416,45 +409,47 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	updateNeeded := false
 
 	// Skip any update that isn't newer than what we are already running.
-	switch ut {
-	case TypeSecureBoot:
-		updateNeeded = update.Version() != s.SecureBoot.Version
+	if !forceApplyUpdate {
+		switch ut {
+		case TypeSecureBoot:
+			updateNeeded = update.Version() != s.SecureBoot.Version
 
-		if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
-			return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+			if updateNeeded && s.SecureBoot.Version != "" && s.SecureBoot.Version != update.Version() && !update.IsNewerThan(s.SecureBoot.Version) {
+				return "", errors.New("installed Secure Boot keys version (" + s.SecureBoot.Version + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		case TypeOS:
+			// If we're running from the backup image don't attempt to re-update to a broken version.
+			if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
+				slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
+
+				return "", nil
+			}
+
+			updateNeeded = update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease
+
+			if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
+				return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		case TypeApplication:
+			app, err := applications.Load(ctx, s, appName)
+			if err != nil {
+				return "", err
+			}
+
+			if app.IsPinned() {
+				slog.InfoContext(ctx, "Skipping application update because version pinning is enabled", "app", appName)
+
+				return "", nil
+			}
+
+			updateNeeded = update.Version() != app.Version()
+
+			if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
+				return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
+			}
+		default:
+			// An invalid update type has been handled previously.
 		}
-	case TypeOS:
-		// If we're running from the backup image don't attempt to re-update to a broken version.
-		if !s.System.Update.State.NeedsReboot && s.OS.RunningFromBackup() && s.OS.NextRelease == update.Version() {
-			slog.WarnContext(ctx, "Latest "+s.OS.Name+" image version "+s.OS.NextRelease+" has been identified as problematic, skipping update")
-
-			return "", nil
-		}
-
-		updateNeeded = update.Version() != s.OS.RunningRelease && update.Version() != s.OS.NextRelease
-
-		if updateNeeded && s.OS.RunningRelease != update.Version() && !update.IsNewerThan(s.OS.RunningRelease) {
-			return "", errors.New("local " + s.OS.Name + " version (" + s.OS.RunningRelease + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-	case TypeApplication:
-		app, err := applications.Load(ctx, s, appName)
-		if err != nil {
-			return "", err
-		}
-
-		if app.IsPinned() {
-			slog.InfoContext(ctx, "Skipping application update because version pinning is enabled", "app", appName)
-
-			return "", nil
-		}
-
-		updateNeeded = update.Version() != app.Version()
-
-		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
-			return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
-		}
-	default:
-		// An invalid update type has been handled previously.
 	}
 
 	// Apply the update.
@@ -465,7 +460,7 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 			return "", err
 		}
 
-		return applyUpdate(ctx, s, t, update, appName)
+		return applyUpdate(ctx, s, t, update, appName, forceApplyUpdate)
 	} else if !s.OS.SystemIsReady {
 		if ut == TypeApplication {
 			slog.DebugContext(ctx, "System is already running latest application version", "application", appName, "channel", s.System.Update.Config.Channel, "version", update.Version())
@@ -477,7 +472,7 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	return "", nil
 }
 
-func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string) (string, error) {
+func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string, forceApplyUpdate bool) (string, error) {
 	updateModal := t.GetModal("update")
 
 	if t.GetModal("update") == nil {
@@ -574,6 +569,12 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		err = systemd.ApplySystemUpdate(ctx, update.Version())
 		if err != nil {
 			return "", err
+		}
+
+		// When forcefully applying an OS update, we're re-installing the inactive A/B side of things.
+		// In this case, there's no need to perform any of the remaining logic, so return early.
+		if forceApplyUpdate {
+			return update.Version(), nil
 		}
 
 		// Record the new release.

@@ -42,9 +42,9 @@ type Provider interface {
 
 	Type() string
 
-	GetSecureBootCertUpdate(ctx context.Context) (SecureBootCertUpdate, error)
-	GetOSUpdate(ctx context.Context) (OSUpdate, error)
-	GetApplicationUpdate(ctx context.Context, name string) (ApplicationUpdate, error)
+	GetSecureBootCertUpdate(ctx context.Context, version string) (SecureBootCertUpdate, error)
+	GetOSUpdate(ctx context.Context, version string) (OSUpdate, error)
+	GetApplicationUpdate(ctx context.Context, name string, version string) (ApplicationUpdate, error)
 
 	Register(ctx context.Context) error
 	RefreshRegister(ctx context.Context, cause ocapi.ServerSelfUpdateCause) error
