@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -163,6 +166,84 @@ func TestCalculateTrimStatus(t *testing.T) {
 			t.Parallel()
 
 			require.Equal(t, tc.want, calculateTrimStatus(tc.leaves))
+		})
+	}
+}
+
+func TestParseZpoolStatus(t *testing.T) {
+	t.Parallel()
+
+	byID := func(names ...string) []string {
+		ret := make([]string, 0, len(names))
+		for _, name := range names {
+			ret = append(ret, "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_"+name)
+		}
+
+		return ret
+	}
+
+	cases := []struct {
+		fixture     string
+		pool        string
+		poolType    string
+		specialType string
+		devices     map[string][]string
+	}{
+		{
+			fixture:  "raid0-healthy",
+			pool:     "p0",
+			poolType: "zfs-raid0",
+			devices:  map[string][]string{"devices": byID("d1", "d2", "d3")},
+		},
+		{
+			fixture:  "raid0-replacing",
+			pool:     "p0",
+			poolType: "zfs-raid0",
+			devices:  map[string][]string{"devices": byID("d1", "d2", "d3", "d4")},
+		},
+		{
+			fixture:  "raidz1-replacing-faulted",
+			pool:     "p1",
+			poolType: "zfs-raidz1",
+			devices:  map[string][]string{"devices": byID("d1", "d3", "d4", "d5"), "devices_degraded": byID("d2")},
+		},
+		{
+			fixture:  "mirror-spare-active",
+			pool:     "p2",
+			poolType: "zfs-raid1",
+			devices:  map[string][]string{"devices": byID("d2", "d3"), "devices_degraded": byID("d1")},
+		},
+		{
+			fixture:     "mirror-log-special-replacing",
+			pool:        "p3",
+			poolType:    "zfs-raid1",
+			specialType: "zfs-raid1",
+			devices:     map[string][]string{"devices": byID("d1", "d2"), "log": byID("d3", "d4", "d7"), "special": byID("d5", "d6", "d8")},
+		},
+		{
+			fixture:     "raid0-log-special-replacing",
+			pool:        "p4",
+			poolType:    "zfs-raid0",
+			specialType: "zfs-raid0",
+			devices:     map[string][]string{"devices": byID("d1"), "log": byID("d2", "d5"), "special": byID("d3", "d6"), "cache": byID("d4")},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.fixture, func(t *testing.T) {
+			t.Parallel()
+
+			content, err := os.ReadFile(filepath.Join("testdata", tc.fixture+".json"))
+			require.NoError(t, err)
+
+			zpoolJSON := zpoolStatusPartialParse{}
+			require.NoError(t, json.Unmarshal(content, &zpoolJSON))
+
+			layout, err := parseZpoolStatus(zpoolJSON, tc.pool)
+			require.NoError(t, err)
+			require.Equal(t, tc.poolType, layout.poolType)
+			require.Equal(t, tc.specialType, layout.specialType)
+			require.Equal(t, tc.devices, layout.devices)
 		})
 	}
 }
