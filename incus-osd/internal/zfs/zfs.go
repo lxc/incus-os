@@ -761,25 +761,16 @@ func partitionLocalPoolDevice(ctx context.Context, device string) (string, error
 }
 
 func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, currentDevices []string, degradedDevices []string, newDevices []string) error {
-	// Iterate over each degraded device. If the device itself is missing, this likely means
-	// it was a failed drive that's already been physically removed. As such, it won't show up
-	// in the storage API, but will still be recorded as part of the zpool. An end user will
-	// intuitively attempt to replace the degraded device with a new one by adding another
-	// existing drive to the zpool's configuration, which will result in an extra new device
-	// here. Rather than using it to expand the zpool, which would still be degraded, instead
-	// attempt to automatically replace the existing degraded device with the new one.
+	// Degraded devices aren't part of the device list, so a user replacing one ends up adding
+	// an extra device to the configuration. Rather than expanding a degraded pool, use that
+	// extra device to replace the degraded one, whether it was physically removed or not.
 	for _, degradedDevice := range degradedDevices {
 		// If no more extra devices are available, break out of the loop.
 		if len(currentDevices) >= len(newDevices) {
 			break
 		}
 
-		_, err := os.Stat(degradedDevice)
-		if err != nil && os.IsNotExist(err) {
-			// Add the missing degraded device to the list of current devices.
-			// This will trigger a replace in the logic below.
-			currentDevices = append(currentDevices, degradedDevice)
-		}
+		currentDevices = append(currentDevices, degradedDevice)
 	}
 
 	// Compare the list of current devices to the list of new devices and apply updates as needed.
