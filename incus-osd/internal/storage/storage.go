@@ -78,69 +78,40 @@ type zpoolScanStats struct {
 	Errors    int    `json:"errors"`
 }
 
+// zpoolVdev holds the fields of a "zpool status" vdev entry that we care about, at any nesting level.
+type zpoolVdev struct {
+	zpoolTrimStats
+
+	Name       string               `json:"name"`
+	VdevType   string               `json:"vdev_type"`
+	State      string               `json:"state"`
+	Path       string               `json:"path"`
+	AllocSpace int                  `json:"alloc_space"`
+	TotalSpace int                  `json:"total_space"`
+	DefSpace   int                  `json:"def_space"`
+	Vdevs      map[string]zpoolVdev `json:"vdevs,omitempty"`
+}
+
 type zpoolStatusPartialParse struct {
 	Pools map[string]struct {
-		State     string         `json:"state"`
-		ScanStats zpoolScanStats `json:"scan_stats"`
-		Vdevs     map[string]struct {
-			Vdevs map[string]struct {
-				zpoolTrimStats
-
-				VdevType   string `json:"vdev_type"`
-				State      string `json:"state"`
-				Path       string `json:"path"`
-				AllocSpace int    `json:"alloc_space"`
-				TotalSpace int    `json:"total_space"`
-				DefSpace   int    `json:"def_space"`
-				Vdevs      map[string]struct {
-					zpoolTrimStats
-
-					VdevType string `json:"vdev_type"`
-					State    string `json:"state"`
-					Path     string `json:"path"`
-					Vdevs    map[string]struct {
-						zpoolTrimStats
-
-						State string `json:"state"`
-						Path  string `json:"path"`
-					} `json:"vdevs,omitempty"`
-				} `json:"vdevs,omitempty"`
-			} `json:"vdevs"`
-		} `json:"vdevs"`
-		Logs map[string]struct {
-			zpoolTrimStats
-
-			Name     string `json:"name"`
-			VdevType string `json:"vdev_type"`
-			State    string `json:"state"`
-			Path     string `json:"path"`
-			Vdevs    map[string]struct {
-				zpoolTrimStats
-
-				State string `json:"state"`
-				Path  string `json:"path"`
-			} `json:"vdevs,omitempty"`
-		} `json:"logs"`
-		L2Cache map[string]struct {
-			Name  string `json:"name"`
-			State string `json:"state"`
-			Path  string `json:"path"`
-		} `json:"l2cache"`
-		Special map[string]struct {
-			zpoolTrimStats
-
-			Name     string `json:"name"`
-			VdevType string `json:"vdev_type"`
-			State    string `json:"state"`
-			Path     string `json:"path"`
-			Vdevs    map[string]struct {
-				zpoolTrimStats
-
-				State string `json:"state"`
-				Path  string `json:"path"`
-			} `json:"vdevs,omitempty"`
-		} `json:"special"`
+		State     string               `json:"state"`
+		ScanStats zpoolScanStats       `json:"scan_stats"`
+		Vdevs     map[string]zpoolVdev `json:"vdevs"`
+		Logs      map[string]zpoolVdev `json:"logs"`
+		L2Cache   map[string]zpoolVdev `json:"l2cache"`
+		Special   map[string]zpoolVdev `json:"special"`
 	} `json:"pools"`
+}
+
+// zpoolLayout holds the pool structure extracted from the "zpool status" output.
+type zpoolLayout struct {
+	poolType    string
+	specialType string
+	devices     map[string][]string
+	allocSpace  int
+	totalSpace  int
+	defSpace    int
+	trimStats   []zpoolTrimStats
 }
 
 type zfsGetPartialParse struct {
@@ -503,155 +474,12 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		zpoolKeyStatus = "NONE"
 	}
 
-	zpoolType := ""
-	zpoolAllocSpace := 0
-	zpoolTotalSpace := 0
-	zpoolDefSpace := 0
-	zpoolDevices := make(map[string][]string)
-
-	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
-		switch vdev.VdevType {
-		case "disk":
-			zpoolType = "zfs-raid0"
-
-			// For installs before the storage API was implemented, the "local" ZFS pool was created using
-			// partition labels, rather than partition/disk IDs. If vdevName is "local-data", then tweak
-			// the parentDir.
-			parentDir := "/dev/disk/by-id/"
-			if vdevName == "local-data" {
-				parentDir = "/dev/disk/by-partlabel/"
-			}
-
-			if vdev.State == "ONLINE" {
-				zpoolDevices["devices"] = append(zpoolDevices["devices"], parentDir+vdevName)
-			} else {
-				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], strings.TrimSuffix(vdev.Path, "-part1"))
-			}
-		case "file":
-			if vdev.State == "ONLINE" {
-				zpoolDevices["devices"] = append(zpoolDevices["devices"], vdev.Path)
-			} else {
-				zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], vdev.Path)
-			}
-		default:
-			switch vdevName {
-			case "mirror-0":
-				// Only set the zpoolType if it doesn't already have a value; the ordering of vdevs is random.
-				if zpoolType == "" {
-					zpoolType = "zfs-raid1"
-				}
-			case "mirror-1":
-				zpoolType = "zfs-raid10"
-			case "raidz1-0":
-				zpoolType = "zfs-raidz1"
-			case "raidz2-0":
-				zpoolType = "zfs-raidz2"
-			case "raidz3-0":
-				zpoolType = "zfs-raidz3"
-			default:
-				return api.SystemStoragePool{}, fmt.Errorf("got unexpected zpool type '%s' in zpool '%s'", vdevName, zpoolName)
-			}
-
-			for memberVdevName, memberVdev := range vdev.Vdevs {
-				switch memberVdev.VdevType {
-				case "replacing", "spare":
-					for submemberVdevName, submemberVdev := range memberVdev.Vdevs {
-						if submemberVdev.State == "ONLINE" {
-							zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+submemberVdevName)
-						} else {
-							zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], strings.TrimSuffix(submemberVdev.Path, "-part1"))
-						}
-					}
-				default:
-					if memberVdev.State == "ONLINE" {
-						zpoolDevices["devices"] = append(zpoolDevices["devices"], "/dev/disk/by-id/"+memberVdevName)
-					} else {
-						zpoolDevices["devices_degraded"] = append(zpoolDevices["devices_degraded"], strings.TrimSuffix(memberVdev.Path, "-part1"))
-					}
-				}
-			}
-		}
-
-		zpoolAllocSpace += vdev.AllocSpace
-		zpoolTotalSpace += vdev.TotalSpace
-		zpoolDefSpace += vdev.DefSpace
+	layout, err := parseZpoolStatus(zpoolJSON, zpoolName)
+	if err != nil {
+		return api.SystemStoragePool{}, err
 	}
 
-	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Logs {
-		switch vdev.VdevType {
-		case "disk":
-			if vdev.State == "ONLINE" {
-				zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+vdevName)
-			} else {
-				zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], strings.TrimSuffix(vdev.Path, "-part1"))
-			}
-		case "mirror":
-			for memberVdevName, memberVdev := range vdev.Vdevs {
-				if memberVdev.State == "ONLINE" {
-					zpoolDevices["log"] = append(zpoolDevices["log"], "/dev/disk/by-id/"+memberVdevName)
-				} else {
-					zpoolDevices["log_degraded"] = append(zpoolDevices["log_degraded"], strings.TrimSuffix(memberVdev.Path, "-part1"))
-				}
-			}
-		default:
-			return api.SystemStoragePool{}, errors.New("unsupported zpool log vdev type '" + vdev.VdevType + "'")
-		}
-	}
-
-	specialVdevType := ""
-
-	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].Special {
-		switch vdev.VdevType {
-		case "disk":
-			specialVdevType = "zfs-raid0"
-
-			if vdev.State == "ONLINE" {
-				zpoolDevices["special"] = append(zpoolDevices["special"], "/dev/disk/by-id/"+vdevName)
-			} else {
-				zpoolDevices["special_degraded"] = append(zpoolDevices["special_degraded"], strings.TrimSuffix(vdev.Path, "-part1"))
-			}
-		default:
-			switch vdevName {
-			case "mirror-0":
-				// Only set the specialVdevType if it doesn't already have a value; the ordering of vdevs is random.
-				if specialVdevType == "" {
-					specialVdevType = "zfs-raid1"
-				}
-			case "mirror-1":
-				if specialVdevType == "" {
-					specialVdevType = "zfs-raid1"
-				} else {
-					specialVdevType = "zfs-raid10"
-				}
-			case "mirror-2", "mirror-3":
-				specialVdevType = "zfs-raid10"
-			case "raidz1-0", "raidz1-1":
-				specialVdevType = "zfs-raidz1"
-			case "raidz2-0", "raidz2-1":
-				specialVdevType = "zfs-raidz2"
-			case "raidz3-0", "raidz3-1":
-				specialVdevType = "zfs-raidz3"
-			default:
-				return api.SystemStoragePool{}, fmt.Errorf("got unexpected special device type '%s' in zpool '%s'", vdevName, zpoolName)
-			}
-
-			for memberVdevName, memberVdev := range vdev.Vdevs {
-				if memberVdev.State == "ONLINE" {
-					zpoolDevices["special"] = append(zpoolDevices["special"], "/dev/disk/by-id/"+memberVdevName)
-				} else {
-					zpoolDevices["special_degraded"] = append(zpoolDevices["special_degraded"], strings.TrimSuffix(memberVdev.Path, "-part1"))
-				}
-			}
-		}
-	}
-
-	for vdevName, vdev := range zpoolJSON.Pools[zpoolName].L2Cache {
-		if vdev.State == "ONLINE" {
-			zpoolDevices["cache"] = append(zpoolDevices["cache"], "/dev/disk/by-id/"+vdevName)
-		} else {
-			zpoolDevices["cache_degraded"] = append(zpoolDevices["cache_degraded"], strings.TrimSuffix(vdev.Path, "-part1"))
-		}
-	}
+	zpoolDevices := layout.devices
 
 	// Get ZFS datasets and fill in volumes.
 	zfsListOutput, err := subprocess.RunCommandContext(ctx, "zfs", "list", "-r", "-d1", zpoolName, "-o", "name,quota,used,incusos:use", "-j", "--json-int")
@@ -699,16 +527,6 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		zpoolVolumes = append(zpoolVolumes, vol)
 	}
 
-	// Sort each list of devices to ensure consistent ordering of device names.
-	slices.Sort(zpoolDevices["devices"])
-	slices.Sort(zpoolDevices["log"])
-	slices.Sort(zpoolDevices["cache"])
-	slices.Sort(zpoolDevices["special"])
-	slices.Sort(zpoolDevices["devices_degraded"])
-	slices.Sort(zpoolDevices["log_degraded"])
-	slices.Sort(zpoolDevices["cache_degraded"])
-	slices.Sort(zpoolDevices["special_degraded"])
-
 	// Get the scrub status, if it exists.
 	var scrubStatus *api.SystemStoragePoolScrubStatus
 
@@ -727,45 +545,12 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		}
 	}
 
-	// Get the trim status from the leaf vdevs (cache devices aren't trimmed).
-	leafTrimStats := []zpoolTrimStats{}
-
-	for _, vdev := range zpoolJSON.Pools[zpoolName].Vdevs[zpoolName].Vdevs {
-		if len(vdev.Vdevs) == 0 {
-			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
-		}
-
-		for _, memberVdev := range vdev.Vdevs {
-			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
-		}
-	}
-
-	for _, vdev := range zpoolJSON.Pools[zpoolName].Logs {
-		if len(vdev.Vdevs) == 0 {
-			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
-		}
-
-		for _, memberVdev := range vdev.Vdevs {
-			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
-		}
-	}
-
-	for _, vdev := range zpoolJSON.Pools[zpoolName].Special {
-		if len(vdev.Vdevs) == 0 {
-			leafTrimStats = append(leafTrimStats, vdev.zpoolTrimStats)
-		}
-
-		for _, memberVdev := range vdev.Vdevs {
-			leafTrimStats = append(leafTrimStats, memberVdev.zpoolTrimStats)
-		}
-	}
-
-	trimStatus := calculateTrimStatus(leafTrimStats)
+	trimStatus := calculateTrimStatus(layout.trimStats)
 
 	var specialVdevInfo *api.SystemStoragePoolSpecial
 	if len(zpoolDevices["special"]) > 0 || len(zpoolDevices["special_degraded"]) > 0 {
 		specialVdevInfo = new(api.SystemStoragePoolSpecial)
-		specialVdevInfo.Type = specialVdevType
+		specialVdevInfo.Type = layout.specialType
 		specialVdevInfo.Devices = zpoolDevices["special"]
 
 		smallBlockSize, err := subprocess.RunCommandContext(ctx, "zfs", "get", "special_small_blocks", "-H", "-o", "value", zpoolName)
@@ -794,7 +579,7 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		LastScrub:                 scrubStatus,
 		LastTrim:                  trimStatus,
 		EncryptionKeyStatus:       zpoolKeyStatus,
-		Type:                      zpoolType,
+		Type:                      layout.poolType,
 		Alignment:                 1 << int(zpoolAshift),
 		Devices:                   zpoolDevices["devices"],
 		Log:                       zpoolDevices["log"],
@@ -804,9 +589,9 @@ func getZpoolMembersHelper(ctx context.Context, rawJSONContent []byte, zpoolName
 		LogDegraded:               zpoolDevices["log_degraded"],
 		CacheDegraded:             zpoolDevices["cache_degraded"],
 		SpecialDegraded:           zpoolDevices["special_degraded"],
-		RawPoolSizeInBytes:        zpoolTotalSpace,
-		UsablePoolSizeInBytes:     zpoolDefSpace,
-		PoolAllocatedSpaceInBytes: zpoolAllocSpace,
+		RawPoolSizeInBytes:        layout.totalSpace,
+		UsablePoolSizeInBytes:     layout.defSpace,
+		PoolAllocatedSpaceInBytes: layout.allocSpace,
 		Volumes:                   zpoolVolumes,
 	}, nil
 }
@@ -1159,6 +944,127 @@ func GetStorageInfo(ctx context.Context) (api.SystemStorageState, []api.SystemSt
 	}
 
 	return ret, retPools, nil
+}
+
+// parseZpoolStatus extracts the pool layout and member devices from the "zpool status" output.
+func parseZpoolStatus(zpoolJSON zpoolStatusPartialParse, zpoolName string) (zpoolLayout, error) {
+	layout := zpoolLayout{devices: map[string][]string{}}
+
+	pool, ok := zpoolJSON.Pools[zpoolName]
+	if !ok {
+		return layout, errors.New("zpool '" + zpoolName + "' not found in status output")
+	}
+
+	for vdevName, vdev := range pool.Vdevs[zpoolName].Vdevs {
+		// Replacing and spare vdevs sit where the disk they stand in for was.
+		switch vdev.VdevType {
+		case "disk", "replacing", "spare":
+			layout.poolType = "zfs-raid0"
+		case "file":
+		case "mirror":
+			// The ordering of vdevs is random, a second mirror makes this raid10.
+			if layout.poolType == "" {
+				layout.poolType = "zfs-raid1"
+			} else {
+				layout.poolType = "zfs-raid10"
+			}
+		case "raidz":
+			layout.poolType = "zfs-" + strings.SplitN(vdevName, "-", 2)[0]
+		default:
+			return layout, fmt.Errorf("got unexpected zpool type '%s' in zpool '%s'", vdevName, zpoolName)
+		}
+
+		vdev.appendLeafDevices(vdevName, layout.devices, "devices", "devices_degraded")
+
+		layout.allocSpace += vdev.AllocSpace
+		layout.totalSpace += vdev.TotalSpace
+		layout.defSpace += vdev.DefSpace
+	}
+
+	for vdevName, vdev := range pool.Logs {
+		vdev.appendLeafDevices(vdevName, layout.devices, "log", "log_degraded")
+	}
+
+	for vdevName, vdev := range pool.Special {
+		switch vdev.VdevType {
+		case "disk", "replacing", "spare":
+			layout.specialType = "zfs-raid0"
+		case "mirror":
+			if layout.specialType == "" {
+				layout.specialType = "zfs-raid1"
+			} else {
+				layout.specialType = "zfs-raid10"
+			}
+		case "raidz":
+			layout.specialType = "zfs-" + strings.SplitN(vdevName, "-", 2)[0]
+		default:
+			return layout, fmt.Errorf("got unexpected special device type '%s' in zpool '%s'", vdevName, zpoolName)
+		}
+
+		vdev.appendLeafDevices(vdevName, layout.devices, "special", "special_degraded")
+	}
+
+	for vdevName, vdev := range pool.L2Cache {
+		vdev.appendLeafDevices(vdevName, layout.devices, "cache", "cache_degraded")
+	}
+
+	// Get the trim status from the leaf vdevs (cache devices aren't trimmed).
+	for _, group := range []map[string]zpoolVdev{pool.Vdevs[zpoolName].Vdevs, pool.Logs, pool.Special} {
+		for _, vdev := range group {
+			layout.trimStats = vdev.appendLeafTrimStats(layout.trimStats)
+		}
+	}
+
+	// Sort each list of devices to ensure consistent ordering of device names.
+	for key := range layout.devices {
+		slices.Sort(layout.devices[key])
+	}
+
+	return layout, nil
+}
+
+// appendLeafDevices records the leaf devices below a vdev, looking through mirror, replacing and spare vdevs.
+func (v zpoolVdev) appendLeafDevices(name string, devices map[string][]string, onlineKey string, degradedKey string) {
+	if len(v.Vdevs) > 0 {
+		for childName, child := range v.Vdevs {
+			child.appendLeafDevices(childName, devices, onlineKey, degradedKey)
+		}
+
+		return
+	}
+
+	if v.State != "ONLINE" {
+		devices[degradedKey] = append(devices[degradedKey], strings.TrimSuffix(v.Path, "-part1"))
+
+		return
+	}
+
+	if v.VdevType == "file" {
+		devices[onlineKey] = append(devices[onlineKey], v.Path)
+
+		return
+	}
+
+	// Installs predating the storage API created the "local" pool using partition labels rather than IDs.
+	parentDir := "/dev/disk/by-id/"
+	if name == "local-data" {
+		parentDir = "/dev/disk/by-partlabel/"
+	}
+
+	devices[onlineKey] = append(devices[onlineKey], parentDir+name)
+}
+
+// appendLeafTrimStats collects the trim statistics of the leaf vdevs below a vdev.
+func (v zpoolVdev) appendLeafTrimStats(stats []zpoolTrimStats) []zpoolTrimStats {
+	if len(v.Vdevs) == 0 {
+		return append(stats, v.zpoolTrimStats)
+	}
+
+	for _, child := range v.Vdevs {
+		stats = child.appendLeafTrimStats(stats)
+	}
+
+	return stats
 }
 
 // Helper function that checks if a given drive is a member of the provided list of drives.

@@ -133,14 +133,19 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 
 	// Switch version.
 	switchVersionCmd := cmdGenericRun{
-		os:          c.os,
-		action:      "switch-version",
-		description: "Change application version",
-		endpoint:    "applications",
-		entity:      "application",
-		hasData:     true,
-		defaultData: "{}",
-		confirm:     "change the running version of the application",
+		os:               c.os,
+		action:           "switch-version",
+		description:      "Change application version",
+		endpoint:         "applications",
+		entity:           "application",
+		hasData:          true,
+		defaultData:      "{}",
+		dataArgs:         []string{"version"},
+		dataArgsOptional: true,
+		dataFunc: func(args []string) (any, error) {
+			return map[string]string{"version": args[1]}, nil
+		},
+		confirm: "change the running version of the application",
 	}
 	cmd.AddCommand(switchVersionCmd.command())
 

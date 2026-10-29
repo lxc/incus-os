@@ -71,6 +71,12 @@ func (n *Linstor) Stop(ctx context.Context) error {
 		return err
 	}
 
+	// Gracefully disconnect and take down the DRBD resources.
+	err = systemd.StopUnit(ctx, "drbd-graceful-disconnect.service", "drbd-graceful-down.service")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -197,6 +203,12 @@ func (n *Linstor) Start(ctx context.Context) error {
 
 	// Start Linstor Satellite.
 	err = systemd.StartUnit(ctx, "linstor-satellite.service")
+	if err != nil {
+		return err
+	}
+
+	// Own the DRBD graceful shutdown units rather than leaving them to udev and the system shutdown.
+	err = systemd.StartUnit(ctx, "drbd-graceful-down.service", "drbd-graceful-disconnect.service")
 	if err != nil {
 		return err
 	}

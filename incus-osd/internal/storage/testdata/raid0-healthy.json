@@ -1,0 +1,98 @@
+{
+  "output_version": {
+    "command": "zpool status",
+    "vers_major": 0,
+    "vers_minor": 1
+  },
+  "pools": {
+    "p0": {
+      "name": "p0",
+      "state": "ONLINE",
+      "pool_guid": 2618439929180081879,
+      "txg": 4,
+      "spa_version": 5000,
+      "zpl_version": 5,
+      "vdevs": {
+        "p0": {
+          "name": "p0",
+          "vdev_type": "root",
+          "guid": 2618439929180081879,
+          "class": "normal",
+          "state": "ONLINE",
+          "alloc_space": 113152,
+          "total_space": 3019898880,
+          "def_space": 3019898880,
+          "read_errors": 0,
+          "write_errors": 0,
+          "checksum_errors": 0,
+          "vdevs": {
+            "scsi-0QEMU_QEMU_HARDDISK_incus_d1": {
+              "name": "scsi-0QEMU_QEMU_HARDDISK_incus_d1",
+              "vdev_type": "disk",
+              "guid": 11469364671257847485,
+              "path": "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_d1-part1",
+              "phys_path": "pci-0000:02:00.0-scsi-0:0:1:1",
+              "devid": "scsi-0QEMU_QEMU_HARDDISK_incus_d1-part1",
+              "class": "normal",
+              "state": "ONLINE",
+              "alloc_space": 58880,
+              "total_space": 1006632960,
+              "def_space": 1006632960,
+              "rep_dev_size": 1011351552,
+              "phys_space": 1063256064,
+              "read_errors": 0,
+              "write_errors": 0,
+              "checksum_errors": 0,
+              "slow_ios": 0,
+              "trim_state": "UNTRIMMED",
+              "trim_notsup": 0
+            },
+            "scsi-0QEMU_QEMU_HARDDISK_incus_d2": {
+              "name": "scsi-0QEMU_QEMU_HARDDISK_incus_d2",
+              "vdev_type": "disk",
+              "guid": 15100086461696520349,
+              "path": "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_d2-part1",
+              "phys_path": "pci-0000:02:00.0-scsi-0:0:2:1",
+              "devid": "scsi-0QEMU_QEMU_HARDDISK_incus_d2-part1",
+              "class": "normal",
+              "state": "ONLINE",
+              "alloc_space": 38912,
+              "total_space": 1006632960,
+              "def_space": 1006632960,
+              "rep_dev_size": 1011351552,
+              "phys_space": 1063256064,
+              "read_errors": 0,
+              "write_errors": 0,
+              "checksum_errors": 0,
+              "slow_ios": 0,
+              "trim_state": "UNTRIMMED",
+              "trim_notsup": 0
+            },
+            "scsi-0QEMU_QEMU_HARDDISK_incus_d3": {
+              "name": "scsi-0QEMU_QEMU_HARDDISK_incus_d3",
+              "vdev_type": "disk",
+              "guid": 6955133287217880610,
+              "path": "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_incus_d3-part1",
+              "phys_path": "pci-0000:02:00.0-scsi-0:0:3:1",
+              "devid": "scsi-0QEMU_QEMU_HARDDISK_incus_d3-part1",
+              "class": "normal",
+              "state": "ONLINE",
+              "alloc_space": 58880,
+              "total_space": 1006632960,
+              "def_space": 1006632960,
+              "rep_dev_size": 1011351552,
+              "phys_space": 1063256064,
+              "read_errors": 0,
+              "write_errors": 0,
+              "checksum_errors": 0,
+              "slow_ios": 0,
+              "trim_state": "UNTRIMMED",
+              "trim_notsup": 0
+            }
+          }
+        }
+      },
+      "error_count": 0
+    }
+  }
+}

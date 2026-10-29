@@ -10,6 +10,8 @@ To keep SSD write performance and endurance from degrading, IncusOS also perform
 
 It is also possible to add, remove, and replace devices from an existing storage pool. This is accomplished by getting the current pool configuration, making the necessary changes in the relevant struct, then submitting the results back to IncusOS.
 
+Devices that have failed, whether they have been physically removed or are still attached but faulted, are reported in the `devices_degraded`, `cache_degraded`, `log_degraded` and `special_degraded` fields rather than in the regular device lists. To replace such a device, add a new device to the corresponding list and IncusOS will use it to replace the degraded device instead of expanding the pool.
+
 ## Configuration options
 
 Configuration fields are defined in the [`SystemStorageConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/system_storage.go).

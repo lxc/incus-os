@@ -1159,7 +1159,7 @@ func rebootUponDeviceRemoval(device string, forceReboot bool) error {
 	return os.WriteFile("/proc/sysrq-trigger", []byte("b"), 0o600)
 }
 
-// tpmSelfTest runs the TPM self test, retrying for a while as some firmware TPMs need time after a cold boot.
+// tpmSelfTest runs the TPM self test, retrying for a while as some TPMs need time after a cold boot.
 func tpmSelfTest(ctx context.Context) error {
 	var err error
 
@@ -1171,10 +1171,39 @@ func tpmSelfTest(ctx context.Context) error {
 
 		slog.WarnContext(ctx, "TPM self test failed, retrying", "err", err)
 
+		// TPMs running their self tests in the background must be left alone until they are done.
+		err = waitTPMTests(ctx)
+		if err != nil {
+			return err
+		}
+
 		time.Sleep(3 * time.Second)
 	}
 
 	return err
+}
+
+// waitTPMTests polls the TPM test status without sending new self test requests while tests are running.
+func waitTPMTests(ctx context.Context) error {
+	deadline := time.Now().Add(3 * time.Minute)
+
+	for attempt := 0; ; attempt++ {
+		// A failed status query is treated as not testing so the self test gets retried.
+		output, _ := subprocess.RunCommandContext(ctx, "tpm2_gettestresult")
+		if !strings.Contains(output, "testing") {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return errors.New("timed out waiting for the TPM to complete its self tests")
+		}
+
+		if attempt == 0 {
+			slog.InfoContext(ctx, "TPM self tests still running, waiting for them to complete")
+		}
+
+		time.Sleep(3 * time.Second)
+	}
 }
 
 // GetPartitionPrefix returns the necessary partition prefix, if any, for a give device.
