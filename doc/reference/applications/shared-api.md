@@ -25,7 +25,7 @@ It is expected to receive an EOF error since the application's HTTP REST endpoin
 On rare occasions, it might be necessary to temporarily rollback an application to an earlier version. This can be accomplished via the `switch-version` command
 
 ```
-incus admin os application switch-version <name> -d '{"version":"<version>"}'
+incus admin os application switch-version <name> [<version>]
 ```
 
 where `<version>` is one of the available application versions as reported by the `application show` command.
