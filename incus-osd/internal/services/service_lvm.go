@@ -262,7 +262,7 @@ local {
 }
 
 devices {
-	filter = [ "r|/dev/zd*|/dev/rbd*|/dev/nbd*|" ]
+	filter = [ "r|^/dev/drbd|", "r|^/dev/mapper/[lL]instor|", "r|^/dev/zd|", "r|^/dev/rbd|", "r|^/dev/nbd|" ]
 }
 
 backup {
