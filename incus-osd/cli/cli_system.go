@@ -145,7 +145,31 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					endpoint:    "system/network",
 				}
 
-				return []*cobra.Command{networkConfirmCmd.command(), flushDNSCmd.command()}
+				// Set a link down.
+				linkDownCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "link-down",
+					description: "Set down the device backing an interface",
+					endpoint:    "system/network",
+					dataArgs:    []string{"name"},
+					dataFunc: func(args []string) (any, error) {
+						return api.SystemNetworkLink{Name: args[0]}, nil
+					},
+				}
+
+				// Set a link up.
+				linkUpCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "link-up",
+					description: "Set up the device backing an interface",
+					endpoint:    "system/network",
+					dataArgs:    []string{"name"},
+					dataFunc: func(args []string) (any, error) {
+						return api.SystemNetworkLink{Name: args[0]}, nil
+					},
+				}
+
+				return []*cobra.Command{networkConfirmCmd.command(), flushDNSCmd.command(), linkDownCmd.command(), linkUpCmd.command()}
 			},
 		},
 		{

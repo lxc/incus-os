@@ -122,14 +122,18 @@ type SystemNetworkBridge struct {
 
 // SystemNetworkEthernet contains Ethernet-specific configuration details (offloading and other features).
 type SystemNetworkEthernet struct {
+	Advertise              []string `json:"advertise,omitempty"                yaml:"advertise,omitempty"`
+	DisableAutoneg         bool     `json:"disable_autoneg,omitempty"          yaml:"disable_autoneg,omitempty"`
 	DisableEnergyEfficient bool     `json:"disable_energy_efficient,omitempty" yaml:"disable_energy_efficient,omitempty"`
 	DisableGRO             bool     `json:"disable_gro,omitempty"              yaml:"disable_gro,omitempty"`
 	DisableGSO             bool     `json:"disable_gso,omitempty"              yaml:"disable_gso,omitempty"`
 	DisableIPv4TSO         bool     `json:"disable_ipv4_tso,omitempty"         yaml:"disable_ipv4_tso,omitempty"`
 	DisableIPv6TSO         bool     `json:"disable_ipv6_tso,omitempty"         yaml:"disable_ipv6_tso,omitempty"`
+	HalfDuplex             bool     `json:"half_duplex,omitempty"              yaml:"half_duplex,omitempty"`
 	RxBufferSize           string   `json:"rx_buffer_size,omitempty"           yaml:"rx_buffer_size,omitempty"`
 	RxJumboBufferSize      string   `json:"rx_jumbo_buffer_size,omitempty"     yaml:"rx_jumbo_buffer_size,omitempty"`
 	RxMiniBufferSize       string   `json:"rx_mini_buffer_size,omitempty"      yaml:"rx_mini_buffer_size,omitempty"`
+	Speed                  int      `json:"speed,omitempty"                    yaml:"speed,omitempty"`
 	TxBufferSize           string   `json:"tx_buffer_size,omitempty"           yaml:"tx_buffer_size,omitempty"`
 	WakeOnLAN              bool     `json:"wakeonlan,omitempty"                yaml:"wakeonlan,omitempty"`
 	WakeOnLANModes         []string `json:"wakeonlan_modes,omitempty"          yaml:"wakeonlan_modes,omitempty"`
@@ -209,6 +213,13 @@ type SystemNetworkProxyServer struct {
 type SystemNetworkProxyRule struct {
 	Destination string `json:"destination" yaml:"destination"`
 	Target      string `json:"target"      yaml:"target"`
+}
+
+// SystemNetworkLink defines a struct with information on which link to set up or down.
+//
+// swagger:model
+type SystemNetworkLink struct {
+	Name string `json:"name" yaml:"name"`
 }
 
 // SystemNetworkState holds information about the current network state.

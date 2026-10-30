@@ -8,6 +8,16 @@ NamePolicy=
 Name=_p{{.Name}}
 MTUBytes={{.MTU}}
 {{- if .Ethernet}}
+  {{- if .Ethernet.Speed}}
+BitsPerSecond={{.Ethernet.Speed}}M
+Duplex={{if .Ethernet.HalfDuplex}}half{{else}}full{{end}}
+  {{- end}}
+  {{- if .Ethernet.DisableAutoneg}}
+AutoNegotiation=no
+  {{- end}}
+  {{- range .Ethernet.Advertise}}
+Advertise={{.}}
+  {{- end}}
   {{- if .Ethernet.DisableGRO}}
 GenericReceiveOffload=false
 GenericReceiveOffloadHardware=false

@@ -338,3 +338,113 @@ func (*Server) apiSystemNetworkFlushDNS(w http.ResponseWriter, r *http.Request) 
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/network/:link-down system system_post_network_link_down
+//
+//	Set a link down
+//
+//	Administratively set down the device backing the specified interface without changing the network configuration.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: link
+//	    description: The link to set down
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/SystemNetworkLink"
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiSystemNetworkLinkDown(w http.ResponseWriter, r *http.Request) {
+	s.apiSystemNetworkSetLinkState(w, r, false)
+}
+
+// swagger:operation POST /1.0/system/network/:link-up system system_post_network_link_up
+//
+//	Set a link up
+//
+//	Administratively set up the device backing the specified interface without changing the network configuration.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: link
+//	    description: The link to set up
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/SystemNetworkLink"
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiSystemNetworkLinkUp(w http.ResponseWriter, r *http.Request) {
+	s.apiSystemNetworkSetLinkState(w, r, true)
+}
+
+func (s *Server) apiSystemNetworkSetLinkState(w http.ResponseWriter, r *http.Request, up bool) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	link := &api.SystemNetworkLink{}
+
+	err := json.NewDecoder(r.Body).Decode(link)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if link.Name == "" {
+		_ = response.BadRequest(errors.New("no link name specified")).Render(w)
+
+		return
+	}
+
+	var iface *api.SystemNetworkInterface
+
+	if s.state.System.Network.Config != nil {
+		for i := range s.state.System.Network.Config.Interfaces {
+			if s.state.System.Network.Config.Interfaces[i].Name == link.Name {
+				iface = &s.state.System.Network.Config.Interfaces[i]
+
+				break
+			}
+		}
+	}
+
+	if iface == nil {
+		_ = response.BadRequest(errors.New("'" + link.Name + "' is not a configured physical network interface")).Render(w)
+
+		return
+	}
+
+	err = network.SetLinkState(r.Context(), *iface, up)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
