@@ -176,7 +176,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.81.5",
+        "version": "v0.82.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -196,7 +196,7 @@
         ]
     },
     "openfga": {
-        "version": "v1.22.0",
+        "version": "v1.22.1",
         "repo": "https://github.com/openfga/openfga.git",
         "build_targets": [
             [
@@ -234,7 +234,7 @@
         ]
     },
     "opentofu": {
-        "version": "v1.13.2",
+        "version": "v1.13.5",
         "repo": "https://github.com/opentofu/opentofu.git",
         "build_targets": [
             [
@@ -284,7 +284,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.104.2",
+        "version": "v1.104.4",
         "repo": "https://github.com/tailscale/tailscale.git",
         "build_targets": [
             [
