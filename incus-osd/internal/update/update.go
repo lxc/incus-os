@@ -97,7 +97,7 @@ func doCheck(ctx context.Context, s *state.State, clearCache bool, version strin
 	}
 
 	err = CheckApplications(ctx, s, nil, version, clearCache, false)
-	if err != nil {
+	if err != nil && !errors.Is(err, providers.ErrNoUpdateAvailable) {
 		return err
 	}
 
@@ -174,6 +174,12 @@ func CheckApplications(ctx context.Context, s *state.State, toInstall []string, 
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for update for application '" + appName + "'"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			if errors.Is(err, providers.ErrNoUpdateAvailable) {
+				dismissUpdateModal(t)
+
+				return err
+			}
 
 			continue
 		}
