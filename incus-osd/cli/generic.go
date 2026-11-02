@@ -250,7 +250,7 @@ type cmdGenericRun struct {
 	extraArgs        []cmdGenericRunArgs
 	dataArgs         []string
 	dataArgsOptional bool
-	dataFunc         func(args []string) (any, error)
+	dataFunc         func(args []string) (map[string]any, error)
 
 	flagData  string
 	flagForce bool
@@ -425,7 +425,7 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build the data from the positional arguments, unless optional ones were left out.
-	if c.dataFunc != nil && (!c.dataArgsOptional || len(args) == maxArgs) {
+	if c.dataFunc != nil && (!c.dataArgsOptional || len(args) == maxArgs) { //nolint:nestif
 		dataValues := slices.Clone(args)
 		if c.entity == "" && len(dataValues) > 0 {
 			dataValues[0] = resource
@@ -434,6 +434,18 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 		data, err := c.dataFunc(dataValues)
 		if err != nil {
 			return err
+		}
+
+		// Perform a top-level shallow merge of any manually provided data with
+		// the results from the data function.
+		if inData != "" {
+			strInData, ok := inData.(string)
+			if ok {
+				err := json.Unmarshal([]byte(strInData), &data)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		body, err := json.Marshal(data)
