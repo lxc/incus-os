@@ -34,3 +34,12 @@ type ApplicationAction struct {
 	Action string            `json:"action"           yaml:"action"`
 	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
 }
+
+// ApplicationInstall defines a struct that is used when installing an application.
+//
+// swagger:model
+type ApplicationInstall struct {
+	Name           string `json:"name"                      yaml:"name"`
+	ForceReinstall bool   `json:"force_reinstall,omitempty" yaml:"force_reinstall,omitempty"`
+	ForceVersion   string `json:"force_version,omitempty"   yaml:"force_version,omitempty"`
+}
