@@ -15,6 +15,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
@@ -201,7 +202,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 						// At this point, the prior incus application is gone, although any local data
 						// is still preserved. Install the "new" incus application to complete the
 						// version switch.
-						err = update.CheckApplications(ctx, s.state, []string{app.Name}, false, false)
+						err = update.CheckApplications(ctx, s.state, []string{app.Name}, providers.LatestVersion, false, false)
 						if err != nil {
 							slog.ErrorContext(ctx, "Failed to install new application '"+app.Name+"'", "error", err)
 
@@ -221,7 +222,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Install the application.
-		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, false, false)
+		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, providers.LatestVersion, false, false)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
@@ -982,13 +983,13 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 
 			ctx := context.Background() // Must use our own context here.
 
-			err := update.CheckApplications(ctx, s.state, []string{name}, true, false)
+			err := update.CheckApplications(ctx, s.state, []string{name}, providers.LatestVersion, true, false)
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
 			}
 		}()
 	} else {
-		err = update.CheckApplications(r.Context(), s.state, []string{name}, true, false)
+		err = update.CheckApplications(r.Context(), s.state, []string{name}, providers.LatestVersion, true, false)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
