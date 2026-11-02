@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -56,7 +57,10 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = reset.PerformOSFactoryReset(r.Context(), resetData)
+	// Use a distinct context, so a network error or other interruption
+	// won't interrupt the factory reset potentially leaving the system
+	// in an inconstant state.
+	err = reset.PerformOSFactoryReset(context.Background(), resetData) //nolint:contextcheck
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -108,8 +112,9 @@ func (s *Server) apiSystemReinstallInactiveOS(w http.ResponseWriter, r *http.Req
 	}
 
 	// Perform a forceful reinstall of the other version of IncusOS that is installed. This may be
-	// the prior booted version, or a pending update that hasn't booted yet.
-	err = update.CheckOS(r.Context(), s.state, ukiVersions.OtherVersion, true, true)
+	// the prior booted version, or a pending update that hasn't booted yet. Use a distinct context,
+	// so a network error or other interruption won't interrupt reinstalling the inactive OS side.
+	err = update.CheckOS(context.Background(), s.state, ukiVersions.OtherVersion, true, true) //nolint:contextcheck
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

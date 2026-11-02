@@ -227,8 +227,9 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Install the application.
-		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, updateCheckVersion, true, app.ForceReinstall)
+		// Install the application. Use a distinct context, so a network error or other interruption
+		// won't result in a partially-installed application.
+		err = update.CheckApplications(context.Background(), s.state, []string{app.Name}, updateCheckVersion, true, app.ForceReinstall) //nolint:contextcheck
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
