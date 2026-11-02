@@ -144,7 +144,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check if the application is already installed.
-		if actualApp.IsInstalled() {
+		if !app.ForceReinstall && actualApp.IsInstalled() {
 			_ = response.Conflict(nil).Render(w)
 
 			return
@@ -158,13 +158,24 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if a specific application version has been specified.
+		updateCheckVersion := providers.LatestVersion
+		if app.ForceVersion != "" {
+			updateCheckVersion = app.ForceVersion
+		}
+
 		for _, installedApp := range apps {
-			if actualApp.IsPrimary() && installedApp.IsPrimary() {
+			if actualApp.IsPrimary() && installedApp.IsPrimary() { //nolint:nestif
 				// If the currently installed primary application is some version of incus and the app we're
 				// trying to install is a different version of incus, attempt to replace the existing application.
 				if strings.HasPrefix(installedApp.Name(), "incus") && strings.HasPrefix(app.Name, "incus") {
 					err := installedApp.CanBeReplaced(r.Context(), app.Name)
 					if err != nil {
+						// If asked to force-reinstall the incus{,-lts-7.0} application, ignore error about replacing itself.
+						if app.ForceReinstall && strings.HasSuffix(err.Error(), "with itself") {
+							break
+						}
+
 						_ = response.BadRequest(err).Render(w)
 
 						return
@@ -197,7 +208,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 						// At this point, the prior incus application is gone, although any local data
 						// is still preserved. Install the "new" incus application to complete the
 						// version switch.
-						err = update.CheckApplications(ctx, s.state, []string{app.Name}, providers.LatestVersion, false, false)
+						err = update.CheckApplications(ctx, s.state, []string{app.Name}, updateCheckVersion, true, false)
 						if err != nil {
 							slog.ErrorContext(ctx, "Failed to install new application '"+app.Name+"'", "error", err)
 
@@ -217,7 +228,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Install the application.
-		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, providers.LatestVersion, false, false)
+		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, updateCheckVersion, true, app.ForceReinstall)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
