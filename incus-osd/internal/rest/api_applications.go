@@ -72,8 +72,7 @@ import (
 //	    description: Application to be installed
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"name": "gpu-support"}
+//	      $ref: "#/definitions/ApplicationInstall"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -118,11 +117,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, urls).Render(w)
 
 	case http.MethodPost:
-		type applicationPost struct {
-			Name string `json:"name"`
-		}
-
-		app := &applicationPost{}
+		app := &api.ApplicationInstall{}
 
 		counter := &countWrapper{ReadCloser: r.Body}
 
