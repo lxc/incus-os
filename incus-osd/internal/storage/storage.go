@@ -1257,12 +1257,73 @@ func WipeDrive(ctx context.Context, drive string, secure bool) error {
 				}
 			}
 
+			// Refuse to wipe a drive that still has devices stacked on it, such as an active LVM volume group.
+			holders, err := driveHolders(drive)
+			if err != nil {
+				return err
+			}
+
+			if len(holders) > 0 {
+				return errors.New("cannot wipe drive in use by '" + strings.Join(holders, "', '") + "'")
+			}
+
 			// Wipe the drive.
 			return ClearBlock(ctx, drive, 0, secure)
 		}
 	}
 
 	return errors.New("drive '" + drive + "' doesn't exist")
+}
+
+// driveHolders returns the names of the devices stacked on top of the given drive or its partitions.
+func driveHolders(drive string) ([]string, error) {
+	target, err := filepath.EvalSymlinks(drive)
+	if err != nil {
+		return nil, err
+	}
+
+	device := filepath.Base(target)
+	sysPath := filepath.Join("/sys/class/block", device)
+	paths := []string{sysPath}
+
+	// Partitions show up as sub-directories of their parent device.
+	entries, err := os.ReadDir(sysPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), device) {
+			paths = append(paths, filepath.Join(sysPath, entry.Name()))
+		}
+	}
+
+	holders := []string{}
+
+	for _, path := range paths {
+		entries, err := os.ReadDir(filepath.Join(path, "holders"))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return nil, err
+		}
+
+		for _, entry := range entries {
+			name := entry.Name()
+
+			// Use the device mapper name when there is one.
+			dmName, err := os.ReadFile(filepath.Join("/sys/class/block", name, "dm", "name"))
+			if err == nil {
+				name = strings.TrimSpace(string(dmName))
+			}
+
+			holders = append(holders, name)
+		}
+	}
+
+	return holders, nil
 }
 
 // IsBMC checks whether the provided block device is a BMC virtual device.
