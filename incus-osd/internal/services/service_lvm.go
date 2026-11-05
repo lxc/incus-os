@@ -258,6 +258,7 @@ local {
 
 devices {
 	filter = [ "r|^/dev/drbd|", "r|^/dev/mapper/[lL]instor|", "r|^/dev/zd|", "r|^/dev/rbd|", "r|^/dev/nbd|" ]
+	issue_discards = 1
 }
 
 backup {
