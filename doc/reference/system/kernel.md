@@ -30,3 +30,14 @@ The following configuration options can be set:
       * `vendor_id`: The PCI vendor ID
       * `product_id`: The PCI product ID
       * `pci_address`: Optional; if specified the system will attempt to unbind the given PCI device from its existing driver and configure it for passing though to a virtual machine without requiring a reboot.
+
+## State
+
+The following state is reported alongside the configuration:
+
+* `clock`: The kernel timekeeping clock source.
+   * `source`: The clock source currently in use, for example `tsc` or `kvm-clock`.
+   * `available_sources`: The clock sources the kernel can switch to.
+
+* `memory`: Memory-related state.
+   * `zram_swap`: Statistics about the zram-backed swap device, if one is configured. All sizes are in bytes.
