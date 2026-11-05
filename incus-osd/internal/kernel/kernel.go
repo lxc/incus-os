@@ -357,6 +357,28 @@ func GetZramSwapStats(ctx context.Context, kernelState *api.SystemKernelState) e
 	return nil
 }
 
+// GetClockSource updates the kernel state struct with the current and available clock sources.
+func GetClockSource(kernelState *api.SystemKernelState) error {
+	path := "/sys/devices/system/clocksource/clocksource0"
+
+	current, err := os.ReadFile(filepath.Join(path, "current_clocksource"))
+	if err != nil {
+		return err
+	}
+
+	available, err := os.ReadFile(filepath.Join(path, "available_clocksource"))
+	if err != nil {
+		return err
+	}
+
+	kernelState.Clock = &api.SystemKernelStateClock{
+		Source:           strings.TrimSpace(string(current)),
+		AvailableSources: strings.Fields(string(available)),
+	}
+
+	return nil
+}
+
 // The zramctl command is a bit too flaky and frequently returns "Device or resource busy"
 // errors. To handle this, try each command up to ten times with brief sleeps in between
 // before fully failing.

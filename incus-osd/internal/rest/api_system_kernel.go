@@ -78,6 +78,14 @@ func (s *Server) apiSystemKernel(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Get the clock source.
+		err = kernel.GetClockSource(&s.state.System.Kernel.State)
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
 		// Return the current kernel state.
 		_ = response.SyncResponse(true, s.state.System.Kernel).Render(w)
 	case http.MethodPut:
