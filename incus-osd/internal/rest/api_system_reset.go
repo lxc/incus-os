@@ -1,12 +1,16 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/reset"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
+	"github.com/lxc/incus-os/incus-osd/internal/update"
+	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
 // swagger:operation POST /1.0/system/:factory-reset system system_post_reset
@@ -53,7 +57,10 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = reset.PerformOSFactoryReset(r.Context(), resetData)
+	// Use a distinct context, so a network error or other interruption
+	// won't interrupt the factory reset potentially leaving the system
+	// in an inconstant state.
+	err = reset.PerformOSFactoryReset(context.Background(), resetData) //nolint:contextcheck
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 
@@ -61,5 +68,58 @@ func (*Server) apiSystemFactoryReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Will never actually reach here, since the system will auto-reboot.
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/system/:reinstall-inactive-os system system_post_reinstall_inactive_os
+//
+//	Reinstall the inactive version of IncusOS.
+//
+//	Triggers a reinstall of the inactive A/B /usr-verity partitions used by IncusOS. It is not possible to
+//	reinstall the currently running version of IncusOS.
+//
+//	---
+//	produces:
+//	  - application/json
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiSystemReinstallInactiveOS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Get the list of currently installed UKI versions.
+	ukiVersions, err := util.GetUKIVersions()
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	if ukiVersions.OtherVersion == "" {
+		_ = response.BadRequest(errors.New("no other version of " + s.state.OS.Name + " available to reinstall")).Render(w)
+
+		return
+	}
+
+	// Perform a forceful reinstall of the other version of IncusOS that is installed. This may be
+	// the prior booted version, or a pending update that hasn't booted yet. Use a distinct context,
+	// so a network error or other interruption won't interrupt reinstalling the inactive OS side.
+	err = update.CheckOS(context.Background(), s.state, ukiVersions.OtherVersion, true, true) //nolint:contextcheck
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
 	_ = response.EmptySyncResponse.Render(w)
 }

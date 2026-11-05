@@ -15,6 +15,7 @@ import (
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 )
@@ -71,8 +72,7 @@ import (
 //	    description: Application to be installed
 //	    required: true
 //	    schema:
-//	      type: object
-//	      example: {"name": "gpu-support"}
+//	      $ref: "#/definitions/ApplicationInstall"
 //	responses:
 //	  "200":
 //	    $ref: "#/responses/EmptySyncResponse"
@@ -117,11 +117,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		_ = response.SyncResponse(true, urls).Render(w)
 
 	case http.MethodPost:
-		type applicationPost struct {
-			Name string `json:"name"`
-		}
-
-		app := &applicationPost{}
+		app := &api.ApplicationInstall{}
 
 		counter := &countWrapper{ReadCloser: r.Body}
 
@@ -148,7 +144,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check if the application is already installed.
-		if actualApp.IsInstalled() {
+		if !app.ForceReinstall && actualApp.IsInstalled() {
 			_ = response.Conflict(nil).Render(w)
 
 			return
@@ -162,13 +158,24 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if a specific application version has been specified.
+		updateCheckVersion := providers.LatestVersion
+		if app.ForceVersion != "" {
+			updateCheckVersion = app.ForceVersion
+		}
+
 		for _, installedApp := range apps {
-			if actualApp.IsPrimary() && installedApp.IsPrimary() {
+			if actualApp.IsPrimary() && installedApp.IsPrimary() { //nolint:nestif
 				// If the currently installed primary application is some version of incus and the app we're
 				// trying to install is a different version of incus, attempt to replace the existing application.
 				if strings.HasPrefix(installedApp.Name(), "incus") && strings.HasPrefix(app.Name, "incus") {
 					err := installedApp.CanBeReplaced(r.Context(), app.Name)
 					if err != nil {
+						// If asked to force-reinstall the incus{,-lts-7.0} application, ignore error about replacing itself.
+						if app.ForceReinstall && strings.HasSuffix(err.Error(), "with itself") {
+							break
+						}
+
 						_ = response.BadRequest(err).Render(w)
 
 						return
@@ -201,7 +208,7 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 						// At this point, the prior incus application is gone, although any local data
 						// is still preserved. Install the "new" incus application to complete the
 						// version switch.
-						err = update.CheckApplications(ctx, s.state, []string{app.Name}, false, false)
+						err = update.CheckApplications(ctx, s.state, []string{app.Name}, updateCheckVersion, true, false)
 						if err != nil {
 							slog.ErrorContext(ctx, "Failed to install new application '"+app.Name+"'", "error", err)
 
@@ -220,8 +227,9 @@ func (s *Server) apiApplications(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Install the application.
-		err = update.CheckApplications(r.Context(), s.state, []string{app.Name}, false, false)
+		// Install the application. Use a distinct context, so a network error or other interruption
+		// won't result in a partially-installed application.
+		err = update.CheckApplications(context.Background(), s.state, []string{app.Name}, updateCheckVersion, true, app.ForceReinstall) //nolint:contextcheck
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
@@ -982,13 +990,13 @@ func (s *Server) apiApplicationsCheckUpdate(w http.ResponseWriter, r *http.Reque
 
 			ctx := context.Background() // Must use our own context here.
 
-			err := update.CheckApplications(ctx, s.state, []string{name}, true, false)
+			err := update.CheckApplications(ctx, s.state, []string{name}, providers.LatestVersion, true, false)
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to check for updates for application '"+name+"'", "error", err)
 			}
 		}()
 	} else {
-		err = update.CheckApplications(r.Context(), s.state, []string{name}, true, false)
+		err = update.CheckApplications(r.Context(), s.state, []string{name}, providers.LatestVersion, true, false)
 		if err != nil {
 			_ = response.InternalError(err).Render(w)
 
