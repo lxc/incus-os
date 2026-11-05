@@ -12,6 +12,15 @@ The following configuration options can be set:
 
 * `system_id`: A cluster-unique host identifier.
 
+* `io_timeout`: The `sanlock` I/O timeout in seconds, defaults to `10`.
+  Each server renews its lease every two times this value and loses its locks after eight times this value of failed renewals.
+
+* `watchdog_timeout`: The watchdog timeout in seconds, defaults to `60`.
+  The hardware watchdog must support the value and all servers of the cluster must use the same one.
+  `sanlock` recommends lowering it together with `io_timeout`, for example `30` with an `io_timeout` of `5`.
+
+Changing the timeouts or the host identifier restarts the service, which fails while any shared logical volume is active.
+
 ## Debugging
 
 When the service is enabled, the full physical volume, volume group and logical volume reports can be retrieved through the `/1.0/debug/lvm` API endpoint or with `incus admin os debug lvm`.
@@ -28,8 +37,8 @@ Every server renews its lease continuously and any server that stops renewing is
 
 ```{warning}
 A server that loses access to the shared storage, for example through a storage network outage or a storage array stall, can't renew its lease.
-After 80 seconds of failed renewals, `sanlock` revokes the server's locks, which makes every active logical volume on that server unprotected.
-If the storage doesn't come back within about a minute after that, the `wdmd` watchdog forcefully resets the server to prevent any further writes to the shared volumes.
+After 80 seconds of failed renewals with the default timeouts, `sanlock` revokes the server's locks, which makes every active logical volume on that server unprotected.
+If the storage doesn't come back within the watchdog timeout after that, the `wdmd` watchdog forcefully resets the server to prevent any further writes to the shared volumes.
 ```
 
 When the storage comes back before the watchdog fires, IncusOS automatically recovers by dropping and restarting the lockspace, then re-acquiring the locks of all active logical volumes with the mode they previously held.

@@ -122,39 +122,34 @@ func (n *LVM) Update(ctx context.Context, req any) error {
 		return fmt.Errorf("request type \"%T\" isn't expected ServiceLVM", req)
 	}
 
+	if newState.Config.IOTimeout < 0 || newState.Config.WatchdogTimeout < 0 {
+		return errors.New("timeouts can't be negative")
+	}
+
 	// Save the state on return.
 	defer n.state.Save()
 
-	// Disable the service if requested.
-	if n.state.Services.LVM.Config.Enabled && !newState.Config.Enabled {
+	running := n.state.Services.LVM.Config.Enabled
+
+	// Stop the service if it's being disabled or reconfigured, the lockspaces can't be changed live.
+	if running && newState.Config != n.state.Services.LVM.Config {
 		err := n.Stop(ctx)
 		if err != nil {
 			return err
 		}
+
+		running = false
 	}
 
-	// Enable the service if requested.
-	if !n.state.Services.LVM.Config.Enabled && newState.Config.Enabled {
-		// Update the configuration.
-		n.state.Services.LVM.Config = newState.Config
+	// Update the configuration.
+	n.state.Services.LVM.Config = newState.Config
 
-		// Start the service.
-		err := n.Start(ctx)
-		if err != nil {
-			return err
-		}
-	} else {
-		// Update the configuration.
-		n.state.Services.LVM.Config = newState.Config
-
-		// Re-configure the service.
-		err := n.configure(ctx)
-		if err != nil {
-			return err
-		}
+	// Refresh the configuration files of an already running service.
+	if running {
+		return n.configure(ctx)
 	}
 
-	return nil
+	return n.Start(ctx)
 }
 
 // Stop stops the service.
@@ -282,7 +277,23 @@ backup {
 		return err
 	}
 
-	return nil
+	// Lease timing, lvmlockd leaves the I/O timeout to sanlock which renews every 2x and expires after 8x.
+	err = os.MkdirAll("/etc/sanlock/", 0o755)
+	if err != nil {
+		return err
+	}
+
+	sanlockConf := ""
+
+	if n.state.Services.LVM.Config.IOTimeout > 0 {
+		sanlockConf += fmt.Sprintf("io_timeout = %d\n", n.state.Services.LVM.Config.IOTimeout)
+	}
+
+	if n.state.Services.LVM.Config.WatchdogTimeout > 0 {
+		sanlockConf += fmt.Sprintf("watchdog_fire_timeout = %d\n", n.state.Services.LVM.Config.WatchdogTimeout)
+	}
+
+	return os.WriteFile("/etc/sanlock/sanlock.conf", []byte(sanlockConf), 0o644)
 }
 
 // lockStart starts the lockspaces, retrying while lvmlockd and sanlock finish coming up.

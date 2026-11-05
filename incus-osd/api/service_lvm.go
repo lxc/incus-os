@@ -2,8 +2,10 @@ package api
 
 // ServiceLVMConfig represents additional configuration for the LVM service.
 type ServiceLVMConfig struct {
-	Enabled  bool `json:"enabled"   yaml:"enabled"`
-	SystemID int  `json:"system_id" yaml:"system_id"`
+	Enabled         bool `json:"enabled"          yaml:"enabled"`
+	SystemID        int  `json:"system_id"        yaml:"system_id"`
+	IOTimeout       int  `json:"io_timeout"       yaml:"io_timeout"`
+	WatchdogTimeout int  `json:"watchdog_timeout" yaml:"watchdog_timeout"`
 }
 
 // ServiceLVM represents the state and configuration of the LVM service.
