@@ -281,9 +281,24 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelState:
         properties:
+            clock:
+                $ref: '#/definitions/SystemKernelStateClock'
             memory:
                 $ref: '#/definitions/SystemKernelStateMemory'
         title: SystemKernelState represents state for the system's kernel-level configuration.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemKernelStateClock:
+        properties:
+            available_sources:
+                items:
+                    type: string
+                type: array
+                x-go-name: AvailableSources
+            source:
+                type: string
+                x-go-name: Source
+        title: SystemKernelStateClock reports the kernel timekeeping clock source.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemKernelStateMemory:

@@ -64,7 +64,14 @@ type SystemKernelConfigPCIPassthrough struct {
 
 // SystemKernelState represents state for the system's kernel-level configuration.
 type SystemKernelState struct {
+	Clock  *SystemKernelStateClock  `json:"clock,omitempty"  yaml:"clock,omitempty"`
 	Memory *SystemKernelStateMemory `json:"memory,omitempty" yaml:"memory,omitempty"`
+}
+
+// SystemKernelStateClock reports the kernel timekeeping clock source.
+type SystemKernelStateClock struct {
+	Source           string   `json:"source"            yaml:"source"`
+	AvailableSources []string `json:"available_sources" yaml:"available_sources"`
 }
 
 // SystemKernelStateMemory represents state for the system's kernel-level memory configuration.
