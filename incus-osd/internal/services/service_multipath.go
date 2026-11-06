@@ -33,6 +33,9 @@ var multipathTransports = map[string]string{
 	"iscsi": "scsi:iscsi",
 }
 
+// multipathWWNPrefixRegexp matches a valid WWN prefix, nothing else may reach the multipath configuration.
+var multipathWWNPrefixRegexp = regexp.MustCompile(`^0x[0-9a-f]+$`)
+
 // Get returns the current service state.
 func (n *Multipath) Get(ctx context.Context) (any, error) {
 	// Initialize the lists if missing.
@@ -42,6 +45,10 @@ func (n *Multipath) Get(ctx context.Context) (any, error) {
 
 	if n.state.Services.Multipath.Config.AutomaticTransports == nil {
 		n.state.Services.Multipath.Config.AutomaticTransports = []string{}
+	}
+
+	if n.state.Services.Multipath.Config.AutomaticWWNPrefixes == nil {
+		n.state.Services.Multipath.Config.AutomaticWWNPrefixes = []string{}
 	}
 
 	// Retrieve the Fibre Channel controller details.
@@ -353,6 +360,21 @@ func (*Multipath) validate(config api.ServiceMultipathConfig) error {
 		transports = append(transports, transport)
 	}
 
+	for i, prefix := range config.AutomaticWWNPrefixes {
+		if !multipathWWNPrefixRegexp.MatchString(prefix) {
+			return fmt.Errorf("invalid automatic WWN prefix %q, must be \"0x\" followed by lowercase hexadecimal", prefix)
+		}
+
+		if slices.Contains(config.AutomaticWWNPrefixes[:i], prefix) {
+			return fmt.Errorf("automatic WWN prefix %q is listed multiple times", prefix)
+		}
+	}
+
+	// Without a transport to limit it, a prefix could match local drives.
+	if len(config.AutomaticWWNPrefixes) > 0 && len(transports) == 0 {
+		return errors.New("automatic WWN prefixes require automatic transports")
+	}
+
 	// Automatic multipathing ignores any device that isn't on one of its transports.
 	if len(transports) > 0 && len(config.WWNs) > 0 {
 		return errors.New("WWNs can't be combined with automatic transports")
@@ -383,10 +405,22 @@ func (n *Multipath) config() string {
 	}
 
 	// Multipath every device on the selected transports, even with a single path, and nothing else.
-	config.WriteString("\ndefaults {\n\tfind_multipaths greedy\n}\n\nblacklist {\n\tprotocol \".*\"\n}\n\nblacklist_exceptions {\n")
+	config.WriteString("\ndefaults {\n\tfind_multipaths greedy\n}\n\nblacklist {\n\tprotocol \".*\"\n")
+
+	prefixes := n.state.Services.Multipath.Config.AutomaticWWNPrefixes
+	if len(prefixes) > 0 {
+		config.WriteString("\twwid \".*\"\n")
+	}
+
+	config.WriteString("}\n\nblacklist_exceptions {\n")
 
 	for _, transport := range transports {
 		config.WriteString("\tprotocol \"^" + multipathTransports[transport] + "$\"\n")
+	}
+
+	// A leading "3" marks an NAA identifier, which is what the WWN is.
+	for _, prefix := range prefixes {
+		config.WriteString("\twwid \"^3" + strings.TrimPrefix(prefix, "0x") + "\"\n")
 	}
 
 	config.WriteString("}\n")
