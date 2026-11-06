@@ -7,8 +7,8 @@ def TestRecoveryUpdateFromUSB(install_image):
     test_name = "recovery-update-from-usb"
     test_seed = {
         "install.json": "{}",
-        # Purposefully don't configure any addresses on the interface to prevent automatic downloading of the incus application.
-        "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
+        # Purposefully set a bad address on the interface to prevent automatic downloading of the incus application.
+        "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no","addresses":["169.254.1.1/24"]}]}""",
     }
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
@@ -34,8 +34,8 @@ def TestRecoveryUpdateFromISO(install_image):
     test_name = "recovery-update-from-iso"
     test_seed = {
         "install.json": "{}",
-        # Purposefully don't configure any addresses on the interface to prevent automatic downloading of the incus application.
-        "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no"}]}""",
+        # Purposefully set a bad address on the interface to prevent automatic downloading of the incus application.
+        "network.json": """{"interfaces":[{"name":"enp5s0","hwaddr":"enp5s0","required_for_online":"no","addresses":["169.254.1.1/24"]}]}""",
     }
 
     test_image, os_name, os_version, client_cert_name = util._prepare_test_image(install_image, test_seed)
