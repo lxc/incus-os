@@ -61,6 +61,7 @@ initrd
 IOV
 IPs
 IPv
+IQN
 iSCSI
 ISO
 JSON
