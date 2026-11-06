@@ -29,6 +29,8 @@ any time via
 
     incus admin os system fallback-listener edit
 
+See the [fallback listener reference](system/fallback-listener.md) for the full list of configuration options.
+
 ## Try booting into the previous image
 
 IncusOS uses an A/B update mechanism to reboot onto the newer version while keeping
