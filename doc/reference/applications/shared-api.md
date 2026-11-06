@@ -2,10 +2,30 @@
 
 Each IncusOS application shares a common API that can be used to restart it if needed as well as perform backup, restore, and reset operations.
 
+## Listing the applications
+
+```
+incus admin os application list
+```
+
 ## Getting the application state
 
 ```
 incus admin os application show <name>
+```
+
+## Editing the application configuration
+
+```
+incus admin os application edit <name>
+```
+
+## Checking for updates
+
+Application updates are normally applied as part of the regular IncusOS update checks. A check for an update of a single application can also be manually triggered, with the update being applied if one is found, by running
+
+```
+incus admin os application check-update <name>
 ```
 
 ## Restarting the application
@@ -42,6 +62,20 @@ It is possible to "pin" the available versions of an application by setting the 
 
 ```{warning}
 When an application's versions are pinned, it will not receive further bug/security fixes or newer releases.
+```
+
+## Performing application actions
+
+Some applications support additional actions, which are listed on the page of the application. An action is triggered by providing its name and an optional map of parameters
+
+```
+incus admin os application action <name> -d '{"action":"<action>","config":{"<key>":"<value>"}}'
+```
+
+Applications may also provide debug actions, which are run the same way through the `debug` command
+
+```
+incus admin os application debug <name> -d '{"action":"<action>"}'
 ```
 
 ## Backing up the application
@@ -94,4 +128,16 @@ incus admin os application factory-reset <name>
 
 ```{note}
 It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application after resetting the application.
+```
+
+## Removing the application
+
+```{warning}
+Removing an application will erase all configuration and state for the application.
+```
+
+A non-primary application that is no longer needed can be removed by running
+
+```
+incus admin os application remove <name>
 ```
