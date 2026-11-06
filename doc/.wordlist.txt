@@ -90,6 +90,7 @@ MTU
 multicast
 multipath
 Multipath
+NAA
 NAT'ed
 NetBird
 NetBird's
