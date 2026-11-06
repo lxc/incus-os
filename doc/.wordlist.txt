@@ -90,6 +90,7 @@ MTU
 multicast
 multipath
 Multipath
+NAA
 NAT'ed
 NetBird
 NetBird's
@@ -129,6 +130,7 @@ Rauthy
 resilver
 RSA
 Ryzen
+SAS
 Scaleway
 SLAAC
 SMBIOS

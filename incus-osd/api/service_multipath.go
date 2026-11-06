@@ -36,6 +36,12 @@ type ServiceMultipathController struct {
 type ServiceMultipathConfig struct {
 	Enabled bool     `json:"enabled" yaml:"enabled"`
 	WWNs    []string `json:"wwns"    yaml:"wwns"`
+
+	// Transports ("fc" or "iscsi") on which all devices get multipathed, can't be combined with WWNs.
+	AutomaticTransports []string `json:"automatic_transports" yaml:"automatic_transports"`
+
+	// WWN prefixes limiting automatic multipathing to matching devices, requires AutomaticTransports.
+	AutomaticWWNPrefixes []string `json:"automatic_wwn_prefixes" yaml:"automatic_wwn_prefixes"`
 }
 
 // ServiceMultipath represents the state and configuration of the Multipath service.
