@@ -66,6 +66,8 @@ ISO
 JSON
 KEK
 Kerberos
+keyring
+keyrings
 KiB
 KVM
 LACP
