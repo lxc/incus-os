@@ -40,6 +40,17 @@ When creating a storage pool with a custom sector alignment value, be aware of t
 IncusOS defaults to an alignment value of 4096 bytes, which works well for drives with either 512 byte or 4KiB sector sizes.
 ```
 
+The following read-only fields are also reported for each storage pool:
+
+* `managed`: Whether the encryption key of the storage pool is managed by IncusOS.
+* `state`: The state of the storage pool as reported by ZFS, such as `ONLINE` or `DEGRADED`.
+* `encryption_key_status`: The status of the encryption key as reported by ZFS, or `NONE` for an unencrypted storage pool.
+* `devices_degraded`, `cache_degraded`, `log_degraded` and `special_degraded`: The devices of the storage pool that have failed.
+* `raw_pool_size_in_bytes`, `usable_pool_size_in_bytes` and `pool_allocated_space_in_bytes`: The raw size, usable size and allocated space of the storage pool.
+* `last_scrub`: The status of the last scrub, with its `state` (`UNKNOWN`, `IN_PROGRESS` or `FINISHED`), `start_time`, `end_time`, `progress` and number of `errors`.
+* `last_trim`: The status of the last trim, with its `state` (`UNKNOWN`, `IN_PROGRESS`, `SUSPENDED`, `CANCELED`, `FINISHED` or `UNSUPPORTED`), `last_action_time`, `progress` and number of `errors`.
+* `volumes`: The [volumes](#managing-volumes) of the storage pool, each with its `name`, `use`, `usage_in_bytes` and `quota_in_bytes`.
+
 ### Examples
 
 Create a storage pool `mypool` as ZFS raidz1 with four devices, one cache device, and one log device, setting the automatic scrub to run every Saturday at 00:00 and the automatic trim every Friday at 00:00:
@@ -202,6 +213,14 @@ Newly mapped SCSI devices are not always detected automatically. Ask every SCSI 
 
 ```
 incus admin os system storage rescan-scsi
+```
+
+## Cleaning up the root partition
+
+The size and available space of the root partition are reported in the `root_partition` field of the storage state. Should it be running low on space, IncusOS can clear old log entries and cached files by running
+
+```
+incus admin os system storage cleanup-root
 ```
 
 ## Importing an existing pool
