@@ -76,6 +76,11 @@ func (n *Multipath) Get(ctx context.Context) (any, error) {
 		}
 
 		for wwid := range strings.FieldsSeq(out) {
+			// An empty list gets reported as "ok".
+			if wwid == "ok" {
+				continue
+			}
+
 			// A leading "3" marks an NAA identifier, which is what the WWN is.
 			wwn, ok := strings.CutPrefix(wwid, "3")
 			if ok {
