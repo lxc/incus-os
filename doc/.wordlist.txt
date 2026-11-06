@@ -68,6 +68,7 @@ KEK
 Kerberos
 KiB
 KVM
+LACP
 LDAP
 Lenovo
 libvirt
@@ -82,6 +83,7 @@ MacOS
 MACs
 MOK
 MTU
+multicast
 multipath
 Multipath
 NAT'ed

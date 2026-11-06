@@ -60,6 +60,60 @@ The following top-level network configuration options can be set:
 
 * `time`: Optionally, configure custom NTP server(s) and timezone for the system.
 
+### Bridge options
+
+Interfaces and bonds accept a `bridge` option to tune the bridge that IncusOS automatically creates on top of them:
+
+* `disable_multicast_snooping`: If `true`, disable multicast snooping on the bridge.
+
+* `stp`: If `true`, enable the Spanning Tree Protocol on the bridge.
+
+### Ethernet options
+
+Interfaces and bonds accept an `ethernet` option to configure offloading and other Ethernet-level features of the underlying physical devices, which for a bond are all of its members:
+
+* `disable_energy_efficient`: If `true`, disable Energy Efficient Ethernet.
+
+* `disable_gro`: If `true`, disable generic receive offload.
+
+* `disable_gso`: If `true`, disable generic segmentation offload.
+
+* `disable_ipv4_tso`: If `true`, disable TCP segmentation offload for IPv4.
+
+* `disable_ipv6_tso`: If `true`, disable TCP segmentation offload for IPv6.
+
+* `rx_buffer_size`, `rx_jumbo_buffer_size`, `rx_mini_buffer_size` and `tx_buffer_size`: The number of entries in the matching ring buffer, either a positive number or `max` to use the largest size supported by the device.
+
+* `wakeonlan`: If `true`, enable Wake-on-LAN on the device.
+
+* `wakeonlan_modes`: A list of Wake-on-LAN modes to enable, defaults to `magic`. For the supported values, refer to systemd's [`WakeOnLan` link configuration option](https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html#WakeOnLan=).
+
+* `wakeonlan_password`: The password to use with the `secureon` Wake-on-LAN mode, in the same format as a hardware address.
+
+### Bond options
+
+On top of its `mode` and `members`, a bond accepts an `options` field to tune its behavior. All intervals and delays are in milliseconds:
+
+* `transmit_hash_policy`: The policy used to select the member for outgoing traffic, one of `layer2`, `layer2+3`, `layer3+4`, `encap2+3`, `encap3+4` or `vlan+srcmac`. Defaults to `layer3+4` for `802.3ad` bonds.
+
+* `lacp_rate`: The rate at which LACP control packets are requested from the peer, either `slow` or `fast`. Defaults to `fast` for `802.3ad` bonds.
+
+* `mii_monitor_interval`: The interval at which the link state of the members is checked. Defaults to `100` unless ARP monitoring is configured.
+
+* `up_delay` and `down_delay`: The delay before a member is enabled or disabled after a link state change. Only used with link state monitoring.
+
+* `arp_interval`: The interval at which ARP requests are sent to check the members. Setting it replaces the link state monitoring with ARP monitoring.
+
+* `arp_ip_targets`: A list of IP addresses to send the ARP requests to when ARP monitoring is used.
+
+### VLAN tags
+
+The bridge created on top of an interface or bond only lets through traffic without a VLAN tag and the VLANs defined on top of it. Additional VLAN IDs can be allowed by listing them in the `vlan_tags` option of the interface or bond, making them available to instances attached to the bridge.
+
+### Strict hardware address filtering
+
+Interfaces accept a `strict_hwaddr` option. If `true`, IncusOS only lets traffic using the interface's own hardware address go out through the physical device. This is useful on networks that don't tolerate additional hardware addresses on a port, but it prevents instances bridged to that interface from reaching the network.
+
 ### `required_for_online` values
 
 Network interfaces, bonds, VLANs, and WireGuard interfaces can optionally be configured with the `required_for_online` option that IncusOS will use to determine when that network device is online. Valid values include `ipv4`, `ipv6`, `both`, `any`, and `no`. If not specified, defaults to `any`. For further details, refer to systemd's [`RequiredFamilyForOnline` networkctl configuration option](https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html#RequiredFamilyForOnline=).
@@ -67,7 +121,15 @@ Network interfaces, bonds, VLANs, and WireGuard interfaces can optionally be con
 ### Firewall
 
 IncusOS supports a basic ingress firewall on its interfaces.
-This is done by setting the `firewall_rules` option to a list of rules (action, source address, protocol and port).
+This is done by setting the `firewall_rules` option to a list of rules, each of which consists of:
+
+* `action`: What to do with matching traffic, one of `accept`, `drop` or `reject`.
+
+* `source`: Optional; the source IP address or subnet to match.
+
+* `protocol`: Optional; the protocol to match, either `tcp` or `udp`. Must be set together with `port`.
+
+* `port`: Optional; the destination port to match. Must be set together with `protocol`.
 
 On top of the user provided rules, IncusOS will always allow a subset of basic rules (`icmp`, `icmpv6` and established connections).
 
@@ -208,7 +270,7 @@ config:
 
 #### WireGuard
 
-Configure a WireGuard interface with two peers (providing a private_key is optional and will be created if empty):
+Configure a WireGuard interface with two peers (providing a `private_key` is optional and will be created if empty). Each peer also accepts an optional base64-encoded `preshared_key`:
 
 ```yaml
 config:
