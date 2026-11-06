@@ -300,11 +300,20 @@ def TestIncusOSAPISystemNetworkConfigInterfaces(install_image):
 
             enp5MAC = '"' + interfaces["enp5s0"]["hwaddr"] + '"'
             enp6MAC = '"' + interfaces["enp6s0"]["hwaddr"] + '"'
+            vmDevice = "_p" + interfaces["enp6s0"]["hwaddr"].replace(":", "").lower()
 
-            # Apply a new network configuration that changes names and roles.
-            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"management","required_for_online":"both","roles":["management","cluster","storage"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"]}]}}""")
+            # An invalid advertise mode must be rejected.
+            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"enp5s0","required_for_online":"both","roles":["management","cluster"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"],"ethernet":{"advertise":["1000baseT/Full"]}}]}}""")
+            if result["status_code"] == 200:
+                raise IncusOSException("unexpected success applying an invalid advertise mode")
+
+            # Apply a new network configuration that changes names, roles and forces the link speed.
+            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"management","required_for_online":"both","roles":["management","cluster","storage"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"],"ethernet":{"speed":1000,"disable_autoneg":true}}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            # Allow the network state to settle
+            time.sleep(5)
 
             # Get the updated network configuration.
             result = vm.APIRequest("/1.0/system/network")
@@ -327,6 +336,35 @@ def TestIncusOSAPISystemNetworkConfigInterfaces(install_image):
 
             if "instances" not in interfaces["vm"]["roles"] or len(interfaces["vm"]["roles"]) != 1:
                 raise IncusOSException("missing expected roles for vm interface: " + str(interfaces["vm"]["roles"]))
+
+            if interfaces["vm"]["speed"] != "1000":
+                raise IncusOSException("expected vm interface speed to be 1000, got " + interfaces["vm"]["speed"])
+
+            # Set the vm link down and back up.
+            result = vm.APIRequest("/1.0/system/network/:link-down", method="POST", body="""{"name":"vm"}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            time.sleep(1)
+            operstate = vm.RunCommand("cat", "/sys/class/net/" + vmDevice + "/operstate").stdout.decode("utf-8").strip()
+            if operstate != "down":
+                raise IncusOSException("expected vm link to be down, got " + operstate)
+
+            result = vm.APIRequest("/1.0/system/network/:link-up", method="POST", body="""{"name":"vm"}""")
+            if result["status_code"] != 200:
+                raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+            time.sleep(1)
+            operstate = vm.RunCommand("cat", "/sys/class/net/" + vmDevice + "/operstate").stdout.decode("utf-8").strip()
+            if operstate != "up":
+                raise IncusOSException("expected vm link to be up, got " + operstate)
+
+            result = vm.APIRequest("/1.0/system/network/:link-down", method="POST", body="""{"name":"doesnotexist"}""")
+            if result["status_code"] == 200:
+                raise IncusOSException("unexpected success setting down a non-existent link")
+
+            if result["error"] != "'doesnotexist' is not a configured physical network interface":
+                raise IncusOSException("unexpected error message: " + result["error"])
 
 def TestIncusOSAPISystemNetworkBond(install_image):
     test_name = "incusos-api-system-network-bond"
