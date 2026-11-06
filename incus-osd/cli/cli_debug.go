@@ -267,10 +267,11 @@ func (c *cmdAdminOSDebugSecureBoot) command() *cobra.Command {
 
 	// Update.
 	updateCmd := cmdGenericRun{
-		os:          c.os,
-		action:      "update",
-		description: "Update the secureboot keys",
-		endpoint:    "debug/secureboot",
+		os:           c.os,
+		action:       "update",
+		description:  "Update the secureboot keys",
+		endpoint:     "debug/secureboot",
+		hasFileInput: true,
 	}
 	cmd.AddCommand(updateCmd.command())
 
