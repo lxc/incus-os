@@ -8,4 +8,10 @@ The full API structs for the service can be viewed [online](https://github.com/l
 
 The following configuration options can be set:
 
-* `targets`: An array of USBIP targets, each of which consists of an address and bus ID.
+* `enabled`: If `true`, enable the USBIP service.
+
+* `targets`: An array of USBIP targets, each of which consists of:
+
+   * `address`: The address of the remote USBIP server.
+
+   * `bus_id`: The bus ID of the USB device on the remote server.

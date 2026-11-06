@@ -11,6 +11,7 @@ as well as relevant actions.
 :maxdepth: 1
 
 Backup/Restore </reference/system/backup>
+Fallback listener </reference/system/fallback-listener>
 Kernel </reference/system/kernel>
 Logging </reference/system/logging>
 Network </reference/system/network>

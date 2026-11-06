@@ -10,4 +10,10 @@ The following configuration options can be set:
 
 * `enabled`: If `true`, enable the iSCSI service.
 
-* `targets`: An array of iSCSI targets, each of which consists of an address, port, and iSCSI target.
+* `targets`: An array of iSCSI targets, each of which consists of:
+
+   * `target`: The {abbr}`IQN (iSCSI Qualified Name)` of the target.
+
+   * `address`: The IP address of the target.
+
+   * `port`: Optional; the port number of the target.

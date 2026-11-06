@@ -44,12 +44,37 @@ Important seed fields include:
 
 * `preseed`: A struct referencing Incus' `InitPreseed` configuration options. For details, please review Incus' [API](https://github.com/lxc/incus/blob/main/shared/api/init.go).
 
+## Configuration options
+
+Configuration fields are defined in the [`ApplicationIncusConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/application_incus.go).
+
+On top of the [shared application options](shared-api.md), the following configuration options can be set:
+
+* `lxcfs`: Change the behavior of LXCFS, which provides containers with a view of the system resources matching their limits. Incus is restarted when changing these options.
+   * `cpu_shares`: If `true`, also take the CPU allowance of a container into account when reporting the CPUs available to it.
+   * `load_average`: If `true`, report a per-container load average rather than the one of the whole system.
+
 ## Additional features
 
 Two additional applications exist which extend the main Incus application:
 
 * `incus-ceph`: Adds [Ceph](../services/ceph.md) client support
 * `incus-linstor`: Adds [Linstor](../services/linstor.md) satellite support
+
+## Actions
+
+The Incus application supports the following actions, which are used to deploy and manage a Ceph cluster on top of Incus. See the [Ceph cluster tutorial](../../tutorials/storage-create-ceph-cluster.md) for their parameters:
+
+* `ceph-initialize`: Creates the Ceph control plane.
+* `ceph-add-drive`: Adds a drive to the Ceph cluster.
+* `ceph-remove-drive`: Removes a drive from the Ceph cluster.
+* `ceph-refresh-images`: Updates the deployed version of Ceph.
+
+You can run actions using:
+
+```
+incus admin os application action incus -d '{"action":"ceph-initialize","config":{"control_servers":"server01,server02,server03"}}'
+```
 
 ## Debugging
 
