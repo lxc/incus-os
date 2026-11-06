@@ -14,6 +14,16 @@ via the application's API as part of its configuration. Additional authenticatio
 The OpenFGA service will automatically use the TLS certificate configured for the primary application to provide a
 TLS-secured HTTPS API endpoint on port 8444.
 
+## Configuration options
+
+Configuration fields are defined in the [`ApplicationOpenFGAConfig` struct](https://github.com/lxc/incus-os/blob/main/incus-osd/api/application_openfga.go).
+
+On top of the [shared application options](shared-api.md), the following configuration options can be set:
+
+* `api_tokens`: A list of shared authentication keys accepted by the OpenFGA service. At least one key must be defined.
+
+* `sync`: The `openfga-sync` configuration, see [Synchronization](#synchronization).
+
 ## Synchronization
 
 The `openfga` application also ships [`openfga-sync`](https://github.com/FuturFusion/openfga-sync), a daemon which
