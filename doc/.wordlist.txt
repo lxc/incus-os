@@ -129,6 +129,7 @@ Rauthy
 resilver
 RSA
 Ryzen
+SAS
 Scaleway
 SLAAC
 SMBIOS
