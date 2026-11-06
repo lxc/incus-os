@@ -12,6 +12,7 @@ Services </reference/services>
 System configuration </reference/system>
 API </reference/api>
 Booting from a multipath-backed device </reference/booting-multipath-device>
+Debugging </reference/debugging>
 Installing without Secure Boot </reference/installing-without-secureboot>
 Installing without a TPM </reference/installing-without-tpm>
 Partitioning scheme </reference/partitioning-scheme>
