@@ -1885,8 +1885,6 @@ func getVLANTags(devName string, additionalVLANTags []int, vlans []api.SystemNet
 	for _, vlan := range vlans {
 		if vlan.Parent == devName {
 			vlanTags = append(vlanTags, vlan.ID)
-
-			break
 		}
 	}
 
