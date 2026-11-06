@@ -90,3 +90,21 @@ type swaggerInternalServerError struct {
 		ErrorCode int `json:"error_code"`
 	}
 }
+
+// Precondition Failed
+//
+// swagger:response PreconditionFailed
+type swaggerPreconditionFailed struct {
+	// Precondition Failed
+	// in: body
+	Body struct {
+		// Example: error
+		Type string `json:"type"`
+
+		// Example: precondition failed
+		Error string `json:"error"`
+
+		// Example: 412
+		ErrorCode int `json:"error_code"`
+	}
+}
