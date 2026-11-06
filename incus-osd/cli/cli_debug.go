@@ -41,6 +41,17 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	reportCmd := cmdAdminOSDebugReport{os: c.os}
 	cmd.AddCommand(reportCmd.command())
 
+	// Run script.
+	runScriptCmd := cmdGenericRun{
+		os:           c.os,
+		action:       "run-script",
+		description:  "Run a signed debug script",
+		endpoint:     "debug",
+		hasFileInput: true,
+		showOutput:   true,
+	}
+	cmd.AddCommand(runScriptCmd.command())
+
 	// Secure boot.
 	secureBootCmd := cmdAdminOSDebugSecureBoot{os: c.os}
 	cmd.AddCommand(secureBootCmd.command())

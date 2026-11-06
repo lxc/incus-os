@@ -247,6 +247,7 @@ type cmdGenericRun struct {
 	defaultData      string
 	hasFileInput     bool
 	hasFileOutput    bool
+	showOutput       bool
 	extraArgs        []cmdGenericRunArgs
 	dataArgs         []string
 	dataArgsOptional bool
@@ -492,9 +493,21 @@ func (c *cmdGenericRun) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Run the command.
-	_, _, err = doQuery(c.os.args.DoHTTP, remote, "POST", apiURL.String(), inData, outData, "")
+	resp, _, err := doQuery(c.os.args.DoHTTP, remote, "POST", apiURL.String(), inData, outData, "")
 	if err != nil {
 		return err
+	}
+
+	// Show the text returned by the command.
+	if c.showOutput && resp != nil {
+		var output string
+
+		err = resp.MetadataAsStruct(&output)
+		if err != nil {
+			return err
+		}
+
+		_, _ = fmt.Print(output) //nolint:forbidigo
 	}
 
 	return nil
