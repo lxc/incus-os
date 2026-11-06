@@ -18,6 +18,8 @@ The following configuration options can be set:
 
 * `accept_routes`: If `true`, accept routes.
 
+* `accept_dns`: If `true`, accept the DNS configuration provided by the Tailscale network.
+
 * `advertised_routes`: An array of routes to advertise.
 
 * `serve_enabled`: If `true`, expose `localhost:8443` (typically the Incus application) via [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve)
