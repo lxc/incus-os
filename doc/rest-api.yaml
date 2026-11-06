@@ -70,6 +70,175 @@ definitions:
         title: DebugLVM represents LVM debug information for the system.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugNetworkDumpTraffic:
+        properties:
+            duration:
+                description: Seconds to capture for, defaults to 10 if unset, 0 captures until the request is canceled.
+                format: int64
+                type: integer
+                x-go-name: Duration
+            filter:
+                description: Capture filter expression in tcpdump syntax.
+                type: string
+                x-go-name: Filter
+            format:
+                description: Output format, either "text" (default) or "pcap".
+                type: string
+                x-go-name: Format
+            interface:
+                description: Interface to capture on, defaults to all interfaces.
+                type: string
+                x-go-name: Interface
+        title: DebugNetworkDumpTraffic defines the arguments for a network traffic dump request.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugNetworkPing:
+        properties:
+            count:
+                description: Number of packets to send, defaults to 10 if unset, 0 pings until the request is canceled.
+                format: int64
+                type: integer
+                x-go-name: Count
+            family:
+                description: Address family to use, either "ipv4" or "ipv6", automatically selected if unset.
+                type: string
+                x-go-name: Family
+            interface:
+                description: Interface to send from, automatically selected if unset.
+                type: string
+                x-go-name: Interface
+            interval:
+                description: Seconds to wait between packets.
+                format: double
+                type: number
+                x-go-name: Interval
+            numeric:
+                description: Don't resolve addresses to names.
+                type: boolean
+                x-go-name: Numeric
+            pmtu_discovery:
+                description: Path MTU discovery strategy, one of "do", "dont", "want" or "probe".
+                type: string
+                x-go-name: PMTUDiscovery
+            size:
+                description: Payload size in bytes.
+                format: int64
+                type: integer
+                x-go-name: Size
+            target:
+                description: Host name or address to ping.
+                type: string
+                x-go-name: Target
+        title: DebugNetworkPing defines the arguments for a network ping request.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugNetworkRoutes:
+        properties:
+            ipv4_routes:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: IPv4Routes
+            ipv4_rules:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: IPv4Rules
+            ipv6_routes:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: IPv6Routes
+            ipv6_rules:
+                items:
+                    additionalProperties: {}
+                    type: object
+                type: array
+                x-go-name: IPv6Rules
+        title: DebugNetworkRoutes holds the routing policy rules and tables as reported by iproute2.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugNetworkSpeedTest:
+        properties:
+            bitrate:
+                description: Target bitrate in bits per second with an optional K, M or G suffix, 0 for unlimited.
+                type: string
+                x-go-name: Bitrate
+            duration:
+                description: Seconds to test for, defaults to 10 if unset, 0 tests until the request is canceled.
+                format: int64
+                type: integer
+                x-go-name: Duration
+            family:
+                description: Address family to use, either "ipv4" or "ipv6", automatically selected if unset.
+                type: string
+                x-go-name: Family
+            format:
+                description: Output format, either "json" (default) or "text".
+                type: string
+                x-go-name: Format
+            interface:
+                description: Interface to send from, automatically selected if unset.
+                type: string
+                x-go-name: Interface
+            parallel:
+                description: Number of parallel connections to test with, defaults to 1.
+                format: int64
+                type: integer
+                x-go-name: Parallel
+            port:
+                description: Port of the iperf3 server, defaults to 5201.
+                format: int64
+                type: integer
+                x-go-name: Port
+            protocol:
+                description: Protocol to test with, either "tcp" (default) or "udp".
+                type: string
+                x-go-name: Protocol
+            reverse:
+                description: Measure the download rather than upload bandwidth.
+                type: boolean
+                x-go-name: Reverse
+            target:
+                description: Host name or address of the iperf3 server.
+                type: string
+                x-go-name: Target
+        title: DebugNetworkSpeedTest defines the arguments for a network speed test request.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugNetworkTrace:
+        properties:
+            count:
+                description: Number of probes to send to each hop, defaults to 10 if unset, 0 traces until the request is canceled.
+                format: int64
+                type: integer
+                x-go-name: Count
+            family:
+                description: Address family to use, either "ipv4" or "ipv6", automatically selected if unset.
+                type: string
+                x-go-name: Family
+            format:
+                description: Output format, either "json" (default) or "text".
+                type: string
+                x-go-name: Format
+            interface:
+                description: Interface to send from, automatically selected if unset.
+                type: string
+                x-go-name: Interface
+            numeric:
+                description: Don't resolve addresses to names.
+                type: boolean
+                x-go-name: Numeric
+            target:
+                description: Host name or address to trace the path to.
+                type: string
+                x-go-name: Target
+        title: DebugNetworkTrace defines the arguments for a network trace request.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     DebugReport:
         properties:
             media_type:
@@ -2366,6 +2535,300 @@ paths:
             summary: Get LVM debug information
             tags:
                 - debug
+    /1.0/debug/network:
+        get:
+            description: |-
+                Returns a list of network debug endpoints (URLs).
+
+                These endpoints have no guarantee of API stability, and should not be used in normal day-to-day operations.
+            operationId: debug_network_get
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: API endpoints
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: List of network debug endpoints
+                                example:
+                                    - /1.0/debug/network/sockets
+                                items:
+                                    type: string
+                                type: array
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+            summary: Get network debug endpoints
+            tags:
+                - debug
+    /1.0/debug/network/:dump-traffic:
+        post:
+            consumes:
+                - application/json
+            description: Capture network traffic, streaming it as text or pcap data until done or until the request is canceled.
+            operationId: debug_network_post_dump_traffic
+            parameters:
+                - description: Traffic dump arguments
+                  in: body
+                  name: arguments
+                  required: true
+                  schema:
+                    $ref: '#/definitions/DebugNetworkDumpTraffic'
+            produces:
+                - application/json
+                - application/octet-stream
+            responses:
+                "200":
+                    description: Raw traffic dump
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "412":
+                    $ref: '#/responses/PreconditionFailed'
+            summary: Get a traffic dump
+            tags:
+                - debug
+    /1.0/debug/network/:ping:
+        post:
+            consumes:
+                - application/json
+            description: Send ICMP echo requests to the provided target, streaming the text output until done or until the request is canceled.
+            operationId: debug_network_post_ping
+            parameters:
+                - description: Ping arguments
+                  in: body
+                  name: arguments
+                  required: true
+                  schema:
+                    $ref: '#/definitions/DebugNetworkPing'
+            produces:
+                - application/json
+                - application/octet-stream
+            responses:
+                "200":
+                    description: Raw ping output
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "412":
+                    $ref: '#/responses/PreconditionFailed'
+            summary: Ping a target
+            tags:
+                - debug
+    /1.0/debug/network/:speed-test:
+        post:
+            consumes:
+                - application/json
+            description: Measure the bandwidth to an iperf3 server. The JSON format returns the report once the test is done. The text format streams the output until done or until the request is canceled, and is the only one available for an unlimited duration.
+            operationId: debug_network_post_speed_test
+            parameters:
+                - description: Speed test arguments
+                  in: body
+                  name: arguments
+                  required: true
+                  schema:
+                    $ref: '#/definitions/DebugNetworkSpeedTest'
+            produces:
+                - application/json
+                - application/octet-stream
+            responses:
+                "200":
+                    description: Speed test report, or raw output in text format
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "412":
+                    $ref: '#/responses/PreconditionFailed'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Run a speed test
+            tags:
+                - debug
+    /1.0/debug/network/:trace:
+        post:
+            consumes:
+                - application/json
+            description: Trace the network path to the provided target. The JSON format returns the report once the trace is done. The text format streams a report for every round of probes until done or until the request is canceled, and is the only one available for an unlimited count.
+            operationId: debug_network_post_trace
+            parameters:
+                - description: Trace arguments
+                  in: body
+                  name: arguments
+                  required: true
+                  schema:
+                    $ref: '#/definitions/DebugNetworkTrace'
+            produces:
+                - application/json
+                - application/octet-stream
+            responses:
+                "200":
+                    description: Trace report, or raw output in text format
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "412":
+                    $ref: '#/responses/PreconditionFailed'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Trace the path to a target
+            tags:
+                - debug
+    /1.0/debug/network/conntrack:
+        get:
+            description: Return the connection tracking table ("conntrack" output).
+            operationId: debug_network_get_conntrack
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Text connection tracking table
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: Text connection tracking table
+                                type: string
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "412":
+                    $ref: '#/responses/PreconditionFailed'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get connection tracking table
+            tags:
+                - debug
+    /1.0/debug/network/firewall:
+        get:
+            description: Return the full nftables ruleset ("nft list ruleset" output), as JSON unless the text format is requested.
+            operationId: debug_network_get_firewall
+            parameters:
+                - description: Output format, either "json" (default) or "text"
+                  in: query
+                  name: format
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Firewall ruleset
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: Firewall ruleset
+                                type: object
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get firewall ruleset
+            tags:
+                - debug
+    /1.0/debug/network/routes:
+        get:
+            description: Return the IPv4 and IPv6 policy rules and routing tables ("ip rule" and "ip route" output), as JSON unless the text format is requested.
+            operationId: debug_network_get_routes
+            parameters:
+                - description: Output format, either "json" (default) or "text"
+                  in: query
+                  name: format
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Routing rules and tables
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/DebugNetworkRoutes'
+                                description: Routing rules and tables
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get routing tables
+            tags:
+                - debug
+    /1.0/debug/network/sockets:
+        get:
+            description: Return the list of all system sockets ("ss" output).
+            operationId: debug_network_get_sockets
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: Text list of system sockets
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: Text list of system sockets
+                                type: string
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get socket list
+            tags:
+                - debug
     /1.0/debug/processes:
         get:
             description: Return a list of all system processes
@@ -3850,6 +4313,24 @@ responses:
                     x-go-name: Error
                 error_code:
                     example: 404
+                    format: int64
+                    type: integer
+                    x-go-name: ErrorCode
+                type:
+                    example: error
+                    type: string
+                    x-go-name: Type
+            type: object
+    PreconditionFailed:
+        description: Precondition Failed
+        schema:
+            properties:
+                error:
+                    example: precondition failed
+                    type: string
+                    x-go-name: Error
+                error_code:
+                    example: 412
                     format: int64
                     type: integer
                     x-go-name: ErrorCode
