@@ -28,7 +28,7 @@ The following configuration options can be set:
 
 * `disable_dns`: If `true`, the client won't configure DNS settings.
 
-* `disable-firewall`: If `true`, the client won't modify firewall rules.
+* `disable_firewall`: If `true`, the client won't modify firewall rules.
 
 * `dns_resolver_address`: Sets a custom address for NetBird's local DNS resolver.
 
