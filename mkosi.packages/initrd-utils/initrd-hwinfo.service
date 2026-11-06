@@ -1,0 +1,17 @@
+[Unit]
+Description=Show system hardware information
+After=initrd-multipath.service
+Before=boot.mount
+DefaultDependencies=no
+ConditionKernelCommandLine=incusos.profile=hwinfo
+
+[Service]
+Type=oneshot
+
+EnvironmentFile=/usr/lib/os-release
+Environment=TTYS="/dev/tty1 /dev/ttyS0"
+
+ExecStart=/usr/bin/initrd-hwinfo.sh
+
+[Install]
+WantedBy=boot.mount
