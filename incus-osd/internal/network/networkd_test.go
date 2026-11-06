@@ -968,3 +968,15 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "22-management.network", cfgs[6].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=both\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=true\nDHCP=ipv4\n", cfgs[6].Contents)
 }
+
+func TestVLANTags(t *testing.T) {
+	t.Parallel()
+
+	vlans := []api.SystemNetworkVLAN{
+		{Name: "vlan20", Parent: "uplink", ID: 20},
+		{Name: "vlan30", Parent: "storage", ID: 30},
+		{Name: "vlan10", Parent: "uplink", ID: 10},
+	}
+
+	require.Equal(t, []int{10, 20, 100}, getVLANTags("uplink", []int{100, 20}, vlans))
+}
