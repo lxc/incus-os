@@ -2,6 +2,12 @@
 
 Each IncusOS service shares a common API that can be used to get its state and configuration, update its configuration, and forcefully reset the service if needed.
 
+## Listing the services
+
+```
+incus admin os service list
+```
+
 ## Getting the service state and configuration
 
 ```
