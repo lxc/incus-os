@@ -78,6 +78,7 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/debug/secureboot/:update", s.apiDebugSecureBootUpdate)
 	router.HandleFunc("/1.0/services", s.apiServices)
 	router.HandleFunc("/1.0/services/{name}", s.apiServicesEndpoint)
+	router.HandleFunc("/1.0/services/{name}/:action", s.apiServicesEndpointAction)
 	router.HandleFunc("/1.0/services/{name}/:reset", s.apiServicesEndpointReset)
 	router.HandleFunc("/1.0/system", s.apiSystem)
 	router.HandleFunc("/1.0/system/:backup", s.apiSystemBackup)
