@@ -3,7 +3,7 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.9
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.5-0.20261027183326-d068c662e3c8
+	github.com/FuturFusion/migration-manager v0.7.5-0.20261107003602-80951a86db75
 	github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1
 	github.com/FuturFusion/operations-center v0.10.1
 	github.com/cavaliergopher/cpio v1.0.1
@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	github.com/vishvananda/netlink v1.3.1
-	go.yaml.in/yaml/v4 v4.0.0-rc.7
+	go.yaml.in/yaml/v4 v4.0.0
 	golang.org/x/sync v0.24.0
 	golang.org/x/sys v0.49.0
 	gopkg.in/ini.v1 v1.67.3
@@ -52,8 +52,8 @@ require (
 	github.com/fvbommel/sortorder v1.2.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.10.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.7 // indirect
-	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
+	github.com/go-json-experiment/json v1.27.2 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.12.0 // indirect
@@ -90,13 +90,13 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/vbatts/go-mtree v0.7.0 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20261013231157-39c47d93efba // indirect
-	github.com/zitadel/oidc/v3 v3.51.16 // indirect
+	github.com/zitadel/oidc/v3 v3.51.17 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
@@ -106,7 +106,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
+	golang.org/x/exp v0.0.0-20261106192419-47ce03d25ef0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
