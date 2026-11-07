@@ -22,6 +22,21 @@ func TestLVMKilledVGs(t *testing.T) {
 	require.Equal(t, []string{"incusos-lts"}, lvmKilledVGs(logs))
 }
 
+func TestLVMDevices(t *testing.T) {
+	t.Parallel()
+
+	output := `vg1-vm:LVM:vg1:vm:
+vg1-vm-real:LVM:vg1:vm:real
+vg1-snap:LVM:vg1:snap:
+vg1-snap-cow:LVM:vg1:snap:cow
+vg1-lvmlock:LVM:vg1:lvmlock:
+vg2-other:LVM:vg2:other:
+mpatha:mpath:::
+`
+
+	require.Equal(t, []string{"vg1-vm", "vg1-snap"}, lvmDevices(output, "vg1"))
+}
+
 func TestLVMLockspaces(t *testing.T) {
 	t.Parallel()
 

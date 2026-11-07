@@ -45,3 +45,47 @@ When the storage comes back before the watchdog fires, IncusOS automatically rec
 Instances keep running during the outage and the recovery, but their I/O stalls for the duration of the outage.
 
 Should a lock no longer be available at that point, meaning another server now owns the volume, IncusOS immediately resets the server, like the watchdog would, rather than risk corrupting the shared volume.
+
+## Global storage outages
+
+During a storage outage that affects every server, such as the storage array rebooting or the storage network going down, the watchdog resets all servers even though none of them can write to the shared volumes.
+To prevent this, a global storage outage can be declared on each server through the `declare-outage` action, either ahead of planned work or while the outage is ongoing.
+
+```
+incus admin os service action lvm -d '{"action":"declare-outage"}'
+```
+
+An optional `timeout` parameter in seconds, defaulting to `3600`, sets how long the declaration stays armed.
+
+```
+incus admin os service action lvm -d '{"action":"declare-outage","config":{"timeout":"7200"}}'
+```
+
+A declaration has no effect on a server that keeps access to the storage.
+On a server that loses its lease while the declaration is armed, IncusOS suspends all active logical volumes of the volume group and drops its lockspace, which disarms the watchdog.
+Instances keep running but their I/O stalls until the storage comes back.
+
+Once the storage is back, IncusOS restarts the lockspace, re-acquires the locks of the logical volumes with the mode they previously held, resumes them and clears the declaration.
+Should a lock no longer be available at that point, IncusOS resets the server as described above.
+
+A declaration that didn't take effect expires after its timeout, doesn't persist across reboots and can be withdrawn at any time through the `clear-outage` action.
+
+```
+incus admin os service action lvm -d '{"action":"clear-outage"}'
+```
+
+The current declaration and the affected volume groups can be seen in the `outage` section of the service state.
+The other state sections aren't refreshed while a declaration is in place as that would block on the storage.
+
+```{warning}
+A server gets reset 110 to 130 seconds after the storage goes down with the default timeouts, so a declaration made during an outage must reach every server before that.
+```
+
+```{warning}
+Only declare an outage if no server can reach the shared storage.
+A server that merely got partitioned from the storage isn't fenced when the declaration is armed, so another server could start using its volumes while its own writes are still in flight.
+Those writes may reach the storage when it comes back, before IncusOS detects the conflict, which can corrupt the volume.
+```
+
+NVMe over Fabrics controllers don't time out while the outage is in effect, so they reconnect no matter how long it lasts.
+Other storage must be configured to queue I/O for at least as long as an outage may last, otherwise the I/O of the instances fails.

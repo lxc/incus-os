@@ -3,10 +3,13 @@ package services
 import (
 	"context"
 	"errors"
+
+	"github.com/lxc/incus-os/incus-osd/api"
 )
 
 // Service represents a system service.
 type Service interface {
+	Action(ctx context.Context, data api.ServiceAction) error
 	Debug(ctx context.Context) (any, error)
 	Get(ctx context.Context) (any, error)
 	Reset(ctx context.Context) error
@@ -19,6 +22,10 @@ type Service interface {
 }
 
 type common struct{}
+
+func (*common) Action(_ context.Context, _ api.ServiceAction) error {
+	return errors.New("actions aren't supported by this service")
+}
 
 func (*common) Debug(_ context.Context) (any, error) {
 	return nil, errors.New("debug isn't supported by this service")

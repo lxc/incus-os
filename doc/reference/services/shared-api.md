@@ -1,6 +1,6 @@
 # Shared API
 
-Each IncusOS service shares a common API that can be used to get its state and configuration, update its configuration, and forcefully reset the service if needed.
+Each IncusOS service shares a common API that can be used to get its state and configuration, update its configuration, perform service-specific actions, and forcefully reset the service if needed.
 
 ## Listing the services
 
@@ -18,6 +18,14 @@ incus admin os service show <name>
 
 ```
 incus admin os service edit <name>
+```
+
+## Performing service actions
+
+Some services support additional actions, which are listed on the page of the service. An action is triggered by providing its name and an optional map of parameters
+
+```
+incus admin os service action <name> -d '{"action":"<action>","config":{"<key>":"<value>"}}'
 ```
 
 ## Resetting the application

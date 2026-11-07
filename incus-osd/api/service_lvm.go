@@ -1,5 +1,9 @@
 package api
 
+import (
+	"time"
+)
+
 // ServiceLVMConfig represents additional configuration for the LVM service.
 type ServiceLVMConfig struct {
 	Enabled         bool `json:"enabled"          yaml:"enabled"`
@@ -20,6 +24,14 @@ type ServiceLVMState struct {
 	PVs []ServiceLVMPV  `json:"pvs,omitempty" yaml:"pvs,omitempty"`
 	VGs []ServiceLVMVG  `json:"vgs,omitempty" yaml:"vgs,omitempty"`
 	Log []ServiceLVMLog `json:"log,omitempty" yaml:"log,omitempty"`
+
+	Outage *ServiceLVMOutage `json:"outage,omitempty" yaml:"outage,omitempty"`
+}
+
+// ServiceLVMOutage represents a declared storage outage.
+type ServiceLVMOutage struct {
+	DeclaredUntil time.Time `json:"declared_until"         yaml:"declared_until"` // In system's timezone.
+	QuiescedVGs   []string  `json:"quiesced_vgs,omitempty" yaml:"quiesced_vgs,omitempty"`
 }
 
 // ServiceLVMPV defines information about a given physical volume.

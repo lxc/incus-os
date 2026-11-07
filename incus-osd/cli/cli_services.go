@@ -16,6 +16,18 @@ func (c *cmdAdminOSService) command() *cobra.Command {
 	cmd.Short = "Manage IncusOS services"
 	cmd.Long = cli.FormatSection("Description", "Manage IncusOS services")
 
+	// Action.
+	actionCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "action",
+		description: "Perform service-specific action",
+		endpoint:    "services",
+		entity:      "service",
+		hasData:     true,
+		defaultData: "{}",
+	}
+	cmd.AddCommand(actionCmd.command())
+
 	// Edit.
 	editCmd := cmdGenericEdit{os: c.os, entity: "service", entityShort: "service", endpoint: "services"}
 	cmd.AddCommand(editCmd.command())

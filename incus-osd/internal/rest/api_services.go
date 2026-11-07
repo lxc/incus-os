@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"slices"
 
+	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/rest/response"
 	"github.com/lxc/incus-os/incus-osd/internal/services"
 )
@@ -204,6 +205,85 @@ func (s *Server) apiServicesEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
+
+// swagger:operation POST /1.0/services/{name}/:action services services_post_action
+//
+//	Perform a service-specific action
+//
+//	Triggers the given service to perform a specific task.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Service name
+//	    required: true
+//	    type: string
+//	  - in: body
+//	    name: action
+//	    description: Action to perform
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/ServiceAction"
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiServicesEndpointAction(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Check if the service is valid.
+	if !slices.Contains(services.Supported(s.state), name) {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	// Load the service.
+	srv, err := services.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	// Trigger the specific action.
+	data := api.ServiceAction{}
+	decoder := json.NewDecoder(r.Body)
+
+	err = decoder.Decode(&data)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	err = srv.Action(r.Context(), data)
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
 }
 
 // swagger:operation POST /1.0/services/{name}/:reset services services_post_reset

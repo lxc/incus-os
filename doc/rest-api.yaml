@@ -272,6 +272,19 @@ definitions:
         title: DebugReportMetric represents a single metric from a systemd-report report.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    ServiceAction:
+        properties:
+            action:
+                type: string
+                x-go-name: Action
+            config:
+                additionalProperties:
+                    type: string
+                type: object
+                x-go-name: Config
+        title: ServiceAction defines a generic struct that can be used when triggering a service-specific action.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemFallbackListener:
         description: |-
             SystemFallbackListener defines a struct to configure the fallback HTTPS listener that will
@@ -3147,6 +3160,38 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Update service configuration
+            tags:
+                - services
+    /1.0/services/{name}/:action:
+        post:
+            consumes:
+                - application/json
+            description: Triggers the given service to perform a specific task.
+            operationId: services_post_action
+            parameters:
+                - description: Service name
+                  in: path
+                  name: name
+                  required: true
+                  type: string
+                - description: Action to perform
+                  in: body
+                  name: action
+                  required: true
+                  schema:
+                    $ref: '#/definitions/ServiceAction'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Perform a service-specific action
             tags:
                 - services
     /1.0/services/{name}/:reset:
