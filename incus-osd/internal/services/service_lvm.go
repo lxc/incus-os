@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"maps"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -360,7 +361,7 @@ const lvmOutageDefaultTimeout = time.Hour
 
 var (
 	lvmKilledVGRegexp = regexp.MustCompile(`^VG (\S+) lock (?:skipped|failed): storage failed for sanlock leases$`)
-	lvmOutage         = lvmOutageState{lost: map[string]bool{}, quiesced: map[string]*lvmQuiescedVG{}}
+	lvmOutage         = lvmOutageState{lost: map[string]bool{}, quiesced: map[string]*lvmQuiescedVG{}, ctrlLoss: map[string]string{}}
 	lvmRecoveryMu     sync.Mutex
 )
 
@@ -379,6 +380,9 @@ type lvmOutageState struct {
 	until    time.Time
 	lost     map[string]bool
 	quiesced map[string]*lvmQuiescedVG
+
+	// Original ctrl_loss_tmo sysfs values of the NVMe-oF controllers.
+	ctrlLoss map[string]string
 }
 
 // active returns true if any VG is waiting to recover from the outage.
@@ -462,16 +466,38 @@ func (o *lvmOutageState) claimVisible(shared []string, killed []string) (map[str
 	return maps.Clone(o.quiesced), remaining
 }
 
-// release forgets a recovered or abandoned VG, the outage is over once none are left.
-func (o *lvmOutageState) release(vg string) {
+// saveCtrlLoss records the original value of a controller, returning false if it's already held.
+func (o *lvmOutageState) saveCtrlLoss(path string, value string) bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	_, held := o.ctrlLoss[path]
+	if held {
+		return false
+	}
+
+	o.ctrlLoss[path] = value
+
+	return true
+}
+
+// release forgets a recovered or abandoned VG. The outage is over once none are left, at which point the held controllers are returned.
+func (o *lvmOutageState) release(vg string) map[string]string {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
 	delete(o.quiesced, vg)
 
-	if len(o.quiesced) == 0 {
-		o.until = time.Time{}
+	if len(o.quiesced) > 0 {
+		return nil
 	}
+
+	o.until = time.Time{}
+
+	held := o.ctrlLoss
+	o.ctrlLoss = map[string]string{}
+
+	return held
 }
 
 // status returns the API representation of the outage, if there is one.
@@ -614,7 +640,7 @@ func (n *LVM) quiesceVG(ctx context.Context, vg string, quiesced *lvmQuiescedVG)
 	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed reading LVM locks, leaving the lockspace to the watchdog", "vg", vg, "err", err)
-		lvmOutage.release(vg)
+		n.releaseVG(ctx, vg)
 
 		return
 	}
@@ -622,7 +648,7 @@ func (n *LVM) quiesceVG(ctx context.Context, vg string, quiesced *lvmQuiescedVG)
 	dmOutput, err := subprocess.RunCommandContext(ctx, "dmsetup", "info", "-c", "--noheadings", "--separator", ":", "-o", "name,subsystem,vg_name,lv_name,lv_layer")
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed listing active LVs, leaving the lockspace to the watchdog", "vg", vg, "err", err)
-		lvmOutage.release(vg)
+		n.releaseVG(ctx, vg)
 
 		return
 	}
@@ -631,6 +657,8 @@ func (n *LVM) quiesceVG(ctx context.Context, vg string, quiesced *lvmQuiescedVG)
 	quiesced.devices = lvmDevices(dmOutput, vg)
 
 	slog.WarnContext(ctx, "Suspending LVs and dropping the LVM lockspace for the declared outage", "vg", vg, "devices", quiesced.devices)
+
+	n.holdNVMeControllers(ctx)
 
 	var wg sync.WaitGroup
 
@@ -688,11 +716,54 @@ func (n *LVM) recoverQuiescedVG(ctx context.Context, vg string, quiesced *lvmQui
 		}
 	}
 
-	lvmOutage.release(vg)
+	n.releaseVG(ctx, vg)
 
 	slog.WarnContext(ctx, "LVM lockspace recovered from the declared outage", "vg", vg)
 
 	return nil
+}
+
+// holdNVMeControllers stops NVMe-oF controllers from being removed by a long outage, their I/O would then fail and they wouldn't reconnect.
+func (*LVM) holdNVMeControllers(ctx context.Context) {
+	paths, err := filepath.Glob("/sys/class/nvme/*/ctrl_loss_tmo")
+	if err != nil {
+		slog.WarnContext(ctx, "Failed listing NVMe controllers", "err", err)
+
+		return
+	}
+
+	for _, path := range paths {
+		value, err := os.ReadFile(path) //nolint:gosec
+		if err != nil {
+			slog.WarnContext(ctx, "Failed reading NVMe controller loss timeout", "path", path, "err", err)
+
+			continue
+		}
+
+		if !lvmOutage.saveCtrlLoss(path, strings.TrimSpace(string(value))) {
+			continue
+		}
+
+		err = os.WriteFile(path, []byte("-1"), 0o600)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed disabling NVMe controller loss timeout", "path", path, "err", err)
+		}
+	}
+}
+
+// releaseVG ends the outage for a VG and restores the NVMe-oF controllers once it's over.
+func (*LVM) releaseVG(ctx context.Context, vg string) {
+	for path, value := range lvmOutage.release(vg) {
+		// The kernel reports no timeout as "off" but only accepts a negative value.
+		if value == "off" {
+			value = "-1"
+		}
+
+		err := os.WriteFile(path, []byte(value), 0o600)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed restoring NVMe controller loss timeout", "path", path, "err", err)
+		}
+	}
 }
 
 // recoverLockspacesRetry runs the lockspace recovery until it succeeds, the VG commands block or fail while storage is down.
