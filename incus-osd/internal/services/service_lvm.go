@@ -518,13 +518,14 @@ func (*LVM) relockActiveLVs(ctx context.Context, vg string, modes map[string]str
 	type lvsRaw struct {
 		Report []struct {
 			LV []struct {
-				LVName string `json:"lv_name"`
-				LVUUID string `json:"lv_uuid"`
+				LVName string   `json:"lv_name"`
+				LVUUID string   `json:"lv_uuid"`
+				LVRole []string `json:"lv_role"`
 			} `json:"lv"`
 		} `json:"report"`
 	}
 
-	lvsOutput, err := subprocess.RunCommandContext(ctx, "lvs", "--reportformat", "json_std", "-o", "lv_name,lv_uuid", "-S", "lv_active=active", vg)
+	lvsOutput, err := subprocess.RunCommandContext(ctx, "lvs", "--reportformat", "json_std", "-o", "lv_name,lv_uuid,lv_role", "-S", "lv_active=active", vg)
 	if err != nil {
 		return err
 	}
@@ -538,6 +539,11 @@ func (*LVM) relockActiveLVs(ctx context.Context, vg string, modes map[string]str
 
 	for _, report := range lvs.Report {
 		for _, lv := range report.LV {
+			// A snapshot has no lock of its own, it's covered by its origin.
+			if slices.Contains(lv.LVRole, "thicksnapshot") {
+				continue
+			}
+
 			// Incus activates instance volumes exclusively, so that's the default for an unknown lock.
 			activations := []string{"ey", "sy"}
 
