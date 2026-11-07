@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +28,18 @@ type LVM struct {
 	common
 
 	state *state.State
+}
+
+// Action runs a service-specific action.
+func (n *LVM) Action(ctx context.Context, data api.ServiceAction) error {
+	switch data.Action {
+	case "clear-outage":
+		return n.clearOutage(ctx)
+	case "declare-outage":
+		return n.declareOutage(ctx, data.Config)
+	default:
+		return errors.New("unsupported action '" + data.Action + "'")
+	}
 }
 
 // Debug returns the full PV, VG and LV reports read from the on-disk metadata.
@@ -63,6 +77,13 @@ func (n *LVM) Debug(ctx context.Context) (any, error) {
 
 // Get returns the current service state.
 func (n *LVM) Get(ctx context.Context) (any, error) {
+	n.state.Services.LVM.State.Outage = lvmOutage.status()
+
+	// The reports below block while storage is down.
+	if n.state.Services.LVM.State.Outage != nil {
+		return n.state.Services.LVM, nil
+	}
+
 	// Get PV state.
 	type pvsRaw struct {
 		Report []struct {
@@ -124,6 +145,10 @@ func (n *LVM) Update(ctx context.Context, req any) error {
 
 	if newState.Config.IOTimeout < 0 || newState.Config.WatchdogTimeout < 0 {
 		return errors.New("timeouts can't be negative")
+	}
+
+	if lvmOutage.active() {
+		return errors.New("the service can't be changed while recovering from a storage outage")
 	}
 
 	// Save the state on return.
@@ -330,10 +355,139 @@ const LVMLockspaceJob scheduling.JobName = "lvm_lockspace_check"
 // lvmKillCommand is the script lvmlockctl --kill runs to notify us of a lost lockspace.
 const lvmKillCommand = "/usr/lib/incus-os/lvmlockctl-kill"
 
+// lvmOutageDefaultTimeout is how long a declaration stays armed by default.
+const lvmOutageDefaultTimeout = time.Hour
+
 var (
 	lvmKilledVGRegexp = regexp.MustCompile(`^VG (\S+) lock (?:skipped|failed): storage failed for sanlock leases$`)
+	lvmOutage         = lvmOutageState{lost: map[string]bool{}, quiesced: map[string]*lvmQuiescedVG{}}
 	lvmRecoveryMu     sync.Mutex
 )
+
+// lvmQuiescedVG is a VG that gave up its lockspace with its I/O held back.
+type lvmQuiescedVG struct {
+	modes   map[string]string
+	devices []string
+
+	// Closed once the suspends and the lockspace drop are over, which usually takes storage returning.
+	settled chan struct{}
+}
+
+// lvmOutageState tracks a declared storage outage. It's never held across commands, those can block on storage.
+type lvmOutageState struct {
+	mu       sync.Mutex
+	until    time.Time
+	lost     map[string]bool
+	quiesced map[string]*lvmQuiescedVG
+}
+
+// active returns true if any VG is waiting to recover from the outage.
+func (o *lvmOutageState) active() bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	return len(o.quiesced) > 0
+}
+
+// armed returns true if a lost lockspace should currently be given up.
+func (o *lvmOutageState) armed() bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	return time.Now().Before(o.until)
+}
+
+// declare arms the outage until the provided time.
+func (o *lvmOutageState) declare(until time.Time) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	o.until = until
+}
+
+// clear disarms the outage, this isn't possible once VGs depend on it to recover.
+func (o *lvmOutageState) clear() error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if len(o.quiesced) > 0 {
+		return errors.New("volumes are suspended and only recover once storage is back")
+	}
+
+	o.until = time.Time{}
+
+	return nil
+}
+
+// lockspaceLost records a VG that lost its lease and hasn't been recovered yet.
+func (o *lvmOutageState) lockspaceLost(vg string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	o.lost[vg] = true
+}
+
+// claimLost moves the lost VGs to the quiesced ones.
+func (o *lvmOutageState) claimLost() map[string]*lvmQuiescedVG {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	claimed := map[string]*lvmQuiescedVG{}
+
+	for vg := range o.lost {
+		claimed[vg] = &lvmQuiescedVG{settled: make(chan struct{})}
+		o.quiesced[vg] = claimed[vg]
+		delete(o.lost, vg)
+	}
+
+	return claimed
+}
+
+// claimVisible hands the VGs now readable to the recovery, so a late declaration can't quiesce them.
+// It returns the quiesced VGs and the killed ones left to handle the usual way.
+func (o *lvmOutageState) claimVisible(shared []string, killed []string) (map[string]*lvmQuiescedVG, []string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	for _, vg := range shared {
+		delete(o.lost, vg)
+	}
+
+	remaining := slices.DeleteFunc(killed, func(vg string) bool {
+		_, quiesced := o.quiesced[vg]
+
+		return quiesced
+	})
+
+	return maps.Clone(o.quiesced), remaining
+}
+
+// release forgets a recovered or abandoned VG, the outage is over once none are left.
+func (o *lvmOutageState) release(vg string) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	delete(o.quiesced, vg)
+
+	if len(o.quiesced) == 0 {
+		o.until = time.Time{}
+	}
+}
+
+// status returns the API representation of the outage, if there is one.
+func (o *lvmOutageState) status() *api.ServiceLVMOutage {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if len(o.quiesced) == 0 && !time.Now().Before(o.until) {
+		return nil
+	}
+
+	return &api.ServiceLVMOutage{
+		DeclaredUntil: o.until,
+		QuiescedVGs:   slices.Sorted(maps.Keys(o.quiesced)),
+	}
+}
 
 // CheckLockspaces recovers shared VGs whose sanlock lockspace was lost or never started.
 func CheckLockspaces(ctx context.Context, s *state.State) error {
@@ -347,24 +501,196 @@ func CheckLockspaces(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
+	// The retry loop owns the recovery during an outage.
+	if lvmOutage.active() {
+		return nil
+	}
+
 	return lvm.recoverLockspaces(ctx)
 }
 
 // LockspaceLost is called by the lvmlockctl kill command and recovers the lockspaces in the background.
 func LockspaceLost(ctx context.Context, s *state.State, vg string) error {
-	srv, err := Load(ctx, s, "lvm")
+	lvm, err := loadEnabledLVM(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	lvm, ok := srv.(*LVM)
-	if !ok || !lvm.state.Services.LVM.Config.Enabled {
+	slog.WarnContext(ctx, "LVM lockspace lost its lease, recovering once storage is back", "vg", vg)
+
+	ctx = context.WithoutCancel(ctx)
+
+	lvmOutage.lockspaceLost(vg)
+
+	if lvmOutage.armed() {
+		lvm.quiesceLostVGs(ctx)
+
+		return nil
+	}
+
+	go lvm.recoverLockspacesRetry(ctx)
+
+	return nil
+}
+
+// declareOutage asserts that no server can write to the shared storage. It applies to any lease loss until the timeout (in seconds).
+func (n *LVM) declareOutage(ctx context.Context, config map[string]string) error {
+	if !n.state.Services.LVM.Config.Enabled {
 		return errors.New("LVM isn't currently enabled")
 	}
 
-	slog.WarnContext(ctx, "LVM lockspace lost its lease, recovering once storage is back", "vg", vg)
+	duration := lvmOutageDefaultTimeout
 
-	go lvm.recoverLockspacesRetry(context.WithoutCancel(ctx))
+	if config["timeout"] != "" {
+		timeout, err := strconv.Atoi(config["timeout"])
+		if err != nil || timeout <= 0 {
+			return errors.New("invalid timeout '" + config["timeout"] + "'")
+		}
+
+		duration = time.Duration(timeout) * time.Second
+	}
+
+	until := time.Now().Add(duration)
+
+	slog.WarnContext(ctx, "Global storage outage declared, watchdog fencing is disarmed on lease loss", "until", until)
+
+	lvmOutage.declare(until)
+
+	// Leases already lost have little time left before the watchdog fires.
+	n.quiesceLostVGs(context.WithoutCancel(ctx))
+
+	return nil
+}
+
+// clearOutage withdraws an outage declaration which hasn't taken effect.
+func (n *LVM) clearOutage(ctx context.Context) error {
+	if !n.state.Services.LVM.Config.Enabled {
+		return errors.New("LVM isn't currently enabled")
+	}
+
+	err := lvmOutage.clear()
+	if err != nil {
+		return err
+	}
+
+	slog.WarnContext(ctx, "Global storage outage declaration cleared")
+
+	return nil
+}
+
+// loadEnabledLVM returns the LVM service if it's enabled.
+func loadEnabledLVM(ctx context.Context, s *state.State) (*LVM, error) {
+	srv, err := Load(ctx, s, "lvm")
+	if err != nil {
+		return nil, err
+	}
+
+	lvm, ok := srv.(*LVM)
+	if !ok || !lvm.state.Services.LVM.Config.Enabled {
+		return nil, errors.New("LVM isn't currently enabled")
+	}
+
+	return lvm, nil
+}
+
+// quiesceLostVGs gives up the lockspace of every VG that lost its lease.
+func (n *LVM) quiesceLostVGs(ctx context.Context) {
+	claimed := lvmOutage.claimLost()
+
+	for vg, quiesced := range claimed {
+		go n.quiesceVG(ctx, vg, quiesced)
+	}
+
+	if len(claimed) > 0 {
+		go n.recoverLockspacesRetry(ctx)
+	}
+}
+
+// quiesceVG holds back the I/O of a VG and drops its lockspace, which is what disarms the watchdog.
+// Those commands block until storage returns, so a suspended LV is only resumed by re-acquiring its lock.
+func (n *LVM) quiesceVG(ctx context.Context, vg string, quiesced *lvmQuiescedVG) {
+	defer close(quiesced.settled)
+
+	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed reading LVM locks, leaving the lockspace to the watchdog", "vg", vg, "err", err)
+		lvmOutage.release(vg)
+
+		return
+	}
+
+	dmOutput, err := subprocess.RunCommandContext(ctx, "dmsetup", "info", "-c", "--noheadings", "--separator", ":", "-o", "name,subsystem,vg_name,lv_name,lv_layer")
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed listing active LVs, leaving the lockspace to the watchdog", "vg", vg, "err", err)
+		lvmOutage.release(vg)
+
+		return
+	}
+
+	quiesced.modes = lvmLockspaces(infoOutput)[vg]
+	quiesced.devices = lvmDevices(dmOutput, vg)
+
+	slog.WarnContext(ctx, "Suspending LVs and dropping the LVM lockspace for the declared outage", "vg", vg, "devices", quiesced.devices)
+
+	var wg sync.WaitGroup
+
+	for _, device := range quiesced.devices {
+		wg.Go(func() {
+			_, err := subprocess.RunCommandContext(ctx, "dmsetup", "suspend", "--noflush", "--nolockfs", device)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed suspending LV", "device", device, "err", err)
+			}
+		})
+	}
+
+	wg.Go(func() {
+		_, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--drop", vg)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed dropping LVM lockspace", "vg", vg, "err", err)
+		}
+	})
+
+	wg.Wait()
+}
+
+// recoverQuiescedVG takes back the locks of a quiesced VG and resumes its LVs.
+func (n *LVM) recoverQuiescedVG(ctx context.Context, vg string, quiesced *lvmQuiescedVG, started bool) error {
+	select {
+	case <-quiesced.settled:
+	default:
+		return errors.New("still waiting on the suspends and the lockspace drop")
+	}
+
+	if !started {
+		slog.WarnContext(ctx, "Starting LVM lockspace", "vg", vg)
+
+		err := n.lockStart(ctx, vg)
+		if err != nil {
+			return err
+		}
+	}
+
+	err := n.relockActiveLVs(ctx, vg, quiesced.modes)
+	if err != nil {
+		return err
+	}
+
+	// The relock usually resumes the LV by itself and the device may have been removed since.
+	for _, device := range quiesced.devices {
+		_, err = os.Stat("/dev/mapper/" + device)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+
+		_, err = subprocess.RunCommandContext(ctx, "dmsetup", "resume", device)
+		if err != nil {
+			return err
+		}
+	}
+
+	lvmOutage.release(vg)
+
+	slog.WarnContext(ctx, "LVM lockspace recovered from the declared outage", "vg", vg)
 
 	return nil
 }
@@ -373,9 +699,10 @@ func LockspaceLost(ctx context.Context, s *state.State, vg string) error {
 func (n *LVM) recoverLockspacesRetry(ctx context.Context) {
 	var err error
 
-	for range 60 {
+	// A declared outage may last a long time.
+	for attempt := 0; attempt < 60 || lvmOutage.active(); attempt++ {
 		err = n.recoverLockspaces(ctx)
-		if err == nil {
+		if err == nil && !lvmOutage.active() {
 			return
 		}
 
@@ -432,6 +759,8 @@ func (n *LVM) recoverLockspaces(ctx context.Context) error {
 		return nil
 	}
 
+	quiesced, killed := lvmOutage.claimVisible(shared, lvmKilledVGs(vgs.Log))
+
 	infoOutput, err := subprocess.RunCommandContext(ctx, "lvmlockctl", "--info")
 	if err != nil {
 		return err
@@ -439,7 +768,6 @@ func (n *LVM) recoverLockspaces(ctx context.Context) error {
 
 	lockspaces := lvmLockspaces(infoOutput)
 
-	killed := lvmKilledVGs(vgs.Log)
 	if len(killed) > 0 {
 		sanlockOutput, err := subprocess.RunCommandContext(ctx, "sanlock", "client", "status")
 		if err != nil {
@@ -479,6 +807,26 @@ func (n *LVM) recoverLockspaces(ctx context.Context) error {
 
 	for _, vg := range shared {
 		_, started := lockspaces[vg]
+
+		quiescedVG, isQuiesced := quiesced[vg]
+		if isQuiesced {
+			err = n.recoverQuiescedVG(ctx, vg, quiescedVG, started)
+			if err != nil && strings.Contains(err.Error(), "LV locked by other host") {
+				slog.ErrorContext(ctx, "Another server took an LV during the declared outage, resetting to protect shared storage", "vg", vg, "err", err)
+
+				n.fence()
+
+				return nil
+			}
+
+			// Anything else can be retried as the suspended LVs can't write.
+			if err != nil {
+				slog.WarnContext(ctx, "Failed recovering from the declared outage, retrying", "vg", vg, "err", err)
+			}
+
+			continue
+		}
+
 		if started {
 			continue
 		}
@@ -633,6 +981,22 @@ func lvmLockspaces(output string) map[string]map[string]string {
 	}
 
 	return lockspaces
+}
+
+// lvmDevices parses "dmsetup info" into the top-level devices of the VG's LVs, leaving out the one holding the sanlock leases.
+func lvmDevices(output string, vg string) []string {
+	devices := []string{}
+
+	for line := range strings.SplitSeq(output, "\n") {
+		fields := strings.Split(strings.TrimSpace(line), ":")
+		if len(fields) != 5 || fields[1] != "LVM" || fields[2] != vg || fields[3] == "lvmlock" || fields[4] != "" {
+			continue
+		}
+
+		devices = append(devices, fields[0])
+	}
+
+	return devices
 }
 
 // sanlockLockspaces parses "sanlock client status" into the set of VGs whose lockspace sanlock still holds.
