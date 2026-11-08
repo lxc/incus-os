@@ -8,7 +8,7 @@ set -eu
 apt-get update
 
 # FIXME: Pinning to older version to avoid breakage on arm64.
-version="20.2.2-pve1"
+version="20.2.4-pve4"
 apt-get install --yes "ceph-common=${version}" \
     "libcephfs2=${version}" \
     "librados2=${version}" \
