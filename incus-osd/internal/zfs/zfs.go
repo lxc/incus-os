@@ -115,6 +115,25 @@ func LoadPools(ctx context.Context, s *state.State) error {
 				}
 			}
 
+			// Partition the second device of a mirrored pool like the system drive, as the storage API does.
+			if localZpool.Type == "zfs-raid1" {
+				for i, device := range localZpool.Devices {
+					if device == "/dev/disk/by-partlabel/local-data" {
+						continue
+					}
+
+					deviceID, err := storage.DeviceToID(ctx, device, false)
+					if err != nil {
+						return err
+					}
+
+					localZpool.Devices[i], err = partitionLocalPoolDevice(ctx, deviceID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			// Create the local pool.
 			err = CreateZpool(ctx, localZpool, s)
 			if err != nil {
@@ -726,14 +745,60 @@ func convertPoolToMirror(ctx context.Context, currentConfig api.SystemStoragePoo
 	return err
 }
 
+// localPoolPartitionStart returns the start sector on the provided drive matching the byte offset of the system's local-data partition.
+func localPoolPartitionStart(device string) (int64, error) {
+	partition, err := filepath.EvalSymlinks("/dev/disk/by-partlabel/local-data")
+	if err != nil {
+		return 0, err
+	}
+
+	// The kernel always reports the start in 512 byte units.
+	start, err := readSysfsInt("/sys/class/block/" + filepath.Base(partition) + "/start")
+	if err != nil {
+		return 0, err
+	}
+
+	drive, err := filepath.EvalSymlinks(device)
+	if err != nil {
+		return 0, err
+	}
+
+	blockSize, err := readSysfsInt("/sys/class/block/" + filepath.Base(drive) + "/queue/logical_block_size")
+	if err != nil {
+		return 0, err
+	}
+
+	offset := start * 512
+	if blockSize <= 0 || offset%blockSize != 0 {
+		return 0, fmt.Errorf("offset %d isn't a multiple of the %d byte sectors of %s", offset, blockSize, device)
+	}
+
+	return offset / blockSize, nil
+}
+
+// readSysfsInt reads an integer from a sysfs file.
+func readSysfsInt(path string) (int64, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(strings.TrimSpace(string(content)), 10, 64)
+}
+
 // The "local" zpool is special. It is automatically created on first boot, but
 // can be extended into a RAID0 or RAID1 configuration by adding another drive.
 // When adding or replacing a device in this pool after converting to RAID1, we
 // attempt to partition the second device in a similar fashion so the two underlying
 // devices are the same size.
 func partitionLocalPoolDevice(ctx context.Context, device string) (string, error) {
-	// Create the partition at the correct offset
-	_, err := subprocess.RunCommandContext(ctx, "sgdisk", "-n", "11:69826560:", device)
+	start, err := localPoolPartitionStart(device)
+	if err != nil {
+		return "", err
+	}
+
+	// Create the partition at the correct offset, ending on a 4KiB boundary like systemd-repart does.
+	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-a", "8", "-I", "-n", "11:"+strconv.FormatInt(start, 10)+":", device)
 	if err != nil {
 		return "", err
 	}
