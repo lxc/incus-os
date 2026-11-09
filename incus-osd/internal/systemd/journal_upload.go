@@ -14,7 +14,7 @@ import (
 const (
 	journalUploadConfigPath = "/etc/systemd/journal-upload.conf"
 	journalUploadCertsPath  = "/etc/systemd/journal-upload"
-	journalUploadUser       = "systemd-journal-upload"
+	journalUploadGroup      = "systemd-journal"
 )
 
 // SetJournalUpload sets the system's remote journal upload configuration.
@@ -34,23 +34,23 @@ func SetJournalUpload(ctx context.Context, config api.SystemLoggingJournalUpload
 		return StopUnit(ctx, "systemd-journal-upload")
 	}
 
-	// The upload service runs unprivileged, so certificate files must be readable by its user.
-	u, err := user.Lookup(journalUploadUser)
+	// The upload service runs as a dynamic user, so the files are shared through its systemd-journal group.
+	g, err := user.LookupGroup(journalUploadGroup)
 	if err != nil {
 		return err
 	}
 
-	uid, err := strconv.Atoi(u.Uid)
+	gid, err := strconv.Atoi(g.Gid)
 	if err != nil {
 		return err
 	}
 
-	gid, err := strconv.Atoi(u.Gid)
+	err = os.MkdirAll(journalUploadCertsPath, 0o750)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(journalUploadCertsPath, 0o755)
+	err = os.Chown(journalUploadCertsPath, 0, gid)
 	if err != nil {
 		return err
 	}
@@ -68,12 +68,12 @@ func SetJournalUpload(ctx context.Context, config api.SystemLoggingJournalUpload
 			return fallback, nil
 		}
 
-		err := os.WriteFile(path, []byte(contents), 0o600)
+		err := os.WriteFile(path, []byte(contents), 0o640)
 		if err != nil {
 			return "", err
 		}
 
-		err = os.Chown(path, uid, gid)
+		err = os.Chown(path, 0, gid)
 		if err != nil {
 			return "", err
 		}
