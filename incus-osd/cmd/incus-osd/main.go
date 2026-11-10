@@ -451,6 +451,12 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		slog.DebugContext(ctx, "Platform keyring entry", "name", key.Description, "key", key.Fingerprint)
 	}
 
+	// Keep the Secure Boot certificates on the ESP in sync with the ones we ship.
+	err = secureboot.SyncESPCertificates()
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to sync Secure Boot certificates to the ESP", "err", err)
+	}
+
 	// If no encryption recovery keys have been defined for the root and swap partitions, this is a fresh install.
 	// Generate recovery keys and ensure we're binding against PCR15 to mitigate an attacker from bypassing the
 	// TPM encryption with a malicious root partition.
