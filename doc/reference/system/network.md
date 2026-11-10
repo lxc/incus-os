@@ -302,6 +302,8 @@ config:
       public_key: "qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ="
 ```
 
+A default route (`0.0.0.0/0` or `::/0`) can be set on a WireGuard interface to send all traffic through the tunnel. IncusOS then uses policy routing to keep the tunnel's own traffic to its peers on the regular routes, and more specific routes on other interfaces remain in use.
+
 #### DNS, NTP, Timezone
 
 ```{note}
