@@ -657,5 +657,29 @@ func validateEthernet(eth *api.SystemNetworkEthernet) error {
 		}
 	}
 
+	if eth.Speed < 0 {
+		return fmt.Errorf("bad speed %d: must be a positive number of Mbps", eth.Speed)
+	}
+
+	if eth.HalfDuplex && eth.Speed != 10 && eth.Speed != 100 {
+		return errors.New("half_duplex requires a speed of 10 or 100")
+	}
+
+	if eth.Speed > 0 && len(eth.Advertise) > 0 {
+		return errors.New("speed and advertise cannot be used together")
+	}
+
+	for _, mode := range eth.Advertise {
+		if !linkSpeedModeRegex.MatchString(mode) && !slices.Contains(linkOtherModes, mode) {
+			return fmt.Errorf("bad advertise mode %q", mode)
+		}
+	}
+
 	return nil
 }
+
+// Link mode names accepted by systemd.link's Advertise= option.
+var (
+	linkSpeedModeRegex = regexp.MustCompile(`^[0-9]+base[a-z0-9-]+-(half|full|fec)$`)
+	linkOtherModes     = []string{"pause", "asym-pause", "autonegotiation", "tp", "aui", "mii", "fibre", "bnc", "backplane", "fec-none", "fec-rs", "fec-baser", "fec-llrs"}
+)
