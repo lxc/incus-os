@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	syncconfig "github.com/FuturFusion/openfga-sync/shared/config"
 )
 
@@ -17,6 +19,8 @@ type ApplicationOpenFGAConfig struct {
 // ApplicationOpenFGAState represents the state of the openfga application.
 type ApplicationOpenFGAState struct {
 	ApplicationState
+
+	LastSync *time.Time `json:"last_sync,omitempty" yaml:"last_sync,omitempty"` // Last successful openfga-sync run.
 }
 
 // ApplicationOpenFGA represents the state and configuration of the openfga application.
