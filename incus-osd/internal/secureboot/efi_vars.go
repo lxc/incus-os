@@ -412,6 +412,98 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	return nil
 }
 
+// SyncESPCertificates writes any missing embedded Secure Boot certificate to the ESP for manual enrollment.
+func SyncESPCertificates() error {
+	embeddedCerts, err := incusoscerts.GetEmbeddedCertificates()
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll("/boot/keys", 0o755)
+	if err != nil {
+		return err
+	}
+
+	// Track the certificates already on the ESP, whatever their file name.
+	existing := map[string]string{}
+
+	paths, err := filepath.Glob("/boot/keys/*.der")
+	if err != nil {
+		return err
+	}
+
+	for _, path := range paths {
+		content, err := os.ReadFile(path) // #nosec G304
+		if err != nil {
+			return err
+		}
+
+		existing[string(content)] = path
+	}
+
+	// Use the embedded certificates so the keys are available even before they get enrolled.
+	sbCerts := embeddedCerts.SecureBootCertificates
+	certsByVar := map[string][]*x509.Certificate{
+		"KEK": sbCerts.KEK,
+		"db":  sbCerts.DB,
+		"dbx": sbCerts.DBX,
+	}
+
+	if sbCerts.PK != nil {
+		certsByVar["PK"] = []*x509.Certificate{sbCerts.PK}
+	}
+
+	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
+		for _, cert := range certsByVar[varName] {
+			// The file name is derived from the subject, such as "Incus OS - Secure Boot 2026 R1" or "Incus OS - Secure Boot KEK R1".
+			_, suffix, found := strings.Cut(cert.Subject.CommonName, " - Secure Boot ")
+			if !found {
+				continue
+			}
+
+			name := strings.Join(strings.Fields(suffix), "-")
+			if name == "" || strings.Contains(name, "/") {
+				continue
+			}
+
+			existingPath, ok := existing[string(cert.Raw)]
+
+			switch varName {
+			case "db":
+				name = "DB-" + name
+			case "dbx":
+				// Don't offer revoked certificates for enrollment in db.
+				if ok && strings.HasPrefix(filepath.Base(existingPath), "secureboot-DB-") {
+					err := os.Remove(existingPath)
+					if err != nil {
+						return err
+					}
+
+					ok = false
+				}
+
+				name = "DBX-" + name
+			default:
+			}
+
+			if ok {
+				continue
+			}
+
+			path := "/boot/keys/secureboot-" + name + ".der"
+
+			err = os.WriteFile(path, cert.Raw, 0o644) // #nosec G306
+			if err != nil {
+				return err
+			}
+
+			existing[string(cert.Raw)] = path
+		}
+	}
+
+	return nil
+}
+
 // ClearIncusOSInstallComplete removes the "IncusOSInstallComplete" UEFI variable, if it exists.
 func ClearIncusOSInstallComplete(ctx context.Context) error {
 	_, err := subprocess.RunCommandContext(ctx, "chattr", "-i", "/sys/firmware/efi/efivars/IncusOSInstallComplete-12f075e0-2d07-493d-811a-00920a72c04c")
