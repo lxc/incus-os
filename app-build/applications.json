@@ -216,7 +216,7 @@
         ]
     },
     "openfga-sync": {
-        "version": "ea6c912630c18df907dcdc09ec6b4a2c6f9aa493",
+        "version": "d58aa8a05fe2cb9b4f81325309ad75a4fe197af7",
         "repo": "https://github.com/FuturFusion/openfga-sync.git",
         "build_targets": [
             [
