@@ -446,6 +446,9 @@ definitions:
             pci_address:
                 type: string
                 x-go-name: PCIAddress
+            switchdev:
+                type: boolean
+                x-go-name: Switchdev
             vf_count:
                 format: int64
                 type: integer
