@@ -101,3 +101,26 @@ GatewayOnLink=yes
 {{- end}}
 Destination={{.To}}
 {{end}}
+{{- range .DefaultRoutes}}
+[Route]
+Gateway={{.Via}}
+{{- if .OnLink}}
+GatewayOnLink=yes
+{{- end}}
+Destination={{.To}}
+Table={{$.RouteTable}}
+{{end}}
+{{- if .DefaultRoutes}}
+[RoutingPolicyRule]
+Family=both
+SuppressPrefixLength=0
+Table=main
+Priority={{.RulePriority}}
+
+[RoutingPolicyRule]
+Family=both
+FirewallMark={{.RouteTable}}
+InvertRule=true
+Table={{.RouteTable}}
+Priority={{.NextRulePriority}}
+{{end}}

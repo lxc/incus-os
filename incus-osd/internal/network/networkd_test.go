@@ -121,6 +121,9 @@ wireguard:
     - fd25:6c9a:6c19::7/64
     name: wg0
     mtu: 1420
+    routes:
+      - to: 0.0.0.0/0
+        via: 10.9.0.1
 `
 
 var networkdConfig3 = `
@@ -821,7 +824,7 @@ func TestNetdevFileGeneration(t *testing.T) {
 	require.Equal(t, "10-_vmanagement.netdev", cfgs[1].Name)
 	require.Equal(t, "[NetDev]\nName=_vmanagement\nKind=veth\nMACAddress=AA:BB:CC:DD:EE:01\n\n[Peer]\nName=_iaabbccddee01\n", cfgs[1].Contents)
 	require.Equal(t, "13-wg0.netdev", cfgs[2].Name)
-	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=\n\n", cfgs[2].Contents)
+	require.Equal(t, "[NetDev]\nName=wg0\nKind=wireguard\n\n[WireGuard]\nPrivateKey=\nFirewallMark=51820\n\n", cfgs[2].Contents)
 
 	// Test third config .netdev file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -921,7 +924,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-management.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\n", cfgs[3].Contents)
 	require.Equal(t, "23-wg0.network", cfgs[4].Name)
-	require.Equal(t, "[Match]\nName=wg0\n\n[Link]\nMTUBytes=1420\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.9.0.7/24\nAddress=fd25:6c9a:6c19::7/64\nIPv6AcceptRA=false\n", cfgs[4].Contents)
+	require.Equal(t, "[Match]\nName=wg0\n\n[Link]\nMTUBytes=1420\n\n[Network]\nLinkLocalAddressing=ipv6\nAddress=10.9.0.7/24\nAddress=fd25:6c9a:6c19::7/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.9.0.1\nDestination=0.0.0.0/0\nTable=51820\n\n[RoutingPolicyRule]\nFamily=both\nSuppressPrefixLength=0\nTable=main\nPriority=30000\n\n[RoutingPolicyRule]\nFamily=both\nFirewallMark=51820\nInvertRule=true\nTable=51820\nPriority=30001\n\n", cfgs[4].Contents)
 
 	// Test third config .network file generation.
 	networkCfg = api.SystemNetworkConfig{}
