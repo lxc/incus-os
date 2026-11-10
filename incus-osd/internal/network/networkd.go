@@ -1910,13 +1910,19 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 			continue
 		}
 
-		// Check if the interface's configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Interfaces[oldIndex])
+		// Check if the interface's configuration has changed, ignoring fields which don't affect the devices.
+		oldIface := oldCfg.Interfaces[oldIndex]
+		oldIface.FirewallRules, oldIface.Roles, oldIface.VLANTags = nil, nil, nil
+
+		newIface := newCfg.Interfaces[newIndex]
+		newIface.FirewallRules, newIface.Roles, newIface.VLANTags = nil, nil, nil
+
+		oldConfig, err := json.Marshal(oldIface)
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Interfaces[newIndex])
+		newConfig, err := json.Marshal(newIface)
 		if err != nil {
 			return err
 		}
@@ -1945,13 +1951,19 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 			continue
 		}
 
-		// Check if the bond's configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Bonds[oldIndex])
+		// Check if the bond's configuration has changed, ignoring fields which don't affect the devices.
+		oldBond := oldCfg.Bonds[oldIndex]
+		oldBond.FirewallRules, oldBond.Roles, oldBond.VLANTags = nil, nil, nil
+
+		newBond := newCfg.Bonds[newIndex]
+		newBond.FirewallRules, newBond.Roles, newBond.VLANTags = nil, nil, nil
+
+		oldConfig, err := json.Marshal(oldBond)
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Bonds[newIndex])
+		newConfig, err := json.Marshal(newBond)
 		if err != nil {
 			return err
 		}
