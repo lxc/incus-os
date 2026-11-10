@@ -41,6 +41,7 @@ The following configuration options can be set:
    * `sriov`: Configure the number of SR-IOV virtual functions to create on one or more PCI devices. IncusOS will attempt to immediately apply this change without requiring a reboot.
       * `pci_address`: The PCI address of the device.
       * `vf_count`: The number of virtual functions to create, which can't exceed the maximum supported by the device.
+      * `switchdev`: Optional and only valid for network devices with an embedded switch. If `true`, the embedded switch is set to `switchdev` mode, which is needed for features such as live-migration of virtual functions. When unset or `false`, a network device found in `switchdev` mode is switched back to `legacy` mode. Setting it to `true` on any other kind of SR-IOV device is an error.
 
 * `zfs`: Change ZFS-specific settings.
    * `arc_max_size`: Optional; a human-readable string such as "8GiB" that defines the maximum size of the ZFS ARC. When unset or "0", the ZFS default is used. IncusOS will attempt to immediately apply this change without requiring a reboot.
