@@ -145,7 +145,19 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 					endpoint:    "system/network",
 				}
 
-				return []*cobra.Command{networkConfirmCmd.command(), flushDNSCmd.command()}
+				// Set a link up or down.
+				linkStateCmd := cmdGenericRun{
+					os:          c.os,
+					action:      "link-state",
+					description: "Set the device backing an interface or bond member up or down",
+					endpoint:    "system/network",
+					dataArgs:    []string{"name", "up|down"},
+					dataFunc: func(args []string) (any, error) {
+						return api.SystemNetworkLink{Name: args[0], State: args[1]}, nil
+					},
+				}
+
+				return []*cobra.Command{networkConfirmCmd.command(), flushDNSCmd.command(), linkStateCmd.command()}
 			},
 		},
 		{
