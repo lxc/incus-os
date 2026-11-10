@@ -8,6 +8,8 @@ Optionally, if the `confirmation_timeout` field is defined when applying a confi
 
 Be aware that changing network configuration may result in a brief period of time when the system is unreachable over the network.
 
+Most changes to an interface or bond cause its network devices to be recreated, briefly disconnecting any instance attached to its bridge. Changes limited to `vlan_tags`, `roles` or `firewall_rules` are applied to the existing devices instead.
+
 ```{note}
 IncusOS automatically configures each interface and bond as a network bridge. This allows for easy out-of-the-box configuration of bridged NICs for containers and virtual machines.
 ```
