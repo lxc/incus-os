@@ -268,6 +268,44 @@ config:
     - "slaac"
 ```
 
+#### Ethernet link settings
+
+Force a 10G SFP module to a fixed speed,
+and restrict the next port to only advertise certain speeds and duplex modes:
+
+```yaml
+config:
+  interfaces:
+  - name: eno0
+    hwaddr: eno0
+    required_for_online: no
+    addresses:
+    - dhcp4
+
+    ethernet:
+      speed: 10000
+
+  - name: eno1
+    hwaddr: eno1
+    addresses:
+    - dhcp4
+
+    ethernet:
+      advertise:
+      - 2500baset-full
+      - 1000baset-full
+```
+
+The `speed` is in Mbps and disables autonegotiation.
+It implies full duplex, unless `half_duplex` is set.
+
+The `advertise` list keeps autonegotiation enabled, but restricted to the given modes,
+so it cannot be combined with `speed`.
+
+The `advertise` modes use systemd link mode names,
+check out the [`Advertise=` option](https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html#Advertise=).
+When set on a bond, these settings apply to all its members.
+
 #### WireGuard
 
 Configure a WireGuard interface with two peers (providing a `private_key` is optional and will be created if empty). Each peer also accepts an optional base64-encoded `preshared_key`:
