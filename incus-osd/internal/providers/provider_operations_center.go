@@ -456,6 +456,10 @@ func (p *operationsCenter) apiRequest(ctx context.Context, method string, path s
 		return nil, err
 	}
 
+	if data != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	// Make the REST call.
 	resp, err := tryRequest(p.client, req)
 	if err != nil {
