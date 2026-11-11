@@ -2302,6 +2302,54 @@ paths:
             summary: Restore an application backup
             tags:
                 - applications
+    /1.0/applications/{name}/:start:
+        post:
+            description: Starts a stopped application.
+            operationId: applications_post_start
+            parameters:
+                - description: Application name
+                  in: path
+                  name: name
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Start an application
+            tags:
+                - applications
+    /1.0/applications/{name}/:stop:
+        post:
+            description: |-
+                Stops the application until it is started again or the system is rebooted.
+                The primary application can only be stopped while the fallback listener is active.
+            operationId: applications_post_stop
+            parameters:
+                - description: Application name
+                  in: path
+                  name: name
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Stop an application
+            tags:
+                - applications
     /1.0/applications/{name}/:switch-version:
         post:
             consumes:
