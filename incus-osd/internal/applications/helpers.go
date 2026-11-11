@@ -27,6 +27,7 @@ import (
 	incusapi "github.com/lxc/incus/v7/shared/api"
 	"github.com/lxc/incus/v7/shared/revert"
 	"github.com/lxc/incus/v7/shared/subprocess"
+	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/seed"
@@ -415,6 +416,12 @@ func extractTarArchive(archiveRoot string, restartUnits []string, archive io.Rea
 
 	newArchiveRoot := strings.TrimSuffix(archiveRoot, "/") + ".new"
 
+	// Clear any leftover from an earlier failed restore.
+	err = os.RemoveAll(newArchiveRoot)
+	if err != nil {
+		return err
+	}
+
 	err = os.Mkdir(newArchiveRoot, stat.Mode())
 	if err != nil {
 		return err
@@ -519,6 +526,14 @@ func extractTarArchive(archiveRoot string, restartUnits []string, archive io.Rea
 			return
 		}
 
+		// Unmount anything the application left mounted in its directory.
+		err = unmountBelow(archiveRoot)
+		if err != nil {
+			slog.WarnContext(ctx, "Failed to unmount file systems under "+archiveRoot, "error", err)
+
+			return
+		}
+
 		// Clean out the existing directory.
 		entries, err := os.ReadDir(archiveRoot)
 		if err != nil {
@@ -588,6 +603,49 @@ func extractTarArchive(archiveRoot string, restartUnits []string, archive io.Rea
 			return
 		}
 	}()
+
+	return nil
+}
+
+// unmountBelow unmounts all file systems mounted below a directory, leaving the directory itself alone.
+func unmountBelow(dir string) error {
+	content, err := os.ReadFile("/proc/self/mountinfo")
+	if err != nil {
+		return err
+	}
+
+	prefix := strings.TrimSuffix(dir, "/") + "/"
+	unescape := strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, `\`)
+
+	mounts := []string{}
+
+	for line := range strings.SplitSeq(string(content), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 5 {
+			continue
+		}
+
+		mountPoint := unescape.Replace(fields[4])
+		if strings.HasPrefix(mountPoint, prefix) {
+			mounts = append(mounts, mountPoint)
+		}
+	}
+
+	// Unmount in reverse order to handle nested and stacked mounts.
+	slices.Reverse(mounts)
+
+	for _, mountPoint := range mounts {
+		err := unix.Unmount(mountPoint, 0)
+		if err == nil {
+			continue
+		}
+
+		// Fallback to a lazy unmount for busy file systems.
+		err = unix.Unmount(mountPoint, unix.MNT_DETACH)
+		if err != nil && !errors.Is(err, unix.EINVAL) && !errors.Is(err, unix.ENOENT) {
+			return fmt.Errorf("failed to unmount %q: %w", mountPoint, err)
+		}
+	}
 
 	return nil
 }

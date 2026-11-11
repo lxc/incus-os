@@ -35,3 +35,5 @@ It is configured through the `sync` field of the application configuration, whic
 
 The daemon always synchronizes the local OpenFGA service, its URL and API token are filled in automatically.
 The synchronization state is kept on the application's local storage.
+
+The time of the last successful synchronization is reported as `last_sync` in the application state.

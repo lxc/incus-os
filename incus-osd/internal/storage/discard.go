@@ -20,7 +20,7 @@ func IsBlockdev(fm os.FileMode) bool {
 
 // ClearBlock fully resets a block device or disk file using the most efficient mechanism available.
 // For files, it will truncate them down to zero and back to their original size.
-// For blocks, it will attempt a variety of discard options, validating the result with marker files and eventually fallback to full zero-ing.
+// For blocks, it will attempt a variety of discard options, validating the result with marker files, only falling back to full zero-ing if secure is set.
 //
 // An offset can be specified to only reset a part of a device.
 func ClearBlock(ctx context.Context, blockPath string, blockOffset int64, secure bool) error {
@@ -213,6 +213,19 @@ func ClearBlock(ctx context.Context, blockPath string, blockOffset int64, secure
 		_ = fd.Close()
 	}
 
+	// Zap any existing partition table if clearing the whole device.
+	if blockOffset == 0 {
+		_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", blockPath)
+		if err != nil && !secure {
+			return err
+		}
+	}
+
+	// Don't zero the device unless specifically requested.
+	if !secure {
+		return nil
+	}
+
 	// Attempt device zero-ing.
 	_, err = subprocess.RunCommand("blkdiscard", "-f", "-o", strconv.FormatInt(blockOffset, 10), "-z", blockPath)
 	if err == nil {
@@ -236,17 +249,6 @@ func ClearBlock(ctx context.Context, blockPath string, blockOffset int64, secure
 
 		// Some markers were found, go to the next clearing option.
 		_ = fd.Close()
-	}
-
-	// All fast discard attempts have failed; zap any existing partition table on the device.
-	_, err = subprocess.RunCommandContext(ctx, "sgdisk", "-Z", blockPath)
-	if err != nil {
-		return err
-	}
-
-	// Don't perform a manual zero-ing of the device unless specifically requested.
-	if !secure {
-		return nil
 	}
 
 	// Proceed with manual zero-ing.

@@ -51,8 +51,9 @@ type SystemKernelConfigPCI struct {
 
 // SystemKernelConfigPCISRIOV defines the number of SR-IOV virtual functions to create on a PCI device.
 type SystemKernelConfigPCISRIOV struct {
-	PCIAddress string `json:"pci_address" yaml:"pci_address"`
-	VFCount    int    `json:"vf_count"    yaml:"vf_count"`
+	PCIAddress string `json:"pci_address"         yaml:"pci_address"`
+	Switchdev  bool   `json:"switchdev,omitempty" yaml:"switchdev,omitempty"`
+	VFCount    int    `json:"vf_count"            yaml:"vf_count"`
 }
 
 // SystemKernelConfigPCIPassthrough defines a specific PCI device that should be made available for passthrough to a VM.

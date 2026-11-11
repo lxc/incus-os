@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	syncconfig "github.com/FuturFusion/openfga-sync/shared/config"
@@ -123,6 +124,15 @@ func (o *openfga) Get(_ context.Context) (any, error) {
 		}
 
 		ret.Config.Sync = &syncCfg
+	}
+
+	// Report the last successful synchronization.
+	contents, err = os.ReadFile("/var/lib/openfga/sync-state/last-sync")
+	if err == nil && ret.Config.Sync != nil {
+		lastSync, err := time.Parse(time.RFC3339, strings.TrimSpace(string(contents)))
+		if err == nil {
+			ret.State.LastSync = &lastSync
+		}
 	}
 
 	return ret, nil

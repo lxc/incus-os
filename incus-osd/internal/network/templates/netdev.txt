@@ -48,6 +48,8 @@ Id={{.VLANID}}
 PrivateKey={{.WGPrivateKey}}
   {{- if .WGPort}}
 ListenPort={{.WGPort}}{{end}}
+  {{- if .WGFirewallMark}}
+FirewallMark={{.WGFirewallMark}}{{end}}
 {{range .WGPeers}}
 [WireGuardPeer]
 PublicKey={{.PublicKey}}

@@ -8,6 +8,8 @@ Optionally, if the `confirmation_timeout` field is defined when applying a confi
 
 Be aware that changing network configuration may result in a brief period of time when the system is unreachable over the network.
 
+Most changes to an interface or bond cause its network devices to be recreated, briefly disconnecting any instance attached to its bridge. Changes limited to `vlan_tags`, `roles` or `firewall_rules` are applied to the existing devices instead.
+
 ```{note}
 IncusOS automatically configures each interface and bond as a network bridge. This allows for easy out-of-the-box configuration of bridged NICs for containers and virtual machines.
 ```
@@ -339,6 +341,8 @@ config:
       persistent_keepalive: 30
       public_key: "qPYSgwaJe0VZb4M8smTPpd2rfKHz0X0ypq54ZY4ATVQ="
 ```
+
+A default route (`0.0.0.0/0` or `::/0`) can be set on a WireGuard interface to send all traffic through the tunnel. IncusOS then uses policy routing to keep the tunnel's own traffic to its peers on the regular routes, and more specific routes on other interfaces remain in use.
 
 #### DNS, NTP, Timezone
 

@@ -2,7 +2,9 @@ package seed
 
 import (
 	"context"
-	"net"
+	"log/slog"
+
+	"github.com/vishvananda/netlink"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -59,7 +61,7 @@ func NetworkConfigHasEmptyDevices(networkCfg api.SystemNetworkConfig) bool {
 // getDefaultNetworkConfig returns a minimal network configuration, with every interface
 // configured to acquire an IP via DHCP and SLAAC.
 func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
-	interfaces, err := net.Interfaces()
+	links, err := netlink.LinkList()
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +72,17 @@ func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 		},
 	}
 
-	for _, i := range interfaces {
-		if i.Name == "lo" {
+	for _, link := range links {
+		attrs := link.Attrs()
+
+		if attrs.Name == "lo" {
+			continue
+		}
+
+		// Interfaces are identified by their permanent MAC address, skip those without one.
+		if len(attrs.PermHWAddr) == 0 {
+			slog.Warn("Skipping network interface without a permanent MAC address", "name", attrs.Name)
+
 			continue
 		}
 
@@ -79,8 +90,8 @@ func getDefaultNetworkConfig() (*api.SystemNetworkConfig, error) {
 		// on the DNS check after interface configuration to indicate when there's
 		// good network connectivity.
 		ret.Interfaces = append(ret.Interfaces, api.SystemNetworkInterface{
-			Name:              i.Name,
-			Hwaddr:            i.HardwareAddr.String(),
+			Name:              attrs.Name,
+			Hwaddr:            attrs.PermHWAddr.String(),
 			Addresses:         []string{"dhcp4", "slaac"},
 			RequiredForOnline: "no",
 		})

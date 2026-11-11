@@ -15,6 +15,7 @@ import (
 
 	"github.com/lxc/incus/v7/shared/subprocess"
 	"github.com/lxc/incus/v7/shared/units"
+	"github.com/vishvananda/netlink"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
@@ -118,6 +119,11 @@ func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
 		}
 
 		if strings.TrimSpace(string(currentVFs)) == strconv.Itoa(c.VFCount) {
+			err := applyEswitchMode(c.PCIAddress, c.Switchdev)
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
@@ -148,6 +154,76 @@ func ApplySRIOV(config []api.SystemKernelConfigPCISRIOV) error {
 		if err != nil {
 			return err
 		}
+
+		err = applyEswitchMode(c.PCIAddress, c.Switchdev)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// applyEswitchMode switches the embedded switch of a PCI device between the legacy and switchdev modes.
+func applyEswitchMode(pciAddress string, switchdev bool) error {
+	mode := "legacy"
+	if switchdev {
+		mode = "switchdev"
+	}
+
+	dev, err := netlink.DevLinkGetDeviceByName("pci", pciAddress)
+	if err != nil || dev.Attrs.Eswitch.Mode == "" {
+		// Devices without an embedded switch can only operate in legacy mode.
+		if !switchdev {
+			return nil
+		}
+
+		return fmt.Errorf("PCI device %q doesn't support switchdev mode", pciAddress)
+	}
+
+	if dev.Attrs.Eswitch.Mode == mode {
+		return nil
+	}
+
+	// The virtual functions must be unbound from their driver while changing mode.
+	vfs, err := filepath.Glob(filepath.Join("/sys/bus/pci/devices", pciAddress, "virtfn*"))
+	if err != nil {
+		return err
+	}
+
+	vfDrivers := map[string]string{}
+
+	for _, vf := range vfs {
+		vfPath, err := filepath.EvalSymlinks(vf)
+		if err != nil {
+			return err
+		}
+
+		driverPath, err := filepath.EvalSymlinks(filepath.Join(vfPath, "driver"))
+		if err != nil {
+			continue
+		}
+
+		err = os.WriteFile(filepath.Join(driverPath, "unbind"), []byte(filepath.Base(vfPath)), 0o200)
+		if err != nil {
+			return err
+		}
+
+		vfDrivers[filepath.Base(vfPath)] = driverPath
+	}
+
+	modeErr := netlink.DevLinkSetEswitchMode(dev, mode)
+
+	// Rebind the virtual functions regardless of the outcome.
+	for vfAddress, driverPath := range vfDrivers {
+		err := os.WriteFile(filepath.Join(driverPath, "bind"), []byte(vfAddress), 0o200)
+		if err != nil && modeErr == nil {
+			return err
+		}
+	}
+
+	if modeErr != nil {
+		return fmt.Errorf("failed to set PCI device %q to %s mode: %w", pciAddress, mode, modeErr)
 	}
 
 	return nil

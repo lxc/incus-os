@@ -25,6 +25,7 @@ type netdevFileVariables struct {
 	VLANID         int
 	WGPrivateKey   string
 	WGPort         int
+	WGFirewallMark int
 	WGPeers        []api.SystemNetworkWireguardPeer
 }
 
@@ -41,7 +42,15 @@ type networkFileVariables struct {
 	Bridge            string
 	Addresses         []string
 	Routes            []api.SystemNetworkRoute
+	DefaultRoutes     []api.SystemNetworkRoute
+	RouteTable        int
+	RulePriority      int
 	VLANTags          []int
+}
+
+// NextRulePriority returns the priority following RulePriority.
+func (v networkFileVariables) NextRulePriority() int {
+	return v.RulePriority + 1
 }
 
 // HasIPv4 reports whether the network configures any IPv4 addressing.

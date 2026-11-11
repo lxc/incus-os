@@ -1588,15 +1588,24 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) ([]networkdC
 	}
 
 	// Create wireguard.
-	for _, w := range networkCfg.Wireguard {
+	for i, w := range networkCfg.Wireguard {
 		buf.Reset()
 
+		// Mark the tunnel's own traffic so it can bypass a default route going through it.
+		firewallMark := 0
+
+		_, defaultRoutes := splitDefaultRoutes(w.Routes)
+		if len(defaultRoutes) > 0 {
+			firewallMark = wireguardBaseTable + i
+		}
+
 		err := t.Execute(&buf, netdevFileVariables{
-			Type:         "wireguard",
-			Name:         w.Name,
-			WGPrivateKey: w.PrivateKey,
-			WGPort:       w.Port,
-			WGPeers:      w.Peers,
+			Type:           "wireguard",
+			Name:           w.Name,
+			WGPrivateKey:   w.PrivateKey,
+			WGPort:         w.Port,
+			WGFirewallMark: firewallMark,
+			WGPeers:        w.Peers,
 		})
 		if err != nil {
 			return nil, err
@@ -1891,7 +1900,7 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 	}
 
 	// Create network for each Wireguard.
-	for _, wg := range networkCfg.Wireguard {
+	for i, wg := range networkCfg.Wireguard {
 		configuredMTU := wg.MTU
 		if configuredMTU == 0 {
 			configuredMTU = 1500
@@ -1901,12 +1910,18 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 
 		buf.Reset()
 
+		// Default routes go to a dedicated table which the tunnel's own traffic skips.
+		routes, defaultRoutes := splitDefaultRoutes(wg.Routes)
+
 		err := commonT.Execute(&buf, networkFileVariables{
-			Type:      "wireguard",
-			Name:      wg.Name,
-			MTU:       configuredMTU,
-			Addresses: wg.Addresses,
-			Routes:    wg.Routes,
+			Type:          "wireguard",
+			Name:          wg.Name,
+			MTU:           configuredMTU,
+			Addresses:     wg.Addresses,
+			Routes:        routes,
+			DefaultRoutes: defaultRoutes,
+			RouteTable:    wireguardBaseTable + i,
+			RulePriority:  wireguardBaseRulePriority + 2*i,
 		})
 		if err != nil {
 			return nil, err
@@ -1919,6 +1934,36 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 	}
 
 	return ret, nil
+}
+
+// wireguardBaseTable is the routing table and firewall mark of the first WireGuard interface.
+const wireguardBaseTable = 51820
+
+// wireguardBaseRulePriority is the priority of the first WireGuard routing policy rule, ahead of the main table.
+const wireguardBaseRulePriority = 30000
+
+// splitDefaultRoutes separates the default routes from the other routes.
+func splitDefaultRoutes(routes []api.SystemNetworkRoute) ([]api.SystemNetworkRoute, []api.SystemNetworkRoute) {
+	regular := []api.SystemNetworkRoute{}
+	defaults := []api.SystemNetworkRoute{}
+
+	for _, route := range routes {
+		_, subnet, err := net.ParseCIDR(route.To)
+		if err != nil {
+			regular = append(regular, route)
+
+			continue
+		}
+
+		ones, _ := subnet.Mask.Size()
+		if ones == 0 {
+			defaults = append(defaults, route)
+		} else {
+			regular = append(regular, route)
+		}
+	}
+
+	return regular, defaults
 }
 
 func getVLANTags(devName string, additionalVLANTags []int, vlans []api.SystemNetworkVLAN) []int {
@@ -1956,13 +2001,19 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 			continue
 		}
 
-		// Check if the interface's configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Interfaces[oldIndex])
+		// Check if the interface's configuration has changed, ignoring fields which don't affect the devices.
+		oldIface := oldCfg.Interfaces[oldIndex]
+		oldIface.FirewallRules, oldIface.Roles, oldIface.VLANTags = nil, nil, nil
+
+		newIface := newCfg.Interfaces[newIndex]
+		newIface.FirewallRules, newIface.Roles, newIface.VLANTags = nil, nil, nil
+
+		oldConfig, err := json.Marshal(oldIface)
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Interfaces[newIndex])
+		newConfig, err := json.Marshal(newIface)
 		if err != nil {
 			return err
 		}
@@ -1991,13 +2042,19 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 			continue
 		}
 
-		// Check if the bond's configuration has changed.
-		oldConfig, err := json.Marshal(oldCfg.Bonds[oldIndex])
+		// Check if the bond's configuration has changed, ignoring fields which don't affect the devices.
+		oldBond := oldCfg.Bonds[oldIndex]
+		oldBond.FirewallRules, oldBond.Roles, oldBond.VLANTags = nil, nil, nil
+
+		newBond := newCfg.Bonds[newIndex]
+		newBond.FirewallRules, newBond.Roles, newBond.VLANTags = nil, nil, nil
+
+		oldConfig, err := json.Marshal(oldBond)
 		if err != nil {
 			return err
 		}
 
-		newConfig, err := json.Marshal(newCfg.Bonds[newIndex])
+		newConfig, err := json.Marshal(newBond)
 		if err != nil {
 			return err
 		}
