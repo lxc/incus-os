@@ -44,8 +44,10 @@ type incus struct {
 }
 
 // Action runs an application-specific action/task.
-func (*incus) Action(ctx context.Context, data api.ApplicationAction) error {
+func (a *incus) Action(ctx context.Context, data api.ApplicationAction) error {
 	switch data.Action {
+	case "cluster-set-addresses":
+		return a.clusterSetAddresses(ctx, data.Config)
 	case "ceph-add-drive":
 		return ceph.AddOSD(ctx, data.Config)
 	case "ceph-initialize":
