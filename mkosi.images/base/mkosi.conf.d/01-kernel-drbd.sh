@@ -20,3 +20,7 @@ for mod in drbd drbd_transport_tcp drbd_transport_lb-tcp drbd_transport_rdma; do
         "/buildroot/usr/lib/modules/${KERNEL}/updates/dkms/${mod}.ko" \
         "${DESTDIR}/usr/lib/modules/${KERNEL}/updates/dkms/${mod}.ko"
 done
+
+# Keep the copyright file so the module is covered by the license information.
+mkdir -p "${DESTDIR}/usr/share/doc/drbd-dkms/"
+cp /buildroot/usr/share/doc/drbd-dkms/copyright "${DESTDIR}/usr/share/doc/drbd-dkms/"
