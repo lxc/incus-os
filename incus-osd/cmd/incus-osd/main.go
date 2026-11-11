@@ -29,6 +29,7 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/keyring"
 	"github.com/lxc/incus-os/incus-osd/internal/network"
 	"github.com/lxc/incus-os/incus-osd/internal/nftables"
+	"github.com/lxc/incus-os/incus-osd/internal/power"
 	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/recovery"
 	"github.com/lxc/incus-os/incus-osd/internal/rest"
@@ -574,6 +575,12 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	err = kernel.ApplyKernelConfiguration(ctx, s.System.Kernel.Config)
 	if err != nil {
 		slog.WarnContext(ctx, "Unable to apply kernel configuration: "+err.Error())
+	}
+
+	// Apply the power management configuration.
+	err = power.ApplyPowerConfiguration(ctx, s.System.Power.Config)
+	if err != nil {
+		slog.WarnContext(ctx, "Unable to apply power management configuration: "+err.Error())
 	}
 
 	// Get the machine ID.
