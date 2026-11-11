@@ -63,6 +63,10 @@ func (c *cmdAdminOS) command() *cobra.Command {
 	infoCmd := cmdAdminOSInfo{os: c}
 	cmd.AddCommand(infoCmd.command())
 
+	// Licenses.
+	licenseCmd := cmdAdminOSLicense{os: c}
+	cmd.AddCommand(licenseCmd.command())
+
 	// Services.
 	serviceCmd := cmdAdminOSService{os: c}
 	cmd.AddCommand(serviceCmd.command())
