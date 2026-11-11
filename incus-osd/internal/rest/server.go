@@ -56,6 +56,8 @@ func (s *Server) Serve() error {
 	router.HandleFunc("/1.0/applications/{name}/:remove", s.apiApplicationsRemove)
 	router.HandleFunc("/1.0/applications/{name}/:restart", s.apiApplicationsRestart)
 	router.HandleFunc("/1.0/applications/{name}/:restore", s.apiApplicationsRestore)
+	router.HandleFunc("/1.0/applications/{name}/:start", s.apiApplicationsStart)
+	router.HandleFunc("/1.0/applications/{name}/:stop", s.apiApplicationsStop)
 	router.HandleFunc("/1.0/applications/{name}/:switch-version", s.apiApplicationsSwitchVersion)
 	router.HandleFunc("/1.0/debug", s.apiDebug)
 	router.HandleFunc("/1.0/debug/kernel", s.apiDebugKernel)
