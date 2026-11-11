@@ -272,6 +272,23 @@ definitions:
         title: DebugReportMetric represents a single metric from a systemd-report report.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    License:
+        properties:
+            content:
+                type: string
+                x-go-name: Content
+            name:
+                type: string
+                x-go-name: Name
+            type:
+                $ref: '#/definitions/LicenseType'
+        title: License holds the license information for a single component of the system.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    LicenseType:
+        title: LicenseType defines a custom type for the kind of license entry.
+        type: string
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     ServiceAction:
         properties:
             action:
@@ -3112,6 +3129,88 @@ paths:
             summary: Get TPM event log
             tags:
                 - debug
+    /1.0/licenses:
+        get:
+            description: Returns a list of everything on the system for which license information is available (URLs).
+            operationId: licenses_get
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: API endpoints
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: List of license entries
+                                example:
+                                    - /1.0/licenses/local:incus-osd
+                                    - /1.0/licenses/debian:systemd
+                                    - /1.0/licenses/license:GPL-2
+                                items:
+                                    type: string
+                                type: array
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get available license information
+            tags:
+                - licenses
+    /1.0/licenses/{name}:
+        get:
+            description: |-
+                Returns the copyright and license text of a Debian package (`debian:NAME`),
+                of other software included in the system (`local:NAME`) or the plain text of a
+                common license (`license:NAME`).
+            operationId: licenses_get_license
+            parameters:
+                - description: License entry name
+                  in: path
+                  name: name
+                  required: true
+                  type: string
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: License information
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/License'
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get the license information for a component
+            tags:
+                - licenses
     /1.0/services:
         get:
             description: Returns a list of currently available services (URLs).
