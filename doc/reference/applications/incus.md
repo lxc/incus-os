@@ -63,7 +63,7 @@ Two additional applications exist which extend the main Incus application:
 
 ## Actions
 
-The Incus application supports the following actions, which are used to deploy and manage a Ceph cluster on top of Incus. See the [Ceph cluster tutorial](../../tutorials/storage-create-ceph-cluster.md) for their parameters:
+The Incus application supports the following actions to deploy and manage a Ceph cluster on top of Incus. See the [Ceph cluster tutorial](../../tutorials/storage-create-ceph-cluster.md) for their parameters:
 
 * `ceph-initialize`: Creates the Ceph control plane.
 * `ceph-add-drive`: Adds a drive to the Ceph cluster.
@@ -75,6 +75,29 @@ You can run actions using:
 ```
 incus admin os application action incus -d '{"action":"ceph-initialize","config":{"control_servers":"server01,server02,server03"}}'
 ```
+
+### Changing cluster addresses
+
+The `cluster-set-addresses` action changes the address that Incus cluster members use to reach each other. Its configuration maps cluster member names to their new address in `host:port` format. Members which aren't listed keep their current address.
+
+The action only updates the Incus database of the server it is run on, and can only do so while Incus is stopped. It therefore has to be run on every cluster member, with the same configuration, while Incus is stopped on all of them:
+
+1. Stop all instances, for example by evacuating every cluster member with the `stop` action.
+1. Make sure the [fallback listener](../system/fallback-listener.md) is active on every server, for example by setting its `persistent` option, and that it can be reached.
+1. Stop the Incus application on every server.
+1. Through the fallback listener, apply any needed [network configuration](../system/network.md) change and run the `cluster-set-addresses` action on every server.
+1. Start the Incus application on every server.
+1. Confirm that all cluster members are back online, then restore the evacuated members.
+
+For example, when moving a three server cluster to a new subnet:
+
+```
+incus admin os application stop incus
+incus admin os application action incus -d '{"action":"cluster-set-addresses","config":{"server01":"10.0.0.1:8443","server02":"10.0.0.2:8443","server03":"10.0.0.3:8443"}}'
+incus admin os application start incus
+```
+
+The new addresses are applied to the cluster database when Incus starts. A server whose `core.https_address` was set to its old cluster address is updated to listen on the new one.
 
 ## Debugging
 

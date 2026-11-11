@@ -1,6 +1,6 @@
 # Shared API
 
-Each IncusOS application shares a common API that can be used to restart it if needed as well as perform backup, restore, and reset operations.
+Each IncusOS application shares a common API that can be used to stop, start or restart it if needed as well as perform backup, restore, and reset operations.
 
 ## Listing the applications
 
@@ -39,6 +39,19 @@ incus admin os application restart <name>
 ```{note}
 It is expected to receive an EOF error since the application's HTTP REST endpoint will be restarted along with the application.
 ```
+
+## Stopping and starting the application
+
+An application can be stopped and later started again by running
+
+```
+incus admin os application stop <name>
+incus admin os application start <name>
+```
+
+A stopped application stays stopped until it is started again or the system is rebooted.
+
+The IncusOS API is normally reached through the primary application, so the primary application can only be stopped while the [fallback listener](../system/fallback-listener.md) is active. The fallback listener must then be used to start the application again.
 
 ## Changing application version
 
