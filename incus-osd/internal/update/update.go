@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
@@ -449,6 +450,11 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 		}
 
 		updateNeeded = update.Version() != app.Version()
+
+		// Applications tied to the OS version only switch on reboot, so don't download the same update again.
+		if app.RequiresMatchingOSVersion() && slices.Contains(app.AvailableVersions(), update.Version()) {
+			updateNeeded = false
+		}
 
 		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
 			return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
