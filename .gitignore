@@ -21,6 +21,7 @@ mkosi.images/operations-center/mkosi.extra/
 app-build/
 
 incus-osd/flasher-tool
+incus-osd/generate-licenses
 incus-osd/generate-manifests
 incus-osd/image-customizer
 incus-osd/image-publisher
