@@ -34,6 +34,7 @@ type Application interface { //nolint:interfacebloat
 	IsRunning(ctx context.Context) bool
 	Name() string
 	NeedsLateUpdateCheck() bool
+	RequiresMatchingOSVersion() bool
 	Restart(ctx context.Context) error
 	RestoreBackup(archive io.Reader) error
 	SetFriendlyVersion(ctx context.Context) error
