@@ -190,6 +190,7 @@ interfaces:
       disable_ipv6_tso: true
       disable_gro: true
       disable_gso: true
+      speed: 10000
       wakeonlan: true
       wakeonlan_modes:
       - magic
@@ -214,6 +215,10 @@ bonds:
       - AA:BB:CC:DD:EE:02
       - AA:BB:CC:DD:EE:03
     ethernet:
+      advertise:
+      - 2500baset-full
+      - 1000baset-full
+      - 100000baselr4-er4-full
       disable_energy_efficient: true
       disable_ipv4_tso: true
       disable_ipv6_tso: true
@@ -374,6 +379,40 @@ interfaces:
     hwaddr: eth0
 `
 
+var badNetworkdConfig15 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: AA:BB:CC:DD:EE:01
+    ethernet:
+      advertise:
+      - 2500baseT/Full
+`
+
+var badNetworkdConfig16 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: AA:BB:CC:DD:EE:01
+    ethernet:
+      speed: 1000
+      advertise:
+      - 1000baset-full
+`
+
+var badNetworkdConfig17 = `
+interfaces:
+  - name: eth0
+    addresses:
+      - dhcp4
+    hwaddr: AA:BB:CC:DD:EE:01
+    ethernet:
+      speed: 1000
+      half_duplex: true
+`
+
 func TestBadNetworkConfig(t *testing.T) {
 	t.Parallel()
 
@@ -513,6 +552,36 @@ func TestBadNetworkConfig(t *testing.T) {
 
 		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
 		require.EqualError(t, err, "zero IP addresses are configured")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig15), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 bad advertise mode \"2500baseT/Full\"")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig16), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 speed and advertise cannot be used together")
+	}
+
+	{
+		var cfg api.SystemNetworkConfig
+
+		err := yaml.Load([]byte(badNetworkdConfig17), &cfg)
+		require.NoError(t, err)
+
+		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
+		require.EqualError(t, err, "interface 0 half_duplex requires a speed of 10 or 100")
 	}
 }
 
@@ -759,11 +828,11 @@ func TestLinkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 3)
 	require.Equal(t, "00-_paabbccddee01.link", cfgs[0].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nGenericSegmentationOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:01\n\n[Link]\nMACAddressPolicy=random\nNamePolicy=\nName=_paabbccddee01\nMTUBytes=9009\nBitsPerSecond=10000M\nDuplex=full\nGenericReceiveOffload=false\nGenericReceiveOffloadHardware=false\nGenericSegmentationOffload=false\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\nWakeOnLan=magic\nWakeOnLan=secureon\nWakeOnLanPassword=11:22:33:44:55:66\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[0].Contents)
 	require.Equal(t, "01-_paabbccddee02.link", cfgs[1].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:02\n\n[Link]\nNamePolicy=\nName=_paabbccddee02\nMTUBytes=9009\nAdvertise=2500baset-full\nAdvertise=1000baset-full\nAdvertise=100000baselr4-er4-full\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[1].Contents)
 	require.Equal(t, "01-_paabbccddee03.link", cfgs[2].Name)
-	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nMTUBytes=9009\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nPermanentMACAddress=AA:BB:CC:DD:EE:03\n\n[Link]\nNamePolicy=\nName=_paabbccddee03\nMTUBytes=9009\nAdvertise=2500baset-full\nAdvertise=1000baset-full\nAdvertise=100000baselr4-er4-full\nTCPSegmentationOffload=false\nTCP6SegmentationOffload=false\n\n[EnergyEfficientEthernet]\nEnable=false\n", cfgs[2].Contents)
 
 	// Test sixth config .link file generation.
 	networkCfg = api.SystemNetworkConfig{}
@@ -979,4 +1048,28 @@ func TestVLANTags(t *testing.T) {
 	}
 
 	require.Equal(t, []int{10, 20, 100}, getVLANTags("uplink", []int{100, 20}, vlans))
+}
+
+func TestValidateAdvertiseModes(t *testing.T) {
+	t.Parallel()
+
+	someValidModes := [...]string{
+		"10baset-half", "10baset-full", "100baset-half", "100baset-full", "1000baset-full", "1000basex-full",
+		"2500baset-full", "2500basex-full", "5000baset-full", "10000baset-full", "10000basesr-full", "10000baselr-full",
+		"10000basecr-full", "25000basesr-full", "25000basecr-full", "40000basesr4-full", "100000basesr4-full",
+		"100000baselr4-er4-full", "50000baselr-er-fr-full", "100000baselr2-er2-fr2-full", "200000baselr4-er4-fr4-full",
+		"400000baselr8-er8-fr8-full", "100000baselr-er-fr-full", "200000baselr2-er2-fr2-full", "400000baselr4-er4-fr4-full",
+		"800000basedr8-2-full", "10baset1s-p2mp-half", "200000basedr-2-full", "400000basedr2-2-full", "800000basedr4-2-full",
+		"1600000basedr8-2-full", "pause", "asym-pause", "autonegotiation", "fec-none", "fec-rs", "fec-baser", "fec-llrs",
+	}
+
+	for _, mode := range someValidModes {
+		require.NoError(t, validateEthernet(&api.SystemNetworkEthernet{Advertise: []string{mode}}), mode)
+	}
+
+	someInvalidModes := [...]string{"2500baseT/Full", "1000baseT-Full", "1000baset", "10g", "full", ""}
+
+	for _, mode := range someInvalidModes {
+		require.Error(t, validateEthernet(&api.SystemNetworkEthernet{Advertise: []string{mode}}), mode)
+	}
 }

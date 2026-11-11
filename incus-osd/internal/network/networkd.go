@@ -536,6 +536,52 @@ func RestoreWOLMACAddresses(ctx context.Context, s *state.State) {
 	}
 }
 
+// ResolveLinkDevice returns the physical device backing an interface name, or an interface or bond member MAC address or device name.
+func ResolveLinkDevice(cfg *api.SystemNetworkConfig, name string) (string, error) {
+	if cfg != nil {
+		macs := []string{}
+
+		for _, iface := range cfg.Interfaces {
+			if iface.Name == name {
+				return linkDeviceName(iface.Hwaddr), nil
+			}
+
+			macs = append(macs, iface.Hwaddr)
+		}
+
+		for _, bond := range cfg.Bonds {
+			macs = append(macs, bond.Members...)
+		}
+
+		for _, mac := range macs {
+			if strings.EqualFold(mac, name) || linkDeviceName(mac) == name {
+				return linkDeviceName(mac), nil
+			}
+		}
+	}
+
+	return "", errors.New("'" + name + "' is not a configured physical network interface or bond member")
+}
+
+// SetLinkState sets a physical device up or down without modifying the network configuration.
+func SetLinkState(ctx context.Context, device string, up bool) error {
+	action := "down"
+	if up {
+		action = "up"
+	}
+
+	_, err := subprocess.RunCommandContext(ctx, "networkctl", action, device)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func linkDeviceName(mac string) string {
+	return "_p" + strings.ToLower(strings.ReplaceAll(mac, ":", ""))
+}
+
 func parseRoutes(ctx context.Context, iface string) ([]api.SystemNetworkRoute, error) {
 	output, err := subprocess.RunCommandContext(ctx, "ip", "route", "show", "dev", resolveBridge(iface))
 	if err != nil {

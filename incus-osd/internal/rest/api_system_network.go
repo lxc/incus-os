@@ -338,3 +338,75 @@ func (*Server) apiSystemNetworkFlushDNS(w http.ResponseWriter, r *http.Request) 
 
 	_ = response.EmptySyncResponse.Render(w)
 }
+
+// swagger:operation POST /1.0/system/network/:link-state system system_post_network_link_state
+//
+//	Set a link up or down
+//
+//	Administratively set the device backing the specified interface or bond member up or down, without changing the network configuration.
+//
+//	---
+//	consumes:
+//	  - application/json
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: body
+//	    name: link
+//	    description: The link and its desired state
+//	    required: true
+//	    schema:
+//	      $ref: "#/definitions/SystemNetworkLink"
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiSystemNetworkLinkState(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	link := &api.SystemNetworkLink{}
+
+	err := json.NewDecoder(r.Body).Decode(link)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	if link.Name == "" {
+		_ = response.BadRequest(errors.New("no link name specified")).Render(w)
+
+		return
+	}
+
+	if link.State != "up" && link.State != "down" {
+		_ = response.BadRequest(errors.New("link state must be either 'up' or 'down'")).Render(w)
+
+		return
+	}
+
+	device, err := network.ResolveLinkDevice(s.state.System.Network.Config, link.Name)
+	if err != nil {
+		_ = response.BadRequest(err).Render(w)
+
+		return
+	}
+
+	err = network.SetLinkState(r.Context(), device, link.State == "up")
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}

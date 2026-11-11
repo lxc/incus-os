@@ -4,6 +4,7 @@ Aptio
 ARP
 Asus
 authenticode
+autonegotiation
 backend
 BMC
 BYOSOFT
@@ -85,6 +86,7 @@ LXCFS
 MAC
 MacOS
 MACs
+Mbps
 MOK
 MTU
 multicast
@@ -132,6 +134,7 @@ RSA
 Ryzen
 SAS
 Scaleway
+SFP
 SLAAC
 SMBIOS
 SSD

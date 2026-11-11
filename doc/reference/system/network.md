@@ -268,6 +268,44 @@ config:
     - "slaac"
 ```
 
+#### Ethernet link settings
+
+Force a 10G SFP module to a fixed speed,
+and restrict the next port to only advertise certain speeds and duplex modes:
+
+```yaml
+config:
+  interfaces:
+  - name: eno0
+    hwaddr: eno0
+    required_for_online: no
+    addresses:
+    - dhcp4
+
+    ethernet:
+      speed: 10000
+
+  - name: eno1
+    hwaddr: eno1
+    addresses:
+    - dhcp4
+
+    ethernet:
+      advertise:
+      - 2500baset-full
+      - 1000baset-full
+```
+
+The `speed` is in Mbps and disables autonegotiation.
+It implies full duplex, unless `half_duplex` is set.
+
+The `advertise` list keeps autonegotiation enabled, but restricted to the given modes,
+so it cannot be combined with `speed`.
+
+The `advertise` modes use systemd link mode names,
+check out the [`Advertise=` option](https://www.freedesktop.org/software/systemd/man/latest/systemd.link.html#Advertise=).
+When set on a bond, these settings apply to all its members.
+
 #### WireGuard
 
 Configure a WireGuard interface with two peers (providing a `private_key` is optional and will be created if empty). Each peer also accepts an optional base64-encoded `preshared_key`:
@@ -341,6 +379,24 @@ To manually flush the DNS cache at any time, run:
 ```
 incus admin os system network flush-dns
 ```
+
+#### Link state
+
+The device backing an interface or a bond member can be set down or up at runtime without touching the network configuration:
+
+```
+incus admin os system network link-state <name> down
+incus admin os system network link-state <name> up
+```
+
+The `<name>` is either an interface name, or the MAC address or device name of an interface or bond member.
+
+This state isn't persistent: it gets reset on reboot and when the network configuration is applied again.
+
+To be used with caution: setting down the management link used to reach the system's API will cut off remote access to it.
+
+This is useful, for example, to troubleshoot SFP modules that are tricky to get working,
+or to temporarily disable a link without having to change the network configuration.
 
 #### Proxy
 
