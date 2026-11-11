@@ -43,7 +43,7 @@ import (
 //	          description: List of system endpoints
 //	          items:
 //	            type: string
-//	          example: ["/1.0/system/logging","/1.0/system/network","/1.0/system/provider","/1.0/system/resources","/1.0/system/security","/1.0/system/storage","/1.0/system/update"]
+//	          example: ["/1.0/system/kernel","/1.0/system/logging","/1.0/system/network","/1.0/system/provider","/1.0/system/resources","/1.0/system/security","/1.0/system/storage","/1.0/system/update"]
 func (*Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

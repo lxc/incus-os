@@ -3231,6 +3231,7 @@ paths:
                             metadata:
                                 description: List of system endpoints
                                 example:
+                                    - /1.0/system/kernel
                                     - /1.0/system/logging
                                     - /1.0/system/network
                                     - /1.0/system/provider
