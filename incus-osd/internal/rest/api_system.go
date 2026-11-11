@@ -43,7 +43,7 @@ import (
 //	          description: List of system endpoints
 //	          items:
 //	            type: string
-//	          example: ["/1.0/system/kernel","/1.0/system/logging","/1.0/system/network","/1.0/system/provider","/1.0/system/resources","/1.0/system/security","/1.0/system/storage","/1.0/system/update"]
+//	          example: ["/1.0/system/kernel","/1.0/system/logging","/1.0/system/network","/1.0/system/power","/1.0/system/provider","/1.0/system/resources","/1.0/system/security","/1.0/system/storage","/1.0/system/update"]
 func (*Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -57,7 +57,7 @@ func (*Server) apiSystem(w http.ResponseWriter, r *http.Request) {
 
 	urls := []string{}
 
-	for _, system := range []string{"kernel", "logging", "network", "provider", "resources", "security", "storage", "update"} {
+	for _, system := range []string{"kernel", "logging", "network", "power", "provider", "resources", "security", "storage", "update"} {
 		systemURL, _ := url.JoinPath(endpoint, system)
 		urls = append(urls, systemURL)
 	}
