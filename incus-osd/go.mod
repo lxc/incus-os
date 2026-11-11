@@ -3,18 +3,18 @@ module github.com/lxc/incus-os/incus-osd
 go 1.26.9
 
 require (
-	github.com/FuturFusion/migration-manager v0.7.5-0.20261107003602-80951a86db75
-	github.com/FuturFusion/openfga-sync v0.0.0-20260917022851-ea6c912630c1
+	github.com/FuturFusion/migration-manager v0.8.0
+	github.com/FuturFusion/openfga-sync v0.0.0-20261110173742-d58aa8a05fe2
 	github.com/FuturFusion/operations-center v0.10.1
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20261004203234-c7f1f57bdc6e
 	github.com/gdamore/tcell/v2 v2.13.10
-	github.com/go-co-op/gocron/v2 v2.23.0
+	github.com/go-co-op/gocron/v2 v2.23.1
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
 	github.com/google/uuid v1.6.0
-	github.com/klauspost/compress v1.20.3
+	github.com/klauspost/compress v1.20.4
 	github.com/klauspost/pgzip v1.3.0
 	github.com/lxc/incus/v7 v7.6.0
 	github.com/muesli/crunchy v0.4.1-0.20210519044311-9cd68953298f
@@ -26,9 +26,9 @@ require (
 	github.com/timpalpant/gzran v0.0.0-20201127163450-7b631e56f57b
 	github.com/vishvananda/netlink v1.3.1
 	go.yaml.in/yaml/v4 v4.0.0
-	golang.org/x/sync v0.24.0
-	golang.org/x/sys v0.49.0
-	gopkg.in/ini.v1 v1.67.3
+	golang.org/x/sync v0.25.0
+	golang.org/x/sys v0.50.0
+	gopkg.in/ini.v1 v1.68.0
 	software.sslmate.com/src/go-pkcs12 v0.7.4
 	tailscale.com v1.102.5
 )
@@ -96,7 +96,7 @@ require (
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20261013231157-39c47d93efba // indirect
-	github.com/zitadel/oidc/v3 v3.51.17 // indirect
+	github.com/zitadel/oidc/v3 v3.52.0 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
@@ -105,11 +105,11 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp v0.0.0-20261106192419-47ce03d25ef0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
+	golang.org/x/exp v0.0.0-20261109185158-a52e3aef5920 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/term v0.47.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/oauth2 v0.38.0 // indirect
+	golang.org/x/term v0.48.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
