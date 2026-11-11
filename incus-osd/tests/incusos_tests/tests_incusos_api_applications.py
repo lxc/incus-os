@@ -1,3 +1,4 @@
+import json
 import re
 import time
 
@@ -74,6 +75,62 @@ def TestIncusOSAPIApplicationsIncus(install_image):
 
         # Verify our test file is restored
         vm.RunCommand("stat", "/var/lib/incus/test-file")
+
+        # Verify the primary application can't be stopped without the fallback listener
+        result = vm.APIRequest("/1.0/applications/incus/:stop", method="POST")
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success stopping the primary application")
+
+        if result["error"] != "the fallback listener must be active before stopping the primary application":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
+        # Verify cluster addresses can't be changed while Incus is running
+        result = vm.APIRequest("/1.0/applications/incus/:action", method="POST", body="""{"action":"cluster-set-addresses","config":{"server01":"10.0.0.1:8443"}}""")
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success changing cluster addresses")
+
+        if result["error"] != "the Incus application must be stopped on all cluster members before changing addresses":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
+        # Enable the fallback listener
+        result = vm.APIRequest("/1.0/system/fallback-listener")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        config = result["metadata"]["config"]
+        config["persistent"] = True
+
+        result = vm.APIRequest("/1.0/system/fallback-listener", method="PUT", body=json.dumps({"config": config}))
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        time.sleep(5)
+
+        # Stop the application
+        result = vm.APIRequest("/1.0/applications/incus/:stop", method="POST")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        time.sleep(10)
+
+        result = vm.RunCommand("systemctl", "is-active", "incus.service", check=False)
+        if result.returncode == 0:
+            raise IncusOSException("incus.service should be stopped")
+
+        # Verify cluster addresses can't be changed on a standalone server
+        result = vm.APIRequest("/1.0/applications/incus/:action", method="POST", body="""{"action":"cluster-set-addresses","config":{"server01":"10.0.0.1:8443"}}""", use_unix_socket=True)
+        if result["status_code"] == 200:
+            raise IncusOSException("unexpected success changing cluster addresses")
+
+        if result["error"] != "this server isn't part of a cluster":
+            raise IncusOSException("unexpected error message: " + result["error"])
+
+        # Start the application
+        result = vm.APIRequest("/1.0/applications/incus/:start", method="POST", use_unix_socket=True)
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        vm.RunCommand("systemctl", "is-active", "incus.service")
 
 def TestIncusOSAPIApplicationsMigrationManager(install_image):
     test_name = "incusos-api-applications-migration-manager"

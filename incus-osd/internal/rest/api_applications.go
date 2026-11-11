@@ -692,6 +692,146 @@ func (s *Server) apiApplicationsRestart(w http.ResponseWriter, r *http.Request) 
 	_ = response.EmptySyncResponse.Render(w)
 }
 
+// swagger:operation POST /1.0/applications/{name}/:start applications applications_post_start
+//
+//	Start an application
+//
+//	Starts a stopped application.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsStart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, r.PathValue("name"))
+	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	err = app.Start(r.Context())
+	if err != nil {
+		_ = response.InternalError(err).Render(w)
+
+		return
+	}
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
+// swagger:operation POST /1.0/applications/{name}/:stop applications applications_post_stop
+//
+//	Stop an application
+//
+//	Stops the application until it is started again or the system is rebooted.
+//	The primary application can only be stopped while the fallback listener is active.
+//
+//	---
+//	produces:
+//	  - application/json
+//	parameters:
+//	  - in: path
+//	    name: name
+//	    description: Application name
+//	    required: true
+//	    type: string
+//	responses:
+//	  "200":
+//	    $ref: "#/responses/EmptySyncResponse"
+//	  "400":
+//	    $ref: "#/responses/BadRequest"
+//	  "404":
+//	    $ref: "#/responses/NotFound"
+//	  "500":
+//	    $ref: "#/responses/InternalServerError"
+func (s *Server) apiApplicationsStop(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		_ = response.NotImplemented(nil).Render(w)
+
+		return
+	}
+
+	name := r.PathValue("name")
+
+	// Load the application.
+	app, err := applications.Load(r.Context(), s.state, name)
+	if err != nil {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsInstalled() {
+		_ = response.NotFound(nil).Render(w)
+
+		return
+	}
+
+	if !app.IsPrimary() {
+		err = app.Stop(r.Context())
+		if err != nil {
+			_ = response.InternalError(err).Render(w)
+
+			return
+		}
+
+		_ = response.EmptySyncResponse.Render(w)
+
+		return
+	}
+
+	// The IncusOS API would otherwise be unreachable until the next reboot.
+	if !s.state.System.FallbackListener.State.Active {
+		_ = response.BadRequest(errors.New("the fallback listener must be active before stopping the primary application")).Render(w)
+
+		return
+	}
+
+	// Stop in the background so the request can return before the HTTP endpoint goes away.
+	go func() { //nolint:contextcheck,gosec
+		time.Sleep(1 * time.Second)
+
+		ctx := context.Background() // Must use our own context here.
+
+		err := app.Stop(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to stop application '"+name+"'", "error", err)
+		}
+	}()
+
+	_ = response.EmptySyncResponse.Render(w)
+}
+
 // swagger:operation POST /1.0/applications/{name}/:backup applications applications_post_backup
 //
 //	Generate an application backup

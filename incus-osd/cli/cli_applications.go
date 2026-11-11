@@ -131,6 +131,27 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 	}
 	cmd.AddCommand(restoreCmd.command())
 
+	// Start.
+	startCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "start",
+		description: "Start the application",
+		endpoint:    "applications",
+		entity:      "application",
+	}
+	cmd.AddCommand(startCmd.command())
+
+	// Stop.
+	stopCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "stop",
+		description: "Stop the application",
+		endpoint:    "applications",
+		entity:      "application",
+		confirm:     "stop the application",
+	}
+	cmd.AddCommand(stopCmd.command())
+
 	// Switch version.
 	switchVersionCmd := cmdGenericRun{
 		os:               c.os,
