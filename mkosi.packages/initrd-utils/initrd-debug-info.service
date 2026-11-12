@@ -2,6 +2,7 @@
 Description=Show startup debug information
 After=emergency.target
 DefaultDependencies=no
+ConditionKernelCommandLine=!incusos.profile=hwinfo
 
 [Service]
 Type=oneshot

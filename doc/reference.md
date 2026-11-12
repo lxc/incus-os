@@ -20,4 +20,5 @@ Partitioning scheme </reference/partitioning-scheme>
 Recovery </reference/recovery>
 Security </reference/security>
 Seed </reference/seed>
+UKI Profiles </reference/uki-profiles>
 ```
