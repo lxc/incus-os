@@ -34,9 +34,10 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 		name:        "add",
 		description: "Add an application",
 		endpoint:    "applications",
+		hasData:     true,
 		dataArgs:    []string{"application"},
-		dataFunc: func(args []string) (any, error) {
-			return map[string]string{"name": args[0]}, nil
+		dataFunc: func(args []string) (map[string]any, error) {
+			return map[string]any{"name": args[0]}, nil
 		},
 	}
 	cmd.AddCommand(addCmd.command())
@@ -163,8 +164,8 @@ func (c *cmdAdminOSApplication) command() *cobra.Command {
 		defaultData:      "{}",
 		dataArgs:         []string{"version"},
 		dataArgsOptional: true,
-		dataFunc: func(args []string) (any, error) {
-			return map[string]string{"version": args[1]}, nil
+		dataFunc: func(args []string) (map[string]any, error) {
+			return map[string]any{"version": args[1]}, nil
 		},
 		confirm: "change the running version of the application",
 	}
