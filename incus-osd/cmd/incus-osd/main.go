@@ -571,7 +571,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
-	// Apply the kernel configuration (sysctls, zram swap, CPU governor, SR-IOV, ...).
+	// Apply the kernel configuration (sysctls, zram swap, CPU thermal protection, SR-IOV, ...).
 	err = kernel.ApplyKernelConfiguration(ctx, s.System.Kernel.Config)
 	if err != nil {
 		slog.WarnContext(ctx, "Unable to apply kernel configuration: "+err.Error())
