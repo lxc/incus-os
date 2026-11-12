@@ -93,6 +93,15 @@
                 "usr/lib/firmware/"
             ]
         ],
+        "license_files": [
+            "WHENCE",
+            "LICENSES/LICENSE.ice",
+            "LICENSES/LICENSE.ice_enhanced",
+            "LICENSES/LICENSE.qed",
+            "LICENSES/LICENCE.qla2xxx",
+            "LICENSES/LICENSE.r8169",
+            "LICENSES/LICENCE.rtlwifi_firmware.txt"
+        ],
         "clean_targets": [
             "usr/lib/firmware/intel/ice",
             "usr/lib/firmware/qed",
@@ -126,6 +135,14 @@
                 "xe",
                 "usr/lib/firmware/"
             ]
+        ],
+        "license_files": [
+            "WHENCE",
+            "LICENSES/LICENSE.amdgpu",
+            "LICENSES/LICENSE.i915",
+            "LICENSES/LICENSE.intel_vpu",
+            "LICENSES/LICENCE.nvidia",
+            "LICENSES/LICENSE.xe"
         ],
         "clean_targets": [
             "usr/lib/firmware/amdgpu",

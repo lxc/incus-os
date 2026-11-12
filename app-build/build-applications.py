@@ -8,6 +8,7 @@ import os.path
 import platform
 import re
 import requests
+import shutil
 import subprocess
 import tarfile
 
@@ -231,6 +232,34 @@ def install(image, artifact):
         with open(os.path.join(base_path, "usr/lib/firmware/linux-firmware-gpu-version"), "w") as f:
             f.write(applications[artifact]["version"])
 
+def install_licenses(image, artifact):
+    directory = applications[artifact].get("directory", artifact)
+
+    # Default to the usual top-level license files
+    paths = []
+    for pattern in applications[artifact].get("license_files", ["COPYING*", "LICEN[CS]E*", "NOTICE*"]):
+        matches = sorted(path for path in glob.glob(os.path.join(directory, pattern)) if os.path.isfile(path))
+        if len(matches) == 0 and "license_files" in applications[artifact]:
+            raise Exception("No match for license file " + pattern)
+
+        paths += matches
+
+    if len(paths) == 0:
+        raise Exception("No license file found for " + artifact)
+
+    # Combine everything into a single file to be picked up when generating the image's license information
+    os.makedirs(os.path.join("licenses", image), exist_ok=True)
+    with open(os.path.join("licenses", image, artifact), "w") as out:
+        for path in paths:
+            if len(paths) > 1:
+                out.write("==> " + os.path.basename(path) + " <==\n")
+
+            with open(path, "r", errors="replace") as f:
+                out.write(f.read().rstrip("\n") + "\n")
+
+            if len(paths) > 1 and path != paths[-1]:
+                out.write("\n")
+
 def create_image_manifest(image, applications):
     manifest = []
 
@@ -277,10 +306,13 @@ if __name__ == "__main__":
             print("Building " + app)
             build(app)
 
+    shutil.rmtree("licenses", ignore_errors=True)
+
     for image, apps in images:
         for app in apps:
             print("Installing " + app + " for image " + image)
             install(image, app)
+            install_licenses(image, app)
 
         print("Creating manifest for " + image)
         create_image_manifest(image, apps)

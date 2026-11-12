@@ -24,6 +24,11 @@ flasher-tool:
 	(cd incus-osd && go build ./cmd/flasher-tool)
 	strip incus-osd/flasher-tool
 
+.PHONY: generate-licenses
+generate-licenses:
+	(cd incus-osd && CGO_ENABLED=0 go build ./cmd/generate-licenses)
+	strip incus-osd/generate-licenses
+
 .PHONY: generate-manifests
 generate-manifests:
 	(cd incus-osd && go build ./cmd/generate-manifests)
@@ -100,7 +105,7 @@ endif
 	cp incus-osd/certs/files/secureboot-DB-*.crt mkosi.images/base/mkosi.extra/usr/lib/verity.d/
 
 .PHONY: build
-build: inject-system-certs incus-osd flasher-tool generate-manifests image-publisher initrd-deb-package microcode-metapackage-deb-package
+build: inject-system-certs incus-osd flasher-tool generate-licenses generate-manifests image-publisher initrd-deb-package microcode-metapackage-deb-package
 	cd app-build/ && ./build-applications.py
 
 	sudo rm -Rf mkosi.output/base* mkosi.output/debug* mkosi.output/incus*

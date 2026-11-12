@@ -15,6 +15,7 @@ Booting from a multipath-backed device </reference/booting-multipath-device>
 Debugging </reference/debugging>
 Installing without Secure Boot </reference/installing-without-secureboot>
 Installing without a TPM </reference/installing-without-tpm>
+Licenses </reference/licenses>
 Partitioning scheme </reference/partitioning-scheme>
 Recovery </reference/recovery>
 Security </reference/security>
