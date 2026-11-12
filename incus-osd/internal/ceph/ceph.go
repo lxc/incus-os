@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -1038,11 +1039,21 @@ func ensureDeviceIsEncrypted(ctx context.Context, deviceID string) (string, stri
 	// Determine the Ceph device class.
 	var deviceClass string
 
-	switch storageInfo.State.Drives[i].Bus {
-	case "nvme":
+	devicePath, err := filepath.EvalSymlinks(deviceID)
+	if err != nil {
+		return "", "", err
+	}
+
+	rotational, err := os.ReadFile("/sys/block/" + filepath.Base(devicePath) + "/queue/rotational")
+	if err != nil {
+		return "", "", err
+	}
+
+	switch {
+	case storageInfo.State.Drives[i].Bus == "nvme":
 		deviceClass = "nvme"
-	case "scsi":
-		deviceClass = "sdd"
+	case strings.TrimSpace(string(rotational)) == "0":
+		deviceClass = "ssd"
 	default:
 		deviceClass = "hdd"
 	}
