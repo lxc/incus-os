@@ -394,6 +394,12 @@ func AddOSD(ctx context.Context, config map[string]string) error {
 		return err
 	}
 
+	// Make sure the OSDs can identify their device.
+	err = execCephScript(incusClient, containerName, "ceph-osd-device-name.sh", shTemplate{})
+	if err != nil {
+		return err
+	}
+
 	// Provision the new OSD.
 	return execCephScript(incusClient, containerName, "ceph-osd.sh", shTemplate{
 		DEVICE_CLASS: deviceClass,
@@ -943,6 +949,14 @@ func deployCephContainer(ctx context.Context, incusTarget string, cephContainerN
 		return errors.New("unrecognized configuration script: " + configScript)
 	}
 
+	// Make sure the OSDs can identify their device.
+	if configScript == "ceph-osd.sh" {
+		err = execCephScript(incusClient, cephContainerName, "ceph-osd-device-name.sh", shTemplate{})
+		if err != nil {
+			return err
+		}
+	}
+
 	// Execute the configuration script.
 	return execCephScript(incusClient, cephContainerName, configScript, templateVars)
 }
@@ -1257,6 +1271,11 @@ func refreshCephOCIImage(ctx context.Context, containerName string, imageAlias s
 
 	// Re-enable the various systemd services.
 	if strings.HasPrefix(containerName, "ceph-osd-") {
+		err = execCephScript(incusClient, containerName, "ceph-osd-device-name.sh", shTemplate{})
+		if err != nil {
+			return err
+		}
+
 		return execCephScript(incusClient, containerName, "ceph-refresh-osd.sh", shTemplate{})
 	}
 
