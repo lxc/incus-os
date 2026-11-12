@@ -103,6 +103,14 @@ var upgrades = UpgradeFuncs{
 
 		return lines, nil
 	},
+	// V11: Move CPU governor from system kernel to system power.
+	func(lines []string) ([]string, error) {
+		for i := range lines {
+			lines[i] = strings.Replace(lines[i], "System.Kernel.Config.CPU.ScalingGovernor:", "System.Power.Config.CPU.ScalingGovernor:", 1)
+		}
+
+		return lines, nil
+	},
 }
 
 // updateZpoolKeyLocation sets the pool's keylocation to its key file in /var/lib/incus-os/keys/.
