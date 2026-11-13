@@ -24,6 +24,9 @@ else:
 # Architecture string as used by multiarch paths
 MACHINE = platform.machine()
 
+# The NVIDIA driver is the only application that doesn't get built from a git repository
+NVIDIA_DRIVER = "nvidia-driver"
+
 applications = {}
 with open("applications.json", "r") as f:
     applications = json.load(f)
@@ -35,7 +38,9 @@ for application in applications.values():
 images = [
     ["base", ["incus-osd", "kpx", "linux-firmware-base", "netbird", "tailscale"]],
     ["gpu-support", [
-        "linux-firmware-gpu"]
+        "linux-firmware-gpu",
+        "nvidia-driver",
+        "nvidia-open-gpu-kernel-modules"]
     ],
     ["migration-manager", [
         "lego",
@@ -82,6 +87,13 @@ def build(artifact):
         values[1] = values[1].replace("@VERSION@", version.removeprefix("v"))
 
     targets = applications[artifact]["build_targets"]
+
+    # The NVIDIA driver is only distributed as a self-extracting installer
+    if artifact == NVIDIA_DRIVER:
+        download_extract_nvidia_driver(artifact, directory, version)
+        create_application_manifest(artifact, version)
+
+        return
 
     # Clone/update the git repo
     is_commit = re.fullmatch("[0-9a-f]{40}", version) is not None
@@ -289,6 +301,33 @@ def create_image_manifest(image, applications):
 
     with open(image+".json", "w") as f:
         json.dump(manifest, f)
+
+def download_extract_nvidia_driver(artifact, directory, version):
+    if artifact != NVIDIA_DRIVER:
+        raise Exception("Only the NVIDIA driver can be built from a self-extracting installer")
+
+    url = "https://us.download.nvidia.com/tesla/%s/NVIDIA-Linux-%s-%s.run" % (version, MACHINE, version)
+
+    # Skip the download if the right version is already extracted
+    version_file = os.path.join(directory, ".app-build-version")
+    if os.path.exists(version_file):
+        with open(version_file, "r") as f:
+            if f.read() == version:
+                return
+
+    subprocess.run(["rm", "-rf", directory, directory + ".run"], check=True)
+
+    with requests.get(url, stream=True) as req:
+        req.raise_for_status()
+        with open(directory + ".run", "wb") as f:
+            for chunk in req.iter_content(chunk_size=16*1024*1024):
+                f.write(chunk)
+
+    subprocess.run(["sh", directory + ".run", "--extract-only", "--target", directory], check=True)
+    subprocess.run(["rm", "-f", directory + ".run"], check=True)
+
+    with open(version_file, "w") as f:
+        f.write(version)
 
 def download_extract_github_asset(asset_url, directory):
     req = requests.get(asset_url, stream=True)
