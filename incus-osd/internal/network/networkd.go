@@ -1157,6 +1157,12 @@ func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []expPhy
 	endTime := time.Now().Add(timeout)
 	missingInterfaces := []expPhysDev{}
 
+	// udev only checks for changed .link files every few seconds, so force it to load the new ones.
+	_, err := subprocess.RunCommandContext(ctx, "udevadm", "control", "--reload")
+	if err != nil {
+		return err
+	}
+
 	for {
 		if time.Now().After(endTime) {
 			missing := make([]string, 0, len(missingInterfaces))
@@ -1169,7 +1175,7 @@ func waitForUdevInterfaceRename(ctx context.Context, expectedInterfaces []expPhy
 		}
 
 		// Trigger udev rule update to pickup device names.
-		_, err := subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add", "--subsystem-match=net")
+		_, err = subprocess.RunCommandContext(ctx, "udevadm", "trigger", "--action=add", "--subsystem-match=net")
 		if err != nil {
 			return err
 		}
