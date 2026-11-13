@@ -166,7 +166,10 @@ class IncusTestVM:
             else:
                 return
 
-        raise IncusOSException(f"timed out after {timeout} seconds waiting for incus-agent to start")
+        # Include the console output to help figure out where the VM got stuck
+        consoleLog = subprocess.run(["incus", "console", "--show-log", self.vm_name], capture_output=True)
+
+        raise IncusOSException(f"timed out after {timeout} seconds waiting for incus-agent to start", re.sub(r'[\x00-\x09\x0b-\x1f]', '', consoleLog.stdout.decode("utf-8", errors="replace")).split("\n")[-40:])
 
     def WaitExpectedLog(self, unit, log, timeout=480, regex=False):
         """Wait for an expected log entry to appear in the VM."""
