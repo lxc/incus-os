@@ -34,14 +34,19 @@ def _download_images(require_prior_release_stable=True):
     with urllib.request.urlopen(IMAGES_SERVER + "/os/index.json") as url:
         versions = json.loads(url.read().decode())
 
-        current_stable_release_version = ""
+        # The upgrade tests need a stable release which is older than the latest stable release
+        seen_stable = False
 
         for update in versions["updates"]:
+            is_stable = "stable" in update["channels"]
+
             if current_release is None:
                 current_release = update
-            elif "stable" in update["channels"] or not require_prior_release_stable:
+            elif not require_prior_release_stable or (is_stable and seen_stable):
                 prior_release = update
                 break
+
+            seen_stable = seen_stable or is_stable
 
         if prior_release is None:
             raise IncusOSException("need at least two published releases")
