@@ -63,13 +63,8 @@ func ApplyKernelConfiguration(ctx context.Context, config api.SystemKernelConfig
 		}
 	}
 
-	// Apply the CPU scaling governor, if configured.
+	// Apply thermal protection setting for CPU, if configured.
 	if config.CPU != nil {
-		err := ApplyCPUScalingGovernor(config.CPU.ScalingGovernor)
-		if err != nil {
-			return err
-		}
-
 		err = ApplyThermalProtection(!config.CPU.DisableThermalProtection)
 		if err != nil {
 			return err
@@ -224,42 +219,6 @@ func applyEswitchMode(pciAddress string, switchdev bool) error {
 
 	if modeErr != nil {
 		return fmt.Errorf("failed to set PCI device %q to %s mode: %w", pciAddress, mode, modeErr)
-	}
-
-	return nil
-}
-
-// ApplyCPUScalingGovernor sets the provided scaling governor on all CPUs.
-func ApplyCPUScalingGovernor(governor string) error {
-	if governor == "" {
-		return nil
-	}
-
-	// Validate the governor against those known to the kernel.
-	available, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return errors.New("CPU frequency scaling isn't available on this system")
-		}
-
-		return err
-	}
-
-	if !slices.Contains(strings.Fields(string(available)), governor) {
-		return fmt.Errorf("unsupported scaling governor, must be one of %v", strings.Fields(string(available)))
-	}
-
-	// Apply the governor to every CPU.
-	entries, err := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range entries {
-		err := os.WriteFile(entry, []byte(governor+"\n"), 0o644)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

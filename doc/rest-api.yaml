@@ -377,9 +377,6 @@ definitions:
             disable_thermal_protection:
                 type: boolean
                 x-go-name: DisableThermalProtection
-            scaling_governor:
-                type: string
-                x-go-name: ScalingGovernor
         title: SystemKernelConfigCPU holds CPU-specific kernel configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -1270,6 +1267,64 @@ definitions:
                 type: string
                 x-go-name: NextBootVersion
         title: SystemNextBootVersion defines a struct that is used to specify what version of IncusOS to boot the next time the system starts.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPower:
+        properties:
+            config:
+                $ref: '#/definitions/SystemPowerConfig'
+            state:
+                $ref: '#/definitions/SystemPowerState'
+        title: SystemPower defines a struct to hold information about the system's power management configuration and its state.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerConfig:
+        properties:
+            cpu:
+                $ref: '#/definitions/SystemPowerConfigCPU'
+        title: SystemPowerConfig holds power management related configuration for the system.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerConfigCPU:
+        properties:
+            energy_performance_preference:
+                type: string
+                x-go-name: EnergyPerformancePreference
+            scaling_governor:
+                type: string
+                x-go-name: ScalingGovernor
+        title: SystemPowerConfigCPU holds power management related configuration for CPU.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerState:
+        properties:
+            cpu:
+                $ref: '#/definitions/SystemPowerStateCPU'
+        title: SystemPowerState represents state for the system's power management configuration.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerStateCPU:
+        properties:
+            energy_performance_available_preferences:
+                items:
+                    type: string
+                type: array
+                x-go-name: EnergyPerformanceAvailablePreferences
+            energy_performance_preference:
+                type: string
+                x-go-name: EnergyPerformancePreference
+            scaling_available_governors:
+                items:
+                    type: string
+                type: array
+                x-go-name: ScalingAvailableGovernors
+            scaling_driver:
+                type: string
+                x-go-name: ScalingDriver
+            scaling_governor:
+                type: string
+                x-go-name: ScalingGovernor
+        title: SystemPowerStateCPU represents state for the system's CPU related power management configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemProvider:
@@ -3409,6 +3464,7 @@ paths:
                                     - /1.0/system/kernel
                                     - /1.0/system/logging
                                     - /1.0/system/network
+                                    - /1.0/system/power
                                     - /1.0/system/provider
                                     - /1.0/system/resources
                                     - /1.0/system/security
@@ -3854,6 +3910,60 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Set a link up or down
+            tags:
+                - system
+    /1.0/system/power:
+        get:
+            description: Returns the current power management configuration and state.
+            operationId: system_get_power
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: State and configuration for power management
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                $ref: '#/definitions/SystemPower'
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+            summary: Get power management configuration
+            tags:
+                - system
+        put:
+            consumes:
+                - application/json
+            description: Updates the power management configuration.
+            operationId: system_put_power
+            parameters:
+                - description: Power management configuration
+                  in: body
+                  name: configuration
+                  required: true
+                  schema:
+                    $ref: '#/definitions/SystemPower'
+            produces:
+                - application/json
+            responses:
+                "200":
+                    $ref: '#/responses/EmptySyncResponse'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Update power management configuration
             tags:
                 - system
     /1.0/system/provider:

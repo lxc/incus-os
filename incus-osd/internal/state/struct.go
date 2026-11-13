@@ -83,6 +83,7 @@ type State struct {
 		Kernel           api.SystemKernel           `json:"kernel"`
 		Logging          api.SystemLogging          `json:"logging"`
 		Network          api.SystemNetwork          `json:"network"`
+		Power            api.SystemPower            `json:"power"`
 		Provider         api.SystemProvider         `json:"provider"`
 		Security         api.SystemSecurity         `json:"security"`
 		Update           api.SystemUpdate           `json:"update"`

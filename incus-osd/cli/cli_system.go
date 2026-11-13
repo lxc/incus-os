@@ -161,6 +161,11 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 			},
 		},
 		{
+			name:        "power",
+			description: "Power management",
+			isWritable:  true,
+		},
+		{
 			name:        "provider",
 			description: "Image and management provider",
 			isWritable:  true,

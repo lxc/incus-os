@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var currentStateVersion = 10
+var currentStateVersion = 11
 
 // LoadOrCreate parses the on-disk state file and returns a State struct.
 // If no file exists, a new empty one is created.
