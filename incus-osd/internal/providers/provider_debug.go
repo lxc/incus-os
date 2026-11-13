@@ -154,6 +154,20 @@ func (p *debug) GetApplicationUpdate(ctx context.Context, name string) (Applicat
 	return &app, nil
 }
 
+func (p *debug) GetApplicationVersion(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
+	// Only a single release is ever available.
+	app, err := p.GetApplicationUpdate(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if app.Version() != version {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	return app, nil
+}
+
 func (p *debug) load(_ context.Context) error {
 	// Use a hardcoded path for now.
 	p.path = DebugPath
