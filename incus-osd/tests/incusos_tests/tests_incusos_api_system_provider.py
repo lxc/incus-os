@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -76,6 +77,18 @@ def TestIncusOSAPISystemProviderOperationsCenter(install_image):
 
         if not result["metadata"]["state"]["registered"]:
             raise IncusOSException("provider 'operations-center' should be registered")
+
+        # Operations Center only fetches stable updates by default, so have it fetch the version being tested instead.
+        result = vm.APIRequest("/1.0/system/updates", use_os_proxy=False)
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        updates_config = result["metadata"]
+        updates_config["filter_expression"] = 'version == "' + os_version + '"'
+
+        result = vm.APIRequest("/1.0/system/updates", method="PUT", body=json.dumps(updates_config), use_os_proxy=False)
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
         # Trigger a provisioning update refresh, and wait until it finishes.
         result = vm.APIRequest("/1.0/provisioning/updates/:refresh?wait=true", method="POST", use_os_proxy=False)
