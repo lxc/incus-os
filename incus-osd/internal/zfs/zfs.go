@@ -835,6 +835,11 @@ func updateZpoolHelper(ctx context.Context, zpoolName string, zpoolType string, 
 			break
 		}
 
+		// A degraded device that's still part of the configuration gets brought back online instead.
+		if slices.Contains(newDevices, degradedDevice) {
+			continue
+		}
+
 		currentDevices = append(currentDevices, degradedDevice)
 	}
 

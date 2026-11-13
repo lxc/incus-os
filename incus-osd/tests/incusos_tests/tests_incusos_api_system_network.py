@@ -10,7 +10,8 @@ def _checkNetworkConnectivity(vm):
     vm.RunCommand("curl", IMAGES_SERVER)
 
 def _setLinkState(vm, name, state):
-    result = vm.APIRequest("/1.0/system/network/:link-state", method="POST", body=json.dumps({"name": name, "state": state}))
+    # Use the local socket as changing the link state may take down the network
+    result = vm.APIRequest("/1.0/system/network/:link-state", method="POST", body=json.dumps({"name": name, "state": state}), use_unix_socket=True)
     if result["status_code"] != 200:
         raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
