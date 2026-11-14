@@ -18,6 +18,7 @@ Cisco
 CPUs
 cron
 CSM
+CUDA
 customizations
 customizer
 datastore
@@ -32,6 +33,7 @@ DHCP
 DNS
 ECDSA
 EFI
+EGL
 EOF
 ESXi
 FAT
@@ -42,6 +44,7 @@ Furo
 FuturFusion
 GiB
 Github
+GLX
 GPG
 GPUs
 Headscale
@@ -106,7 +109,9 @@ NVRAM
 OCI
 oddlama
 OEM
+OpenCL
 OpenFGA
+OpenGL
 OpenStack
 OSD
 OSDs
@@ -174,6 +179,8 @@ VLANs
 VMware
 VPN
 vSphere
+Vulkan
+Wayland
 WireGuard
 WWN
 Xen

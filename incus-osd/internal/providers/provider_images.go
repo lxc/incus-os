@@ -80,6 +80,7 @@ type images struct {
 
 	lastCheck    time.Time // In system's timezone.
 	latestUpdate *apiupdate.UpdateFull
+	updates      []apiupdate.UpdateFull
 	releaseMu    sync.Mutex
 }
 
@@ -308,6 +309,46 @@ func (p *images) GetApplicationUpdate(ctx context.Context, name string) (Applica
 	return &app, nil
 }
 
+func (p *images) GetApplicationVersion(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
+	// Refresh the list of releases.
+	_, err := p.checkRelease(ctx)
+	if err != nil && !errors.Is(err, ErrNoUpdateAvailable) {
+		return nil, err
+	}
+
+	// Get local architecture.
+	archName, err := osarch.ArchitectureGetLocal()
+	if err != nil {
+		return nil, err
+	}
+
+	p.releaseMu.Lock()
+	defer p.releaseMu.Unlock()
+
+	for _, update := range p.updates {
+		if update.Version != version {
+			continue
+		}
+
+		// Only keep the application for the local architecture.
+		update.Files = slices.DeleteFunc(slices.Clone(update.Files), func(file apiupdate.UpdateFile) bool {
+			if file.Architecture != "" && string(file.Architecture) != archName {
+				return true
+			}
+
+			return filepath.Base(file.Filename) != name+".raw.gz" || file.Type != apiupdate.UpdateFileTypeApplication
+		})
+
+		if len(update.Files) == 0 {
+			break
+		}
+
+		return &imagesApplication{provider: p, name: name, latestUpdate: &update}, nil
+	}
+
+	return nil, ErrNoUpdateAvailable
+}
+
 func (p *images) load(ctx context.Context) error {
 	// Set up the configuration.
 	p.serverURL = p.state.System.Provider.Config.Config["server_url"]
@@ -452,6 +493,9 @@ func (p *images) checkRelease(ctx context.Context) (*apiupdate.UpdateFull, error
 			return nil, err
 		}
 	}
+
+	// Record all the releases.
+	p.updates = index.Updates
 
 	// Get the latest update for the expected channel.
 	var latestUpdate *apiupdate.UpdateFull

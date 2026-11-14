@@ -212,6 +212,174 @@
             "usr/local/bin/netbird"
         ]
     },
+    "nvidia-driver": {
+        "version": "620.70.06",
+        "repo": "https://us.download.nvidia.com/tesla/",
+        "strip": false,
+        "build_targets": [],
+        "install_targets": [
+            [
+                "firmware/*.bin",
+                "usr/lib/firmware/nvidia/@VERSION@/"
+            ],
+            [
+                "nvidia-cuda-mps-control",
+                "usr/bin/"
+            ],
+            [
+                "nvidia-cuda-mps-server",
+                "usr/bin/"
+            ],
+            [
+                "nvidia-debugdump",
+                "usr/bin/"
+            ],
+            [
+                "nvidia-modprobe",
+                "usr/bin/"
+            ],
+            [
+                "nvidia-persistenced",
+                "usr/bin/"
+            ],
+            [
+                "nvidia-smi",
+                "usr/bin/"
+            ],
+            [
+                "libEGL_nvidia.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libGLESv1_CM_nvidia.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libGLESv2_nvidia.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libcuda.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvcuvid.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-allocator.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-cfg.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-eglcore.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-encode.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-glsi.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-glvkspirv.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-gpucomp.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-ml.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-nvvm.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-opencl.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-opticalflow.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-ptxjitcompiler.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-sandboxutils.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-tileiras.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-tls.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-api.so.1",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-egl-gbm.so.1.*",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "libnvidia-nvvm70.so.4",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ],
+            [
+                "10_nvidia.json",
+                "usr/share/glvnd/egl_vendor.d/"
+            ],
+            [
+                "15_nvidia_gbm.json",
+                "usr/share/egl/egl_external_platform.d/"
+            ]
+        ],
+        "install_targets_aarch64": [
+            [
+                "libnvidia-rmapi-tegra.so.@VERSION@",
+                "usr/lib/@MACHINE@-linux-gnu/"
+            ]
+        ],
+        "ldconfig": [
+            "usr/lib/@MACHINE@-linux-gnu/"
+        ],
+        "symlinks": [
+            [
+                "usr/lib/@MACHINE@-linux-gnu/gbm/nvidia-drm_gbm.so",
+                "../libnvidia-allocator.so.1"
+            ]
+        ],
+        "license_files": [
+            "LICENSE"
+        ],
+        "clean_targets": [
+            "usr/bin/nvidia-*",
+            "usr/lib/*-linux-gnu",
+            "usr/lib/firmware/nvidia/[0-9]*",
+            "usr/share/egl",
+            "usr/share/glvnd"
+        ]
+    },
+    "nvidia-open-gpu-kernel-modules": {
+        "version": "620.70.06",
+        "repo": "https://github.com/NVIDIA/open-gpu-kernel-modules.git",
+        "build_targets": [],
+        "install_targets": [],
+        "clean_targets": []
+    },
     "openfga": {
         "version": "v1.22.1",
         "repo": "https://github.com/openfga/openfga.git",

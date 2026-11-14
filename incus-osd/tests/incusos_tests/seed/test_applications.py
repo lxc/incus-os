@@ -1,4 +1,4 @@
-from ..incus_test_vm import IncusTestVM, util
+from ..incus_test_vm import IncusTestVM, IncusOSException, util
 
 def TestSeedApplictionsEmpty(install_image):
     test_name = "seed-applications-empty"
@@ -69,6 +69,26 @@ def TestSeedApplictionsGPUSupport(install_image):
 
     with IncusTestVM(os_name, test_name, test_image, client_cert_name) as vm:
         vm.WaitSystemReady(os_version, application="gpu-support")
+
+        # The GPU drivers must be available for the running kernel.
+        for module in ["amdgpu", "nouveau", "nvidia", "nvidia-drm", "nvidia-uvm"]:
+            vm.RunCommand("modinfo", module)
+
+        # The NVIDIA tools and libraries must be usable.
+        vm.RunCommand("nvidia-smi", "--version")
+
+        result = vm.RunCommand("ldconfig", "-p")
+        for library in ["libnvidia-ml.so.1", "libEGL_nvidia.so.0"]:
+            if library not in str(result.stdout):
+                raise IncusOSException("NVIDIA libraries missing from the linker cache")
+
+        # The NVIDIA license must be available.
+        result = vm.APIRequest("/1.0/licenses/local:nvidia-driver")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if "NVIDIA" not in result["metadata"]["content"]:
+            raise IncusOSException("NVIDIA driver license doesn't appear to be the NVIDIA license")
 
 def TestSeedApplictionsIncus(install_image):
     test_name = "seed-applications-incus"

@@ -85,7 +85,7 @@ func RefreshExtensions(ctx context.Context, s *state.State) error {
 	// Symlink the best version of each application and ensure the application state
 	// reflects the selected on-disk version.
 	for app, version := range appVersions {
-		bestVersion := bestApplicationVersion(app.Name(), version, priorBootRelease, s.OS.RunningRelease)
+		bestVersion := bestApplicationVersion(app, version, priorBootRelease, s.OS.RunningRelease)
 
 		// Create the new symlink.
 		err := os.Symlink(filepath.Join(systemd.LocalExtensionsPath, bestVersion, app.Name()+".raw"), filepath.Join(systemd.SystemExtensionsPath, app.Name()+".raw"))
@@ -234,7 +234,14 @@ func getApplicationsVersions(apps []Application) (map[Application]*availableAppl
 	return appVersions, nil
 }
 
-func bestApplicationVersion(appName string, version *availableApplicationVersions, priorRelease string, runningRelease string) string {
+func bestApplicationVersion(app Application, version *availableApplicationVersions, priorRelease string, runningRelease string) string {
+	appName := app.Name()
+
+	// Applications tied to the OS version always use the one matching the running system when available.
+	if app.RequiresMatchingOSVersion() && version.currentOSVersion != "" {
+		return version.currentOSVersion
+	}
+
 	// If the prior boot release is unset or identical to the current running release, prefer
 	// the current application version, then current OS version, then latest disk version when
 	// determining what application version to return.
