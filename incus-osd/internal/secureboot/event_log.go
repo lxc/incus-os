@@ -13,6 +13,8 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"slices"
+	"strings"
 	"sync"
 	"unicode/utf16"
 
@@ -195,9 +197,21 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 				eventType: tcg.Ipl,
 			},
 		},
+		{
+			name: ".profile",
+			header: eventHeader{
+				pcrIndex:  11,
+				eventType: tcg.Ipl,
+			},
+		},
 	}
 
 	ukiVersions, err := util.GetUKIVersions()
+	if err != nil {
+		return nil, err
+	}
+
+	ukiProfile, err := util.GetCurrentUKIProfile()
 	if err != nil {
 		return nil, err
 	}
@@ -284,6 +298,16 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 				continue
 			}
 
+			digest, err := ukiSectionDigest(ukiVersions.CurrentFilepath, ukiProfile, e.name)
+			if err != nil {
+				// Only UKIs with profiles have a .profile PE section.
+				if e.name == ".profile" && errors.Is(err, errUKISectionNotFound) {
+					continue
+				}
+
+				return nil, err
+			}
+
 			// First entry: the name of the section with a trailing NULL byte.
 			contents = []byte(e.name + "\x00")
 
@@ -293,11 +317,6 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 			}
 
 			// Second entry: the digest of the PE section contents, logged under the section name like systemd-stub does.
-			digest, err := ukiSectionDigest(ukiVersions.CurrentFilepath, e.name)
-			if err != nil {
-				return nil, err
-			}
-
 			err = writeLogEventDigest(&buf, &e, digest, contents)
 			if err != nil {
 				return nil, err
@@ -319,18 +338,20 @@ func SynthesizeTPMEventLog() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+var errUKISectionNotFound = errors.New("failed to read PE section")
+
 // ukiSectionDigests caches the digest of each UKI PE section, as hashing the large sections is slow on small systems.
 var (
 	ukiSectionDigests   = map[string][32]byte{}
 	ukiSectionDigestsMu sync.Mutex
 )
 
-// ukiSectionDigest returns the SHA256 digest of the given PE section of a UKI.
-func ukiSectionDigest(ukiFile string, name string) ([32]byte, error) {
+// ukiSectionDigest returns the SHA256 digest of the given PE section of a UKI profile.
+func ukiSectionDigest(ukiFile string, profile string, name string) ([32]byte, error) {
 	ukiSectionDigestsMu.Lock()
 	defer ukiSectionDigestsMu.Unlock()
 
-	key := ukiFile + ":" + name
+	key := ukiFile + ":" + profile + ":" + name
 
 	digest, ok := ukiSectionDigests[key]
 	if ok {
@@ -344,20 +365,65 @@ func ukiSectionDigest(ukiFile string, name string) ([32]byte, error) {
 
 	defer peFile.Close()
 
-	peSection := peFile.Section(name)
-	if peSection == nil {
-		return [32]byte{}, errors.New("failed to read PE section '" + name + "'")
-	}
-
-	contents, err := peSection.Data()
+	contents, err := ukiProfileSection(peFile, profile, name)
 	if err != nil {
 		return [32]byte{}, err
 	}
 
-	digest = sha256.Sum256(contents[0:peSection.VirtualSize])
+	digest = sha256.Sum256(contents)
 	ukiSectionDigests[key] = digest
 
 	return digest, nil
+}
+
+// ukiProfileSection returns the contents of the given PE section as used by a UKI profile.
+func ukiProfileSection(peFile *pe.File, profile string, name string) ([]byte, error) {
+	var section *pe.Section
+
+	// Sections ahead of the first .profile are shared, each .profile then starts a new profile.
+	seenProfile := false
+	inProfile := false
+
+	for _, peSection := range peFile.Sections {
+		if peSection.Name == ".profile" {
+			contents, err := ukiSectionContents(peSection)
+			if err != nil {
+				return nil, err
+			}
+
+			seenProfile = true
+			inProfile = slices.Contains(strings.Split(string(contents), "\n"), "ID="+profile)
+		}
+
+		if peSection.Name != name {
+			continue
+		}
+
+		if inProfile {
+			section = peSection
+
+			break
+		}
+
+		if !seenProfile && section == nil {
+			section = peSection
+		}
+	}
+
+	if section == nil {
+		return nil, fmt.Errorf("%w '%s'", errUKISectionNotFound, name)
+	}
+
+	return ukiSectionContents(section)
+}
+
+func ukiSectionContents(peSection *pe.Section) ([]byte, error) {
+	contents, err := peSection.Data()
+	if err != nil {
+		return nil, err
+	}
+
+	return contents[0:peSection.VirtualSize], nil
 }
 
 func writeLogEvent(buf *bytes.Buffer, e *event, contents []byte) error {
