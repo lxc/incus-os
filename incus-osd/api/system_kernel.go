@@ -83,7 +83,7 @@ type SystemKernelStateMemory struct {
 // Reported sizes are in bytes.
 type SystemKernelStateMemoryZramSwap struct {
 	Disksize         int     `json:"disk_size"         yaml:"disk_size"`
-	UncompressedSize int     `json:"incompressed_size" yaml:"uncompressed_size"`
+	UncompressedSize int     `json:"uncompressed_size" yaml:"uncompressed_size"`
 	CompressedSize   int     `json:"compressed_size"   yaml:"compressed_size"`
 	CompressionRatio float64 `json:"compression_ratio" yaml:"compression_ratio"`
 	TotalMemoryUse   int     `json:"total_memory_use"  yaml:"total_memory_use"`
