@@ -1131,7 +1131,7 @@ func configureIncusAgent(ctx context.Context, s *state.State) error {
 
 		if agentError != nil {
 			// If we failed to start the incus agent, attempt to get any logs.
-			output, logErr := subprocess.RunCommandContext(ctx, "journalctl", "_COMM=incus-agent", "-I", "-o", "cat", "-u", "incus-agent")
+			output, logErr := subprocess.RunCommandContext(ctx, "journalctl", "-I", "-o", "cat", "-u", "incus-agent")
 			if logErr != nil {
 				return errors.New("failed to restart incus-agent, and unable to get any relevant journal logs")
 			}

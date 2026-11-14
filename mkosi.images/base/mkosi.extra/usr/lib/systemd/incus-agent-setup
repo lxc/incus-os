@@ -30,6 +30,9 @@ fail() {
     exit 1
 }
 
+# Clear any mount left behind by an interrupted run.
+umount -l "${PREFIX}.mnt" >/dev/null 2>&1 || true
+
 # Try getting an agent drive.
 mkdir -p "${PREFIX}.mnt"
 mount_9p || mount_cdrom || fail "Couldn't mount 9p or cdrom"
