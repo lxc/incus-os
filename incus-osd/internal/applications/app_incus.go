@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -17,7 +16,6 @@ import (
 	incusclient "github.com/lxc/incus/v7/client"
 	incusapi "github.com/lxc/incus/v7/shared/api"
 	"github.com/lxc/incus/v7/shared/subprocess"
-	"golang.org/x/sys/unix"
 
 	"github.com/lxc/incus-os/incus-osd/api"
 	apiseed "github.com/lxc/incus-os/incus-osd/api/seed"
@@ -469,10 +467,10 @@ func (a *incus) UpdateConfig(ctx context.Context, req any) error {
 
 // WipeLocalData removes local data created by the application.
 func (*incus) WipeLocalData(_ context.Context) error {
-	// Attempt to unmount the logs directory if it exists and is mounted.
-	logsPath, err := filepath.EvalSymlinks("/var/lib/incus/logs/")
-	if err == nil && logsPath != "" {
-		_ = unix.Unmount(logsPath, unix.MNT_DETACH)
+	// Never delete the content of storage volumes that are still mounted.
+	err := unmountBelow("/var/lib/incus/")
+	if err != nil {
+		return err
 	}
 
 	err = os.RemoveAll("/var/lib/incus/")
