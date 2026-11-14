@@ -42,28 +42,28 @@ const (
 
 // ServiceTailscaleStatePeer represents the state of a single peer in the Tailscale network.
 type ServiceTailscaleStatePeer struct {
-	ID              string       `json:"id"`
-	PublicKey       string       `json:"public_key"`
-	HostName        string       `json:"host_name"`
-	DNSName         string       `json:"dns_name"`
-	OS              string       `json:"os"`
-	TailscaleIPs    []netip.Addr `json:"tailscale_ips"`
-	RxBytes         int64        `json:"rx_bytes"`
-	TxBytes         int64        `json:"tx_bytes"`
-	UsedAsExitNode  bool         `json:"used_as_exit_node"`
-	ExitNodeOffered bool         `json:"exit_node_offered"`
-	Online          bool         `json:"online"`
-	Expired         bool         `json:"expired"`
+	ID              string       `json:"id"                yaml:"id"`
+	PublicKey       string       `json:"public_key"        yaml:"public_key"`
+	HostName        string       `json:"host_name"         yaml:"host_name"`
+	DNSName         string       `json:"dns_name"          yaml:"dns_name"`
+	OS              string       `json:"os"                yaml:"os"`
+	TailscaleIPs    []netip.Addr `json:"tailscale_ips"     yaml:"tailscale_ips"`
+	RxBytes         int64        `json:"rx_bytes"          yaml:"rx_bytes"`
+	TxBytes         int64        `json:"tx_bytes"          yaml:"tx_bytes"`
+	UsedAsExitNode  bool         `json:"used_as_exit_node" yaml:"used_as_exit_node"`
+	ExitNodeOffered bool         `json:"exit_node_offered" yaml:"exit_node_offered"`
+	Online          bool         `json:"online"            yaml:"online"`
+	Expired         bool         `json:"expired"           yaml:"expired"`
 }
 
 // ServiceTailscaleState represents the current state of the Tailscale service.
 type ServiceTailscaleState struct {
-	Version          string                           `json:"version"`
-	BackendState     ServiceTailscaleBackendStateEnum `json:"backend_state"`
-	TailnetName      string                           `json:"tailnet_name,omitempty"`
-	TailnetDNSSuffix string                           `json:"tailnet_dns_suffix,omitempty"`
-	Self             ServiceTailscaleStatePeer        `json:"self"`
-	Peers            []ServiceTailscaleStatePeer      `json:"peer,omitempty"`
-	HaveNodeKey      bool                             `json:"have_node_key"`
-	Health           []string                         `json:"health,omitempty"`
+	Version          string                           `json:"version"                      yaml:"version"`
+	BackendState     ServiceTailscaleBackendStateEnum `json:"backend_state"                yaml:"backend_state"`
+	TailnetName      string                           `json:"tailnet_name,omitempty"       yaml:"tailnet_name,omitempty"`
+	TailnetDNSSuffix string                           `json:"tailnet_dns_suffix,omitempty" yaml:"tailnet_dns_suffix,omitempty"`
+	Self             ServiceTailscaleStatePeer        `json:"self"                         yaml:"self"`
+	Peers            []ServiceTailscaleStatePeer      `json:"peers,omitempty"              yaml:"peers,omitempty"`
+	HaveNodeKey      bool                             `json:"have_node_key"                yaml:"have_node_key"`
+	Health           []string                         `json:"health,omitempty"             yaml:"health,omitempty"`
 }
