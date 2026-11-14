@@ -177,5 +177,20 @@ func (s *Server) apiRoot10(w http.ResponseWriter, r *http.Request) {
 		"environment": environment,
 	}
 
+	// Add the fields the Incus CLI expects from an Incus server.
+	if r.Context().Value(ctxIncusAPIRoot) != nil {
+		environment["server"] = "incus-os"
+		environment["server_name"] = s.state.Hostname()
+		environment["server_version"] = s.state.OS.RunningRelease
+
+		resp["api_extensions"] = []string{}
+		resp["api_status"] = "stable"
+		resp["api_version"] = "1.0"
+		resp["auth"] = "trusted"
+		resp["auth_methods"] = []string{"tls"}
+		resp["config"] = map[string]string{}
+		resp["public"] = false
+	}
+
 	_ = response.SyncResponse(true, resp).Render(w)
 }
