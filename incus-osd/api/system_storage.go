@@ -46,7 +46,7 @@ type SystemStoragePool struct {
 	Devices []string                  `json:"devices"           yaml:"devices"`
 	Cache   []string                  `json:"cache,omitempty"   yaml:"cache,omitempty"`
 	Log     []string                  `json:"log,omitempty"     yaml:"log,omitempty"`
-	Special *SystemStoragePoolSpecial `json:"special,omitempty" yaml:"special"`
+	Special *SystemStoragePoolSpecial `json:"special,omitempty" yaml:"special,omitempty"`
 
 	// Read-only fields returned from the server with additional pool information.
 	Managed                   bool                          `json:"managed"                       yaml:"managed"`
@@ -96,11 +96,11 @@ const (
 
 // SystemStoragePoolScrubStatus represents the status of a scrub in a pool.
 type SystemStoragePoolScrubStatus struct {
-	State     SystemStoragePoolScrubState `json:"state"`
-	StartTime time.Time                   `json:"start_time"`
-	EndTime   time.Time                   `json:"end_time"`
-	Progress  string                      `json:"progress"`
-	Errors    int                         `json:"errors"`
+	State     SystemStoragePoolScrubState `json:"state"      yaml:"state"`
+	StartTime time.Time                   `json:"start_time" yaml:"start_time"`
+	EndTime   time.Time                   `json:"end_time"   yaml:"end_time"`
+	Progress  string                      `json:"progress"   yaml:"progress"`
+	Errors    int                         `json:"errors"     yaml:"errors"`
 }
 
 // SystemStoragePoolTrimState represents the state of a trim in a pool.
@@ -123,10 +123,10 @@ const (
 
 // SystemStoragePoolTrimStatus represents the status of a trim in a pool.
 type SystemStoragePoolTrimStatus struct {
-	State          SystemStoragePoolTrimState `json:"state"`
-	LastActionTime time.Time                  `json:"last_action_time"`
-	Progress       string                     `json:"progress"`
-	Errors         int                        `json:"errors"`
+	State          SystemStoragePoolTrimState `json:"state"            yaml:"state"`
+	LastActionTime time.Time                  `json:"last_action_time" yaml:"last_action_time"`
+	Progress       string                     `json:"progress"         yaml:"progress"`
+	Errors         int                        `json:"errors"           yaml:"errors"`
 }
 
 // SystemStorageDrive defines a struct that holds information about a specific drive.
