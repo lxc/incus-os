@@ -6,8 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -265,6 +268,8 @@ func (a *incus) Initialize(ctx context.Context) error {
 
 	// Push the preseed if one is present.
 	if incusSeed.Preseed != nil {
+		a.skipExistingLocalStorage(ctx, incusSeed.Preseed)
+
 		err = c.ApplyServerPreseed(*incusSeed.Preseed)
 		if err != nil {
 			return err
@@ -655,4 +660,50 @@ func (*incus) getCertificate(name string) (*tls.Certificate, error) {
 	}
 
 	return &cert, nil
+}
+
+// skipExistingLocalStorage drops preseed entries relying on the local/incus dataset when it already exists.
+func (*incus) skipExistingLocalStorage(ctx context.Context, preseed *incusapi.InitPreseed) {
+	if !storage.DatasetExists(ctx, "local/incus") {
+		return
+	}
+
+	// Skip the storage pools.
+	pools := []string{}
+
+	preseed.StoragePools = slices.DeleteFunc(preseed.StoragePools, func(pool incusapi.StoragePoolsPost) bool {
+		source := pool.Config["source"]
+		if pool.Driver != "zfs" || (source != "local/incus" && !strings.HasPrefix(source, "local/incus/")) {
+			return false
+		}
+
+		slog.WarnContext(ctx, "Skipping storage pool as its dataset already exists", "pool", pool.Name, "source", source)
+
+		pools = append(pools, pool.Name)
+
+		return true
+	})
+
+	if len(pools) == 0 {
+		return
+	}
+
+	// Skip their volumes.
+	preseed.StorageVolumes = slices.DeleteFunc(preseed.StorageVolumes, func(volume incusapi.InitStorageVolumesProjectPost) bool {
+		return slices.Contains(pools, volume.Pool)
+	})
+
+	// Skip the profile devices using them.
+	for _, profile := range preseed.Profiles {
+		maps.DeleteFunc(profile.Devices, func(_ string, device map[string]string) bool {
+			return device["type"] == "disk" && slices.Contains(pools, device["pool"])
+		})
+	}
+
+	// Skip the server volumes using them.
+	maps.DeleteFunc(preseed.Config, func(key string, value string) bool {
+		pool, _, _ := strings.Cut(value, "/")
+
+		return strings.HasPrefix(key, "storage.") && strings.HasSuffix(key, "_volume") && slices.Contains(pools, pool)
+	})
 }
