@@ -161,6 +161,14 @@ func (a *incus) FactoryReset(ctx context.Context) error {
 		return err
 	}
 
+	// Have a failed reset be retried on the next startup.
+	a.appState.Initialized = false
+
+	err = a.state.Save()
+	if err != nil {
+		return err
+	}
+
 	// Wipe local configuration.
 	err = a.WipeLocalData(ctx)
 	if err != nil {
