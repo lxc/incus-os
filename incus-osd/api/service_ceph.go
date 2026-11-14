@@ -57,13 +57,13 @@ type ServiceCephState struct {
 			StateName string `json:"state_name" yaml:"state_name"`
 			Count     int    `json:"count"      yaml:"count"`
 		} `json:"pgs_by_state" yaml:"pgs_by_state"`
-		NumPgs      int `json:"num_pgs"      yaml:"num_pgs"`
-		NumPools    int `json:"num_pools"    yaml:"num_pools"`
-		NumProjects int `json:"num_objects"  yaml:"num_objects"`
-		DataBytes   int `json:"data_bytes"   yaml:"data_bytes"`
-		BytesUsed   int `json:"bytes_used"   yaml:"bytes_used"`
-		BytesAvail  int `json:"bytes_avail"  yaml:"bytes_avail"`
-		BytesTotal  int `json:"bytes_total"  yaml:"bytes_total"`
+		NumPgs     int `json:"num_pgs"      yaml:"num_pgs"`
+		NumPools   int `json:"num_pools"    yaml:"num_pools"`
+		NumObjects int `json:"num_objects"  yaml:"num_objects"`
+		DataBytes  int `json:"data_bytes"   yaml:"data_bytes"`
+		BytesUsed  int `json:"bytes_used"   yaml:"bytes_used"`
+		BytesAvail int `json:"bytes_avail"  yaml:"bytes_avail"`
+		BytesTotal int `json:"bytes_total"  yaml:"bytes_total"`
 	} `json:"pgmap,omitempty" yaml:"pgmap,omitempty"`
 	Fsmap *struct {
 		Epoch int    `json:"epoch" yaml:"epoch"`
