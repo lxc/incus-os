@@ -1,6 +1,7 @@
 features:
   exec: false
   files: false
+  port-forward: false
   guestapi: true
   metrics: true
   mounts: true
