@@ -522,14 +522,14 @@ definitions:
                 format: int64
                 type: integer
                 x-go-name: Disksize
-            incompressed_size:
-                format: int64
-                type: integer
-                x-go-name: UncompressedSize
             total_memory_use:
                 format: int64
                 type: integer
                 x-go-name: TotalMemoryUse
+            uncompressed_size:
+                format: int64
+                type: integer
+                x-go-name: UncompressedSize
         title: SystemKernelStateMemoryZramSwap reports statistics about the configured zram-backed swap device, if present.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
