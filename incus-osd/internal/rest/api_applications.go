@@ -605,6 +605,9 @@ func (s *Server) apiApplicationsFactoryReset(w http.ResponseWriter, r *http.Requ
 			err := app.FactoryReset(ctx)
 			if err != nil {
 				slog.WarnContext(ctx, "Failed to perform factory reset of application '"+name+"'", "error", err)
+
+				// The primary application may now be unreachable.
+				s.state.RequestFallbackListener()
 			}
 		}()
 	} else {

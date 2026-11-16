@@ -1149,8 +1149,8 @@ func startFallbackListener(ctx context.Context, s *state.State) error {
 		return nil
 	}
 
-	// Get the primary application, requiring that it be initialized.
-	app, err := applications.GetPrimary(ctx, s, true)
+	// Get the primary application, which may have failed to initialize.
+	app, err := applications.GetPrimary(ctx, s, false)
 	if err != nil {
 		return err
 	}

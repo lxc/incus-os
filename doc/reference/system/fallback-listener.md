@@ -10,6 +10,13 @@ The fallback listener is automatically started when:
 
 Once started, the fallback listener keeps running until the next reboot. It uses the same server certificate as the primary application and only accepts clients presenting one of its trusted client certificates.
 
+The IncusOS API is served under `/os`, same as when going through Incus. The fallback listener can therefore be added as a remote to the Incus command line client by a trusted client:
+
+```
+incus remote add my-fallback https://<address>:<port>
+incus admin os system show my-fallback:
+```
+
 See [System recovery](../recovery.md) for how the fallback listener fits in the overall recovery process.
 
 ## Configuration options

@@ -34,6 +34,11 @@ func NewServer(_ context.Context, l net.Listener, s *state.State, j *scheduling.
 	return &server, nil
 }
 
+type ctxKey string
+
+// ctxIncusAPIRoot marks requests for the API root made outside of the "/os" tree.
+const ctxIncusAPIRoot ctxKey = "incus-api-root"
+
 // Serve starts the REST API server.
 func (s *Server) Serve() error {
 	// Setup routing.
@@ -168,6 +173,11 @@ func (s *Server) Serve() error {
 						http.Error(w, "Forbidden", http.StatusForbidden)
 
 						return
+					}
+
+					// Have the top-level API root also describe an Incus server so the Incus CLI can connect directly.
+					if r.URL.Path == "/1.0" {
+						r = r.WithContext(context.WithValue(r.Context(), ctxIncusAPIRoot, true))
 					}
 
 					// Ensure a proper proxy header is set and trim the "/os" prefix if present.
