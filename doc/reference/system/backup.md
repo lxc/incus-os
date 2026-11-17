@@ -34,12 +34,24 @@ The following "skip" options can be set when restoring a backup:
 
 * `network-macs`: Don't use any hard-coded MACs from the backup, but rather attempt to determine the proper MACs from the existing interfaces.
 
+A restore is refused if an encryption key from the backup doesn't match an existing storage pool.
+
+```{note}
+A factory reset or a fresh installation creates a new `local` storage pool with a new encryption key. When restoring a backup taken before that point, use the `local-data-encryption-key` skip option to keep the current key.
+```
+
 ### Examples
 
 Restore the backup by running
 
 ```
 incus admin os system restore backup.tar.gz
+```
+
+Restore the backup onto a freshly installed or factory reset system by running
+
+```
+incus admin os system restore backup.tar.gz --skip local-data-encryption-key
 ```
 
 ## Factory reset
