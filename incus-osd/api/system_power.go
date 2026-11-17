@@ -10,6 +10,7 @@ type SystemPowerConfig struct {
 type SystemPowerConfigCPU struct {
 	ScalingGovernor             string `json:"scaling_governor,omitempty"              yaml:"scaling_governor,omitempty"`
 	EnergyPerformancePreference string `json:"energy_performance_preference,omitempty" yaml:"energy_performance_preference,omitempty"`
+	FrequencyBoosting           string `json:"frequency_boosting,omitempty"            yaml:"frequency_boosting,omitempty"`
 }
 
 // SystemPowerConfigScreen holds power management related configuration for screen.
@@ -30,6 +31,8 @@ type SystemPowerStateCPU struct {
 	ScalingAvailableGovernors             []string `json:"scaling_available_governors"              yaml:"scaling_available_governors"`
 	EnergyPerformancePreference           string   `json:"energy_performance_preference"            yaml:"energy_performance_preference"`
 	EnergyPerformanceAvailablePreferences []string `json:"energy_performance_available_preferences" yaml:"energy_performance_available_preferences"`
+	FrequencyBoostingSupported            bool     `json:"frequency_boosting_supported"             yaml:"frequency_boosting_supported"`
+	FrequencyBoostingDisabled             bool     `json:"frequency_boosting_disabled"              yaml:"frequency_boosting_disabled"`
 }
 
 // SystemPowerStateScreen represents state for the system's screen related power management configuration.
