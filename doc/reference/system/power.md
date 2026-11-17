@@ -52,6 +52,7 @@ The following configuration options can be set:
 * `cpu`: Change CPU-specific power management configuration.
    * `scaling_governor`: Optional; the CPU frequency scaling governor to use, must be one of the governors supported by the kernel.
    * `energy_performance_preference`: Optional; the CPU energy performance preference to use, must be one of the preferences supported by the kernel. Only available with drivers that support it. When `scaling_governor` is `performance`, this must be unset or set to `performance` as well.
+   * `disable_frequency_boosting`: Optional; disable CPU frequency boosting on supported systems.
 
 The supported values for the running system can be found with `incus admin os system power show`.
 
