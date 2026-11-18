@@ -284,6 +284,11 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			continue
 		}
 
+		// The key of a lost local pool is only kept in backups for manual recovery.
+		if filename == "zpool.local.key.old" {
+			continue
+		}
+
 		// Encryption keys live under keys/, regardless of where the backup has them.
 		dstPath := "/var/lib/incus-os/" + filename
 		if keyFileRegex.MatchString(filename) {
