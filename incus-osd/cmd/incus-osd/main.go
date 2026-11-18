@@ -251,6 +251,9 @@ func firstBootActions(ctx context.Context, s *state.State) error {
 	return setTimezone(ctx)
 }
 
+// errLocalStorage is returned when the system is kept running without its local storage.
+var errLocalStorage = errors.New("local storage is unavailable")
+
 func run(ctx context.Context, s *state.State) error {
 	// Verify that the system meets minimum requirements for running IncusOS.
 	err := install.CheckSystemRequirements(ctx)
@@ -327,7 +330,12 @@ func run(ctx context.Context, s *state.State) error {
 	// Run startup tasks.
 	err = startup(ctx, s)
 	if err != nil {
-		return err
+		if !errors.Is(err, errLocalStorage) {
+			return err
+		}
+
+		// Stay up without applications so the storage can be fixed through the API.
+		return <-chErr
 	}
 
 	// Done with all initialization.
@@ -747,7 +755,13 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	// Ensure any locally-defined pools are available.
 	err = setupLocalStorage(ctx, s)
 	if err != nil {
-		return err
+		slog.ErrorContext(ctx, "Failed to bring up the local storage, applications won't be started", "err", err)
+
+		// Keep the system reachable as restarting wouldn't fix the storage.
+		s.RequestFallbackListener()
+		startActionHandler(ctx, s)
+
+		return errLocalStorage
 	}
 
 	// Get the provider. Must be done after storage pools are loaded, since the operations-center
@@ -846,75 +860,7 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 	}()
 
 	// Set up handler for daemon actions.
-	s.TriggerReboot = make(chan bool, 1)
-	s.TriggerShutdown = make(chan bool, 1)
-	s.TriggerSuspend = make(chan bool, 1)
-	s.TriggerUpdate = make(chan bool, 1)
-	s.TriggerOSOnlyUpdate = make(chan bool, 1)
-	chSignal := make(chan os.Signal, 1)
-	signal.Notify(chSignal, unix.SIGTERM)
-
-	go func() {
-		action := "exit"
-
-		// Action handler.
-	waitSignal:
-		select {
-		case <-chSignal:
-		case <-s.TriggerReboot:
-			action = "reboot"
-
-			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
-		case <-s.TriggerShutdown:
-			action = "shutdown"
-
-			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseShutdownTriggered)
-		case <-s.TriggerSuspend:
-			action = "suspend"
-
-			network.RestoreWOLMACAddresses(ctx, s)
-			_ = systemd.SystemSuspend(ctx)
-
-			goto waitSignal
-		case <-s.TriggerUpdate:
-			err := update.CheckWithEmptyCache(ctx, s)
-			if err != nil {
-				slog.ErrorContext(ctx, "Failed to check for updates", "err", err)
-			}
-
-			goto waitSignal
-		case <-s.TriggerOSOnlyUpdate:
-			err := update.CheckOS(ctx, s, true, false)
-			if err != nil {
-				slog.ErrorContext(ctx, "Failed to check for OS update", "err", err)
-			}
-
-			goto waitSignal
-		case <-s.TriggerFallbackListener:
-			err := startFallbackListener(ctx, s)
-			if err != nil {
-				slog.ErrorContext(ctx, "Failed to start fallback HTTPS listener", "err", err)
-			}
-
-			goto waitSignal
-		}
-
-		err := shutdown(ctx, s)
-		if err != nil {
-			slog.ErrorContext(ctx, "Failed shutdown sequence", "err", err)
-		}
-
-		switch action {
-		case "shutdown":
-			network.RestoreWOLMACAddresses(ctx, s)
-			_ = systemd.SystemPowerOff(ctx)
-		case "reboot":
-			_ = systemd.SystemReboot(ctx)
-		default:
-		}
-
-		os.Exit(0) //nolint:revive
-	}()
+	startActionHandler(ctx, s)
 
 	if delayInitialUpdateCheck && !skipInitialUpdateCheck {
 		// Queue a delayed initial start update check 30 seconds after the system has started up.
@@ -996,6 +942,79 @@ func setTimezone(ctx context.Context) error {
 
 	// Set the system's timezone from the seed data.
 	return systemd.SetTimezone(ctx, config.Time)
+}
+
+// startActionHandler processes the daemon actions requested through the API or by signals.
+func startActionHandler(ctx context.Context, s *state.State) {
+	s.TriggerReboot = make(chan bool, 1)
+	s.TriggerShutdown = make(chan bool, 1)
+	s.TriggerSuspend = make(chan bool, 1)
+	s.TriggerUpdate = make(chan bool, 1)
+	s.TriggerOSOnlyUpdate = make(chan bool, 1)
+	chSignal := make(chan os.Signal, 1)
+	signal.Notify(chSignal, unix.SIGTERM)
+
+	go func() {
+		action := "exit"
+
+		// Action handler.
+	waitSignal:
+		select {
+		case <-chSignal:
+		case <-s.TriggerReboot:
+			action = "reboot"
+
+			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseSystemRebootTriggered)
+		case <-s.TriggerShutdown:
+			action = "shutdown"
+
+			_ = providers.Notify(ctx, s, ocapi.ServerSelfUpdateCauseShutdownTriggered)
+		case <-s.TriggerSuspend:
+			action = "suspend"
+
+			network.RestoreWOLMACAddresses(ctx, s)
+			_ = systemd.SystemSuspend(ctx)
+
+			goto waitSignal
+		case <-s.TriggerUpdate:
+			err := update.CheckWithEmptyCache(ctx, s)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to check for updates", "err", err)
+			}
+
+			goto waitSignal
+		case <-s.TriggerOSOnlyUpdate:
+			err := update.CheckOS(ctx, s, true, false)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to check for OS update", "err", err)
+			}
+
+			goto waitSignal
+		case <-s.TriggerFallbackListener:
+			err := startFallbackListener(ctx, s)
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to start fallback HTTPS listener", "err", err)
+			}
+
+			goto waitSignal
+		}
+
+		err := shutdown(ctx, s)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed shutdown sequence", "err", err)
+		}
+
+		switch action {
+		case "shutdown":
+			network.RestoreWOLMACAddresses(ctx, s)
+			_ = systemd.SystemPowerOff(ctx)
+		case "reboot":
+			_ = systemd.SystemReboot(ctx)
+		default:
+		}
+
+		os.Exit(0) //nolint:revive
+	}()
 }
 
 func setupLocalStorage(ctx context.Context, s *state.State) error {
