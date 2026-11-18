@@ -6,8 +6,9 @@ need to recover an IncusOS system.
 
 ## Fallback API endpoint
 
-When IncusOS boots from the prior installed version, or if the primary application fails
-to start, the system will automatically attempt to activate a fallback API endpoint.
+When IncusOS boots from the prior installed version, if the local storage can't be brought
+up, or if the primary application fails to start, the system will automatically attempt to
+activate a fallback API endpoint.
 This fallback endpoint allows trusted clients to maintain access to IncusOS via the
 network even if the primary application is unavailable for some reason.
 
@@ -30,6 +31,23 @@ any time via
     incus admin os system fallback-listener edit
 
 See the [fallback listener reference](system/fallback-listener.md) for the full list of configuration options.
+
+## Local storage failures
+
+If the storage pools can't be brought up, for example because the encryption key of the
+`local` storage pool doesn't match, IncusOS keeps running without starting any application.
+The fallback API endpoint can then be used to look at the logs, restore a backup or perform
+a factory reset.
+
+```{note}
+The fallback API endpoint only accepts the client certificates listed in its own configuration.
+If none came from the seed data and none were added before the storage failure, the API won't be usable.
+```
+
+The `local` storage pool always lives on the install drive. Should it be missing entirely,
+IncusOS creates a new empty one on startup. The encryption key of the lost pool is kept as
+`zpool.local.key.old` and is included in system backups, so it can still be used to access
+the pool manually should it be recovered.
 
 ## Try booting into the previous image
 
