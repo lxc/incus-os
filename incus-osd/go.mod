@@ -1,15 +1,15 @@
 module github.com/lxc/incus-os/incus-osd
 
-go 1.26.9
+go 1.26.10
 
 require (
-	github.com/FuturFusion/migration-manager v0.8.0
-	github.com/FuturFusion/openfga-sync v0.0.0-20261110173742-d58aa8a05fe2
-	github.com/FuturFusion/operations-center v0.10.1
+	github.com/FuturFusion/migration-manager v0.8.1
+	github.com/FuturFusion/openfga-sync v0.0.0-20261116230700-666b1d67c54a
+	github.com/FuturFusion/operations-center v0.11.0
 	github.com/cavaliergopher/cpio v1.0.1
 	github.com/foxboron/go-uefi v0.0.0-20261004203234-c7f1f57bdc6e
 	github.com/gdamore/tcell/v2 v2.13.10
-	github.com/go-co-op/gocron/v2 v2.23.1
+	github.com/go-co-op/gocron/v2 v2.23.2
 	github.com/google/go-eventlog v0.0.3-0.20250422210130-7c3cc8ffe6c4
 	github.com/google/go-github/v84 v84.0.0
 	github.com/google/go-tpm v0.9.8
@@ -106,8 +106,8 @@ require (
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
-	golang.org/x/exp v0.0.0-20261109185158-a52e3aef5920 // indirect
-	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/exp v0.0.0-20261118215729-2791e4028fd4 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/oauth2 v0.38.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
