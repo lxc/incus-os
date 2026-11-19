@@ -638,7 +638,7 @@ func getWireguardState(ctx context.Context, iface string) (api.SystemNetworkInte
 		interfaceState = interfaceStateRegex.FindStringSubmatch(output)[1]
 	}
 
-	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
+	mtuRegex := regexp.MustCompile(`MTU: (\d+)`)
 
 	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
 	if err != nil {
@@ -864,7 +864,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 		remoteMAC = strings.Fields(remoteMACRegex.FindStringSubmatch(output)[1])[0]
 	}
 
-	mtuRegex := regexp.MustCompile(`MTU: (.+?) `)
+	mtuRegex := regexp.MustCompile(`MTU: (\d+)`)
 
 	mtu, err := strconv.Atoi(mtuRegex.FindStringSubmatch(output)[1])
 	if err != nil {
