@@ -238,7 +238,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	for _, iface := range networkCfg.Interfaces {
 		if slices.Contains(names, iface.Name) {
-			return errors.New("duplicate interface/bond/vlan/wireguard name: " + iface.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard/loopback name: " + iface.Name)
 		}
 
 		if slices.Contains(macs, iface.Hwaddr) {
@@ -252,7 +252,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	for _, bond := range networkCfg.Bonds {
 		if slices.Contains(names, bond.Name) {
-			return errors.New("duplicate interface/bond/vlan/wireguard name: " + bond.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard/loopback name: " + bond.Name)
 		}
 
 		names = append(names, bond.Name)
@@ -290,7 +290,7 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	for _, vlan := range networkCfg.VLANs {
 		if slices.Contains(names, vlan.Name) {
-			return errors.New("duplicate interface/bond/vlan/wireguard name: " + vlan.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard/loopback name: " + vlan.Name)
 		}
 
 		names = append(names, vlan.Name)
@@ -299,11 +299,20 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 
 	for _, wg := range networkCfg.Wireguard {
 		if slices.Contains(names, wg.Name) {
-			return errors.New("duplicate interface/bond/vlan/wireguard name: " + wg.Name)
+			return errors.New("duplicate interface/bond/vlan/wireguard/loopback name: " + wg.Name)
 		}
 
 		names = append(names, wg.Name)
 		numIPs += len(wg.Addresses)
+	}
+
+	for _, loopback := range networkCfg.Loopbacks {
+		if slices.Contains(names, loopback.Name) {
+			return errors.New("duplicate interface/bond/vlan/wireguard/loopback name: " + loopback.Name)
+		}
+
+		names = append(names, loopback.Name)
+		numIPs += len(loopback.Addresses)
 	}
 
 	if numIPs == 0 {
@@ -330,6 +339,11 @@ func ValidateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 	}
 
 	err = validateWireguard(networkCfg)
+	if err != nil {
+		return err
+	}
+
+	err = validateLoopbacks(networkCfg.Loopbacks)
 	if err != nil {
 		return err
 	}
@@ -426,6 +440,16 @@ func UpdateNetworkState(ctx context.Context, n *api.SystemNetwork) error {
 		wgState.Roles = wg.Roles
 		rolesFound = append(rolesFound, wg.Roles...)
 		n.State.Interfaces[wg.Name] = wgState
+	}
+
+	// State update for loopbacks.
+	for _, loopback := range n.Config.Loopbacks {
+		loopbackState, err := getInterfaceState(ctx, "loopback", loopback.Name, "", "", nil)
+		if err != nil {
+			return err
+		}
+
+		n.State.Interfaces[loopback.Name] = loopbackState
 	}
 
 	// Ensure required roles exist.
@@ -908,7 +932,7 @@ func getInterfaceState(ctx context.Context, ifaceType string, iface string, hwad
 	switch ifaceType {
 	case "interface", "bond_member":
 		underlyingDevice = "_p" + strings.ToLower(strings.ReplaceAll(hwaddr, ":", ""))
-	case "bond", "physical":
+	case "bond", "physical", "loopback":
 		underlyingDevice = iface
 	case "vlan":
 		if hwaddr == "" {
@@ -1681,6 +1705,16 @@ func generateNetdevFileContents(networkCfg api.SystemNetworkConfig) ([]networkdC
 		})
 	}
 
+	// Create the loopbacks as dummy devices. Their addresses aren't put on "lo", as systemd-resolved
+	// doesn't send any DNS query while the only routable addresses are on "lo", as on a host that
+	// only learns its routes through BGP.
+	for _, loopback := range networkCfg.Loopbacks {
+		ret = append(ret, networkdConfigFile{
+			Name:     "08-" + loopback.Name + ".netdev",
+			Contents: "[NetDev]\nName=" + loopback.Name + "\nKind=dummy\n",
+		})
+	}
+
 	return ret, nil
 }
 
@@ -2005,6 +2039,21 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 		})
 	}
 
+	// Create networks for the loopbacks.
+	for _, loopback := range networkCfg.Loopbacks {
+		buf.Reset()
+		_, _ = buf.WriteString("[Match]\nName=" + loopback.Name + "\n\n[Link]\nRequiredForOnline=no\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\n")
+
+		for _, address := range loopback.Addresses {
+			_, _ = buf.WriteString("Address=" + address + "\n")
+		}
+
+		ret = append(ret, networkdConfigFile{
+			Name:     "24-" + loopback.Name + ".network",
+			Contents: buf.String(),
+		})
+	}
+
 	return ret, nil
 }
 
@@ -2207,6 +2256,13 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 			deleteInterfaces = append(deleteInterfaces, oldCfg.Wireguard[oldIndex].Name)
 
 			continue
+		}
+	}
+
+	// Check for deleted loopbacks.
+	for _, loopback := range oldCfg.Loopbacks {
+		if !slices.ContainsFunc(newCfg.Loopbacks, func(l api.SystemNetworkLoopback) bool { return l.Name == loopback.Name }) {
+			deleteInterfaces = append(deleteInterfaces, loopback.Name)
 		}
 	}
 
