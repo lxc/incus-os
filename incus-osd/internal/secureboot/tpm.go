@@ -81,8 +81,7 @@ func ReadTPMEventLog() ([]tcg.Event, error) {
 			return nil, err
 		}
 
-		// Fallback to a synthesized TPM event log for swtpm.
-		buf, err = SynthesizeTPMEventLog()
+		buf, err = readSWTPMEventLog()
 		if err != nil {
 			return nil, err
 		}
@@ -101,6 +100,16 @@ func ReadTPMEventLog() ([]tcg.Event, error) {
 	}
 
 	return log.Events(register.HashSHA256), nil
+}
+
+// readSWTPMEventLog returns the event log the initrd measured into swtpm, as EFI variables may have changed since.
+func readSWTPMEventLog() ([]byte, error) {
+	buf, err := os.ReadFile(SWTPMEventLogPath)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return SynthesizeTPMEventLog()
+	}
+
+	return buf, err
 }
 
 // GetValidatedTPMEventLog returns a TPM event log that has had its PCR 4 & 7 values

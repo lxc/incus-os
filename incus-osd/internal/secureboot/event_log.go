@@ -24,6 +24,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
+// SWTPMEventLogPath is where the initrd records the event log it measured into swtpm.
+const SWTPMEventLogPath = "/run/incus-os/swtpm-event-log"
+
 type eventLogHeader struct {
 	pcrIndex       uint32
 	eventType      tcg.EventType
