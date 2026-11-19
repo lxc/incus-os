@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/go-eventlog/register"
@@ -111,7 +112,13 @@ func measurePCRs() error {
 		return err
 	}
 
-	return nil
+	// Record the event log for incus-osd, /run is carried over to the system.
+	err = os.MkdirAll(filepath.Dir(secureboot.SWTPMEventLogPath), 0o700)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(secureboot.SWTPMEventLogPath, rawLog, 0o600)
 }
 
 // sealPCR15 is used when running swtpm to extend PCR15 with a static value so it is
