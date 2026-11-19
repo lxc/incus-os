@@ -1733,6 +1733,7 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         i.Addresses,
+			IPv6LinkLocal:     i.IPv6LinkLocal,
 			Routes:            i.Routes,
 		})
 		if err != nil {
@@ -1866,6 +1867,7 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         b.Addresses,
+			IPv6LinkLocal:     b.IPv6LinkLocal,
 			Routes:            b.Routes,
 		})
 		if err != nil {
@@ -1959,6 +1961,7 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         v.Addresses,
+			IPv6LinkLocal:     v.IPv6LinkLocal,
 			Routes:            v.Routes,
 		})
 		if err != nil {

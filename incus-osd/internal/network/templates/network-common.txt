@@ -50,7 +50,9 @@ DNSOverTLS=yes
 NTP={{.}}
   {{- end}}
 {{- end}}
-{{- if eq (len .Addresses) 0}}
+{{- if .IPv6LinkLocal}}
+LinkLocalAddressing=ipv6
+{{- else if eq (len .Addresses) 0}}
 LinkLocalAddressing=no
 ConfigureWithoutCarrier=yes
 {{- else}}

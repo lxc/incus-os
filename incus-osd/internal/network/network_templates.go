@@ -43,6 +43,7 @@ type networkFileVariables struct {
 	Bond              string
 	Bridge            string
 	Addresses         []string
+	IPv6LinkLocal     bool
 	Routes            []api.SystemNetworkRoute
 	DefaultRoutes     []api.SystemNetworkRoute
 	RouteTable        int
