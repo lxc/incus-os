@@ -52,6 +52,8 @@ The following configuration options can be set:
 * `cpu`: Change CPU-specific power management configuration.
    * `scaling_governor`: Optional; the CPU frequency scaling governor to use, must be one of the governors supported by the kernel.
    * `energy_performance_preference`: Optional; the CPU energy performance preference to use, must be one of the preferences supported by the kernel. Only available with drivers that support it. When `scaling_governor` is `performance`, this must be unset or set to `performance` as well.
+* `screen`: Change screen related power management configuration.
+   * `blank_timeout`: Optional; the number of minutes without keyboard input, after which the console screen is turned off; can only be set between 0 and 60. Pressing a key turns the screen back on. Setting it to 0 disables blanking.
 
 The supported values for the running system can be found with `incus admin os system power show`.
 
@@ -71,4 +73,12 @@ Run all the CPUs at full performance:
 config:
   cpu:
     scaling_governor: "performance"
+```
+
+Turn off the screen after 10 minutes without keyboard input:
+
+```yaml
+config:
+  screen:
+    blank_timeout: 10
 ```
