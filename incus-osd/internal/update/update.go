@@ -3,9 +3,11 @@ package update
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	ocapi "github.com/FuturFusion/operations-center/shared/api"
@@ -18,6 +20,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/tui"
 )
+
+// ErrRebootRequired is returned when an application can't be used with the running OS version.
+var ErrRebootRequired = errors.New("the system needs to be updated and rebooted first")
 
 const (
 	// UpdateCheckJob represents the job to check for system updates.
@@ -185,6 +190,13 @@ func CheckApplications(ctx context.Context, s *state.State, toInstall []string, 
 		if err != nil {
 			s.System.Update.State.Status = "Failed to check for update for application '" + appName + "'"
 			showModalError(ctx, s.OS.Name, s.System.Update.State.Status, err, p)
+
+			// Let the caller know when an application can't be used until the system is rebooted.
+			if errors.Is(err, ErrRebootRequired) && s.OS.SystemIsReady {
+				dismissUpdateModal(t)
+
+				return err
+			}
 
 			continue
 		}
@@ -450,8 +462,21 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 
 		updateNeeded = update.Version() != app.Version()
 
+		// Applications tied to the OS version only switch on reboot, so don't download the same update again.
+		if app.RequiresMatchingOSVersion() && slices.Contains(app.AvailableVersions(), update.Version()) {
+			updateNeeded = false
+		}
+
 		if updateNeeded && app.Version() != "" && !update.IsNewerThan(app.Version()) {
 			return "", errors.New("local application " + appName + " version (" + app.Version() + ") is newer than available update (" + update.Version() + "); skipping")
+		}
+
+		// Applications tied to the OS version also need the version matching the running system.
+		if updateNeeded && app.RequiresMatchingOSVersion() && update.Version() != s.OS.RunningRelease {
+			err := downloadMatchingApplication(ctx, s, t, p, appName)
+			if err != nil {
+				return "", err
+			}
 		}
 	default:
 		// An invalid update type has been handled previously.
@@ -475,6 +500,45 @@ func checkAndDownloadUpdate(ctx context.Context, s *state.State, t *tui.TUI, p p
 	}
 
 	return "", nil
+}
+
+// downloadMatchingApplication fetches the version of an application matching the running OS.
+func downloadMatchingApplication(ctx context.Context, s *state.State, t *tui.TUI, p providers.Provider, appName string) error {
+	targetPath := filepath.Join(systemd.LocalExtensionsPath, s.OS.RunningRelease)
+
+	// Nothing to do if it's already present.
+	err := systemd.VerifyExtension(ctx, filepath.Join(targetPath, appName+".raw"))
+	if err == nil {
+		return nil
+	}
+
+	app, err := p.GetApplicationVersion(ctx, appName, s.OS.RunningRelease)
+	if err != nil {
+		if errors.Is(err, providers.ErrNoUpdateAvailable) {
+			return fmt.Errorf("application %s isn't available for %s version %s, %w", appName, s.OS.Name, s.OS.RunningRelease, ErrRebootRequired)
+		}
+
+		return err
+	}
+
+	updateModal := t.GetModal("update")
+	if updateModal == nil {
+		updateModal = t.AddModal(s.OS.Name+" Update", "update")
+	}
+
+	slog.InfoContext(ctx, "Downloading application matching the running system", "application", appName, "version", app.Version())
+	updateModal.Update("Downloading application " + appName + " version " + app.Version())
+
+	err = app.Download(ctx, targetPath, updateModal.UpdateProgress)
+	if err != nil {
+		updateModal.Done()
+
+		return err
+	}
+
+	updateModal.UpdateProgress(0.0)
+
+	return systemd.VerifyExtension(ctx, filepath.Join(targetPath, appName+".raw"))
 }
 
 func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update providers.CommonUpdate, appName string) (string, error) {

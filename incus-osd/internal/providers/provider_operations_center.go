@@ -65,6 +65,7 @@ type operationsCenter struct {
 
 	lastCheck    time.Time // In system's timezone.
 	latestUpdate *operationsCenterUpdate
+	updates      []operationsCenterUpdate
 	releaseMu    sync.Mutex
 }
 
@@ -298,6 +299,40 @@ func (p *operationsCenter) GetApplicationUpdate(ctx context.Context, name string
 	}
 
 	return &app, nil
+}
+
+func (p *operationsCenter) GetApplicationVersion(ctx context.Context, name string, version string) (ApplicationUpdate, error) {
+	// Refresh the list of releases.
+	_, err := p.checkRelease(ctx)
+	if err != nil && !errors.Is(err, ErrNoUpdateAvailable) {
+		return nil, err
+	}
+
+	p.releaseMu.Lock()
+	defer p.releaseMu.Unlock()
+
+	for _, update := range p.updates {
+		if update.Version != version {
+			continue
+		}
+
+		update.Files, err = p.updateFiles(ctx, update.UUID)
+		if err != nil {
+			return nil, err
+		}
+
+		found := slices.ContainsFunc(update.Files, func(file operationsCenterUpdateFile) bool {
+			return filepath.Base(file.Filename) == name+".raw.gz" && file.Type == string(apiupdate.UpdateFileTypeApplication)
+		})
+
+		if !found {
+			break
+		}
+
+		return &operationsCenterApplication{provider: p, name: name, latestUpdate: &update}, nil
+	}
+
+	return nil, ErrNoUpdateAvailable
 }
 
 // connectionURL builds the URL that Operations Center should use to reach the system,
@@ -543,12 +578,6 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	p.releaseMu.Lock()
 	defer p.releaseMu.Unlock()
 
-	// Get local architecture.
-	archName, err := osarch.ArchitectureGetLocal()
-	if err != nil {
-		return nil, err
-	}
-
 	// Only talk to Operations Center once an hour.
 	if p.latestUpdate != nil && !p.lastCheck.IsZero() && p.lastCheck.Add(time.Hour).After(time.Now()) {
 		return p.latestUpdate, nil
@@ -572,6 +601,9 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	if len(updates) == 0 {
 		return nil, ErrNoUpdateAvailable
 	}
+
+	// Record all the releases.
+	p.updates = updates
 
 	// Get the latest update for the expected channel.
 	var latestUpdate *operationsCenterUpdate
@@ -604,7 +636,31 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 	}
 
 	// Get the file list.
-	apiResp, err = p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+latestUpdate.UUID+"/files", nil)
+	latestUpdate.Files, err = p.updateFiles(ctx, latestUpdate.UUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(latestUpdate.Files) == 0 {
+		return nil, ErrNoUpdateAvailable
+	}
+
+	// Record the release.
+	p.lastCheck = time.Now()
+	p.latestUpdate = latestUpdate
+
+	return latestUpdate, nil
+}
+
+// updateFiles returns the files of an update which are suitable for the local architecture.
+func (p *operationsCenter) updateFiles(ctx context.Context, updateUUID string) ([]operationsCenterUpdateFile, error) {
+	// Get local architecture.
+	archName, err := osarch.ArchitectureGetLocal()
+	if err != nil {
+		return nil, err
+	}
+
+	apiResp, err := p.apiRequest(ctx, http.MethodGet, "/1.0/provisioning/updates/"+updateUUID+"/files", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -617,28 +673,18 @@ func (p *operationsCenter) checkRelease(ctx context.Context) (*operationsCenterU
 		return nil, err
 	}
 
-	latestUpdateFiles := []operationsCenterUpdateFile{}
+	updateFiles := []operationsCenterUpdateFile{}
 
 	for _, file := range files {
 		if file.Architecture != "" && file.Architecture != archName {
 			continue
 		}
 
-		file.url = p.serverURL + "/1.0/provisioning/updates/" + latestUpdate.UUID + "/files/" + file.Filename
-		latestUpdateFiles = append(latestUpdateFiles, file)
+		file.url = p.serverURL + "/1.0/provisioning/updates/" + updateUUID + "/files/" + file.Filename
+		updateFiles = append(updateFiles, file)
 	}
 
-	latestUpdate.Files = latestUpdateFiles
-
-	if len(latestUpdate.Files) == 0 {
-		return nil, ErrNoUpdateAvailable
-	}
-
-	// Record the release.
-	p.lastCheck = time.Now()
-	p.latestUpdate = latestUpdate
-
-	return latestUpdate, nil
+	return updateFiles, nil
 }
 
 // An application from the Operations Center provider.
