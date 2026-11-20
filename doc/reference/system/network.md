@@ -116,6 +116,18 @@ The bridge created on top of an interface or bond only lets through traffic with
 
 Interfaces accept a `strict_hwaddr` option. If `true`, IncusOS only lets traffic using the interface's own hardware address go out through the physical device. This is useful on networks that don't tolerate additional hardware addresses on a port, but it prevents instances bridged to that interface from reaching the network.
 
+### LLDP
+
+Interfaces and bonds accept two LLDP options, applied to the physical interface or to each bond member:
+
+* `lldp`: If `true`, IncusOS both listens for LLDP neighbors and announces itself on the link.
+
+* `lldp_receive_only`: If `true`, IncusOS listens for LLDP neighbors but doesn't announce itself. This takes precedence over `lldp`.
+
+When announcing itself, IncusOS sends its host name as the system name and the name of the interface or bond as the port description, so the switch shows which IncusOS interface a port connects to. Only enable announcements on trusted networks, as they identify the system to anything on the link.
+
+The neighbors seen on each interface and bond member are listed under `lldp` in the network state (`incus admin os system network show`), with the neighbor's system name and description, chassis and port IDs, port description, capabilities and port VLAN ID. They are also shown on the console, which helps find out which switch port a server is cabled to.
+
 ### `required_for_online` values
 
 Network interfaces, bonds, VLANs, and WireGuard interfaces can optionally be configured with the `required_for_online` option that IncusOS will use to determine when that network device is online. Valid values include `ipv4`, `ipv6`, `both`, `any`, and `no`. If not specified, defaults to `any`. For further details, refer to systemd's [`RequiredFamilyForOnline` networkctl configuration option](https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html#RequiredFamilyForOnline=).
