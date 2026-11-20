@@ -1282,6 +1282,8 @@ definitions:
         properties:
             cpu:
                 $ref: '#/definitions/SystemPowerConfigCPU'
+            screen:
+                $ref: '#/definitions/SystemPowerConfigScreen'
         title: SystemPowerConfig holds power management related configuration for the system.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -1296,10 +1298,21 @@ definitions:
         title: SystemPowerConfigCPU holds power management related configuration for CPU.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerConfigScreen:
+        properties:
+            blank_timeout:
+                format: int64
+                type: integer
+                x-go-name: BlankTimeout
+        title: SystemPowerConfigScreen holds power management related configuration for screen.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemPowerState:
         properties:
             cpu:
                 $ref: '#/definitions/SystemPowerStateCPU'
+            screen:
+                $ref: '#/definitions/SystemPowerStateScreen'
         title: SystemPowerState represents state for the system's power management configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
@@ -1325,6 +1338,15 @@ definitions:
                 type: string
                 x-go-name: ScalingGovernor
         title: SystemPowerStateCPU represents state for the system's CPU related power management configuration.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
+    SystemPowerStateScreen:
+        properties:
+            blank_timeout:
+                format: int64
+                type: integer
+                x-go-name: BlankTimeout
+        title: SystemPowerStateScreen represents state for the system's screen related power management configuration.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemProvider:
