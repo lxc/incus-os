@@ -2074,11 +2074,14 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the interface's configuration has changed, ignoring fields which don't affect the devices.
+		// LLDP only changes the physical device's network file, which systemd-networkd re-applies.
 		oldIface := oldCfg.Interfaces[oldIndex]
 		oldIface.FirewallRules, oldIface.Roles, oldIface.VLANTags = nil, nil, nil
+		oldIface.LLDP, oldIface.LLDPReceiveOnly = false, false
 
 		newIface := newCfg.Interfaces[newIndex]
 		newIface.FirewallRules, newIface.Roles, newIface.VLANTags = nil, nil, nil
+		newIface.LLDP, newIface.LLDPReceiveOnly = false, false
 
 		oldConfig, err := json.Marshal(oldIface)
 		if err != nil {
@@ -2115,11 +2118,14 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the bond's configuration has changed, ignoring fields which don't affect the devices.
+		// LLDP only changes the members' network files, which systemd-networkd re-applies.
 		oldBond := oldCfg.Bonds[oldIndex]
 		oldBond.FirewallRules, oldBond.Roles, oldBond.VLANTags = nil, nil, nil
+		oldBond.LLDP, oldBond.LLDPReceiveOnly = false, false
 
 		newBond := newCfg.Bonds[newIndex]
 		newBond.FirewallRules, newBond.Roles, newBond.VLANTags = nil, nil, nil
+		newBond.LLDP, newBond.LLDPReceiveOnly = false, false
 
 		oldConfig, err := json.Marshal(oldBond)
 		if err != nil {
