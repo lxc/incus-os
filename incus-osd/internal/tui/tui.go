@@ -408,6 +408,10 @@ func (t *TUI) getIPAddresses() []string {
 		}
 	}
 
+	for _, l := range t.state.System.Network.Config.Loopbacks {
+		appendIPs(l.Name)
+	}
+
 	return ret
 }
 
