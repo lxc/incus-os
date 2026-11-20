@@ -617,6 +617,9 @@ definitions:
             lldp:
                 type: boolean
                 x-go-name: LLDP
+            lldp_receive_only:
+                type: boolean
+                x-go-name: LLDPReceiveOnly
             members:
                 items:
                     type: string
@@ -869,6 +872,9 @@ definitions:
             lldp:
                 type: boolean
                 x-go-name: LLDP
+            lldp_receive_only:
+                type: boolean
+                x-go-name: LLDPReceiveOnly
             mtu:
                 format: int64
                 type: integer
@@ -987,9 +993,17 @@ definitions:
         x-go-package: github.com/lxc/incus-os/incus-osd/api
     SystemNetworkLLDPState:
         properties:
+            capabilities:
+                items:
+                    type: string
+                type: array
+                x-go-name: Capabilities
             chassis_id:
                 type: string
                 x-go-name: ChassisID
+            description:
+                type: string
+                x-go-name: Description
             name:
                 type: string
                 x-go-name: Name
@@ -999,6 +1013,10 @@ definitions:
             port_id:
                 type: string
                 x-go-name: PortID
+            vlan:
+                format: int64
+                type: integer
+                x-go-name: VLAN
         title: SystemNetworkLLDPState holds information about the LLDP state.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
