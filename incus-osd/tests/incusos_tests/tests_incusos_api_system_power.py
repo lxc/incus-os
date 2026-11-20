@@ -39,3 +39,21 @@ def TestIncusOSAPISystemPower(install_image):
 
         if result["metadata"]["config"] != {}:
             raise IncusOSException("invalid config was applied")
+
+        # Send invalid screen blank timeout.
+        result = vm.APIRequest("/1.0/system/power", method="PUT", body=json.dumps({"config": {"screen": {"blank_timeout": 61}}}))
+        if result["error_code"] != 400:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        # Set a screen blank timeout.
+        result = vm.APIRequest("/1.0/system/power", method="PUT", body=json.dumps({"config": {"screen": {"blank_timeout": 10}}}))
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        # Verify the screen blank timeout is applied.
+        result = vm.APIRequest("/1.0/system/power")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["state"]["screen"]["blank_timeout"] != 10:
+            raise IncusOSException("screen blank timeout wasn't applied")
