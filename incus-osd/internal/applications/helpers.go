@@ -123,7 +123,7 @@ func StartInitialize(ctx context.Context, s *state.State, appName string) error 
 		// After initializing a primary application, fetch any provided trusted client certificates from
 		// seed data for use by the fallback HTTPS server authentication.
 		switch appName {
-		case "incus":
+		case incusVersionStable, incusVersionLTS70:
 			incusSeed, err := seed.GetIncus(ctx)
 			if err != nil && !seed.IsMissing(err) {
 				return err
