@@ -948,7 +948,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-_iaabbccddee01.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=san1\n", cfgs[1].Contents)
 	require.Equal(t, "20-_paabbccddee01.network", cfgs[2].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=san1\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=san1\nLLDP=false\nEmitLLDP=false\nBridge=san1\n", cfgs[2].Contents)
 	require.Equal(t, "20-san1.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=san1\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\n", cfgs[3].Contents)
 	require.Equal(t, "20-_vsan2.network", cfgs[4].Name)
@@ -956,13 +956,13 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-_iaabbccddee02.network", cfgs[5].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee02\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=san2\n\n[BridgeVLAN]\nVLAN=10\n", cfgs[5].Contents)
 	require.Equal(t, "20-_paabbccddee02.network", cfgs[6].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee02\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=san2\n\n[BridgeVLAN]\nVLAN=10\n", cfgs[6].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee02\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=san2\nLLDP=false\nEmitLLDP=false\nBridge=san2\n\n[BridgeVLAN]\nVLAN=10\n", cfgs[6].Contents)
 	require.Equal(t, "20-san2.network", cfgs[7].Name)
 	require.Equal(t, "[Match]\nName=san2\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\n", cfgs[7].Contents)
 	require.Equal(t, "21-_bmanagement-dev0.network", cfgs[8].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee03\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[8].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee03\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=management\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[8].Contents)
 	require.Equal(t, "21-_bmanagement-dev1.network", cfgs[9].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee04\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[9].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee04\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=management\nLLDP=false\nEmitLLDP=false\nBond=_bmanagement\n", cfgs[9].Contents)
 	require.Equal(t, "21-_vmanagement.network", cfgs[10].Name)
 	require.Equal(t, "[Match]\nName=_vmanagement\n\n[Link]\nRequiredForOnline=yes\nRequiredFamilyForOnline=any\nMTUBytes=8750\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=uplink\nLinkLocalAddressing=ipv6\nAddress=10.0.100.10/24\nAddress=fd40:1234:1234:100::10/64\nIPv6AcceptRA=false\n[Route]\nGateway=10.0.100.1\nGatewayOnLink=yes\nDestination=0.0.0.0/0\n\n[Route]\nGateway=fd40:1234:1234:100::1\nGatewayOnLink=yes\nDestination=::/0\n\n[Route]\nGateway=10.0.100.2\nDestination=192.0.2.0/24\n\n", cfgs[10].Contents)
 	require.Equal(t, "21-_iaabbccddee03.network", cfgs[11].Name)
@@ -989,7 +989,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-_iaabbccddee01.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iaabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=management\n", cfgs[1].Contents)
 	require.Equal(t, "20-_paabbccddee01.network", cfgs[2].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=management\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=management\nLLDP=false\nEmitLLDP=false\nBridge=management\n", cfgs[2].Contents)
 	require.Equal(t, "20-management.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=management\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\n", cfgs[3].Contents)
 	require.Equal(t, "23-wg0.network", cfgs[4].Name)
@@ -1013,7 +1013,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.Equal(t, "20-_iffeeddccbbaa.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=ffeeddccbbaa\n", cfgs[1].Contents)
 	require.Equal(t, "20-_pffeeddccbbaa.network", cfgs[2].Name)
-	require.Equal(t, "[Match]\nName=_pffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=false\nEmitLLDP=false\nBridge=ffeeddccbbaa\n", cfgs[2].Contents)
+	require.Equal(t, "[Match]\nName=_pffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=ffeeddccbbaa\nLLDP=false\nEmitLLDP=false\nBridge=ffeeddccbbaa\n", cfgs[2].Contents)
 	require.Equal(t, "20-ffeeddccbbaa.network", cfgs[3].Name)
 	require.Equal(t, "[Match]\nName=ffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\n", cfgs[3].Contents)
 
@@ -1026,9 +1026,9 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 7)
 	require.Equal(t, "21-_buplink-dev0.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddeee1\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=true\nEmitLLDP=true\nBond=_buplink\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddeee1\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=uplink\nLLDP=true\nEmitLLDP=true\nBond=_buplink\n", cfgs[0].Contents)
 	require.Equal(t, "21-_buplink-dev1.network", cfgs[1].Name)
-	require.Equal(t, "[Match]\nName=_paabbccddeee2\n\n[Link]\nMTUBytes=9009\n\n[Network]\nLLDP=true\nEmitLLDP=true\nBond=_buplink\n", cfgs[1].Contents)
+	require.Equal(t, "[Match]\nName=_paabbccddeee2\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=uplink\nLLDP=true\nEmitLLDP=true\nBond=_buplink\n", cfgs[1].Contents)
 	require.Equal(t, "21-_vuplink.network", cfgs[2].Name)
 	require.Equal(t, "[Match]\nName=_vuplink\n\n[Link]\nRequiredForOnline=no\nMTUBytes=8250\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nVLAN=management\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nIPv4ReversePathFilter=no\nIPv6AcceptRA=false\n", cfgs[2].Contents)
 	require.Equal(t, "21-_iaabbccddeee1.network", cfgs[3].Name)
@@ -1075,4 +1075,76 @@ func TestValidateAdvertiseModes(t *testing.T) {
 	for _, mode := range someInvalidModes {
 		require.Error(t, validateEthernet(&api.SystemNetworkEthernet{Advertise: []string{mode}}), mode)
 	}
+}
+
+func TestLLDPReceiveOnly(t *testing.T) {
+	t.Parallel()
+
+	networkCfg := api.SystemNetworkConfig{
+		Interfaces: []api.SystemNetworkInterface{
+			{
+				Name:            "eno1",
+				Hwaddr:          "aa:bb:cc:dd:ee:01",
+				LLDPReceiveOnly: true,
+			},
+		},
+		Bonds: []api.SystemNetworkBond{
+			{
+				Name:            "uplink",
+				Mode:            "802.3ad",
+				Members:         []string{"aa:bb:cc:dd:ee:02"},
+				LLDP:            true,
+				LLDPReceiveOnly: true,
+			},
+		},
+	}
+
+	cfgs, err := generateNetworkFileContents(context.TODO(), networkCfg)
+	require.NoError(t, err)
+
+	contents := map[string]string{}
+	for _, cfg := range cfgs {
+		contents[cfg.Name] = cfg.Contents
+	}
+
+	require.Equal(t, "[Match]\nName=_paabbccddee01\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=eno1\nLLDP=true\nEmitLLDP=false\nBridge=eno1\n", contents["20-_paabbccddee01.network"])
+	require.Equal(t, "[Match]\nName=_paabbccddee02\n\n[Link]\nMTUBytes=9009\n\n[Network]\nDescription=uplink\nLLDP=true\nEmitLLDP=false\nBond=_buplink\n", contents["21-_buplink-dev0.network"])
+}
+
+func TestParseLLDPInfo(t *testing.T) {
+	t.Parallel()
+
+	// Shaped like "networkctl lldp --json=short" output (systemd v258 field names).
+	output := `{"Neighbors":[{"InterfaceIndex":3,"InterfaceName":"_paabbccddee01","Neighbors":[{"ChassisID":"50:00:00:cb:38:c2","RawChassisID":[4,80,0,0,203,56,194],"PortID":"Ethernet1","RawPortID":[5,69,116,104,101,114,110,101,116,49],"PortDescription":"hv1 eno1","SystemName":"leaf1","SystemDescription":"Arista Networks EOS version 4.33.1F","EnabledCapabilities":20,"VlanID":10}]}]}`
+
+	lldp, err := parseLLDPInfo(output)
+	require.NoError(t, err)
+	require.Equal(t, []api.SystemNetworkLLDPState{
+		{
+			Name:         "leaf1",
+			Description:  "Arista Networks EOS version 4.33.1F",
+			ChassisID:    "50:00:00:cb:38:c2",
+			PortID:       "Ethernet1",
+			Port:         "hv1 eno1",
+			Capabilities: []string{"bridge", "router"},
+			VLAN:         10,
+		},
+	}, lldp)
+
+	// No neighbors.
+	lldp, err = parseLLDPInfo(`{"Neighbors":[{"InterfaceIndex":3,"InterfaceName":"_paabbccddee01","Neighbors":[]}]}`)
+	require.NoError(t, err)
+	require.Empty(t, lldp)
+
+	lldp, err = parseLLDPInfo(`{"Neighbors":[]}`)
+	require.NoError(t, err)
+	require.Empty(t, lldp)
+}
+
+func TestDecodeLLDPCapabilities(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, []string{}, decodeLLDPCapabilities(0))
+	require.Equal(t, []string{"other", "station"}, decodeLLDPCapabilities(0x81))
+	require.Equal(t, []string{"bridge", "router", "c-vlan", "tpmr"}, decodeLLDPCapabilities(0x514))
 }

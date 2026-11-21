@@ -1025,6 +1025,47 @@ func GetIPAddresses(ctx context.Context, iface string) ([]string, error) {
 	return ret, nil
 }
 
+// lldpModes returns the systemd-networkd LLDP= and EmitLLDP= values for an
+// interface or bond. Receive-only mode listens for neighbors without announcing
+// the system.
+func lldpModes(lldp bool, receiveOnly bool) (string, string) {
+	return strconv.FormatBool(lldp || receiveOnly), strconv.FormatBool(lldp && !receiveOnly)
+}
+
+// lldpCapabilities are the IEEE 802.1AB system capabilities, in bit order.
+var lldpCapabilities = []string{
+	"other",
+	"repeater",
+	"bridge",
+	"wlan-ap",
+	"router",
+	"telephone",
+	"docsis",
+	"station",
+	"c-vlan",
+	"s-vlan",
+	"tpmr",
+}
+
+// decodeLLDPCapabilities turns an LLDP capabilities bitmask into names.
+func decodeLLDPCapabilities(mask uint16) []string {
+	ret := []string{}
+
+	for bit, name := range lldpCapabilities {
+		if mask&(1<<bit) != 0 {
+			ret = append(ret, name)
+		}
+	}
+
+	return ret
+}
+
+// GetLLDPNeighbors returns the LLDP neighbors seen on a physical interface,
+// identified by its MAC address.
+func GetLLDPNeighbors(ctx context.Context, hwaddr string) ([]api.SystemNetworkLLDPState, error) {
+	return getLLDPInfo(ctx, "_p"+strings.ToLower(strings.ReplaceAll(hwaddr, ":", "")))
+}
+
 // getLLDPInfo returns current LLDP information for the interface's underlying physical device.
 func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPState, error) {
 	output, err := subprocess.RunCommandContext(ctx, "networkctl", "lldp", "--json=short", resolveBridge(iface))
@@ -1032,21 +1073,29 @@ func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPStat
 		return nil, err
 	}
 
+	return parseLLDPInfo(output)
+}
+
+// parseLLDPInfo parses the output of "networkctl lldp --json=short" for a single interface.
+func parseLLDPInfo(output string) ([]api.SystemNetworkLLDPState, error) {
 	type lldpStruct struct {
 		Neighbors []struct {
 			InterfaceName string `json:"InterfaceName"` //nolint:tagliatelle
 			Neighbors     []struct {
-				SystemName      string `json:"SystemName"`      //nolint:tagliatelle
-				ChassisID       string `json:"ChassisID"`       //nolint:tagliatelle
-				PortID          string `json:"PortID"`          //nolint:tagliatelle
-				PortDescription string `json:"PortDescription"` //nolint:tagliatelle
+				SystemName          string  `json:"SystemName"`          //nolint:tagliatelle
+				SystemDescription   string  `json:"SystemDescription"`   //nolint:tagliatelle
+				ChassisID           string  `json:"ChassisID"`           //nolint:tagliatelle
+				PortID              string  `json:"PortID"`              //nolint:tagliatelle
+				PortDescription     string  `json:"PortDescription"`     //nolint:tagliatelle
+				EnabledCapabilities *uint16 `json:"EnabledCapabilities"` //nolint:tagliatelle
+				VLANID              int     `json:"VlanID"`              //nolint:tagliatelle
 			} `json:"Neighbors"` //nolint:tagliatelle
 		} `json:"Neighbors"` //nolint:tagliatelle
 	}
 
 	lldp := lldpStruct{}
 
-	err = json.Unmarshal([]byte(output), &lldp)
+	err := json.Unmarshal([]byte(output), &lldp)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,12 +1105,21 @@ func getLLDPInfo(ctx context.Context, iface string) ([]api.SystemNetworkLLDPStat
 	}
 
 	ret := []api.SystemNetworkLLDPState{}
+
 	for _, n := range lldp.Neighbors[0].Neighbors {
+		var capabilities []string
+		if n.EnabledCapabilities != nil {
+			capabilities = decodeLLDPCapabilities(*n.EnabledCapabilities)
+		}
+
 		ret = append(ret, api.SystemNetworkLLDPState{
-			Name:      n.SystemName,
-			ChassisID: n.ChassisID,
-			PortID:    n.PortID,
-			Port:      n.PortDescription,
+			Name:         n.SystemName,
+			Description:  n.SystemDescription,
+			ChassisID:    n.ChassisID,
+			PortID:       n.PortID,
+			Port:         n.PortDescription,
+			Capabilities: capabilities,
+			VLAN:         n.VLANID,
 		})
 	}
 
@@ -1710,12 +1768,16 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 		// Add underlying interface to bridge.
 		buf.Reset()
 
+		lldpReceive, lldpEmit := lldpModes(i.LLDP, i.LLDPReceiveOnly)
+
 		err = physicalT.Execute(&buf, networkFileVariables{
-			Name:     strippedHwaddr,
-			MTU:      maxMTU,
-			Bridge:   i.Name,
-			LLDP:     strconv.FormatBool(i.LLDP),
-			VLANTags: getVLANTags(i.Name, i.VLANTags, networkCfg.VLANs),
+			Name:        strippedHwaddr,
+			Description: i.Name,
+			MTU:         maxMTU,
+			Bridge:      i.Name,
+			LLDP:        lldpReceive,
+			EmitLLDP:    lldpEmit,
+			VLANTags:    getVLANTags(i.Name, i.VLANTags, networkCfg.VLANs),
 		})
 		if err != nil {
 			return nil, err
@@ -1765,11 +1827,15 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 
 			buf.Reset()
 
+			lldpReceive, lldpEmit := lldpModes(b.LLDP, b.LLDPReceiveOnly)
+
 			err = physicalT.Execute(&buf, networkFileVariables{
-				Name: memberStrippedHwaddr,
-				MTU:  mtu,
-				Bond: b.Name,
-				LLDP: strconv.FormatBool(b.LLDP),
+				Name:        memberStrippedHwaddr,
+				Description: b.Name,
+				MTU:         mtu,
+				Bond:        b.Name,
+				LLDP:        lldpReceive,
+				EmitLLDP:    lldpEmit,
 			})
 			if err != nil {
 				return nil, err
@@ -2008,11 +2074,14 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the interface's configuration has changed, ignoring fields which don't affect the devices.
+		// LLDP only changes the physical device's network file, which systemd-networkd re-applies.
 		oldIface := oldCfg.Interfaces[oldIndex]
 		oldIface.FirewallRules, oldIface.Roles, oldIface.VLANTags = nil, nil, nil
+		oldIface.LLDP, oldIface.LLDPReceiveOnly = false, false
 
 		newIface := newCfg.Interfaces[newIndex]
 		newIface.FirewallRules, newIface.Roles, newIface.VLANTags = nil, nil, nil
+		newIface.LLDP, newIface.LLDPReceiveOnly = false, false
 
 		oldConfig, err := json.Marshal(oldIface)
 		if err != nil {
@@ -2049,11 +2118,14 @@ func cleanupStaleDevices(ctx context.Context, oldCfg *api.SystemNetworkConfig, n
 		}
 
 		// Check if the bond's configuration has changed, ignoring fields which don't affect the devices.
+		// LLDP only changes the members' network files, which systemd-networkd re-applies.
 		oldBond := oldCfg.Bonds[oldIndex]
 		oldBond.FirewallRules, oldBond.Roles, oldBond.VLANTags = nil, nil, nil
+		oldBond.LLDP, oldBond.LLDPReceiveOnly = false, false
 
 		newBond := newCfg.Bonds[newIndex]
 		newBond.FirewallRules, newBond.Roles, newBond.VLANTags = nil, nil, nil
+		newBond.LLDP, newBond.LLDPReceiveOnly = false, false
 
 		oldConfig, err := json.Marshal(oldBond)
 		if err != nil {

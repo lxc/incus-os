@@ -5,8 +5,11 @@ Name=_p{{.Name}}
 MTUBytes={{.MTU}}
 
 [Network]
+{{- if .Description}}
+Description={{.Description}}
+{{- end}}
 LLDP={{.LLDP}}
-EmitLLDP={{.LLDP}}
+EmitLLDP={{.EmitLLDP}}
 {{- if .Bond}}
 Bond=_b{{.Bond}}
 {{- end}}

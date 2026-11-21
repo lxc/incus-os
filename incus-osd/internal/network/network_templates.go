@@ -37,7 +37,9 @@ type networkFileVariables struct {
 	VLANs             []api.SystemNetworkVLAN
 	DNS               *api.SystemNetworkDNS
 	TimeConfig        *api.SystemNetworkTime
+	Description       string
 	LLDP              string
+	EmitLLDP          string
 	Bond              string
 	Bridge            string
 	Addresses         []string
