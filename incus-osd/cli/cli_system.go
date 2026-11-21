@@ -47,6 +47,16 @@ func (c *cmdAdminOSSystem) command() *cobra.Command {
 	}
 	cmd.AddCommand(factoryResetCmd.command())
 
+	// Reinstall inactive OS.
+	reinstallInactiveOSCmd := cmdGenericRun{
+		os:          c.os,
+		action:      "reinstall-inactive-os",
+		description: "Reinstall the inactive OS /usr-verity image",
+		endpoint:    "system",
+		confirm:     "reinstall the inactive OS /usr-verity image",
+	}
+	cmd.AddCommand(reinstallInactiveOSCmd.command())
+
 	// Power off.
 	poweroffCmd := cmdGenericRun{
 		os:          c.os,

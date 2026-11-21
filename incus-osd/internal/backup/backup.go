@@ -15,6 +15,7 @@ import (
 	"github.com/lxc/incus/v7/shared/revert"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
+	"github.com/lxc/incus-os/incus-osd/internal/providers"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
@@ -394,7 +395,7 @@ func processNewState(ctx context.Context, s *state.State, skipOptions []string) 
 		})
 
 		if !exists {
-			err := update.CheckApplications(ctx, s, []string{newApp.Name()}, false, false)
+			err := update.CheckApplications(ctx, s, []string{newApp.Name()}, providers.LatestVersion, false, false)
 			if err != nil {
 				return err
 			}
