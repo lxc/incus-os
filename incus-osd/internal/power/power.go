@@ -39,15 +39,30 @@ func ApplyPowerConfiguration(ctx context.Context, config api.SystemPowerConfig) 
 		return err
 	}
 
+	// Only touch the blank timeout when it changes, as setting it wakes the screen.
+	screenConfigChanged := config.Screen != nil && config.Screen.BlankTimeout != currentState.Screen.BlankTimeout
+
 	// Revert the governor before epp as it controls what epp is valid.
 	reverter.Add(func() {
 		_ = applyCPUScalingGovernor(currentState.CPU.ScalingGovernor)
 		_ = applyCPUEnergyPerformancePreference(currentState.CPU.EnergyPerformancePreference)
+
+		if screenConfigChanged {
+			_ = applyScreenBlankTimeout(currentState.Screen.BlankTimeout)
+		}
 	})
 
 	// Apply the power configuration for CPU.
 	if config.CPU != nil {
 		err := applyPowerConfigurationCPU(*config.CPU)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Apply the power configuration for the console screen.
+	if screenConfigChanged {
+		err := applyScreenBlankTimeout(config.Screen.BlankTimeout)
 		if err != nil {
 			return err
 		}
@@ -63,6 +78,13 @@ func ApplyPowerConfiguration(ctx context.Context, config api.SystemPowerConfig) 
 func validatePowerConfiguration(config api.SystemPowerConfig) error {
 	if config.CPU != nil {
 		err := validatePowerConfigurationCPU(*config.CPU)
+		if err != nil {
+			return err
+		}
+	}
+
+	if config.Screen != nil {
+		err := validatePowerConfigurationScreen(*config.Screen)
 		if err != nil {
 			return err
 		}
@@ -159,8 +181,14 @@ func GetPowerState(_ context.Context) (api.SystemPowerState, error) {
 		return api.SystemPowerState{}, err
 	}
 
+	screenState, err := getPowerStateScreen()
+	if err != nil {
+		return api.SystemPowerState{}, err
+	}
+
 	return api.SystemPowerState{
-		CPU: cpuState,
+		CPU:    cpuState,
+		Screen: screenState,
 	}, nil
 }
 
