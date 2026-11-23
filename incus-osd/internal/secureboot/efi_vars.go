@@ -22,6 +22,7 @@ import (
 	"github.com/lxc/incus/v7/shared/subprocess"
 
 	incusoscerts "github.com/lxc/incus-os/incus-osd/certs"
+	"github.com/lxc/incus-os/incus-osd/internal/state"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
@@ -113,7 +114,12 @@ func GetCertificatesAndHashesFromVar(varName string) ([]*x509.Certificate, [][]b
 
 // UpdateSecureBootCerts takes a given tar archive and applies any SecureBoot KEK, db, or dbx
 // updates that are not yet present on the current system.
-func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error) {
+func UpdateSecureBootCerts(ctx context.Context, s *state.State, tarArchive string) (bool, error) {
+	// Only a single EFI variable update can be awaiting confirmation.
+	if s.SecureBoot.Pending.Variable != "" {
+		return false, ErrPendingUpdate
+	}
+
 	kekUpdates := make(map[string][]byte)
 	dbUpdates := make(map[string][]byte)
 	dbxUpdates := make(map[string][]byte)
@@ -185,21 +191,21 @@ func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error)
 	}
 
 	// Apply any updates in order: KEK, then db, then dbx.
-	needsReboot, err := applySecureBootUpdates(ctx, "KEK", kekUpdates)
+	needsReboot, err := applySecureBootUpdates(ctx, s, "KEK", kekUpdates)
 	if err != nil {
 		return needsReboot, err
 	} else if needsReboot {
 		return true, nil
 	}
 
-	needsReboot, err = applySecureBootUpdates(ctx, "db", dbUpdates)
+	needsReboot, err = applySecureBootUpdates(ctx, s, "db", dbUpdates)
 	if err != nil {
 		return needsReboot, err
 	} else if needsReboot {
 		return true, nil
 	}
 
-	needsReboot, err = applySecureBootUpdates(ctx, "dbx", dbxUpdates)
+	needsReboot, err = applySecureBootUpdates(ctx, s, "dbx", dbxUpdates)
 	if err != nil {
 		return needsReboot, err
 	} else if needsReboot {
@@ -209,7 +215,7 @@ func UpdateSecureBootCerts(ctx context.Context, tarArchive string) (bool, error)
 	return false, nil
 }
 
-func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[string][]byte) (bool, error) {
+func applySecureBootUpdates(ctx context.Context, s *state.State, varName string, newCerts map[string][]byte) (bool, error) {
 	existingCerts, _, err := GetCertificatesAndHashesFromVar(varName)
 	if err != nil {
 		return false, fmt.Errorf("failed to read EFI variable %q: %w", varName, err)
@@ -228,6 +234,12 @@ func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[st
 		}) {
 			// This update is already present on the system, so nothing to do.
 			continue
+		}
+
+		// Gather what's needed to enroll the certificate manually should the firmware drop the update.
+		pending, err := newPendingUpdate(varName, certFingerprintBytes, certContents)
+		if err != nil {
+			return false, err
 		}
 
 		slog.InfoContext(ctx, "Appending certificate SHA256:"+certFingerprint+" to EFI variable "+varName)
@@ -262,6 +274,25 @@ func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[st
 
 		slog.InfoContext(ctx, "Successfully updated EFI variable")
 
+		// Track the update until the next boot confirms the firmware kept it.
+		eventLog, err := GetValidatedTPMEventLog()
+		if err != nil {
+			return true, err
+		}
+
+		newPCR7, err := computeNewPCR7Value(eventLog)
+		if err != nil {
+			return true, err
+		}
+
+		pending.ExpectedPCR7 = hex.EncodeToString(newPCR7)
+		s.SecureBoot.Pending = *pending
+
+		err = s.Save()
+		if err != nil {
+			return true, err
+		}
+
 		// After applying a SecureBoot update, we need to restart before applying the next (if any).
 		return true, nil
 	}
@@ -270,8 +301,9 @@ func applySecureBootUpdates(ctx context.Context, varName string, newCerts map[st
 }
 
 // appendEFIVarUpdate takes a pre-signed (.auth) EFI variable update, appends it
-// to the current EFI value, and then updates the expected PCR7 value used to
-// decrypt the root file system and swap at boot.
+// to the current EFI value, and then adds a TPM binding for the PCR7 value
+// expected on next boot. The existing bindings are kept as some firmware
+// drops variable updates made at runtime.
 //
 // NOTE: This function should never be called if Secure Boot is disabled, so the encryption
 // binding logic doesn't include PCR4.
@@ -330,10 +362,8 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 		return err
 	}
 
-	// Update the LUKS-encrypted volumes to use the new PCR7 value.
-	pcrBindingArg := pcrBindingArgument(nil, newPCR7, nil)
-
-	return enrollTPMBindings(ctx, pcrBindingArg, true)
+	// Add a binding for the new PCR7 value to the LUKS-encrypted volumes.
+	return enrollTPMBindings(ctx, pcrBindingArgument(nil, newPCR7, nil), false)
 }
 
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI
@@ -352,15 +382,7 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 		return err
 	}
 
-	// .auth files have a EFI_VARIABLE_AUTHENTICATION_2 header before the EFI signature list.
-	// The first 16 bytes are EFI_TIME, followed by WIN_CERTIFICATE. The first four bytes of
-	// WIN_CERTIFICATE are the total size of the header including the PKCS7 certificate data.
-	// So the proper offset to the start of the EFI signature list is 16 + WIN_CERTIFICATE->dwLength.
-
-	headerSize := binary.LittleEndian.Uint32(buf[16:20])
-	offset := 16 + headerSize
-
-	certList, _, err := parseEfiSignatureList(buf[offset:])
+	certList, err := parseAuthCertificates(buf)
 	if err != nil {
 		return err
 	} else if len(certList) != 1 {
@@ -401,6 +423,26 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	}
 
 	return nil
+}
+
+// parseAuthCertificates returns the certificates from a signed (.auth) EFI variable update.
+func parseAuthCertificates(buf []byte) ([]parsedSignatureList, error) {
+	// .auth files have a EFI_VARIABLE_AUTHENTICATION_2 header before the EFI signature list.
+	// The first 16 bytes are EFI_TIME, followed by WIN_CERTIFICATE. The first four bytes of
+	// WIN_CERTIFICATE are the total size of the header including the PKCS7 certificate data.
+	// So the proper offset to the start of the EFI signature list is 16 + WIN_CERTIFICATE->dwLength.
+	if len(buf) < 20 {
+		return nil, errors.New("truncated EFI variable update")
+	}
+
+	offset := 16 + uint64(binary.LittleEndian.Uint32(buf[16:20]))
+	if offset > uint64(len(buf)) {
+		return nil, errors.New("truncated EFI variable update")
+	}
+
+	certList, _, err := parseEfiSignatureList(buf[offset:])
+
+	return certList, err
 }
 
 // espCertificateName returns the ESP file name used to offer a certificate for manual enrollment.

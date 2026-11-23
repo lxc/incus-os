@@ -511,6 +511,12 @@ func startup(ctx context.Context, s *state.State) error { //nolint:revive
 		}
 	}
 
+	// Confirm that the firmware kept the last Secure Boot update.
+	err = secureboot.VerifySecureBootUpdateApplied(ctx, s)
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to check the pending Secure Boot update", "err", err)
+	}
+
 	// Remove pcrlock credentials left on the ESP by earlier releases, they get measured into PCR12.
 	removedCredentials, err := secureboot.RemovePCRLockCredentials()
 	if err != nil {
