@@ -128,6 +128,11 @@ func (*common) NeedsLateUpdateCheck() bool {
 	return false
 }
 
+// RequiresMatchingOSVersion reports if the application can only be used with the IncusOS version it was built with.
+func (*common) RequiresMatchingOSVersion() bool {
+	return false
+}
+
 // Restart restarts runs restart action.
 func (*common) Restart(_ context.Context) error {
 	return nil

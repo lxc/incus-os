@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+# Bring in the GPU drivers which were built with the base image.
+cp -a "${CHROOT_SRCDIR}/mkosi.output/base-gpu-modules/." /
