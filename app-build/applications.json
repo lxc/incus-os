@@ -303,6 +303,7 @@
     "tailscale": {
         "version": "v1.106.0",
         "repo": "https://github.com/tailscale/tailscale.git",
+        "github_release": true,
         "build_targets": [
             [
                 "-ldflags",
