@@ -335,6 +335,13 @@ func (t *TUI) redrawScreen() {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
 
+		lldpNeighbors := t.getLLDPNeighbors()
+		if len(lldpNeighbors) > 0 {
+			for _, line := range wrapFooterText("LLDP neighbors", strings.Join(lldpNeighbors, ", "), consoleWidth) {
+				t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
+			}
+		}
+
 		for _, line := range wrapFooterText("Machine", getMachineInfo(t.systemResources), consoleWidth) {
 			t.frame.AddText(line, false, tview.AlignLeft, tcell.ColorWhite)
 		}
@@ -398,6 +405,58 @@ func (t *TUI) getIPAddresses() []string {
 	for _, w := range t.state.System.Network.Config.Wireguard {
 		if len(w.Addresses) > 0 {
 			appendIPs(w.Name)
+		}
+	}
+
+	return ret
+}
+
+// Return the LLDP neighbors seen by interfaces and bonds with LLDP reception enabled.
+func (t *TUI) getLLDPNeighbors() []string {
+	if t.state.System.Network.Config == nil {
+		return []string{}
+	}
+
+	ret := []string{}
+
+	appendNeighbors := func(name string, hwaddrs []string) {
+		neighbors := []string{}
+
+		for _, hwaddr := range hwaddrs {
+			lldp, err := network.GetLLDPNeighbors(context.Background(), hwaddr)
+			if err != nil {
+				continue
+			}
+
+			for _, n := range lldp {
+				system := n.Name
+				if system == "" {
+					system = n.ChassisID
+				}
+
+				port := n.PortID
+				if port == "" {
+					port = n.Port
+				}
+
+				neighbors = append(neighbors, system+" "+port)
+			}
+		}
+
+		if len(neighbors) > 0 {
+			ret = append(ret, name+"("+strings.Join(neighbors, ", ")+")")
+		}
+	}
+
+	for _, i := range t.state.System.Network.Config.Interfaces {
+		if i.LLDP || i.LLDPReceiveOnly {
+			appendNeighbors(i.Name, []string{i.Hwaddr})
+		}
+	}
+
+	for _, b := range t.state.System.Network.Config.Bonds {
+		if b.LLDP || b.LLDPReceiveOnly {
+			appendNeighbors(b.Name, b.Members)
 		}
 	}
 
