@@ -30,9 +30,12 @@ var debugNetworkBitrateRegexp = regexp.MustCompile(`^[0-9]+[kKmMgG]?$`)
 type debugFlushWriter struct {
 	w          http.ResponseWriter
 	controller *http.ResponseController
+	written    bool
 }
 
 func (f *debugFlushWriter) Write(p []byte) (int, error) {
+	f.written = true
+
 	n, err := f.w.Write(p)
 	_ = f.controller.Flush()
 
