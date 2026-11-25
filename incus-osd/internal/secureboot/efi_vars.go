@@ -333,19 +333,7 @@ func appendEFIVarUpdate(ctx context.Context, efiUpdateFile string, varName strin
 	// Update the LUKS-encrypted volumes to use the new PCR7 value.
 	pcrBindingArg := pcrBindingArgument(nil, newPCR7, nil)
 
-	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
-	if err != nil {
-		return err
-	}
-
-	for name, volume := range luksVolumes {
-		_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return enrollTPMBindings(ctx, pcrBindingArg, true)
 }
 
 // checkDbxUpdateWouldBrickUKI checks if a proposed dbx update would invalidate a signed UKI

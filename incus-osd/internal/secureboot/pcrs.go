@@ -115,14 +115,7 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 	}
 
 	for name, volume := range luksVolumes {
-		var stderr string
-
-		if luksKey == "" {
-			_, stderr, err = subprocess.RunCommandSplit(ctx, nil, nil, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-		} else {
-			_, stderr, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-		}
-
+		stderr, err := enrollTPMBinding(ctx, name, volume, pcrBindingArg, true, luksKey)
 		if err != nil {
 			return err
 		}
@@ -134,7 +127,7 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 		// systemd-cryptenroll doesn't have a --force option to always perform a PCR bind operation, so we need to
 		// first bind a junk PCR policy, then re-apply the correct good one which will then also update the LUKS
 		// keyslot TPM blob.
-		if strings.Contains(stderr, "This PCR set is already enrolled, executing no operation.") { //nolint:nestif
+		if strings.Contains(stderr, "This PCR set is already enrolled, executing no operation.") {
 			// Generate a random SHA256 PCR7 value.
 			randomPCR := make([]byte, 32)
 
@@ -143,32 +136,16 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 				return err
 			}
 
-			pcrRandomBindingArg := pcrBindingArgument(nil, randomPCR, nil)
+			// Set a bad PCR policy.
+			_, err = enrollTPMBinding(ctx, name, volume, pcrBindingArgument(nil, randomPCR, nil), true, luksKey)
+			if err != nil {
+				return err
+			}
 
-			if luksKey == "" {
-				// Set a bad PCR policy.
-				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
-				if err != nil {
-					return err
-				}
-
-				// Re-bind the expected PCR policy.
-				_, err = subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-				if err != nil {
-					return err
-				}
-			} else {
-				// Set a bad PCR policy.
-				_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrRandomBindingArg, volume)
-				if err != nil {
-					return err
-				}
-
-				// Re-bind the expected PCR policy.
-				_, _, err = subprocess.RunCommandSplit(ctx, append(os.Environ(), "PASSWORD="+luksKey), nil, "systemd-cryptenroll", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-				if err != nil {
-					return err
-				}
+			// Re-bind the expected PCR policy.
+			_, err = enrollTPMBinding(ctx, name, volume, pcrBindingArg, true, luksKey)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -177,6 +154,45 @@ func ForceUpdatePCRBindings(ctx context.Context, s *state.State) error {
 	s.TriggerReboot <- true
 
 	return nil
+}
+
+// enrollTPMBindings binds all LUKS volumes to a PCR policy, optionally replacing their existing TPM bindings.
+func enrollTPMBindings(ctx context.Context, pcrBindingArg string, wipe bool) error {
+	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
+	if err != nil {
+		return err
+	}
+
+	for name, volume := range luksVolumes {
+		_, err := enrollTPMBinding(ctx, name, volume, pcrBindingArg, wipe, "")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// enrollTPMBinding binds a LUKS volume to a PCR policy and returns what systemd-cryptenroll reported.
+// The volume is unlocked with its recovery key file unless a passphrase is provided.
+func enrollTPMBinding(ctx context.Context, name string, volume string, pcrBindingArg string, wipe bool, passphrase string) (string, error) {
+	args := []string{"--tpm2-device=auto", "--tpm2-pcrlock=", pcrBindingArg}
+
+	if wipe {
+		args = append(args, "--wipe-slot=tpm2")
+	}
+
+	env := os.Environ()
+
+	if passphrase == "" {
+		args = append(args, "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key")
+	} else {
+		env = append(env, "PASSWORD="+passphrase)
+	}
+
+	_, stderr, err := subprocess.RunCommandSplit(ctx, env, nil, "systemd-cryptenroll", append(args, volume)...)
+
+	return stderr, err
 }
 
 // pcrBindingArgument returns the systemd-cryptenroll PCR policy argument for the given values.
