@@ -415,6 +415,36 @@ func checkDbxUpdateWouldBrickUKI(dbxFilePath string) error {
 	return nil
 }
 
+// espCertificateName returns the ESP file name used to offer a certificate for manual enrollment.
+func espCertificateName(varName string, cert *x509.Certificate) string {
+	// The file name is derived from the subject, such as "Incus OS - Secure Boot 2026 R1" or "Incus OS - Secure Boot KEK R1".
+	_, suffix, found := strings.Cut(cert.Subject.CommonName, " - Secure Boot ")
+	if !found {
+		return ""
+	}
+
+	name := strings.Join(strings.Fields(suffix), "-")
+	if name == "" || strings.Contains(name, "/") {
+		return ""
+	}
+
+	switch varName {
+	case "PK", "KEK":
+		// The subject of those certificates may not include the variable name.
+		if !strings.HasPrefix(name, varName+"-") {
+			name = varName + "-" + name
+		}
+	case "db":
+		name = "DB-" + name
+	case "dbx":
+		name = "DBX-" + name
+	default:
+		return ""
+	}
+
+	return "secureboot-" + name + ".der"
+}
+
 // SyncESPCertificates writes any missing embedded Secure Boot certificate to the ESP for manual enrollment.
 func SyncESPCertificates() error {
 	embeddedCerts, err := incusoscerts.GetEmbeddedCertificates()
@@ -458,42 +488,28 @@ func SyncESPCertificates() error {
 
 	for _, varName := range []string{"PK", "KEK", "db", "dbx"} {
 		for _, cert := range certsByVar[varName] {
-			// The file name is derived from the subject, such as "Incus OS - Secure Boot 2026 R1" or "Incus OS - Secure Boot KEK R1".
-			_, suffix, found := strings.Cut(cert.Subject.CommonName, " - Secure Boot ")
-			if !found {
-				continue
-			}
-
-			name := strings.Join(strings.Fields(suffix), "-")
-			if name == "" || strings.Contains(name, "/") {
+			name := espCertificateName(varName, cert)
+			if name == "" {
 				continue
 			}
 
 			existingPath, ok := existing[string(cert.Raw)]
 
-			switch varName {
-			case "db":
-				name = "DB-" + name
-			case "dbx":
-				// Don't offer revoked certificates for enrollment in db.
-				if ok && strings.HasPrefix(filepath.Base(existingPath), "secureboot-DB-") {
-					err := os.Remove(existingPath)
-					if err != nil {
-						return err
-					}
-
-					ok = false
+			// Don't offer revoked certificates for enrollment in db.
+			if varName == "dbx" && ok && strings.HasPrefix(filepath.Base(existingPath), "secureboot-DB-") {
+				err := os.Remove(existingPath)
+				if err != nil {
+					return err
 				}
 
-				name = "DBX-" + name
-			default:
+				ok = false
 			}
 
 			if ok {
 				continue
 			}
 
-			path := filepath.Join(espKeysPath, "secureboot-"+name+".der")
+			path := filepath.Join(espKeysPath, name)
 
 			err = os.WriteFile(path, cert.Raw, 0o644) // #nosec G306
 			if err != nil {
