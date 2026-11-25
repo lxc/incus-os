@@ -56,6 +56,8 @@ The following top-level network configuration options can be set:
 
 * `wireguard`: Zero or more WireGuard interfaces that should be configured for the system.
 
+* `loopbacks`: Zero or more loopback interfaces, each with a name and `/32` and `/128` addresses.
+
 * `dns`: Optionally, configure custom DNS information for the system.
 
 * `proxy`: Optionally, configure a proxy for the system.
@@ -211,6 +213,26 @@ config:
 ```
 
 This generates a `GatewayOnLink=yes` route for `systemd-networkd`.
+
+#### Loopback addresses
+
+Configure stable addresses that don't belong to any uplink, for example to announce them with BGP:
+
+```yaml
+config:
+  loopbacks:
+  - name: "loopback"
+    addresses:
+    - "10.255.0.11/32"
+    - "2001:db8:b00b::11/128"
+  - name: "anycast"
+    addresses:
+    - "192.0.2.53/32"
+```
+
+Each loopback is a dummy interface with the given name. Its addresses are local to the system on every interface, as with `lo`.
+They aren't put on `lo` itself, as `systemd-resolved` doesn't send DNS queries while the only routable addresses are on `lo`.
+Loopback names share the namespace of interfaces, bonds, VLANs and WireGuard interfaces, and `lo` can't be used.
 
 #### Automatic roll back of network configuration
 
