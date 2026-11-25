@@ -620,7 +620,7 @@ func (s *Server) apiDebugSecureBootUpdate(w http.ResponseWriter, r *http.Request
 	}
 
 	// Invoke the Secure Boot update process.
-	needsReboot, err := secureboot.UpdateSecureBootCerts(r.Context(), f.Name())
+	needsReboot, err := secureboot.UpdateSecureBootCerts(r.Context(), s.state, f.Name())
 	if err != nil {
 		_ = response.InternalError(err).Render(w)
 

@@ -132,19 +132,7 @@ func HandleSecureBootKeyChange(ctx context.Context, ukiFile string, usrImageFile
 		pcrBindingArg = pcrBindingArgument(newPCR4, newPCR7, pcr12)
 	}
 
-	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
-	if err != nil {
-		return err
-	}
-
-	for name, volume := range luksVolumes {
-		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return enrollTPMBindings(ctx, pcrBindingArg, true)
 }
 
 // UpdatePCR4Binding updates all LUKS encryption bindings to use the newly computed PCR4
@@ -198,21 +186,7 @@ func UpdatePCR4Binding(ctx context.Context, ukiFile string) error {
 	}
 
 	// Update the LUKS-encrypted volumes to use the new PCR4 value.
-	luksVolumes, err := util.GetLUKSVolumePartitions(ctx)
-	if err != nil {
-		return err
-	}
-
-	pcrBindingArg := pcrBindingArgument(newPCR4, pcr7, pcr12)
-
-	for name, volume := range luksVolumes {
-		_, err := subprocess.RunCommandContext(ctx, "systemd-cryptenroll", "--unlock-key-file=/var/lib/incus-os/keys/recovery."+name+".key", "--tpm2-device=auto", "--wipe-slot=tpm2", "--tpm2-pcrlock=", pcrBindingArg, volume)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return enrollTPMBindings(ctx, pcrBindingArgument(newPCR4, pcr7, pcr12), true)
 }
 
 // UKIHasDifferentSecureBootCertificate returns a boolean indicating if a provided UKI is signed

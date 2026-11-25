@@ -75,6 +75,12 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	if !storage.PoolExists(ctx, "local") { //nolint:nestif
 		_, err := subprocess.RunCommandContext(ctx, "zpool", "import", "local")
 		if err != nil {
+			// An existing key means the pool was lost, so keep that key around and start over.
+			recreated, err := preserveLocalPoolKey(ctx, err)
+			if err != nil {
+				return err
+			}
+
 			// The local pool doesn't exist, so create it along with any other pools
 			// defined in the storage seed.
 			storageSeed, err := seed.GetStorage(ctx)
@@ -142,7 +148,8 @@ func LoadPools(ctx context.Context, s *state.State) error {
 
 			// Create any other pools from the storage seed.
 			for _, pool := range storageSeed.Pools {
-				if pool.Name == "local" {
+				// The other pools were already created when the system was first set up.
+				if pool.Name == "local" || recreated {
 					continue
 				}
 
@@ -171,6 +178,34 @@ func LoadPools(ctx context.Context, s *state.State) error {
 	}
 
 	return nil
+}
+
+// preserveLocalPoolKey moves the key of a lost "local" pool out of the way so the pool can be created again.
+func preserveLocalPoolKey(ctx context.Context, importErr error) (bool, error) {
+	keyfilePath := "/var/lib/incus-os/keys/zpool.local.key"
+
+	_, err := os.Stat(keyfilePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	// Only start over when the pool is gone, not when it merely fails to import.
+	if !strings.Contains(importErr.Error(), "cannot import 'local': no such pool available") {
+		return false, importErr
+	}
+
+	slog.WarnContext(ctx, "Storage pool 'local' is missing, creating a new one and keeping its previous encryption key", "key", keyfilePath+".old")
+
+	err = os.Rename(keyfilePath, keyfilePath+".old")
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func recoverLocalPool(ctx context.Context) error {

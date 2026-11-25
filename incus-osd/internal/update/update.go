@@ -127,6 +127,13 @@ func CheckSecureBoot(ctx context.Context, s *state.State, clearCache bool, force
 		return nil
 	}
 
+	// Don't touch another EFI variable until the last update is confirmed.
+	if s.SecureBoot.Pending.Variable != "" {
+		slog.DebugContext(ctx, "Skipping Secure Boot update check as an earlier update is still pending", "variable", s.SecureBoot.Pending.Variable)
+
+		return nil
+	}
+
 	p, t, err := updateCommonPrep(ctx, s, clearCache)
 	if err != nil {
 		return err
@@ -526,7 +533,7 @@ func applyUpdate(ctx context.Context, s *state.State, t *tui.TUI, update provide
 		s.SecureBoot.FullyApplied = false
 		_ = s.Save()
 
-		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, filepath.Join(targetPath, u.GetFilename()))
+		needsReboot, err := secureboot.UpdateSecureBootCerts(ctx, s, filepath.Join(targetPath, u.GetFilename()))
 		if err != nil {
 			return "", err
 		}

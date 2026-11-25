@@ -12,16 +12,17 @@ const (
 
 // SystemSecurityState holds information about the current security state.
 type SystemSecurityState struct {
-	EncryptedVolumes                []SystemSecurityEncryptedVolume       `incusos:"-"                               json:"encrypted_volumes"                  yaml:"encrypted_volumes"`
+	EncryptedVolumes                []SystemSecurityEncryptedVolume       `incusos:"-"                               json:"encrypted_volumes"                        yaml:"encrypted_volumes"`
 	EncryptionRecoveryKeysRetrieved bool                                  `json:"encryption_recovery_keys_retrieved" yaml:"encryption_recovery_keys_retrieved"`
-	DriveRecoveryKeys               map[string]string                     `incusos:"-"                               json:"drive_recovery_keys,omitempty"      yaml:"drive_recovery_keys,omitempty"`
-	PoolRecoveryKeys                map[string]string                     `incusos:"-"                               json:"pool_recovery_keys"                 yaml:"pool_recovery_keys"`
-	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"           yaml:"secure_boot_certificates"`
-	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                yaml:"secure_boot_enabled"`
-	SystemStateIsTrusted            bool                                  `incusos:"-"                               json:"system_state_is_trusted"            yaml:"system_state_is_trusted"`
-	SystemStateStatus               string                                `incusos:"-"                               json:"system_state_status"                yaml:"system_state_status"`
-	TPMStatus                       TPMStatus                             `incusos:"-"                               json:"tpm_status"                         yaml:"tpm_status"`
-	TPMPublicKey                    string                                `incusos:"-"                               json:"tpm_public_key,omitempty"           yaml:"tpm_public_key,omitempty"`
+	DriveRecoveryKeys               map[string]string                     `incusos:"-"                               json:"drive_recovery_keys,omitempty"            yaml:"drive_recovery_keys,omitempty"`
+	PoolRecoveryKeys                map[string]string                     `incusos:"-"                               json:"pool_recovery_keys"                       yaml:"pool_recovery_keys"`
+	SecureBootCertificates          []SystemSecuritySecureBootCertificate `incusos:"-"                               json:"secure_boot_certificates"                 yaml:"secure_boot_certificates"`
+	SecureBootEnabled               bool                                  `incusos:"-"                               json:"secure_boot_enabled"                      yaml:"secure_boot_enabled"`
+	SecureBootPendingEnrollment     *SystemSecuritySecureBootEnrollment   `incusos:"-"                               json:"secure_boot_pending_enrollment,omitempty" yaml:"secure_boot_pending_enrollment,omitempty"`
+	SystemStateIsTrusted            bool                                  `incusos:"-"                               json:"system_state_is_trusted"                  yaml:"system_state_is_trusted"`
+	SystemStateStatus               string                                `incusos:"-"                               json:"system_state_status"                      yaml:"system_state_status"`
+	TPMStatus                       TPMStatus                             `incusos:"-"                               json:"tpm_status"                               yaml:"tpm_status"`
+	TPMPublicKey                    string                                `incusos:"-"                               json:"tpm_public_key,omitempty"                 yaml:"tpm_public_key,omitempty"`
 }
 
 // SystemSecurityConfig holds additional security configuration settings.
@@ -45,6 +46,14 @@ type SystemSecuritySecureBootCertificate struct {
 	Fingerprint string `json:"fingerprint" yaml:"fingerprint"`
 	Subject     string `json:"subject"     yaml:"subject"`
 	Issuer      string `json:"issuer"      yaml:"issuer"`
+}
+
+// SystemSecuritySecureBootEnrollment defines a struct that holds a Secure Boot certificate which must be enrolled from the firmware setup.
+type SystemSecuritySecureBootEnrollment struct {
+	Type          string `json:"type"           yaml:"type"`
+	Fingerprint   string `json:"fingerprint"    yaml:"fingerprint"`
+	File          string `json:"file"           yaml:"file"`
+	SignatureGUID string `json:"signature_guid" yaml:"signature_guid"`
 }
 
 // SystemSecurityEncryptedVolume defines a struct that holds basic information about an encrypted volume.

@@ -11,8 +11,20 @@ import (
 
 // SecureBoot represents the current state of Secure Boot key updates applied to the system.
 type SecureBoot struct {
-	Version      string `json:"version"`
-	FullyApplied bool   `json:"fully_applied"`
+	Version      string            `json:"version"`
+	FullyApplied bool              `json:"fully_applied"`
+	Pending      SecureBootPending `json:"pending"`
+}
+
+// SecureBootPending tracks an EFI variable update until a reboot confirms the firmware kept it.
+type SecureBootPending struct {
+	Variable     string `json:"variable"`
+	Fingerprint  string `json:"fingerprint"`
+	KeyFile      string `json:"key_file"`
+	OwnerGUID    string `json:"owner_guid"`
+	ExpectedPCR7 string `json:"expected_pcr7"`
+	BootID       string `json:"boot_id"`
+	Dropped      bool   `json:"dropped"`
 }
 
 // OS represents the current OS image state.

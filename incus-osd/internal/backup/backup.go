@@ -11,11 +11,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/lxc/incus/v7/shared/revert"
+	"github.com/lxc/incus/v7/shared/subprocess"
 
 	"github.com/lxc/incus-os/incus-osd/internal/applications"
 	"github.com/lxc/incus-os/incus-osd/internal/state"
+	"github.com/lxc/incus-os/incus-osd/internal/storage"
 	"github.com/lxc/incus-os/incus-osd/internal/systemd"
 	"github.com/lxc/incus-os/incus-osd/internal/update"
 	"github.com/lxc/incus-os/incus-osd/internal/util"
@@ -281,6 +284,11 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 			continue
 		}
 
+		// The key of a lost local pool is only kept in backups for manual recovery.
+		if filename == "zpool.local.key.old" {
+			continue
+		}
+
 		// Encryption keys live under keys/, regardless of where the backup has them.
 		dstPath := "/var/lib/incus-os/" + filename
 		if keyFileRegex.MatchString(filename) {
@@ -304,6 +312,12 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 		}
 	}
 
+	// Refuse a backup that would leave an existing storage pool without a usable key.
+	err = verifyPoolKeys(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Process the new state and make necessary adjustments to the system
 	// so the actual system state matches.
 	err = processNewState(ctx, s, skipOptions)
@@ -322,6 +336,39 @@ func ApplyOSBackup(ctx context.Context, s *state.State, buf io.Reader, skipOptio
 	// Finally, reboot the system as an easy way to ensure service, network, and application
 	// configurations match the new state.
 	return systemd.SystemReboot(ctx)
+}
+
+// verifyPoolKeys checks that the restored encryption keys match the currently imported storage pools.
+func verifyPoolKeys(ctx context.Context) error {
+	files, err := os.ReadDir("/var/lib/incus-os/keys/")
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		pool, isPoolKey := strings.CutPrefix(file.Name(), "zpool.")
+		if !isPoolKey || !strings.HasSuffix(pool, ".key") {
+			continue
+		}
+
+		pool = strings.TrimSuffix(pool, ".key")
+
+		if !storage.PoolExists(ctx, pool) {
+			continue
+		}
+
+		// A dry-run only checks the key and works on pools which are already unlocked.
+		_, err := subprocess.RunCommandContext(ctx, "zfs", "load-key", "-n", pool)
+		if err != nil {
+			if pool == "local" {
+				return errors.New("encryption key from backup doesn't match storage pool 'local', restore with the 'local-data-encryption-key' skip option to keep the current key")
+			}
+
+			return errors.New("encryption key from backup doesn't match storage pool '" + pool + "'")
+		}
+	}
+
+	return nil
 }
 
 func processNewState(ctx context.Context, s *state.State, skipOptions []string) error {

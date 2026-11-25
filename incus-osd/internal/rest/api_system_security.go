@@ -104,6 +104,9 @@ func (s *Server) apiSystemSecurity(w http.ResponseWriter, r *http.Request) {
 		// Get a list of Secure Boot certificates.
 		s.state.System.Security.State.SecureBootCertificates = secureboot.ListCertificates()
 
+		// Report any Secure Boot certificate waiting for a manual enrollment.
+		s.state.System.Security.State.SecureBootPendingEnrollment = secureboot.PendingEnrollment(s.state)
+
 		// Get TPM status.
 		s.state.System.Security.State.TPMStatus, err = secureboot.TPMStatus()
 		if err != nil {

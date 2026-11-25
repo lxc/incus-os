@@ -1,4 +1,7 @@
+import io
 import json
+import os
+import tarfile
 import time
 
 from .incus_test_vm import IncusTestVM, IncusOSException, util
@@ -58,6 +61,32 @@ def TestIncusOSAPISystemBackup(install_image):
 
         if result["metadata"]["config"]["time"]["timezone"] != "America/Denver":
             raise IncusOSException("unexpected timezone: " + result["metadata"]["config"]["time"]["timezone"])
+
+        # Replace the local pool encryption key in a copy of the backup
+        bad_archive = io.BytesIO()
+        with tarfile.open(fileobj=io.BytesIO(backup_archive), mode="r:gz") as src, tarfile.open(fileobj=bad_archive, mode="w:gz") as dst:
+            for member in src.getmembers():
+                content = src.extractfile(member).read()
+                if os.path.basename(member.name) == "zpool.local.key":
+                    content = os.urandom(len(content))
+
+                dst.addfile(member, io.BytesIO(content))
+
+        # Restoring a backup with the wrong local pool encryption key should fail
+        result = vm.APIRequest("/1.0/system/:restore", method="POST", body=bad_archive.getvalue(), content_type="application/x-tar")
+        if result["status_code"] == 200:
+            raise IncusOSException("restoring a backup with the wrong local pool encryption key should have failed")
+
+        if "doesn't match storage pool 'local'" not in result["error"]:
+            raise IncusOSException("unexpected error: " + result["error"])
+
+        # Verify the failed restore didn't change anything
+        result = vm.APIRequest("/1.0/system/network")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["config"]["dns"]["hostname"] != "incusos2":
+            raise IncusOSException("unexpected hostname: " + result["metadata"]["config"]["dns"]["hostname"])
 
         # Restore the OS backup
         result = vm.APIRequest("/1.0/system/:restore", method="POST", body=backup_archive, content_type="application/x-tar")

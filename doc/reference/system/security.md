@@ -39,3 +39,27 @@ If IncusOS fails to automatically unlock the main system drive, after booting us
 ```
 incus admin os system security tpm-rebind
 ```
+
+## Secure Boot updates dropped by the firmware
+
+Some firmware, typically on single-board computers, accepts a Secure Boot variable update at runtime but doesn't keep it across a reboot. IncusOS detects this on the next boot, stops retrying the update and logs a warning on every boot until the certificate has been enrolled manually.
+
+The details needed for the enrollment are reported under `secure_boot_pending_enrollment` in the output of
+
+```
+incus admin os system security show
+```
+
+* `type`: The Secure Boot variable to update, such as `db` or `dbx`
+* `file`: The certificate to enroll, stored in the `keys` directory of the EFI system partition
+* `signature_guid`: The Signature GUID to enter in the firmware setup
+
+Once the certificate has been enrolled from the firmware setup, IncusOS will complete the update on the following boot and carry on with any remaining Secure Boot update.
+
+```{warning}
+Until a `db` certificate has been enrolled, the system won't be able to install any IncusOS update signed by that certificate. IncusOS refuses such updates rather than risk a system that fails to boot, so the system stops receiving OS updates once the signing certificate changes.
+```
+
+```{note}
+If the certificate is enrolled with a different Signature GUID, a recovery key will be needed to boot the system and the TPM bindings will then need to be reset as described above.
+```
