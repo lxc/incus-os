@@ -16,10 +16,10 @@ def TestIncusOSAPIDebug(install_image):
         if result["status_code"] != 200:
             raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
-        if len(result["metadata"]) != 8:
-            raise IncusOSException("expected eight debug endpoints")
+        if len(result["metadata"]) != 9:
+            raise IncusOSException("expected nine debug endpoints")
 
-        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/lvm", "/1.0/debug/network", "/1.0/debug/processes", "/1.0/debug/report", "/1.0/debug/:run-script", "/1.0/debug/secureboot"]:
+        for endpoint in ["/1.0/debug/kernel", "/1.0/debug/log", "/1.0/debug/lvm", "/1.0/debug/network", "/1.0/debug/processes", "/1.0/debug/report", "/1.0/debug/:run-script", "/1.0/debug/secureboot", "/1.0/debug/storage"]:
             if endpoint not in result["metadata"]:
                 raise IncusOSException(f"missing expected endpoint {endpoint}")
 
@@ -27,6 +27,19 @@ def TestIncusOSAPIDebug(install_image):
         result = vm.APIRequest("/1.0/debug/lvm")
         if result["error_code"] != 400:
             raise IncusOSException("expected LVM debug endpoint to be rejected while the service is disabled")
+
+        # Test block device tracing.
+        result = vm.APIRequest("/1.0/debug/storage/:trace", method="POST", body='{"device":"missing"}')
+        if result["error_code"] != 400:
+            raise IncusOSException("expected a trace of a missing block device to be rejected")
+
+        result = vm.APIRequest("/1.0/debug/storage/:trace", method="POST", body='{"device":"/dev/mapper/root","actions":["bogus"]}')
+        if result["error_code"] != 400:
+            raise IncusOSException("expected a trace of an unknown action to be rejected")
+
+        result = vm.APIRequest("/1.0/debug/storage/:trace", method="POST", body='{"device":"/dev/mapper/root","duration":2}', return_raw_content=True)
+        if result.startswith(b"{"):
+            raise IncusOSException("unexpected block device trace output: " + result.decode())
 
         # Test system metrics report.
         result = vm.APIRequest("/1.0/debug/report?match=io.systemd.Basic")
