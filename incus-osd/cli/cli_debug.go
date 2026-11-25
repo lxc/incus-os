@@ -60,6 +60,10 @@ func (c *cmdAdminOSDebug) command() *cobra.Command {
 	secureBootCmd := cmdAdminOSDebugSecureBoot{os: c.os}
 	cmd.AddCommand(secureBootCmd.command())
 
+	// Storage.
+	storageCmd := cmdAdminOSDebugStorage{os: c.os}
+	cmd.AddCommand(storageCmd.command())
+
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706.
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, _ []string) { _ = cmd.Usage() }
