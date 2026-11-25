@@ -80,6 +80,24 @@ incus admin os debug lvm
 
 See the [LVM service](services/lvm.md) for details.
 
+## Storage
+
+The I/O requests reaching a block device can be traced by running
+
+```
+incus admin os debug storage trace <device>
+```
+
+The device is either a name such as `sda` or a path under `/dev`. The trace runs for 10 seconds unless another duration is set with `--duration`, with `0` tracing until interrupted.
+
+The output uses the same format as `blktrace`. It can be limited to specific categories of I/O by passing the `--action` option, which may be repeated. For example, show the discard requests reaching a drive for the next minute by running
+
+```
+incus admin os debug storage trace sda --action discard --duration 60
+```
+
+Only one trace can run at a time.
+
 ## Secure Boot
 
 The TPM event log for the PCRs that IncusOS relies on, along with their final values, can be retrieved by running
