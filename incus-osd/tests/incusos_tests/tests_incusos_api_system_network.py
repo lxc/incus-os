@@ -313,8 +313,8 @@ def TestIncusOSAPISystemNetworkConfigInterfaces(install_image):
             if result["status_code"] == 200:
                 raise IncusOSException("unexpected success applying an invalid advertise mode")
 
-            # Apply a new network configuration that changes names, roles and forces the link speed.
-            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"management","required_for_online":"both","roles":["management","cluster","storage"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"],"ethernet":{"speed":1000}}]}}""")
+            # Apply a new network configuration that changes names, roles, forces the link speed and makes the vm interface IPv6 link-local only.
+            result = vm.APIRequest("/1.0/system/network", method="PUT", body="""{"config":{"time":{"timezone":"UTC"},"interfaces":[{"addresses":["dhcp4","slaac"],"hwaddr":""" + enp5MAC + ""","name":"management","required_for_online":"both","roles":["management","cluster","storage"]},{"hwaddr":""" + enp6MAC + ""","name":"vm","roles":["instances"],"ipv6_link_local":true,"ethernet":{"speed":1000}}]}}""")
             if result["status_code"] != 200:
                 raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
 
@@ -345,6 +345,10 @@ def TestIncusOSAPISystemNetworkConfigInterfaces(install_image):
 
             if interfaces["vm"]["speed"] != "1000":
                 raise IncusOSException("expected vm interface speed to be 1000, got " + interfaces["vm"]["speed"])
+
+            vmAddresses = vm.RunCommand("ip", "-6", "address", "show", "dev", "_vvm").stdout.decode("utf-8")
+            if "inet6 fe80:" not in vmAddresses:
+                raise IncusOSException("expected vm interface to have an IPv6 link-local address")
 
             # Set the vm link down and back up.
             result = vm.APIRequest("/1.0/system/network/:link-state", method="POST", body="""{"name":"vm","state":"down"}""")
