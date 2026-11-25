@@ -634,6 +634,9 @@ definitions:
             hwaddr:
                 type: string
                 x-go-name: Hwaddr
+            ipv6_link_local:
+                type: boolean
+                x-go-name: IPv6LinkLocal
             lldp:
                 type: boolean
                 x-go-name: LLDP
@@ -889,6 +892,9 @@ definitions:
             hwaddr:
                 type: string
                 x-go-name: Hwaddr
+            ipv6_link_local:
+                type: boolean
+                x-go-name: IPv6LinkLocal
             lldp:
                 type: boolean
                 x-go-name: LLDP
@@ -1158,6 +1164,9 @@ definitions:
                 format: int64
                 type: integer
                 x-go-name: ID
+            ipv6_link_local:
+                type: boolean
+                x-go-name: IPv6LinkLocal
             mtu:
                 format: int64
                 type: integer
