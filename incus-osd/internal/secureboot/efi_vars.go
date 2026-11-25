@@ -25,6 +25,9 @@ import (
 	"github.com/lxc/incus-os/incus-osd/internal/util"
 )
 
+// espKeysPath is where certificates are offered for manual enrollment.
+const espKeysPath = "/boot/keys"
+
 // GetCertificatesAndHashesFromVar returns a list of certificates and hashes currently in a given EFI variable.
 func GetCertificatesAndHashesFromVar(varName string) ([]*x509.Certificate, [][]byte, error) {
 	var certs []*x509.Certificate
@@ -419,7 +422,7 @@ func SyncESPCertificates() error {
 		return err
 	}
 
-	err = os.MkdirAll("/boot/keys", 0o755)
+	err = os.MkdirAll(espKeysPath, 0o755)
 	if err != nil {
 		return err
 	}
@@ -427,7 +430,7 @@ func SyncESPCertificates() error {
 	// Track the certificates already on the ESP, whatever their file name.
 	existing := map[string]string{}
 
-	paths, err := filepath.Glob("/boot/keys/*.der")
+	paths, err := filepath.Glob(filepath.Join(espKeysPath, "*.der"))
 	if err != nil {
 		return err
 	}
@@ -490,7 +493,7 @@ func SyncESPCertificates() error {
 				continue
 			}
 
-			path := "/boot/keys/secureboot-" + name + ".der"
+			path := filepath.Join(espKeysPath, "secureboot-"+name+".der")
 
 			err = os.WriteFile(path, cert.Raw, 0o644) // #nosec G306
 			if err != nil {
