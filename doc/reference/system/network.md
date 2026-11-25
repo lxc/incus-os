@@ -212,6 +212,20 @@ config:
 
 This generates a `GatewayOnLink=yes` route for `systemd-networkd`.
 
+#### IPv6 link-local only interfaces
+
+Configure an interface with only an IPv6 link-local address, as used for unnumbered BGP:
+
+```yaml
+config:
+  interfaces:
+  - name: "uplink0"
+    hwaddr: "enp5s0"
+    ipv6_link_local: true
+```
+
+Interfaces, bonds and VLANs with `ipv6_link_local` and no addresses aren't required for the system to be online.
+
 #### Automatic roll back of network configuration
 
 When applying a complex network configuration update, it can be useful to automatically roll back the changes if something goes wrong. IncusOS supports this via the `confirmation_timeout` configuration field.
