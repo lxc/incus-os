@@ -272,6 +272,26 @@ definitions:
         title: DebugReportMetric represents a single metric from a systemd-report report.
         type: object
         x-go-package: github.com/lxc/incus-os/incus-osd/api
+    DebugStorageTrace:
+        properties:
+            actions:
+                description: I/O categories to trace using blktrace names such as "discard" or "write", defaults to all of them.
+                items:
+                    type: string
+                type: array
+                x-go-name: Actions
+            device:
+                description: Block device to trace, either a device name or a path under /dev.
+                type: string
+                x-go-name: Device
+            duration:
+                description: Seconds to trace for, defaults to 10 if unset, 0 traces until the request is canceled.
+                format: int64
+                type: integer
+                x-go-name: Duration
+        title: DebugStorageTrace defines the arguments for a block device trace request.
+        type: object
+        x-go-package: github.com/lxc/incus-os/incus-osd/api
     License:
         properties:
             content:
@@ -3222,6 +3242,75 @@ paths:
                 "500":
                     $ref: '#/responses/InternalServerError'
             summary: Get TPM event log
+            tags:
+                - debug
+    /1.0/debug/storage:
+        get:
+            description: |-
+                Returns a list of storage debug endpoints (URLs).
+
+                These endpoints have no guarantee of API stability, and should not be used in normal day-to-day operations.
+            operationId: debug_storage_get
+            produces:
+                - application/json
+            responses:
+                "200":
+                    description: API endpoints
+                    schema:
+                        description: Sync response
+                        properties:
+                            metadata:
+                                description: List of storage debug endpoints
+                                example:
+                                    - /1.0/debug/storage/:trace
+                                items:
+                                    type: string
+                                type: array
+                            status:
+                                description: Status description
+                                example: Success
+                                type: string
+                            status_code:
+                                description: Status code
+                                example: 200
+                                type: integer
+                            type:
+                                description: Response type
+                                example: sync
+                                type: string
+                        type: object
+            summary: Get storage debug endpoints
+            tags:
+                - debug
+    /1.0/debug/storage/:trace:
+        post:
+            consumes:
+                - application/json
+            description: |-
+                Trace the I/O of a block device, streaming it as text until done or until the request is canceled.
+
+                The output matches that of blktrace. Only one trace can run at a time.
+            operationId: debug_storage_post_trace
+            parameters:
+                - description: Block device trace arguments
+                  in: body
+                  name: arguments
+                  required: true
+                  schema:
+                    $ref: '#/definitions/DebugStorageTrace'
+            produces:
+                - application/json
+                - application/octet-stream
+            responses:
+                "200":
+                    description: Text block device trace
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "409":
+                    $ref: '#/responses/Conflict'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Get a block device trace
             tags:
                 - debug
     /1.0/licenses:
