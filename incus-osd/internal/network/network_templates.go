@@ -35,7 +35,6 @@ type networkFileVariables struct {
 	RequiredForOnline string
 	MTU               int
 	VLANs             []api.SystemNetworkVLAN
-	DNS               *api.SystemNetworkDNS
 	TimeConfig        *api.SystemNetworkTime
 	Description       string
 	LLDP              string

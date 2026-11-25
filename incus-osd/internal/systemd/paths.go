@@ -15,4 +15,8 @@ var (
 
 	// SystemdTimesyncConfigFile is the configuration file for systemd-timesyncd.
 	SystemdTimesyncConfigFile = "/run/systemd/timesyncd.conf"
+
+	// SystemdResolvedConfigFile is the drop-in holding the global DNS configuration for
+	// systemd-resolved.
+	SystemdResolvedConfigFile = "/run/systemd/resolved.conf.d/50-incus-os.conf"
 )
