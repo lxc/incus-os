@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"os"
@@ -154,6 +155,12 @@ func ApplyNetworkConfiguration(ctx context.Context, s *state.State, networkCfg *
 
 	// Restart networking after new config files have been generated.
 	err = systemd.RestartUnit(ctx, "systemd-networkd")
+	if err != nil {
+		return err
+	}
+
+	// Restart systemd-resolved to load the global DNS configuration.
+	err = systemd.RestartUnit(ctx, "systemd-resolved")
 	if err != nil {
 		return err
 	}
@@ -1204,7 +1211,60 @@ func generateNetworkConfiguration(ctx context.Context, networkCfg *api.SystemNet
 		_ = os.Remove(systemd.SystemdTimesyncConfigFile)
 	}
 
+	// Generate the global systemd-resolved configuration.
+	err = writeOrRemove(systemd.SystemdResolvedConfigFile, generateResolvedConfiguration(networkCfg.DNS))
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// generateResolvedConfiguration returns the global systemd-resolved configuration for the
+// nameservers, or an empty string if there are none. The nameservers are global rather than
+// tied to the interfaces, as systemd-resolved ignores the nameservers of a link that has no
+// routable address, such as an uplink with only an IPv6 link-local address.
+func generateResolvedConfiguration(dns *api.SystemNetworkDNS) string {
+	if dns == nil || (len(dns.Nameservers) == 0 && len(dns.SearchDomains) == 0 && !dns.DNSOverTLS) {
+		return ""
+	}
+
+	var b strings.Builder
+
+	b.WriteString("[Resolve]\n")
+
+	if len(dns.Nameservers) > 0 {
+		b.WriteString("DNS=" + strings.Join(dns.Nameservers, " ") + "\n")
+	}
+
+	if len(dns.SearchDomains) > 0 {
+		b.WriteString("Domains=" + strings.Join(dns.SearchDomains, " ") + "\n")
+	}
+
+	if dns.DNSOverTLS {
+		b.WriteString("DNSOverTLS=yes\n")
+	}
+
+	return b.String()
+}
+
+// writeOrRemove writes contents to a configuration file, or removes the file if contents is empty.
+func writeOrRemove(path string, contents string) error {
+	if contents == "" {
+		err := os.Remove(path)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+
+		return nil
+	}
+
+	err := os.MkdirAll(filepath.Dir(path), 0o755)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, []byte(contents), 0o644)
 }
 
 // waitForUdevInterfaceRename waits up to a provided timeout for udev to pickup and process
@@ -1730,7 +1790,6 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			RequiredForOnline: i.RequiredForOnline,
 			MTU:               configuredMTU,
 			VLANs:             networkCfg.VLANs,
-			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         i.Addresses,
 			Routes:            i.Routes,
@@ -1863,7 +1922,6 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			RequiredForOnline: b.RequiredForOnline,
 			MTU:               configuredMTU,
 			VLANs:             networkCfg.VLANs,
-			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         b.Addresses,
 			Routes:            b.Routes,
@@ -1956,7 +2014,6 @@ func generateNetworkFileContents(ctx context.Context, networkCfg api.SystemNetwo
 			Name:              v.Name,
 			RequiredForOnline: v.RequiredForOnline,
 			MTU:               configuredMTU,
-			DNS:               networkCfg.DNS,
 			TimeConfig:        networkCfg.Time,
 			Addresses:         v.Addresses,
 			Routes:            v.Routes,

@@ -1009,7 +1009,7 @@ func TestNetworkFileGeneration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cfgs, 4)
 	require.Equal(t, "20-_vffeeddccbbaa.network", cfgs[0].Name)
-	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nDomains=example.org \nDNS=ns1.example.org\nDNS=ns2.example.org\nDNSOverTLS=yes\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
+	require.Equal(t, "[Match]\nName=_vffeeddccbbaa\n\n[Link]\nRequiredForOnline=no\nMTUBytes=1500\n\n[DHCP]\nClientIdentifier=mac\nRouteMetric=100\nUseMTU=true\n\n[DHCPv6]\nWithoutRA=solicit\n\n[Network]\nNTP=pool.ntp.example.org\nNTP=10.10.10.10\nLinkLocalAddressing=ipv6\nIPv6AcceptRA=false\nDHCP=ipv4\n", cfgs[0].Contents)
 	require.Equal(t, "20-_iffeeddccbbaa.network", cfgs[1].Name)
 	require.Equal(t, "[Match]\nName=_iffeeddccbbaa\n\n[Link]\nMTUBytes=9009\n\n[Network]\nBridge=ffeeddccbbaa\n", cfgs[1].Contents)
 	require.Equal(t, "20-_pffeeddccbbaa.network", cfgs[2].Name)
@@ -1147,4 +1147,22 @@ func TestDecodeLLDPCapabilities(t *testing.T) {
 	require.Equal(t, []string{}, decodeLLDPCapabilities(0))
 	require.Equal(t, []string{"other", "station"}, decodeLLDPCapabilities(0x81))
 	require.Equal(t, []string{"bridge", "router", "c-vlan", "tpmr"}, decodeLLDPCapabilities(0x514))
+}
+
+func TestResolvedConfigGeneration(t *testing.T) {
+	t.Parallel()
+
+	require.Empty(t, generateResolvedConfiguration(nil))
+	require.Empty(t, generateResolvedConfiguration(&api.SystemNetworkDNS{Hostname: "host"}))
+	require.Equal(t, "[Resolve]\nDNSOverTLS=yes\n", generateResolvedConfiguration(&api.SystemNetworkDNS{DNSOverTLS: true}))
+
+	require.Equal(t, "[Resolve]\nDNS=2001:db8::53 192.0.2.53\n", generateResolvedConfiguration(&api.SystemNetworkDNS{
+		Nameservers: []string{"2001:db8::53", "192.0.2.53"},
+	}))
+
+	require.Equal(t, "[Resolve]\nDNS=ns1.example.org ns2.example.org\nDomains=example.org example.com\nDNSOverTLS=yes\n", generateResolvedConfiguration(&api.SystemNetworkDNS{
+		Nameservers:   []string{"ns1.example.org", "ns2.example.org"},
+		SearchDomains: []string{"example.org", "example.com"},
+		DNSOverTLS:    true,
+	}))
 }

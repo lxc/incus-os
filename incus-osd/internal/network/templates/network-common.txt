@@ -34,17 +34,6 @@ WithoutRA=solicit
 VLAN={{.Name}}
   {{- end}}
 {{- end}}
-{{- if .DNS}}
-  {{- if .DNS.SearchDomains}}
-Domains={{range .DNS.SearchDomains}}{{.}} {{end}}
-  {{- end}}
-  {{- range .DNS.Nameservers}}
-DNS={{.}}
-  {{- end}}
-  {{- if .DNS.DNSOverTLS}}
-DNSOverTLS=yes
-  {{- end}}
-{{- end}}
 {{- if .TimeConfig}}
   {{- range .TimeConfig.NTPServers}}
 NTP={{.}}

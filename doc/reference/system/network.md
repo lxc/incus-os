@@ -366,6 +366,8 @@ Changing the system's timezone will take effect immediately, but won't be reflec
 Please use name servers that support DNS over TLS when `dns_over_tls` is true
 ```
 
+The name servers, search domains and DNS over TLS setting apply to the whole system rather than to a single interface, so they also work when the interfaces that reach the name servers have no routable address.
+
 Configure custom DNS, NTP, and timezone for IncusOS:
 
 ```yaml
