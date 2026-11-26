@@ -130,7 +130,11 @@ def _manual_download_application(directory, apps, version):
             if updateFile["architecture"] != "x86_64":
                 continue
 
-            if updateFile["type"] != "application" or updateFile["component"] not in apps:
+            if updateFile["type"] != "application":
+                continue
+
+            # Match apps based on their filename.
+            if os.path.basename(updateFile["filename"]).removesuffix(".raw.gz") not in apps:
                 continue
 
             urllib.request.urlretrieve(IMAGES_SERVER + "/os/"+version+"/"+updateFile["filename"], directory+"/update/"+updateFile["filename"])
