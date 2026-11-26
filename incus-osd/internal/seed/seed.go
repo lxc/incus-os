@@ -126,7 +126,7 @@ func parseFileContents(partition string, filename string, target any) error {
 
 	// If we get back an EOF, that likely indicates an existing empty seed file. Because the user-provided
 	// seed should take preference over anything on the install media, return the error rather than continuing.
-	if err != nil && errors.Is(err, io.EOF) {
+	if errors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -43,12 +43,13 @@ var installSeed *apiseed.Install
 var networkSeed *apiseed.Network
 
 type cmdGlobal struct {
-	flagHelp    bool
-	flagVersion bool
-	flagImage   string
-	flagFormat  string
-	flagSeedTar string
-	flagChannel string
+	flagHelp      bool
+	flagVersion   bool
+	flagImage     string
+	flagFormat    string
+	flagSeedTar   string
+	flagChannel   string
+	flagServerURL string
 }
 
 func main() {
@@ -72,6 +73,7 @@ func main() {
 	app.Flags().StringVarP(&globalCmd.flagFormat, "format", "f", "", "Image format to download: 'iso' or 'img' (disables format prompt)")
 	app.Flags().StringVarP(&globalCmd.flagSeedTar, "seed", "s", "", "Path to install seed tar archive (advanced, disables interactive mode)")
 	app.Flags().StringVarP(&globalCmd.flagChannel, "channel", "c", "stable", "Update channel to download from (default: stable)")
+	app.Flags().StringVarP(&globalCmd.flagServerURL, "url", "u", "", "Image server URL")
 
 	// Help handling.
 	app.SetHelpCommand(&cobra.Command{
@@ -106,7 +108,7 @@ func (c *cmdGlobal) run(_ *cobra.Command, _ []string) error {
 	if imageFilename == "" {
 		slog.InfoContext(ctx, "Fetching latest release from the Linux Containers CDN")
 
-		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker, c.flagFormat, c.flagChannel)
+		imageFilename, err = downloadCurrentIncusOSRelease(ctx, asker, c.flagFormat, c.flagChannel, c.flagServerURL)
 		if err != nil {
 			slog.ErrorContext(ctx, err.Error())
 
@@ -699,12 +701,21 @@ func injectSeedIntoImage(imageFilename string, data []byte) error {
 	return nil
 }
 
-func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFormat string, channel string) (string, error) {
+func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFormat string, channel string, serverURL string) (string, error) {
 	s := state.State{}
 	s.System.Provider.Config.Name = "images"
+	ignoreSignedJSON := true
+
+	if serverURL != "" {
+		s.System.Provider.Config.Config = map[string]string{"server_url": serverURL}
+		if !strings.HasPrefix(serverURL, "https://") {
+			ignoreSignedJSON = false
+		}
+	}
+
 	s.System.Update.Config.Channel = channel
 
-	provider, err := providers.Load(ctx, &s, true)
+	provider, err := providers.Load(ctx, &s, ignoreSignedJSON)
 	if err != nil {
 		return "", err
 	}
