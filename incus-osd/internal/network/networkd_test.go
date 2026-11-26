@@ -446,7 +446,7 @@ func TestBadNetworkConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		err = ValidateNetworkConfiguration(context.TODO(), &cfg, false)
-		require.EqualError(t, err, "duplicate interface/bond/vlan/wireguard name: iface")
+		require.EqualError(t, err, "duplicate interface/bond/vlan/wireguard/loopback name: iface")
 	}
 
 	{
@@ -1147,4 +1147,78 @@ func TestDecodeLLDPCapabilities(t *testing.T) {
 	require.Equal(t, []string{}, decodeLLDPCapabilities(0))
 	require.Equal(t, []string{"other", "station"}, decodeLLDPCapabilities(0x81))
 	require.Equal(t, []string{"bridge", "router", "c-vlan", "tpmr"}, decodeLLDPCapabilities(0x514))
+}
+
+func TestLoopbackConfig(t *testing.T) {
+	t.Parallel()
+
+	cfg := api.SystemNetworkConfig{Loopbacks: []api.SystemNetworkLoopback{
+		{Name: "loopback", Addresses: []string{"10.255.0.11/32", "2001:db8::11/128"}},
+		{Name: "anycast", Addresses: []string{"192.0.2.53/32"}},
+	}}
+
+	err := ValidateNetworkConfiguration(context.TODO(), &cfg, true)
+	require.NoError(t, err)
+
+	cfgs, err := generateNetdevFileContents(cfg)
+	require.NoError(t, err)
+	require.Len(t, cfgs, 2)
+	require.Equal(t, "08-loopback.netdev", cfgs[0].Name)
+	require.Equal(t, "[NetDev]\nName=loopback\nKind=dummy\n", cfgs[0].Contents)
+	require.Equal(t, "08-anycast.netdev", cfgs[1].Name)
+	require.Equal(t, "[NetDev]\nName=anycast\nKind=dummy\n", cfgs[1].Contents)
+
+	cfgs, err = generateNetworkFileContents(context.TODO(), cfg)
+	require.NoError(t, err)
+	require.Len(t, cfgs, 2)
+	require.Equal(t, "24-loopback.network", cfgs[0].Name)
+	require.Equal(t, "[Match]\nName=loopback\n\n[Link]\nRequiredForOnline=no\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nAddress=10.255.0.11/32\nAddress=2001:db8::11/128\n", cfgs[0].Contents)
+	require.Equal(t, "24-anycast.network", cfgs[1].Name)
+	require.Equal(t, "[Match]\nName=anycast\n\n[Link]\nRequiredForOnline=no\n\n[Network]\nLinkLocalAddressing=no\nConfigureWithoutCarrier=yes\nAddress=192.0.2.53/32\n", cfgs[1].Contents)
+}
+
+func TestLoopbackValidation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		loopback api.SystemNetworkLoopback
+		err      string
+	}{
+		{api.SystemNetworkLoopback{Name: "loopback", Addresses: []string{"10.255.0.0/24"}}, "loopback 0 address 0 '10.255.0.0/24' must be a /32 or /128"},
+		{api.SystemNetworkLoopback{Name: "loopback", Addresses: []string{"127.0.0.2/32"}}, "loopback 0 address 0 '127.0.0.2/32' is reserved"},
+		{api.SystemNetworkLoopback{Name: "loopback", Addresses: []string{"fe80::1/128"}}, "loopback 0 address 0 'fe80::1/128' is reserved"},
+		{api.SystemNetworkLoopback{Name: "loopback", Addresses: []string{"10.255.0.1/32", "10.255.0.1/32"}}, "loopback 0 address 1 '10.255.0.1/32' is a duplicate"},
+		{api.SystemNetworkLoopback{Name: "loopback", Addresses: []string{"10.255.0.1"}}, "loopback 0 address 0 invalid IP address '10.255.0.1', must provide a CIDR mask"},
+		{api.SystemNetworkLoopback{Name: "loopback"}, "loopback 0 has no addresses"},
+		{api.SystemNetworkLoopback{Addresses: []string{"10.255.0.1/32"}}, "loopback 0 has no name"},
+		{api.SystemNetworkLoopback{Name: "lo", Addresses: []string{"10.255.0.1/32"}}, "loopback 0 name 'lo' is reserved for the loopback interface"},
+	}
+
+	for _, tt := range tests {
+		cfg := api.SystemNetworkConfig{
+			Interfaces: []api.SystemNetworkInterface{{Name: "uplink", Hwaddr: "AA:BB:CC:DD:EE:FF", Addresses: []string{"dhcp4"}}},
+			Loopbacks:  []api.SystemNetworkLoopback{tt.loopback},
+		}
+
+		require.EqualError(t, ValidateNetworkConfiguration(context.TODO(), &cfg, false), tt.err)
+	}
+
+	// Loopback names share the namespace of the other interfaces.
+	cfg := api.SystemNetworkConfig{
+		Interfaces: []api.SystemNetworkInterface{{Name: "uplink", Hwaddr: "AA:BB:CC:DD:EE:FF", Addresses: []string{"dhcp4"}}},
+		Loopbacks:  []api.SystemNetworkLoopback{{Name: "uplink", Addresses: []string{"10.255.0.1/32"}}},
+	}
+
+	require.EqualError(t, ValidateNetworkConfiguration(context.TODO(), &cfg, false), "duplicate interface/bond/vlan/wireguard/loopback name: uplink")
+
+	// An address can only be on one loopback.
+	cfg = api.SystemNetworkConfig{
+		Interfaces: []api.SystemNetworkInterface{{Name: "uplink", Hwaddr: "AA:BB:CC:DD:EE:FF", Addresses: []string{"dhcp4"}}},
+		Loopbacks: []api.SystemNetworkLoopback{
+			{Name: "loopback", Addresses: []string{"2001:db8::1/128"}},
+			{Name: "anycast", Addresses: []string{"2001:DB8:0::1/128"}},
+		},
+	}
+
+	require.EqualError(t, ValidateNetworkConfiguration(context.TODO(), &cfg, false), "loopback 1 address 0 '2001:DB8:0::1/128' is a duplicate")
 }
