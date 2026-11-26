@@ -1330,6 +1330,9 @@ definitions:
             energy_performance_preference:
                 type: string
                 x-go-name: EnergyPerformancePreference
+            frequency_boosting:
+                type: string
+                x-go-name: FrequencyBoosting
             scaling_governor:
                 type: string
                 x-go-name: ScalingGovernor
@@ -1364,6 +1367,12 @@ definitions:
             energy_performance_preference:
                 type: string
                 x-go-name: EnergyPerformancePreference
+            frequency_boosting_disabled:
+                type: boolean
+                x-go-name: FrequencyBoostingDisabled
+            frequency_boosting_supported:
+                type: boolean
+                x-go-name: FrequencyBoostingSupported
             scaling_available_governors:
                 items:
                     type: string

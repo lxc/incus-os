@@ -57,3 +57,16 @@ def TestIncusOSAPISystemPower(install_image):
 
         if result["metadata"]["state"]["screen"]["blank_timeout"] != 10:
             raise IncusOSException("screen blank timeout wasn't applied")
+
+        # Frequency boosting isn't available in the VMs.
+        result = vm.APIRequest("/1.0/system/power", method="PUT", body=json.dumps({"config": {"cpu": {"frequency_boosting": "disabled"}}}))
+        if result["error_code"] != 400:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        # Verify the invalid configuration is not saved.
+        result = vm.APIRequest("/1.0/system/power")
+        if result["status_code"] != 200:
+            raise IncusOSException("unexpected status code %d: %s" % (result["error_code"], result["error"]))
+
+        if result["metadata"]["config"] != {"screen": {"blank_timeout": 10}}:
+            raise IncusOSException("invalid config was applied")

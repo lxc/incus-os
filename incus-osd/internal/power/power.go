@@ -16,7 +16,24 @@ import (
 	"github.com/lxc/incus-os/incus-osd/api"
 )
 
-const cpu0FreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/"
+const (
+	cpu0FreqPath     = "/sys/devices/system/cpu/cpu0/cpufreq/"
+	noTurboPath      = "/sys/devices/system/cpu/intel_pstate/no_turbo"
+	cpufreqBoostPath = "/sys/devices/system/cpu/cpufreq/boost"
+)
+
+// frequencyBoostingControl describes a sysfs file controlling CPU frequency boosting and its enabled/disabled values.
+type frequencyBoostingControl struct {
+	path          string
+	disabledValue string
+	enabledValue  string
+}
+
+// frequencyBoostingControls lists candidate frequencyBoostingControl on the system in order of preference.
+var frequencyBoostingControls = []frequencyBoostingControl{
+	{path: noTurboPath, disabledValue: "1", enabledValue: "0"},
+	{path: cpufreqBoostPath, disabledValue: "0", enabledValue: "1"},
+}
 
 // ErrInvalidConfig is returned when the configuration doesn't pass the validation check.
 var ErrInvalidConfig = errors.New("invalid power configuration")
@@ -49,6 +66,15 @@ func ApplyPowerConfiguration(ctx context.Context, config api.SystemPowerConfig) 
 
 		if screenConfigChanged {
 			_ = applyScreenBlankTimeout(currentState.Screen.BlankTimeout)
+		}
+
+		if currentState.CPU.FrequencyBoostingSupported {
+			option := "enabled"
+			if currentState.CPU.FrequencyBoostingDisabled {
+				option = "disabled"
+			}
+
+			_ = applyCPUFrequencyBoosting(option)
 		}
 	})
 
@@ -120,6 +146,22 @@ func validatePowerConfigurationCPU(config api.SystemPowerConfigCPU) error {
 		return fmt.Errorf("%w: energy performance preference %q can't be used with the \"performance\" scaling governor", ErrInvalidConfig, config.EnergyPerformancePreference)
 	}
 
+	// Check the frequency boosting value and whether the system supports it.
+	if config.FrequencyBoosting != "" {
+		if config.FrequencyBoosting != "enabled" && config.FrequencyBoosting != "disabled" {
+			return fmt.Errorf("%w: frequency boosting must be \"enabled\" or \"disabled\"", ErrInvalidConfig)
+		}
+
+		_, ok, err := getFrequencyBoostingControl()
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return fmt.Errorf("%w: frequency boosting is not supported on this system", ErrInvalidConfig)
+		}
+	}
+
 	return nil
 }
 
@@ -133,6 +175,12 @@ func applyPowerConfigurationCPU(config api.SystemPowerConfigCPU) error {
 
 	// Apply CPU energy performance preference config.
 	err = applyCPUEnergyPerformancePreference(config.EnergyPerformancePreference)
+	if err != nil {
+		return err
+	}
+
+	// Apply frequency boosting config.
+	err = applyCPUFrequencyBoosting(config.FrequencyBoosting)
 	if err != nil {
 		return err
 	}
@@ -166,6 +214,47 @@ func applyCPUEnergyPerformancePreference(epp string) error {
 	if err != nil {
 		if errors.Is(err, syscall.EBUSY) {
 			return fmt.Errorf("energy performance preference %q can't be set while using the current scaling governor", epp)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+// applyCPUFrequencyBoosting enables or disables frequency boosting.
+func applyCPUFrequencyBoosting(option string) error {
+	var disable bool
+
+	switch option {
+	case "":
+		return nil
+	case "enabled":
+		disable = false
+	case "disabled":
+		disable = true
+	default:
+		return fmt.Errorf("%w: frequency boosting must be \"enabled\" or \"disabled\"", ErrInvalidConfig)
+	}
+
+	control, ok, err := getFrequencyBoostingControl()
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return errors.New("applying frequency boosting on system that does not support it")
+	}
+
+	if disable {
+		err = writeSysfs(control.path, control.disabledValue)
+	} else {
+		err = writeSysfs(control.path, control.enabledValue)
+	}
+
+	if err != nil {
+		if errors.Is(err, syscall.EPERM) {
+			return fmt.Errorf("%w: trying to enable frequency boosting while it is disabled on the firmware", ErrInvalidConfig)
 		}
 
 		return err
@@ -219,12 +308,37 @@ func getPowerStateCPU() (api.SystemPowerStateCPU, error) {
 		return api.SystemPowerStateCPU{}, err
 	}
 
+	var (
+		frequencyBoostingSupported bool
+		frequencyBoostingDisabled  bool
+	)
+
+	control, ok, err := getFrequencyBoostingControl()
+	if err != nil {
+		return api.SystemPowerStateCPU{}, err
+	}
+
+	if ok {
+		frequencyBoostingSupported = true
+
+		value, err := readSysfsString(control.path)
+		if err != nil {
+			return api.SystemPowerStateCPU{}, err
+		}
+
+		if value == control.disabledValue {
+			frequencyBoostingDisabled = true
+		}
+	}
+
 	return api.SystemPowerStateCPU{
 		ScalingDriver:                         scalingDriver,
 		ScalingGovernor:                       scalingGovernor,
 		ScalingAvailableGovernors:             scalingAvailableGovernors,
 		EnergyPerformancePreference:           energyPerformancePreference,
 		EnergyPerformanceAvailablePreferences: energyPerformanceAvailablePreferences,
+		FrequencyBoostingSupported:            frequencyBoostingSupported,
+		FrequencyBoostingDisabled:             frequencyBoostingDisabled,
 	}, nil
 }
 
@@ -290,4 +404,20 @@ func writeSysfs(pattern string, value string) error {
 	}
 
 	return nil
+}
+
+// getFrequencyBoostingControl returns the frequency boosting control for the system and whether it's available.
+func getFrequencyBoostingControl() (frequencyBoostingControl, bool, error) {
+	for _, control := range frequencyBoostingControls {
+		value, err := readSysfsString(control.path)
+		if err != nil {
+			return frequencyBoostingControl{}, false, err
+		}
+
+		if value != "" {
+			return control, true, nil
+		}
+	}
+
+	return frequencyBoostingControl{}, false, nil
 }
