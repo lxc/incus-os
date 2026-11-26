@@ -91,6 +91,22 @@ Applications may also provide debug actions, which are run the same way through 
 incus admin os application debug <name> -d '{"action":"<action>"}'
 ```
 
+## Installing a specific application version
+
+In rare cases, it may be necessary to install a specific version of an application. This can be achieved by setting the `force_version` field to the required IncusOS version string desired. (It's not possible to directly specify an application-specific version via this command.)
+
+```
+incus admin os application add <application> -d '{"force_version":"202610281429"}'
+```
+
+## Forcefully reinstalling an application
+
+In rare cases, it may be necessary to forcefully reinstall an existing application. This can be achieved by setting the `force_reinstall` field to true and re-running the `application add` command. Optionally, you can also specify a `force_version` value to reinstall a specific version, rather than defaulting to the latest available version.
+
+```
+incus admin os application add <application> -d '{"force_reinstall":true}'
+```
+
 ## Backing up the application
 
 ```{important}

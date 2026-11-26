@@ -717,7 +717,7 @@ func downloadCurrentIncusOSRelease(ctx context.Context, asker ask.Asker, imageFo
 	}
 
 	// Get the latest release.
-	release, err := provider.GetOSUpdate(ctx)
+	release, err := provider.GetOSUpdate(ctx, providers.LatestVersion)
 	if err != nil {
 		return "", err
 	}

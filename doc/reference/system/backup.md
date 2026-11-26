@@ -42,6 +42,16 @@ Restore the backup by running
 incus admin os system restore backup.tar.gz
 ```
 
+## Reinstalling the inactive version of IncusOS
+
+If the underlying `/usr`-verity OS image becomes corrupt, it is possible to reinstall it. Because of technical limitations it is not possible to reinstall the currently running version of IncusOS, so first the system must be rebooted into the other installed version.
+
+Once booted into the non-affected version of IncusOS, trigger the reinstall of the other version by running
+
+```
+incus admin os system reinstall-inactive-os
+```
+
 ## Factory reset
 
 ```{warning}
