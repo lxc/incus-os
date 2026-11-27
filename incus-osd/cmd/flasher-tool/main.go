@@ -125,36 +125,17 @@ func (c *cmdGlobal) run(_ *cobra.Command, _ []string) error {
 			return err
 		}
 	} else {
+		var buf []byte
+
+		buf, err = loadSeed(c.flagSeedTar)
+		if err != nil {
+			slog.ErrorContext(ctx, err.Error())
+
+			return err
+		}
+
 		// Inject the provided seed data.
 		slog.InfoContext(ctx, "Injecting user-provided seed data")
-
-		// #nosec G304
-		seedFD, err := os.Open(c.flagSeedTar)
-		if err != nil {
-			slog.ErrorContext(ctx, err.Error())
-
-			return err
-		}
-
-		s, err := seedFD.Stat()
-		if err != nil {
-			slog.ErrorContext(ctx, err.Error())
-
-			return err
-		}
-
-		buf := make([]byte, s.Size())
-
-		numBytes, err := seedFD.Read(buf)
-		if err != nil {
-			slog.ErrorContext(ctx, err.Error())
-
-			return err
-		}
-
-		if int64(numBytes) != s.Size() {
-			slog.ErrorContext(ctx, fmt.Sprintf("Only read %d of %d bytes from seed file '%s'", numBytes, s.Size(), c.flagSeedTar))
-		}
 
 		err = injectSeedIntoImage(imageFilename, buf)
 		if err != nil {
