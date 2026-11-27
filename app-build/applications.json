@@ -71,7 +71,7 @@
         ]
     },
     "linux-firmware-base": {
-        "version": "20261019",
+        "version": "20261124",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -110,7 +110,7 @@
         ]
     },
     "linux-firmware-gpu": {
-        "version": "20261019",
+        "version": "20261124",
         "repo": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware.git",
         "directory": "linux-firmware",
         "build_targets": [],
@@ -193,7 +193,7 @@
         ]
     },
     "netbird": {
-        "version": "v0.83.2",
+        "version": "v0.84.0",
         "repo": "https://github.com/netbirdio/netbird.git",
         "build_targets": [
             [
@@ -301,7 +301,7 @@
         ]
     },
     "tailscale": {
-        "version": "v1.106.0",
+        "version": "v1.104.7",
         "repo": "https://github.com/tailscale/tailscale.git",
         "github_release": true,
         "build_targets": [
